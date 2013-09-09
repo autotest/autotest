@@ -1,7 +1,9 @@
 from django.db.backends.mysql import compiler as mysql_compiler
 from autotest.frontend.afe.model_logic import _quote_name
 
+
 class SQLCompiler(mysql_compiler.SQLCompiler):
+
     def get_from_clause(self):
         from_, params = super(SQLCompiler, self).get_from_clause()
 
@@ -16,17 +18,22 @@ class SQLCompiler(mysql_compiler.SQLCompiler):
 
         return from_, params
 
+
 class SQLInsertCompiler(mysql_compiler.SQLInsertCompiler, SQLCompiler):
     pass
+
 
 class SQLDeleteCompiler(mysql_compiler.SQLDeleteCompiler, SQLCompiler):
     pass
 
+
 class SQLUpdateCompiler(mysql_compiler.SQLUpdateCompiler, SQLCompiler):
     pass
 
+
 class SQLAggregateCompiler(mysql_compiler.SQLAggregateCompiler, SQLCompiler):
     pass
+
 
 class SQLDateCompiler(mysql_compiler.SQLDateCompiler, SQLCompiler):
     pass

@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
-import unittest, os
+import unittest
+import os
 try:
     import autotest.common as common
 except ImportError:
@@ -13,38 +14,35 @@ from autotest.server.hosts import bootloader
 
 
 class test_bootloader(unittest.TestCase):
+
     def setUp(self):
         self.god = mock.mock_god()
 
         # mock out get_server_dir
         self.god.stub_function(utils, "get_server_dir")
 
-
     def tearDown(self):
         self.god.unstub_all()
-
 
     def create_mock_host(self):
         # useful for building disposable RemoteHost mocks
         return self.god.create_mock_class(hosts.RemoteHost, "host")
 
-
     def create_install_boottool_mock(self, loader, dst_dir):
         mock_install_boottool = \
-                self.god.create_mock_function("_install_boottool")
+            self.god.create_mock_function("_install_boottool")
+
         def install_boottool():
             loader._boottool_path = dst_dir
             mock_install_boottool()
         loader._install_boottool = install_boottool
         return mock_install_boottool
 
-
     def test_install_fails_without_host(self):
         host = self.create_mock_host()
         loader = bootloader.Bootloader(host)
         del host
         self.assertRaises(error.AutoservError, loader._install_boottool)
-
 
     def test_installs_to_tmpdir(self):
         TMPDIR = "/unittest/tmp"
@@ -65,20 +63,18 @@ class test_bootloader(unittest.TestCase):
         # assert the final dest is correct
         self.assertEquals(loader._boottool_path, BOOTTOOL_DST)
 
-
     def test_get_path_automatically_installs(self):
         BOOTTOOL_DST = "/unittest/tmp/boottool"
         host = self.create_mock_host()
         loader = bootloader.Bootloader(host)
         # mock out loader.install_boottool
         mock_install = \
-                self.create_install_boottool_mock(loader, BOOTTOOL_DST)
+            self.create_install_boottool_mock(loader, BOOTTOOL_DST)
         # set up the recording
         mock_install.expect_call()
         # run the test
         self.assertEquals(loader._get_boottool_path(), BOOTTOOL_DST)
         self.god.check_playback()
-
 
     def test_install_is_only_called_once(self):
         BOOTTOOL_DST = "/unittest/tmp/boottool"
@@ -86,7 +82,7 @@ class test_bootloader(unittest.TestCase):
         loader = bootloader.Bootloader(host)
         # mock out loader.install_boottool
         mock_install = \
-                self.create_install_boottool_mock(loader, BOOTTOOL_DST)
+            self.create_install_boottool_mock(loader, BOOTTOOL_DST)
         # set up the recording
         mock_install.expect_call()
         # run the test

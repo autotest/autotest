@@ -12,13 +12,16 @@ It is required that the unique_id param is supplied when a temp dir/file is
 created.
 """
 
-import shutil, os, logging
+import shutil
+import os
+import logging
 import tempfile as module_tempfile
 
 _TEMPLATE = '_autotmp_'
 
 
 class tempfile(object):
+
     """
     A wrapper for tempfile.mkstemp
 
@@ -34,6 +37,7 @@ class tempfile(object):
         t.fo   # file object
         t.clean() # clean up after yourself
     """
+
     def __init__(self, unique_id, suffix='', prefix='', dir=None,
                  text=False):
         suffix = unique_id + suffix
@@ -42,7 +46,6 @@ class tempfile(object):
                                                      prefix=prefix,
                                                      dir=dir, text=text)
         self.fo = os.fdopen(self.fd)
-
 
     def clean(self):
         """
@@ -55,7 +58,6 @@ class tempfile(object):
             os.remove(self.name)
 
         self.fd = self.fo = self.name = None
-
 
     def __del__(self):
         try:
@@ -71,6 +73,7 @@ class tempfile(object):
 
 
 class tempdir(object):
+
     """
     A wrapper for tempfile.mkdtemp
 
@@ -81,12 +84,12 @@ class tempdir(object):
         b.name # your directory
         b.clean() # clean up after yourself
     """
-    def __init__(self,  suffix='', unique_id=None, prefix='', dir=None):
+
+    def __init__(self, suffix='', unique_id=None, prefix='', dir=None):
         suffix = unique_id + suffix
         prefix = prefix + _TEMPLATE
         self.name = module_tempfile.mkdtemp(suffix=suffix,
                                             prefix=prefix, dir=dir)
-
 
     def clean(self):
         """
@@ -97,7 +100,6 @@ class tempdir(object):
             shutil.rmtree(self.name)
 
         self.name = None
-
 
     def __del__(self):
         try:

@@ -1,4 +1,6 @@
-import os, heapq, traceback
+import os
+import heapq
+import traceback
 try:
     import autotest.common as common
 except ImportError:
@@ -14,7 +16,7 @@ from autotest.scheduler import scheduler_config
 # directory with this name
 _DRONE_RESULTS_DIR_SUFFIX = 'results'
 
-WORKING_DIRECTORY = object() # see execute_command()
+WORKING_DIRECTORY = object()  # see execute_command()
 
 
 AUTOSERV_PID_FILE = '.autoserv_execute'
@@ -31,25 +33,24 @@ class DroneManagerError(Exception):
 
 
 class CustomEquals(object):
+
     def _id(self):
         raise NotImplementedError
-
 
     def __eq__(self, other):
         if not isinstance(other, type(self)):
             return NotImplemented
         return self._id() == other._id()
 
-
     def __ne__(self, other):
         return not self == other
-
 
     def __hash__(self):
         return hash(self._id())
 
 
 class Process(CustomEquals):
+
     def __init__(self, hostname, pid, ppid=None):
         self.hostname = hostname
         self.pid = pid
@@ -58,23 +59,20 @@ class Process(CustomEquals):
     def _id(self):
         return (self.hostname, self.pid)
 
-
     def __str__(self):
         return '%s/%s' % (self.hostname, self.pid)
-
 
     def __repr__(self):
         return super(Process, self).__repr__() + '<%s>' % self
 
 
 class PidfileId(CustomEquals):
+
     def __init__(self, path):
         self.path = path
 
-
     def _id(self):
         return self.path
-
 
     def __str__(self):
         return str(self.path)
@@ -93,36 +91,34 @@ class PidfileContents(object):
     def is_invalid(self):
         return False
 
-
     def is_running(self):
         return self.process and not self.exit_status
 
 
 class InvalidPidfile(object):
+
     def __init__(self, error):
         self.error = error
-
 
     def is_invalid(self):
         return True
 
-
     def is_running(self):
         return False
-
 
     def __str__(self):
         return self.error
 
 
 class _DroneHeapWrapper(object):
+
     """Wrapper to compare drones based on used_capacity().
 
     These objects can be used to keep a heap of drones by capacity.
     """
+
     def __init__(self, drone):
         self.drone = drone
-
 
     def __cmp__(self, other):
         assert isinstance(other, _DroneHeapWrapper)
@@ -130,6 +126,7 @@ class _DroneHeapWrapper(object):
 
 
 class DroneManager(object):
+
     """
     This class acts as an interface from the scheduler to drones, whether it be
     only a single "drone" for localhost or multiple remote drones.
@@ -137,6 +134,7 @@ class DroneManager(object):
     All paths going into and out of this class are relative to the full results
     directory, except for those returns by absolute_path().
     """
+
     def __init__(self):
         # absolute path of base results dir
         self._results_dir = None
@@ -158,7 +156,6 @@ class DroneManager(object):
         # heapq of _DroneHeapWrappers
         self._drone_queue = []
 
-
     def initialize(self, base_results_dir, drone_hostnames,
                    results_repository_hostname):
         self._results_dir = base_results_dir
@@ -176,23 +173,20 @@ class DroneManager(object):
                      results_repository_hostname)
         self._results_drone = drones.get_drone(results_repository_hostname)
         results_installation_dir = settings.get_value(
-                scheduler_config.CONFIG_SECTION,
-                'results_host_installation_directory', default=None)
+            scheduler_config.CONFIG_SECTION,
+            'results_host_installation_directory', default=None)
         if results_installation_dir:
             self._results_drone.set_autotest_install_dir(
-                    results_installation_dir)
+                results_installation_dir)
         # don't initialize() the results drone - we don't want to clear out any
         # directories and we don't need to kill any processes
-
 
     def reinitialize_drones(self):
         self._call_all_drones('initialize', self._results_dir)
 
-
     def shutdown(self):
         for drone in self.get_drones():
             drone.shutdown()
-
 
     def _get_max_pidfile_refreshes(self):
         """
@@ -201,10 +195,9 @@ class DroneManager(object):
         @returns: The number of refresh() calls before we forget a pidfile.
         """
         pidfile_timeout = settings.get_value(
-                       scheduler_config.CONFIG_SECTION, 'max_pidfile_refreshes',
-                       type=int, default=2000)
+            scheduler_config.CONFIG_SECTION, 'max_pidfile_refreshes',
+            type=int, default=2000)
         return pidfile_timeout
-
 
     def _add_drone(self, hostname):
         logging.info('Adding drone %s' % hostname)
@@ -213,10 +206,8 @@ class DroneManager(object):
             self._drones[drone.hostname] = drone
             drone.call('initialize', self.absolute_path(''))
 
-
     def _remove_drone(self, hostname):
         self._drones.pop(hostname, None)
-
 
     def refresh_drone_configs(self):
         """
@@ -230,8 +221,8 @@ class DroneManager(object):
             drone.enabled = not bool(disabled)
 
             drone.max_processes = settings.get_value(
-                    section, '%s_max_processes' % hostname, type=int,
-                    default=scheduler_config.config.max_processes_per_drone)
+                section, '%s_max_processes' % hostname, type=int,
+                default=scheduler_config.config.max_processes_per_drone)
 
             allowed_users = settings.get_value(section, '%s_users' % hostname,
                                                default=None)
@@ -239,22 +230,18 @@ class DroneManager(object):
                 allowed_users = set(allowed_users.split())
             drone.allowed_users = allowed_users
 
-        self._reorder_drone_queue() # max_processes may have changed
-
+        self._reorder_drone_queue()  # max_processes may have changed
 
     def get_drones(self):
         return self._drones.itervalues()
 
-
     def _get_drone_for_process(self, process):
         return self._drones[process.hostname]
-
 
     def _get_drone_for_pidfile_id(self, pidfile_id):
         pidfile_contents = self.get_pidfile_contents(pidfile_id)
         assert pidfile_contents.process is not None
         return self._get_drone_for_process(pidfile_contents.process)
-
 
     def _drop_old_pidfiles(self):
         # use items() since the dict is modified in unregister_pidfile()
@@ -265,20 +252,17 @@ class DroneManager(object):
             else:
                 info.age += 1
 
-
     def _reset(self):
         self._process_set = set()
         self._pidfiles = {}
         self._pidfiles_second_read = {}
         self._drone_queue = []
 
-
     def _call_all_drones(self, method, *args, **kwargs):
         all_results = {}
         for drone in self.get_drones():
             all_results[drone] = drone.call(method, *args, **kwargs)
         return all_results
-
 
     def _parse_pidfile(self, drone, raw_contents):
         contents = PidfileContents()
@@ -302,19 +286,16 @@ class DroneManager(object):
 
         return contents
 
-
     def _process_pidfiles(self, drone, pidfiles, store_in_dict):
         for pidfile_path, contents in pidfiles.iteritems():
             pidfile_id = PidfileId(pidfile_path)
             contents = self._parse_pidfile(drone, contents)
             store_in_dict[pidfile_id] = contents
 
-
     def _add_process(self, drone, process_info):
         process = Process(drone.hostname, int(process_info['pid']),
                           int(process_info['ppid']))
         self._process_set.add(process)
-
 
     def _add_autoserv_process(self, drone, process_info):
         assert process_info['comm'] in ['autoserv', 'autotest-remote']
@@ -323,14 +304,11 @@ class DroneManager(object):
             return
         self._add_process(drone, process_info)
 
-
     def _enqueue_drone(self, drone):
         heapq.heappush(self._drone_queue, _DroneHeapWrapper(drone))
 
-
     def _reorder_drone_queue(self):
         heapq.heapify(self._drone_queue)
-
 
     def _compute_active_processes(self, drone):
         drone.active_processes = 0
@@ -342,7 +320,6 @@ class DroneManager(object):
                 info = self._registered_pidfile_info[pidfile_id]
                 if info.num_processes is not None:
                     drone.active_processes += info.num_processes
-
 
     def refresh(self):
         """
@@ -371,7 +348,6 @@ class DroneManager(object):
             if drone.enabled:
                 self._enqueue_drone(drone)
 
-
     def execute_actions(self):
         """
         Called at the end of a scheduler cycle to execute all queued actions
@@ -388,14 +364,12 @@ class DroneManager(object):
             mail.manager.enqueue_admin('Results repository error', warning)
             self._results_drone.clear_call_queue()
 
-
     def get_orphaned_autoserv_processes(self):
         """
         Returns a set of Process objects for orphaned processes only.
         """
         return set(process for process in self._process_set
                    if process.ppid == 1)
-
 
     def kill_process(self, process):
         """
@@ -405,15 +379,12 @@ class DroneManager(object):
         drone = self._get_drone_for_process(process)
         drone.queue_call('kill_process', process)
 
-
     def _ensure_directory_exists(self, path):
         if not os.path.exists(path):
             os.makedirs(path)
 
-
     def total_running_processes(self):
         return sum(drone.active_processes for drone in self.get_drones())
-
 
     def max_runnable_processes(self, username, drone_hostnames_allowed):
         """
@@ -426,16 +397,15 @@ class DroneManager(object):
         usable_drone_wrappers = [wrapper for wrapper in self._drone_queue
                                  if wrapper.drone.usable_by(username) and
                                  (drone_hostnames_allowed is None or
-                                          wrapper.drone.hostname in
-                                                  drone_hostnames_allowed)]
+                                  wrapper.drone.hostname in
+                                  drone_hostnames_allowed)]
         if not usable_drone_wrappers:
             # all drones disabled or inaccessible
             return 0
         runnable_processes = [
-                wrapper.drone.max_processes - wrapper.drone.active_processes
-                for wrapper in usable_drone_wrappers]
+            wrapper.drone.max_processes - wrapper.drone.active_processes
+            for wrapper in usable_drone_wrappers]
         return max([0] + runnable_processes)
-
 
     def _least_loaded_drone(self, drones):
         drone_to_use = drones[0]
@@ -443,7 +413,6 @@ class DroneManager(object):
             if drone.used_capacity() < drone_to_use.used_capacity():
                 drone_to_use = drone
         return drone_to_use
-
 
     def _choose_drone_for_execution(self, num_processes, username,
                                     drone_hostnames_allowed):
@@ -489,13 +458,11 @@ class DroneManager(object):
 
         return drone_to_use
 
-
     def _substitute_working_directory_into_command(self, command,
                                                    working_directory):
         for i, item in enumerate(command):
             if item is WORKING_DIRECTORY:
                 command[i] = working_directory
-
 
     def execute_command(self, command, working_directory, pidfile_name,
                         num_processes, log_file=None, paired_with_pidfile=None,
@@ -553,11 +520,9 @@ class DroneManager(object):
         self._registered_pidfile_info[pidfile_id].num_processes = num_processes
         return pidfile_id
 
-
     def get_pidfile_id_from(self, execution_tag, pidfile_name):
         path = os.path.join(self.absolute_path(execution_tag), pidfile_name)
         return PidfileId(path)
-
 
     def register_pidfile(self, pidfile_id):
         """
@@ -569,21 +534,17 @@ class DroneManager(object):
             self._registered_pidfile_info[pidfile_id] = _PidfileInfo()
         self._reset_pidfile_age(pidfile_id)
 
-
     def _reset_pidfile_age(self, pidfile_id):
         if pidfile_id in self._registered_pidfile_info:
             self._registered_pidfile_info[pidfile_id].age = 0
-
 
     def unregister_pidfile(self, pidfile_id):
         if pidfile_id in self._registered_pidfile_info:
             logging.info('forgetting pidfile %s', pidfile_id)
             del self._registered_pidfile_info[pidfile_id]
 
-
     def declare_process_count(self, pidfile_id, num_processes):
         self._registered_pidfile_info[pidfile_id].num_processes = num_processes
-
 
     def get_pidfile_contents(self, pidfile_id, use_second_read=False):
         """
@@ -598,13 +559,11 @@ class DroneManager(object):
             pidfile_map = self._pidfiles
         return pidfile_map.get(pidfile_id, PidfileContents())
 
-
     def is_process_running(self, process):
         """
         Check if the given process is in the running process list.
         """
         return process in self._process_set
-
 
     def get_temporary_path(self, base_name):
         """
@@ -614,7 +573,6 @@ class DroneManager(object):
         self._temporary_path_counter += 1
         return os.path.join(drone_utility._TEMPORARY_DIRECTORY,
                             '%s.%s' % (base_name, self._temporary_path_counter))
-
 
     def absolute_path(self, path, on_results_repository=False):
         if on_results_repository:
@@ -631,12 +589,11 @@ class DroneManager(object):
 
         return os.path.join(base_dir, path)
 
-
     def _copy_results_helper(self, process, source_path, destination_path,
                              to_results_repository=False):
         full_source = self.absolute_path(source_path)
         full_destination = self.absolute_path(
-                destination_path, on_results_repository=to_results_repository)
+            destination_path, on_results_repository=to_results_repository)
         source_drone = self._get_drone_for_process(process)
         if to_results_repository:
             source_drone.send_file_to(self._results_drone, full_source,
@@ -644,7 +601,6 @@ class DroneManager(object):
         else:
             source_drone.queue_call('copy_file_or_directory', full_source,
                                     full_destination)
-
 
     def copy_to_results_repository(self, process, source_path,
                                    destination_path=None):
@@ -657,20 +613,17 @@ class DroneManager(object):
         self._copy_results_helper(process, source_path, destination_path,
                                   to_results_repository=True)
 
-
     def copy_results_on_drone(self, process, source_path, destination_path):
         """
         Copy a results directory from one place to another on the drone.
         """
         self._copy_results_helper(process, source_path, destination_path)
 
-
     def _write_attached_files(self, results_dir, drone):
         attached_files = self._attached_files.pop(results_dir, {})
         for file_path, contents in attached_files.iteritems():
             drone.queue_call('write_to_file', self.absolute_path(file_path),
                              contents)
-
 
     def attach_file_to_execution(self, results_dir, file_contents,
                                  file_path=None):
@@ -685,7 +638,6 @@ class DroneManager(object):
         assert file_path not in files_for_execution
         files_for_execution[file_path] = file_contents
         return file_path
-
 
     def write_lines_to_file(self, file_path, lines, paired_with_process=None):
         """
@@ -702,11 +654,12 @@ class DroneManager(object):
             drone = self._results_drone
             on_results_repository = True
         full_path = self.absolute_path(
-                file_path, on_results_repository=on_results_repository)
+            file_path, on_results_repository=on_results_repository)
         drone.queue_call('write_to_file', full_path, file_contents)
 
 
 _the_instance = None
+
 
 def instance():
     if _the_instance is None:
@@ -714,6 +667,6 @@ def instance():
     return _the_instance
 
 
-def _set_instance(instance): # usable for testing
+def _set_instance(instance):  # usable for testing
     global _the_instance
     _the_instance = instance

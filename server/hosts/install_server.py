@@ -1,7 +1,10 @@
 """
 Install server interfaces, for autotest client machine OS provisioning.
 """
-import os, xmlrpclib, logging, time
+import os
+import xmlrpclib
+import logging
+import time
 from autotest.client.shared import error
 
 
@@ -20,11 +23,13 @@ def remove_hosts_file():
 
 
 class CobblerInterface(object):
+
     """
     Implements interfacing with the Cobbler install server.
 
     @see: https://fedorahosted.org/cobbler/
     """
+
     def __init__(self, **kwargs):
         """
         Sets class attributes from the keyword arguments passed to constructor.
@@ -40,7 +45,6 @@ class CobblerInterface(object):
             self.token = self.server.login(self.user, self.password)
         self.num_attempts = int(kwargs.get('num_attempts', 2))
 
-
     def get_system_handle(self, host):
         """
         Get a system handle, needed to perform operations on the given host
@@ -50,16 +54,15 @@ class CobblerInterface(object):
         @return: Tuple (system, system_handle)
         """
         try:
-            system = self.server.find_system({"name" : host.hostname})[0]
+            system = self.server.find_system({"name": host.hostname})[0]
         except IndexError, detail:
-            ### TODO: Method to register this system as brand new
+            # TODO: Method to register this system as brand new
             logging.error("Error finding %s: %s", host.hostname, detail)
             raise ValueError("No system %s registered on install server" %
                              host.hostname)
 
         system_handle = self.server.get_system_handle(system, self.token)
         return (system, system_handle)
-
 
     def _set_host_profile(self, host, profile=''):
         system, system_handle = self.get_system_handle(host)
@@ -87,7 +90,6 @@ class CobblerInterface(object):
             if not "unknown remote method" in err.faultString:
                 logging.error("DHCP sync failed, error code: %s, error string: %s",
                               err.faultCode, err.faultString)
-
 
     def install_host(self, host, profile='', timeout=None, num_attempts=2):
         """
@@ -168,8 +170,7 @@ class CobblerInterface(object):
         host.record("END GOOD", None, "install", host.hostname)
         time_elapsed = time.time() - install_start
         logging.info("Machine %s installed successfully after %d s (%d min)",
-                     host.hostname, time_elapsed, time_elapsed/60)
-
+                     host.hostname, time_elapsed, time_elapsed / 60)
 
     def power_host(self, host, state='reboot'):
         """

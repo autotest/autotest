@@ -14,9 +14,9 @@ import os
 
 ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
 PROJECTS = (
-        ('frontend', 'tko'),
-        ('frontend', 'afe'),
-    )
+    ('frontend', 'tko'),
+    ('frontend', 'afe'),
+)
 
 
 def main():

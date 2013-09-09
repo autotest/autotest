@@ -1,14 +1,17 @@
-import traceback, logging
+import traceback
+import logging
 
 from autotest.tko import status_lib, utils as tko_utils
 
 
 class parser(object):
+
     """
     Abstract parser base class. Provides a generic implementation of the
     standard parser interfaction functions. The derived classes must
     implement a state_iterator method for this class to be useful.
     """
+
     def start(self, job):
         """ Initialize the parser for processing the results of
         'job'."""
@@ -19,7 +22,6 @@ class parser(object):
         # create and prime the parser state machine
         self.state = self.state_iterator(self.line_buffer)
         self.state.next()
-
 
     def process_lines(self, lines):
         """ Feed 'lines' into the parser state machine, and return
@@ -34,7 +36,6 @@ class parser(object):
             logging.warn("Current stack:\n%s",
                          "".join(traceback.format_stack()))
             return []
-
 
     def end(self, lines=[]):
         """ Feed 'lines' into the parser state machine, signal to the
@@ -52,13 +53,11 @@ class parser(object):
                          "".join(traceback.format_stack()))
             return []
 
-
     @staticmethod
     def make_job(dir):
         """ Create a new instance of the job model used by the
         parser, given a results directory."""
         raise NotImplementedError
-
 
     def state_iterator(self, buffer):
         """ A generator method that implements the actual parser

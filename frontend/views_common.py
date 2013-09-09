@@ -1,5 +1,6 @@
 from django.http import HttpResponse
 
+
 def model_documentation(models_module, model_names):
     doc = '<h2>Models</h2>\n'
     for model_name in model_names:

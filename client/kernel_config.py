@@ -1,4 +1,6 @@
-import shutil, os, logging
+import shutil
+import os
+import logging
 from autotest.client import utils
 from autotest.client.shared import error, kernel_versions
 
@@ -11,10 +13,10 @@ def apply_overrides(orig_file, changes_file, output_file):
     for line in input_file.readlines():
         if line.startswith('CONFIG_'):
             key = line.split('=')[0]
-            override[key] = line;
+            override[key] = line
         elif line.startswith('# CONFIG_'):
             key = line.split(' ')[1]
-            override[key] = line;
+            override[key] = line
     input_file.close()
 
     # Now go through the input file, overriding lines where need be
@@ -63,6 +65,7 @@ def config_by_name(name, s):
 
 
 class kernel_config(object):
+
     """
     Build directory must be ready before init'ing config.
 
@@ -76,6 +79,7 @@ class kernel_config(object):
     or a custom config file you want, or None, to get machine's
     default config file from the repo.
     """
+
     def __init__(self, job, build_dir, config_dir, orig_file, overrides,
                  defconfig=False, name=None, make=None):
         self.build_dir = build_dir
@@ -94,7 +98,7 @@ class kernel_config(object):
 
         # 1. Get original config file
         self.build_config = os.path.join(build_dir, '.config')
-        if (orig_file == '' and not defconfig and not make): # use user default
+        if (orig_file == '' and not defconfig and not make):  # use user default
             s = job.config_get("kernel.default_config_set")
             defconf = None
             if s and name:
@@ -106,9 +110,9 @@ class kernel_config(object):
             else:
                 if self.running_config:
                     orig_file = self.running_config
-        if (orig_file == '' and not make and defconfig): # use defconfig
+        if (orig_file == '' and not make and defconfig):  # use defconfig
             make = 'defconfig'
-        if (orig_file == '' and make): # use the config command
+        if (orig_file == '' and make):  # use the config command
             logging.debug("using %s to configure kernel" % make)
             os.chdir(build_dir)
             make_return = utils.system('make %s > /dev/null' % make)
@@ -133,14 +137,12 @@ class kernel_config(object):
         else:
             self.over_config = self.orig_config
 
-
     def update_config(self, old_config, new_config=None):
         os.chdir(self.build_dir)
         shutil.copyfile(old_config, self.build_config)
         utils.system('yes "" | make oldconfig > /dev/null')
         if new_config is not None:
             shutil.copyfile(self.build_config, new_config)
-
 
     def config_record(self, name):
         """

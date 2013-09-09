@@ -1,7 +1,9 @@
-import os, sys
+import os
+import sys
 
 
 class ParallelError(Exception):
+
     def __init__(self, str, errors):
         self.str = str
         self.errors = errors
@@ -9,6 +11,7 @@ class ParallelError(Exception):
 
 
 class ParallelExecute(object):
+
     def __init__(self, functions, max_simultaneous_procs=20):
         """\
         This takes in a dictionary of functions which map to a set of
@@ -43,7 +46,6 @@ class ParallelExecute(object):
         self.pid_map = {}
         self.ready_to_run = []
 
-
     def _run(self, function):
         self.functions.pop(function)
         pid = os.fork()
@@ -52,7 +54,6 @@ class ParallelExecute(object):
         else:
             function()
             sys.exit(0)
-
 
     def run_until_completion(self):
         for fn, deps in self.functions.iteritems():

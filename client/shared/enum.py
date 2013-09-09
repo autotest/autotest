@@ -4,7 +4,9 @@ Generic enumeration support.
 
 __author__ = 'showard@google.com (Steve Howard)'
 
+
 class Enum(object):
+
     """\
     Utility class to implement Enum-like functionality.
 
@@ -30,6 +32,7 @@ class Enum(object):
     >>> e.TWO
     2
     """
+
     def __init__(self, *names, **kwargs):
         self.string_values = kwargs.get('string_values')
         start_value = kwargs.get('start_value', 0)
@@ -43,16 +46,13 @@ class Enum(object):
             self.values.append(value)
             setattr(self, self.get_attr_name(name), value)
 
-
     @staticmethod
     def get_attr_name(string):
         return string.upper().replace(' ', '_')
 
-
     def choices(self):
         'Return choice list suitable for Django model choices.'
         return zip(self.values, self.names)
-
 
     def get_value(self, name):
         """\
@@ -63,7 +63,6 @@ class Enum(object):
             # name is already a value
             return name
         return getattr(self, self.get_attr_name(name))
-
 
     def get_string(self, value):
         ' Given a value, get the string name for it.'

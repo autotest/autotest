@@ -1,6 +1,11 @@
 #!/usr/bin/python
 
-import logging, os, shutil, sys, StringIO, unittest
+import logging
+import os
+import shutil
+import sys
+import StringIO
+import unittest
 try:
     import autotest.common as common
 except ImportError:
@@ -16,6 +21,7 @@ from autotest.client.shared.test_utils import mock
 
 
 class job_test_case(unittest.TestCase):
+
     """Generic job TestCase class that defines a standard job setUp and
     tearDown, with some standard stubs."""
 
@@ -27,7 +33,6 @@ class job_test_case(unittest.TestCase):
                            classmethod(lambda cls: '/adir'))
         self.job = self.job_class.__new__(self.job_class)
         self.job._job_directory = base_job_unittest.stub_job_directory
-
 
     def tearDown(self):
         self.god.unstub_all()
@@ -42,13 +47,13 @@ class test_find_base_directories(
         self.assertEqual(autodir, '/adir')
         self.assertEqual(clientdir, '/adir')
 
-
     def test_serverdir_is_none(self):
         _, _, serverdir = self.job._find_base_directories()
         self.assertEqual(serverdir, None)
 
 
 class abstract_test_init(base_job_unittest.test_init.generic_tests):
+
     """Generic client job mixin used when defining variations on the
     job.__init__ generic tests."""
     OPTIONAL_ATTRIBUTES = (
@@ -57,6 +62,7 @@ class abstract_test_init(base_job_unittest.test_init.generic_tests):
 
 
 class test_init_minimal_options(abstract_test_init, job_test_case):
+
     def call_init(self):
         # TODO(jadmanski): refactor more of the __init__ code to not need to
         # stub out countless random APIs
@@ -67,20 +73,26 @@ class test_init_minimal_options(abstract_test_init, job_test_case):
         self.god.stub_function_to_return(job.shutil, 'copyfile', None)
         self.god.stub_function_to_return(job.logging_manager,
                                          'configure_logging', None)
+
         class manager:
+
             def start_logging(self):
                 return None
         self.god.stub_function_to_return(job.logging_manager,
                                          'get_logging_manager', manager())
+
         class stub_sysinfo:
+
             def log_per_reboot_data(self):
                 return None
         self.god.stub_function_to_return(job.sysinfo, 'sysinfo',
                                          stub_sysinfo())
+
         class stub_harness:
             run_start = lambda self: None
         self.god.stub_function_to_return(job.harness, 'select', stub_harness())
         self.god.stub_function_to_return(job.boottool, 'boottool', object())
+
         class options:
             tag = ''
             verbose = False
@@ -100,20 +112,22 @@ class test_init_minimal_options(abstract_test_init, job_test_case):
 
 
 class dummy(object):
+
     """A simple placeholder for attributes"""
     pass
 
 
 class first_line_comparator(mock.argument_comparator):
+
     def __init__(self, first_line):
         self.first_line = first_line
-
 
     def is_satisfied_by(self, parameter):
         return self.first_line == parameter.splitlines()[0]
 
 
 class test_base_job(unittest.TestCase):
+
     def setUp(self):
         # make god
         self.god = mock.mock_god(ut=self)
@@ -130,11 +144,13 @@ class test_base_job(unittest.TestCase):
         sys.stdout = StringIO.StringIO()
         logging_manager.configure_logging(logging_config.TestingConfig())
         logging.disable(logging.CRITICAL)
+
         def dummy_configure_logging(*args, **kwargs):
             pass
         self.god.stub_with(logging_manager, 'configure_logging',
                            dummy_configure_logging)
         real_get_logging_manager = logging_manager.get_logging_manager
+
         def get_logging_manager_no_fds(manage_stdout_and_stderr=False,
                                        redirect_fds=False):
             return real_get_logging_manager(manage_stdout_and_stderr, False)
@@ -167,11 +183,9 @@ class test_base_job(unittest.TestCase):
         self.god.stub_with(job.base_job.job_directory, '_ensure_valid',
                            lambda *_: None)
 
-
     def tearDown(self):
         sys.stdout = sys.__stdout__
         self.god.unstub_all()
-
 
     def _setup_pre_record_init(self, cont):
         self.god.stub_function(self.job, '_load_state')
@@ -192,7 +206,6 @@ class test_base_job(unittest.TestCase):
 
         return resultdir, my_harness
 
-
     def _setup_post_record_init(self, cont, resultdir, my_harness):
         # now some specific stubs
         self.god.stub_function(self.job, 'config_get')
@@ -207,11 +220,11 @@ class test_base_job(unittest.TestCase):
         job_sysinfo = sysinfo.sysinfo.expect_new(resultdir)
         if not cont:
             shutil.copyfile.expect_call(mock.is_string_comparator(),
-                                 os.path.join(resultdir, 'control'))
+                                        os.path.join(resultdir, 'control'))
 
         self.config = config.config.expect_new(self.job)
         self.job.config_get.expect_call(
-                'boottool.executable').and_return(None)
+            'boottool.executable').and_return(None)
         bootloader = boottool.boottool.expect_new(None)
         job.local_host.LocalHost.expect_new(hostname='localhost',
                                             bootloader=bootloader)
@@ -226,7 +239,6 @@ class test_base_job(unittest.TestCase):
             'blah more-blah root=lala IDENT=81234567 blah-again console=tty1')
         self.job.config_set.expect_call('boot.default_args',
                                         'more-blah console=tty1')
-
 
     def construct_job(self, cont):
         # will construct class instance using __new__
@@ -255,7 +267,6 @@ class test_base_job(unittest.TestCase):
         # check
         self.god.check_playback()
 
-
     def get_partition_mock(self, devname):
         """
         Create a mock of a partition object and return it.
@@ -265,14 +276,11 @@ class test_base_job(unittest.TestCase):
             get_mountpoint = self.god.create_mock_function('get_mountpoint')
         return mock
 
-
     def test_constructor_first_run(self):
         self.construct_job(False)
 
-
     def test_constructor_continuation(self):
         self.construct_job(True)
-
 
     def test_constructor_post_record_failure(self):
         """
@@ -298,18 +306,17 @@ class test_base_job(unittest.TestCase):
 
         self._setup_pre_record_init(False)
         self.job._post_record_init.expect_call(
-                self.control, options, True, ['more-blah']).and_raises(error)
+            self.control, options, True, ['more-blah']).and_raises(error)
         self.job.record.expect_call(
-                'ABORT', None, None,'client.job.__init__ failed: %s' %
-                str(error))
+            'ABORT', None, None, 'client.job.__init__ failed: %s' %
+            str(error))
 
         self.assertRaises(
-                Exception, self.job.__init__, self.control, options,
-                drop_caches=True, extra_copy_cmdline=['more-blah'])
+            Exception, self.job.__init__, self.control, options,
+            drop_caches=True, extra_copy_cmdline=['more-blah'])
 
         # check
         self.god.check_playback()
-
 
     def test_relative_path(self):
         self.construct_job(True)
@@ -317,13 +324,11 @@ class test_base_job(unittest.TestCase):
         ret = self.job.relative_path(os.path.join(self.job.resultdir, dummy))
         self.assertEquals(ret, dummy)
 
-
     def test_control_functions(self):
         self.construct_job(True)
         control_file = "blah"
         self.job.control_set(control_file)
         self.assertEquals(self.job.control_get(), os.path.abspath(control_file))
-
 
     def test_harness_select(self):
         self.construct_job(True)
@@ -337,7 +342,6 @@ class test_base_job(unittest.TestCase):
         # run and test
         self.job.harness_select(which, harness_args)
         self.god.check_playback()
-
 
     def test_config_set(self):
         self.construct_job(True)
@@ -353,7 +357,6 @@ class test_base_job(unittest.TestCase):
         self.job.config_set(name, val)
         self.god.check_playback()
 
-
     def test_config_get(self):
         self.construct_job(True)
 
@@ -367,7 +370,6 @@ class test_base_job(unittest.TestCase):
         # run and test
         self.job.config_get(name)
         self.god.check_playback()
-
 
     def test_setup_dirs_raise(self):
         self.construct_job(True)
@@ -383,7 +385,6 @@ class test_base_job(unittest.TestCase):
         # test
         self.assertRaises(ValueError, self.job.setup_dirs, results_dir, tmp_dir)
         self.god.check_playback()
-
 
     def test_setup_dirs(self):
         self.construct_job(True)
@@ -409,7 +410,6 @@ class test_base_job(unittest.TestCase):
                          (results_dir3, tmp_dir))
         self.god.check_playback()
 
-
     def test_xen(self):
         self.construct_job(True)
 
@@ -431,7 +431,6 @@ class test_base_job(unittest.TestCase):
         axen = self.job.xen(base_tree, results, tmp)
         self.god.check_playback()
         self.assertEquals(myxen, axen)
-
 
     def test_kernel_rpm(self):
         self.construct_job(True)
@@ -464,7 +463,6 @@ class test_base_job(unittest.TestCase):
         self.god.check_playback()
         self.assertEquals(mykernel, akernel)
 
-
     def test_kernel(self):
         self.construct_job(True)
 
@@ -488,7 +486,6 @@ class test_base_job(unittest.TestCase):
         akernel = self.job.kernel(path, results, tmp)
         self.god.check_playback()
         self.assertEquals(mykernel, akernel)
-
 
     def test_run_test_logs_test_error_from_unhandled_error(self):
         self.construct_job(True)
@@ -523,7 +520,6 @@ class test_base_job(unittest.TestCase):
         self.job.run_test(testname)
         self.god.check_playback()
 
-
     def test_run_test_logs_non_test_error_from_unhandled_error(self):
         self.construct_job(True)
 
@@ -557,7 +553,6 @@ class test_base_job(unittest.TestCase):
         self.job.run_test(testname)
         self.god.check_playback()
 
-
     def test_report_reboot_failure(self):
         self.construct_job(True)
 
@@ -572,7 +567,6 @@ class test_base_job(unittest.TestCase):
                                         running_id="2.6.15-smp")
         self.god.check_playback()
 
-
     def _setup_check_post_reboot(self, mount_info, cpu_count, abort_value):
         # setup
         self.god.stub_function(job.partition_lib, "get_partition_list")
@@ -585,18 +579,17 @@ class test_base_job(unittest.TestCase):
 
         # record
         settings.get_value.expect_call('CLIENT',
-                                                   'abort_on_mismatch',
-                                                   default=False,
-                                              type=bool).and_return(abort_value)
+                                       'abort_on_mismatch',
+                                       default=False,
+                                       type=bool).and_return(abort_value)
         job.partition_lib.get_partition_list.expect_call(
-                self.job, exclude_swap=False).and_return(part_list)
+            self.job, exclude_swap=False).and_return(part_list)
         for i in xrange(len(part_list)):
             part_list[i].get_mountpoint.expect_call().and_return(mount_list[i])
         if cpu_count is not None:
             utils.count_cpus.expect_call().and_return(cpu_count)
         self.job._state.set('client', 'mount_info', mount_info)
         self.job._state.set('client', 'cpu_count', 8)
-
 
     def test_check_post_reboot_success(self):
         self.construct_job(True)
@@ -609,7 +602,6 @@ class test_base_job(unittest.TestCase):
         self.job._check_post_reboot("sub")
         self.god.check_playback()
 
-
     def test_check_post_reboot_mounts_warning(self):
         self.construct_job(True)
 
@@ -620,7 +612,6 @@ class test_base_job(unittest.TestCase):
         self.job._check_post_reboot("sub")
         self.god.check_playback()
 
-
     def test_check_post_reboot_mounts_failure(self):
         self.construct_job(True)
 
@@ -629,14 +620,13 @@ class test_base_job(unittest.TestCase):
 
         self.god.stub_function(self.job, "_record_reboot_failure")
         self.job._record_reboot_failure.expect_call("sub",
-                "reboot.verify_config", "mounted partitions are different after"
-                " reboot (old entries: set([]), new entries: set([('/dev/hdb1',"
-                " '/mnt/hdb1')]))", running_id=None)
+                                                    "reboot.verify_config", "mounted partitions are different after"
+                                                    " reboot (old entries: set([]), new entries: set([('/dev/hdb1',"
+                                                    " '/mnt/hdb1')]))", running_id=None)
 
         # playback
         self.assertRaises(error.JobError, self.job._check_post_reboot, "sub")
         self.god.check_playback()
-
 
     def test_check_post_reboot_cpu_warning(self):
         self.construct_job(True)
@@ -648,7 +638,6 @@ class test_base_job(unittest.TestCase):
         # playback
         self.job._check_post_reboot("sub")
         self.god.check_playback()
-
 
     def test_check_post_reboot_cpu_failure(self):
         self.construct_job(True)
@@ -667,7 +656,6 @@ class test_base_job(unittest.TestCase):
         self.assertRaises(error.JobError, self.job._check_post_reboot, "sub")
         self.god.check_playback()
 
-
     def test_end_boot(self):
         self.construct_job(True)
         self.god.stub_function(self.job, "_check_post_reboot")
@@ -683,7 +671,6 @@ class test_base_job(unittest.TestCase):
         # run test
         self.job.end_reboot("sub", "2.6.15-smp", ["patchname"])
         self.god.check_playback()
-
 
     def test_end_boot_and_verify_success(self):
         self.construct_job(True)
@@ -712,7 +699,6 @@ class test_base_job(unittest.TestCase):
         self.job.end_reboot_and_verify(81234567, "2.6.15-smp", "sub")
         self.god.check_playback()
 
-
     def test_end_boot_and_verify_failure(self):
         self.construct_job(True)
         self.god.stub_function(self.job, "_record_reboot_failure")
@@ -727,13 +713,12 @@ class test_base_job(unittest.TestCase):
             "blah more-blah root=lala IDENT=81234567 blah-again")
 
         self.job._record_reboot_failure.expect_call("sub", "reboot.verify",
-                "boot failure", running_id="2.6.15-smp")
+                                                    "boot failure", running_id="2.6.15-smp")
 
         # run test
         self.assertRaises(error.JobError, self.job.end_reboot_and_verify,
                           91234567, "2.6.16-smp", "sub")
         self.god.check_playback()
-
 
     def test_parse_args(self):
         test_set = {"a='foo bar baz' b='moo apt'":
@@ -747,7 +732,6 @@ class test_base_job(unittest.TestCase):
             expected_args = test_set[t]
             self.assertEqual(parsed_args, expected_args)
 
-
     def test_run_test_timeout_parameter_is_propagated(self):
         self.construct_job(True)
 
@@ -756,7 +740,7 @@ class test_base_job(unittest.TestCase):
         self.god.stub_function(self.job, "_runtest")
 
         # create an unhandled error object
-        #class MyError(error.TestError):
+        # class MyError(error.TestError):
         #    pass
         #real_error = MyError("this is the real error message")
         #unhandled_error = error.UnhandledTestError(real_error)

@@ -15,11 +15,13 @@ else:
     fe_dir = '.'
 
 # TODO: handle the client directory
+
+
 def _get_files(path):
     '''
     Given a path, return all the files in there to package
     '''
-    flist=[]
+    flist = []
     for root, _, files in sorted(os.walk(path)):
         for name in files:
             fullname = os.path.join(root, name)
@@ -30,7 +32,7 @@ def _get_files(path):
 def get_file_list():
     # Some stuff is too hard to package. just grab every file in these directories
     # and call it a day.  we can clean up some other time
-    pd_filelist=[]
+    pd_filelist = []
     pd_filelist.extend(_get_files(os.path.join(fe_dir, 'client')))
     pd_filelist.extend(_get_files(os.path.join(fe_dir, 'afe', 'doctests')))
     pd_filelist.extend(_get_files(os.path.join(fe_dir, 'afe', 'fixtures')))
@@ -51,7 +53,7 @@ def get_package_dir():
 
 
 def get_package_data():
-    return {'autotest.frontend' : get_file_list()}
+    return {'autotest.frontend': get_file_list()}
 
 
 def get_scripts():

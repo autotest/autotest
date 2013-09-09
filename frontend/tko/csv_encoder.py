@@ -6,16 +6,16 @@ except ImportError:
     import common
 from autotest.frontend.afe import rpc_utils
 
+
 class CsvEncoder(object):
+
     def __init__(self, request, response):
         self._request = request
         self._response = response
         self._output_rows = []
 
-
     def _append_output_row(self, row):
         self._output_rows.append(row)
-
 
     def _build_response(self):
         response = django.http.HttpResponse(mimetype='text/csv')
@@ -25,12 +25,12 @@ class CsvEncoder(object):
         writer.writerows(self._output_rows)
         return response
 
-
     def encode(self):
         raise NotImplementedError
 
 
 class UnhandledMethodEncoder(CsvEncoder):
+
     def encode(self):
         return rpc_utils.raw_http_response(
             'Unhandled method %s (this indicates a bug)\r\n' %
@@ -38,19 +38,18 @@ class UnhandledMethodEncoder(CsvEncoder):
 
 
 class SpreadsheetCsvEncoder(CsvEncoder):
+
     def _total_index(self, group, num_columns):
         row_index, column_index = group['header_indices']
         return row_index * num_columns + column_index
 
-
     def _group_string(self, group):
         result = '%s / %s' % (group['pass_count'], group['complete_count'])
         if group['incomplete_count'] > 0:
-            result +=  ' (%s incomplete)' % group['incomplete_count']
+            result += ' (%s incomplete)' % group['incomplete_count']
         if 'extra_info' in group:
             result = '\n'.join([result] + group['extra_info'])
         return result
-
 
     def _build_value_table(self):
         value_table = [''] * self._num_rows * self._num_columns
@@ -59,10 +58,8 @@ class SpreadsheetCsvEncoder(CsvEncoder):
             value_table[total_index] = self._group_string(group)
         return value_table
 
-
     def _header_string(self, header_value):
         return '/'.join(header_value)
-
 
     def _process_value_table(self, value_table, row_headers):
         total_index = 0
@@ -72,7 +69,6 @@ class SpreadsheetCsvEncoder(CsvEncoder):
             row_values = value_table[total_index:row_end_index]
             self._append_output_row([row_header] + row_values)
             total_index += self._num_columns
-
 
     def encode(self):
         header_values = self._response['header_values']
@@ -84,7 +80,7 @@ class SpreadsheetCsvEncoder(CsvEncoder):
         value_table = self._build_value_table()
 
         first_line = [''] + [self._header_string(header_value)
-                            for header_value in column_headers]
+                             for header_value in column_headers]
         self._append_output_row(first_line)
         self._process_value_table(value_table, row_headers)
 
@@ -92,29 +88,28 @@ class SpreadsheetCsvEncoder(CsvEncoder):
 
 
 class TableCsvEncoder(CsvEncoder):
+
     def __init__(self, request, response):
         super(TableCsvEncoder, self).__init__(request, response)
         self._column_specs = request['columns']
-
 
     def _format_row(self, row_object):
         """Extract data from a row object into a list of strings"""
         return [row_object.get(field) for field, name in self._column_specs]
 
-
     def _encode_table(self, row_objects):
-        self._append_output_row([column_spec[1] # header row
+        self._append_output_row([column_spec[1]  # header row
                                  for column_spec in self._column_specs])
         for row_object in row_objects:
             self._append_output_row(self._format_row(row_object))
         return self._build_response()
-
 
     def encode(self):
         return self._encode_table(self._response)
 
 
 class GroupedTableCsvEncoder(TableCsvEncoder):
+
     def encode(self):
         return self._encode_table(self._response['groups'])
 
@@ -131,7 +126,6 @@ class StatusCountTableCsvEncoder(GroupedTableCsvEncoder):
                 column_spec[0] = self._PASS_RATE_FIELD
                 break
 
-
     def _format_pass_rate(self, row_object):
         result = '%s / %s' % (row_object['pass_count'],
                               row_object['complete_count'])
@@ -140,16 +134,15 @@ class StatusCountTableCsvEncoder(GroupedTableCsvEncoder):
             result += ' (%s incomplete)' % incomplete_count
         return result
 
-
     def _format_row(self, row_object):
         row_object[self._PASS_RATE_FIELD] = self._format_pass_rate(row_object)
         return super(StatusCountTableCsvEncoder, self)._format_row(row_object)
 
 
 _ENCODER_MAP = {
-    'get_latest_tests' : SpreadsheetCsvEncoder,
-    'get_test_views' : TableCsvEncoder,
-    'get_group_counts' : GroupedTableCsvEncoder,
+    'get_latest_tests': SpreadsheetCsvEncoder,
+    'get_test_views': TableCsvEncoder,
+    'get_group_counts': GroupedTableCsvEncoder,
 }
 
 

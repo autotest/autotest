@@ -7,7 +7,9 @@ To actually use this, put it in the cli/ directory.
 @author: Nishanth Aravamudan <nacc@linux.vnet.ibm.com>
 """
 
-import getpass, os, base64
+import getpass
+import os
+import base64
 
 
 def authorization_headers(username, server):
@@ -23,5 +25,5 @@ def authorization_headers(username, server):
         else:
             username = getpass.getuser()
     password = getpass.getpass('Enter the password for %s: ' % username)
-    base64string = base64.encodestring('%s:%s' % (username,password))[:-1]
-    return {'AUTHORIZATION' : 'Basic %s' % base64string}
+    base64string = base64.encodestring('%s:%s' % (username, password))[:-1]
+    return {'AUTHORIZATION': 'Basic %s' % base64string}

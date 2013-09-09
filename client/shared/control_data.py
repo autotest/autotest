@@ -1,17 +1,20 @@
 #
 # Copyright 2008 Google Inc. Released under the GPL v2
 
-import compiler, textwrap
+import compiler
+import textwrap
 
 
 REQUIRED_VARS = set(['author', 'doc', 'name', 'time', 'test_class',
                      'test_category', 'test_type'])
+
 
 class ControlVariableException(Exception):
     pass
 
 
 class ControlData(object):
+
     def __init__(self, vars, path, raise_warnings=False):
         # Defaults
         self.path = path
@@ -38,7 +41,6 @@ class ControlData(object):
                     raise
                 print "WARNING: %s; skipping" % e
 
-
     def set_attr(self, attr, val, raise_warnings=False):
         attr = attr.lower()
         try:
@@ -48,20 +50,17 @@ class ControlData(object):
             # This must not be a variable we care about
             pass
 
-
     def _set_string(self, attr, val):
         val = str(val)
         setattr(self, attr, val)
-
 
     def _set_option(self, attr, val, options):
         val = str(val)
         if val.lower() not in [x.lower() for x in options]:
             raise ValueError("%s must be one of the following "
                              "options: %s" % (attr,
-                             ', '.join(options)))
+                                              ', '.join(options)))
         setattr(self, attr, val)
-
 
     def _set_bool(self, attr, val):
         val = str(val).lower()
@@ -74,7 +73,6 @@ class ControlData(object):
             raise ValueError(msg)
         setattr(self, attr, val)
 
-
     def _set_int(self, attr, val, min=None, max=None):
         val = int(val)
         if min is not None and min > val:
@@ -85,56 +83,43 @@ class ControlData(object):
                              "maximum of %d" % (attr, val, max))
         setattr(self, attr, val)
 
-
     def _set_set(self, attr, val):
         val = str(val)
         items = [x.strip() for x in val.split(',')]
         setattr(self, attr, set(items))
 
-
     def set_author(self, val):
         self._set_string('author', val)
-
 
     def set_dependencies(self, val):
         self._set_set('dependencies', val)
 
-
     def set_doc(self, val):
         self._set_string('doc', val)
-
 
     def set_experimental(self, val):
         self._set_bool('experimental', val)
 
-
     def set_name(self, val):
         self._set_string('name', val)
-
 
     def set_run_verify(self, val):
         self._set_bool('run_verify', val)
 
-
     def set_sync_count(self, val):
         self._set_int('sync_count', val, min=1)
-
 
     def set_time(self, val):
         self._set_option('time', val, ['short', 'medium', 'long'])
 
-
     def set_test_class(self, val):
         self._set_string('test_class', val.lower())
-
 
     def set_test_category(self, val):
         self._set_string('test_category', val.lower())
 
-
     def set_test_type(self, val):
         self._set_option('test_type', val, ['client', 'server'])
-
 
     def set_test_parameters(self, val):
         self._set_set('test_parameters', val)

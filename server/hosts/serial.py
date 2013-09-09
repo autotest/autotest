@@ -1,4 +1,7 @@
-import os, sys, subprocess, logging
+import os
+import sys
+import subprocess
+import logging
 
 from autotest.client.shared import utils, error
 from autotest.server import utils as server_utils
@@ -23,7 +26,6 @@ class SerialHost(SiteHost):
         self.conmux_server = conmux_server
         self.conmux_attach = self._get_conmux_attach(conmux_attach)
 
-
     @classmethod
     def _get_conmux_attach(cls, conmux_attach=None):
         if conmux_attach:
@@ -35,7 +37,6 @@ class SerialHost(SiteHost):
         path = os.path.abspath(path)
         return path
 
-
     @staticmethod
     def _get_conmux_hostname(hostname, conmux_server):
         if conmux_server:
@@ -43,10 +44,8 @@ class SerialHost(SiteHost):
         else:
             return hostname
 
-
     def get_conmux_hostname(self):
         return self._get_conmux_hostname(self.hostname, self.conmux_server)
-
 
     @classmethod
     def host_is_supported(cls, hostname, conmux_server=None,
@@ -63,7 +62,6 @@ class SerialHost(SiteHost):
             logging.warning("Timed out while trying to attach to conmux")
 
         return False
-
 
     def start_loggers(self):
         super(SerialHost, self).start_loggers()
@@ -88,7 +86,6 @@ class SerialHost(SiteHost):
         self.__logger = subprocess.Popen(cmd, stdout=stdout, stderr=stderr)
         os.close(w)
 
-
     def stop_loggers(self):
         super(SerialHost, self).stop_loggers()
 
@@ -98,7 +95,6 @@ class SerialHost(SiteHost):
             if self.job:
                 self.job.warning_loggers.discard(self.__warning_stream)
             self.__warning_stream.close()
-
 
     def run_conmux(self, cmd):
         """
@@ -111,7 +107,6 @@ class SerialHost(SiteHost):
                                               cmd)
         result = utils.system(cmd, ignore_status=True)
         return result == 0
-
 
     def hardreset(self, timeout=DEFAULT_REBOOT_TIMEOUT, wait=True,
                   conmux_command='hardreset', num_attempts=1, halt=False,
@@ -150,13 +145,13 @@ class SerialHost(SiteHost):
             if wait:
                 warning_msg = ('Serial console failed to respond to hard reset '
                                'attempt (%s/%s)')
-                for attempt in xrange(num_attempts-1):
+                for attempt in xrange(num_attempts - 1):
                     try:
                         self.wait_for_restart(timeout, log_failure=False,
                                               old_boot_id=old_boot_id,
                                               **wait_for_restart_kwargs)
                     except error.AutoservShutdownError:
-                        logging.warning(warning_msg, attempt+1, num_attempts)
+                        logging.warning(warning_msg, attempt + 1, num_attempts)
                         # re-send the hard reset command
                         self.run_conmux(conmux_command)
                     else:

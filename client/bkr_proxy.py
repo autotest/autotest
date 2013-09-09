@@ -27,7 +27,8 @@ import time
 import os
 import logging
 import re
-import urllib, urllib2
+import urllib
+import urllib2
 from autotest.client.shared import utils
 
 log = logging
@@ -35,11 +36,15 @@ log = logging
 
 AUTOTEST_CACHE_DIR = '/var/cache/autotest'
 
+
 class BkrProxyException(Exception):
+
     def __init__(self, text):
         Exception.__init__(self, text)
 
 '''Hard coded internal paths'''
+
+
 def make_path_cmdlog(r):
     """
     Converts a recipe id into an internal path for logging purposes
@@ -55,6 +60,7 @@ def make_path_cmdlog(r):
     if not os.path.isdir(path):
         raise BkrProxyException("Path(%s) exists and is not a directory" % path)
     return path + '/cmd_log'
+
 
 def make_path_bkrcache(r):
     """
@@ -74,6 +80,7 @@ Hard coded paths as described in the Beaker Server API
 http://beaker-project.org/dev/proposals/harness-api.html
 """
 
+
 def make_path_recipe(r):
     """
     Converts a recipe id into a beaker path
@@ -85,6 +92,7 @@ def make_path_recipe(r):
 
     return '/recipes/' + r
 
+
 def make_path_watchdog(r):
     """
     Converts a recipe id into a beaker path for the watchdog
@@ -95,6 +103,7 @@ def make_path_watchdog(r):
     """
 
     return '/recipes/' + r + '/watchdog'
+
 
 def make_path_status(r, t=None):
     """
@@ -116,6 +125,7 @@ def make_path_status(r, t=None):
 
     return rpath + tpath + '/status'
 
+
 def make_path_result(r, t):
     """
     Converts task id into a beaker path to result file
@@ -133,6 +143,7 @@ def make_path_result(r, t):
     tpath = '/tasks/' + t
 
     return rpath + tpath + '/results/'
+
 
 def make_path_log(r, t=None, i=None):
     """
@@ -159,6 +170,7 @@ def make_path_log(r, t=None, i=None):
 
 '''End Hard coded paths'''
 
+
 def copy_remote(data, dest, use_put=None):
     """
     Copy data to a remote server using http calls POST or PUT
@@ -183,7 +195,7 @@ def copy_remote(data, dest, use_put=None):
         req.add_header('Content-Type', 'application/octet-stream')
         end = use_put['start'] + use_put['size'] - 1
         req.add_header('Content-Range', 'bytes %s-%s/%s' % (use_put['start'],
-                        end, use_put['total']))
+                                                            end, use_put['total']))
         req.add_header('Content-Length', '%s' % use_put['size'])
         req.get_method = lambda: 'PUT'
 
@@ -193,11 +205,12 @@ def copy_remote(data, dest, use_put=None):
         res.close()
     except urllib2.HTTPError, e:
         if e.code == 500:
-            #the server aborted this recipe DIE DIE DIE
+            # the server aborted this recipe DIE DIE DIE
             raise BkrProxyException("We have been aborted!!!")
         elif e.code == 400 and use_put:
             log.error("Error(%s) failed to upload file %s" % (e.code, dest))
     return ret
+
 
 def copy_local(data, dest, use_put=None):
     """
@@ -222,6 +235,7 @@ def copy_local(data, dest, use_put=None):
     else:
         open(dest, 'a').write("%s %s\n" % (time.time(), data))
 
+
 def copy_data(data, dest, header=None, use_put=None):
     """
     Copy data to a destination
@@ -240,9 +254,9 @@ def copy_data(data, dest, header=None, use_put=None):
 
     ret = None
 
-    #PUT uses a filename instead of a list like POST
+    # PUT uses a filename instead of a list like POST
     if use_put:
-        udata=data
+        udata = data
     else:
         udata = urllib.urlencode(data)
 
@@ -252,16 +266,18 @@ def copy_data(data, dest, header=None, use_put=None):
             return ret[header]
     else:
         if header:
-            ret = dest + str(time.time()) #should be unique
+            ret = dest + str(time.time())  # should be unique
             dest = ret + "/_task_result"
         copy_local(udata, dest, use_put)
 
     return ret
 
+
 class BkrProxy(object):
+
     def __init__(self, recipe_id, labc_url=None):
 
-        #labc_url determines local or remote functionality
+        # labc_url determines local or remote functionality
         self.labc_url = labc_url or AUTOTEST_CACHE_DIR
         self.recipe_id = recipe_id
 
@@ -281,9 +297,9 @@ class BkrProxy(object):
 
         #copy in chunks
         chunksize = 262144
-        start=0
+        start = 0
         total = os.path.getsize(lf)
-        use_put = { 'total' : total }
+        use_put = {'total': total}
         f = open(lf, 'r')
 
         def readchunk():
@@ -328,7 +344,7 @@ class BkrProxy(object):
             rpath = self.labc_url + make_path_recipe(self.recipe_id)
             utils.get_file(rpath, path)
         except:
-            #local will fall through to here
+            # local will fall through to here
             if not os.path.isfile(path):
                 raise BkrProxyException("No remote or cached recipe %s" % self.recipe_id)
         return open(path, 'r').read()
@@ -337,21 +353,21 @@ class BkrProxy(object):
                     result_score, result_summary):
         self.cmd_log.write('task_result: task_id(%s) result: %s, score: %s, summary: %s\n'
                            'path: %s\n' % (task_id, result_type, result_score, result_summary,
-                            result_path))
+                                           result_path))
 
-        data = {'result' : result_type, 'path' : result_path,
-                'score' : result_score, 'message' : result_summary}
+        data = {'result': result_type, 'path': result_path,
+                'score': result_score, 'message': result_summary}
 
         path = self.labc_url + make_path_result(self.recipe_id, task_id)
         ret = copy_data(data, path, header='Location')
 
-        #strip the path and return just the id
+        # strip the path and return just the id
         return re.sub(path, "", ret)
 
     def task_start(self, task_id, kill_time=0):
         self.cmd_log.write('task_start: task_id(%s) kill_time(%s) RUNNING\n' % (task_id, kill_time))
 
-        data = {'status' : 'Running'}
+        data = {'status': 'Running'}
 
         self.update_watchdog(task_id, kill_time)
 
@@ -361,7 +377,7 @@ class BkrProxy(object):
     def task_stop(self, task_id):
         self.cmd_log.write('task_stop: task_id(%s) COMPLETED\n' % task_id)
 
-        data = {'status' : 'Completed'}
+        data = {'status': 'Completed'}
 
         path = self.labc_url + make_path_status(self.recipe_id, task_id)
         copy_data(data, path)
@@ -369,7 +385,7 @@ class BkrProxy(object):
     def task_abort(self, task_id):
         self.cmd_log.write('task_abort: task_id(%s) ABORTED\n' % task_id)
 
-        data = {'status' : 'Aborted'}
+        data = {'status': 'Aborted'}
 
         path = self.labc_url + make_path_status(self.recipe_id, task_id)
         copy_data(data, path)
@@ -377,7 +393,7 @@ class BkrProxy(object):
     def recipe_stop(self):
         self.cmd_log.write('recipe_stop: recipe_id(%s) COMPLETED\n' % self.recipe_id)
 
-        data = {'status' : 'Completed'}
+        data = {'status': 'Completed'}
 
         path = self.labc_url + make_path_status(self.recipe_id)
         copy_data(data, path)
@@ -385,7 +401,7 @@ class BkrProxy(object):
     def recipe_abort(self):
         self.cmd_log.write('recipe_abort: recipe_id(%s) ABORTED\n' % self.recipe_id)
 
-        data = {'status' : 'Aborted'}
+        data = {'status': 'Aborted'}
 
         path = self.labc_url + make_path_status(self.recipe_id)
         copy_data(data, path)
@@ -393,7 +409,7 @@ class BkrProxy(object):
     def update_watchdog(self, task_id, kill_time):
         self.cmd_log.write('update_watchdog: task_id(%s) killtime(%s)\n' % (task_id, kill_time))
 
-        data = {'seconds' : kill_time}
+        data = {'seconds': kill_time}
 
         if not kill_time or kill_time == 0:
             return

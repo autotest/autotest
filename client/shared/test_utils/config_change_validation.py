@@ -48,7 +48,7 @@ def parse_unified_diff_output(lines):
         # ignore filepaths in the output
         if (len(line) > 2 and
            (line[:3] == "+++" or
-            line[:3] == "---")):
+                line[:3] == "---")):
             continue
         # ignore line range information in the output
         elif len(line) > 1 and line[:2] == "@@":
@@ -68,7 +68,7 @@ def parse_unified_diff_output(lines):
     return (adds, removes)
 
 
-def extract_config_changes(file_paths, compared_file_paths = []):
+def extract_config_changes(file_paths, compared_file_paths=[]):
     """
     Extracts diff information based on the new and
     temporarily saved old config files
@@ -163,7 +163,7 @@ def print_change_diffs(change_diffs):
             elif iter_category == 1 and change_category:
                 diff_strings.append("/++ Not present expected adds")
             elif iter_category == 2 and change_category:
-                diff_strings.append( "*-- Additional unexpected removes")
+                diff_strings.append("*-- Additional unexpected removes")
             elif iter_category == 3 and change_category:
                 diff_strings.append("/-- Not present expected removes")
             for line_change in change_category:

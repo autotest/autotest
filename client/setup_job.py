@@ -2,7 +2,11 @@
 #
 # Eric Li <ericli@google.com>
 
-import logging, os, pickle, re, sys
+import logging
+import os
+import pickle
+import re
+import sys
 try:
     import autotest.common as common
 except ImportError:
@@ -13,6 +17,7 @@ from autotest.client.shared import base_job, error, packages
 
 
 class setup_job(client_job.job):
+
     """
     setup_job is a job which runs client test setup() method at server side.
 
@@ -32,7 +37,7 @@ class setup_job(client_job.job):
         self._cleanup_debugdir_files()
         self._cleanup_results_dir()
         self.pkgmgr = packages.PackageManager(
-            self.autodir, run_function_dargs={'timeout':3600})
+            self.autodir, run_function_dargs={'timeout': 3600})
 
 
 def init_test(options, testdir):
@@ -82,7 +87,7 @@ def init_test(options, testdir):
             # Log other errors (e.g., syntax errors) and collect the test.
             logging.error("%s: %s", test_name, e)
     finally:
-        sys.path.pop(0) # pop up testbindir
+        sys.path.pop(0)  # pop up testbindir
     return client_test
 
 

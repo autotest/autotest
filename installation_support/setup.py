@@ -14,6 +14,7 @@ if os.path.isdir('installation_support'):
 else:
     pkg_dir = '.'
 
+
 def get_package_dir():
     return {'autotest.installation_support': pkg_dir}
 

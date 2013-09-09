@@ -1,4 +1,10 @@
-import os, shutil, re, glob, subprocess, logging, gzip
+import os
+import shutil
+import re
+import glob
+import subprocess
+import logging
+import gzip
 
 from autotest.client.shared import log, software_manager, utils_memory
 from autotest.client.shared.settings import settings
@@ -11,7 +17,7 @@ _DEFAULT_COMMANDS_TO_LOG_PER_TEST = []
 _DEFAULT_COMMANDS_TO_LOG_PER_BOOT = [
     "lspci -vvnn", "gcc --version", "ld --version", "mount", "hostname",
     "uptime", "dmidecode",
-    ]
+]
 _DEFAULT_COMMANDS_TO_LOG_BEFORE_ITERATION = []
 _DEFAULT_COMMANDS_TO_LOG_AFTER_ITERATION = []
 
@@ -19,23 +25,24 @@ _DEFAULT_FILES_TO_LOG_PER_TEST = []
 _DEFAULT_FILES_TO_LOG_PER_BOOT = [
     "/proc/pci", "/proc/meminfo", "/proc/slabinfo", "/proc/version",
     "/proc/cpuinfo", "/proc/modules", "/proc/interrupts", "/proc/partitions",
-    ]
+]
 _DEFAULT_FILES_TO_LOG_BEFORE_ITERATION = [
     "/proc/schedstat", "/proc/meminfo", "/proc/slabinfo", "/proc/interrupts",
     "/proc/buddyinfo"
-    ]
+]
 _DEFAULT_FILES_TO_LOG_AFTER_ITERATION = [
     "/proc/schedstat", "/proc/meminfo", "/proc/slabinfo", "/proc/interrupts",
     "/proc/buddyinfo"
-    ]
+]
 
 
 class loggable(object):
+
     """ Abstract class for representing all things "loggable" by sysinfo. """
+
     def __init__(self, logf, log_in_keyval):
         self.logf = logf
         self.log_in_keyval = log_in_keyval
-
 
     def readline(self, logdir):
         path = os.path.join(logdir, self.logf)
@@ -46,18 +53,17 @@ class loggable(object):
 
 
 class logfile(loggable):
+
     def __init__(self, path, logf=None, log_in_keyval=False):
         if not logf:
             logf = os.path.basename(path)
         super(logfile, self).__init__(logf, log_in_keyval)
         self.path = path
 
-
     def __repr__(self):
         r = "sysinfo.logfile(%r, %r, %r)"
         r %= (self.path, self.logf, self.log_in_keyval)
         return r
-
 
     def __eq__(self, other):
         if isinstance(other, logfile):
@@ -66,17 +72,14 @@ class logfile(loggable):
             return False
         return NotImplemented
 
-
     def __ne__(self, other):
         result = self.__eq__(other)
         if result is NotImplemented:
             return result
         return not result
 
-
     def __hash__(self):
         return hash((self.path, self.logf))
-
 
     def run(self, logdir):
         if os.path.exists(self.path):
@@ -88,6 +91,7 @@ class logfile(loggable):
 
 
 class command(loggable):
+
     def __init__(self, cmd, logf=None, log_in_keyval=False, compress_log=False):
         if not logf:
             logf = cmd.replace(" ", "_")
@@ -95,12 +99,10 @@ class command(loggable):
         self.cmd = cmd
         self._compress_log = compress_log
 
-
     def __repr__(self):
         r = "sysinfo.command(%r, %r, %r)"
         r %= (self.cmd, self.logf, self.log_in_keyval)
         return r
-
 
     def __eq__(self, other):
         if isinstance(other, command):
@@ -109,17 +111,14 @@ class command(loggable):
             return False
         return NotImplemented
 
-
     def __ne__(self, other):
         result = self.__eq__(other)
         if result is NotImplemented:
             return result
         return not result
 
-
     def __hash__(self):
         return hash((self.cmd, self.logf))
-
 
     def run(self, logdir):
         env = os.environ.copy()
@@ -141,6 +140,7 @@ class command(loggable):
 
 
 class base_sysinfo(object):
+
     def __init__(self, job_resultsdir):
         self.sysinfodir = self._get_sysinfodir(job_resultsdir)
 
@@ -184,12 +184,12 @@ class base_sysinfo(object):
         self.test_loggables.add(command("dmesg -c", logf="dmesg",
                                         compress_log=True))
         self.boot_loggables.add(logfile("/proc/cmdline",
-                                             log_in_keyval=True))
+                                        log_in_keyval=True))
         # log /proc/mounts but with custom filename since we already
         # log the output of the "mount" command as the filename "mount"
         self.boot_loggables.add(logfile('/proc/mounts', logf='proc_mounts'))
         self.boot_loggables.add(command("uname -a", logf="uname",
-                                             log_in_keyval=True))
+                                        log_in_keyval=True))
         self.sm = software_manager.SoftwareManager()
 
     def __getstate__(self):
@@ -200,11 +200,9 @@ class base_sysinfo(object):
     def serialize(self):
         return {"boot": self.boot_loggables, "test": self.test_loggables}
 
-
     def deserialize(self, serialized):
         self.boot_loggables = serialized["boot"]
         self.test_loggables = serialized["test"]
-
 
     @staticmethod
     def _get_sysinfodir(resultsdir):
@@ -213,13 +211,11 @@ class base_sysinfo(object):
             os.makedirs(sysinfodir)
         return sysinfodir
 
-
     def _get_reboot_count(self):
         if not glob.glob(os.path.join(self.sysinfodir, "*")):
             return -1
         else:
             return len(glob.glob(os.path.join(self.sysinfodir, "boot.*")))
-
 
     def _get_boot_subdir(self, next=False):
         reboot_count = self._get_reboot_count()
@@ -231,7 +227,6 @@ class base_sysinfo(object):
             boot_dir = "boot.%d" % (reboot_count - 1)
             return os.path.join(self.sysinfodir, boot_dir)
 
-
     def _get_iteration_subdir(self, test, iteration):
         iter_dir = "iteration.%d" % iteration
 
@@ -239,7 +234,6 @@ class base_sysinfo(object):
         if not os.path.exists(logdir):
             os.mkdir(logdir)
         return logdir
-
 
     @log.log_and_ignore_errors("post-reboot sysinfo error:")
     def log_per_reboot_data(self):
@@ -258,7 +252,6 @@ class base_sysinfo(object):
             installed_packages = "\n".join(self.sm.list_all()) + "\n"
             utils.open_write_close(installed_path, installed_packages)
 
-
     @log.log_and_ignore_errors("pre-test sysinfo error:")
     def log_before_each_test(self, test):
         """ Logging hook called before a test starts. """
@@ -272,7 +265,6 @@ class base_sysinfo(object):
             stat = os.stat("/var/log/syslog")
             self._messages_size = stat.st_size
             self._messages_inode = stat.st_ino
-
 
     @log.log_and_ignore_errors("post-test sysinfo error:")
     def log_after_each_test(self, test):
@@ -288,8 +280,8 @@ class base_sysinfo(object):
         try:
             os.symlink(symlink_src, symlink_dest)
         except Exception, e:
-            raise Exception, '%s: whilst linking %s to %s' % (e, symlink_src,
-                                                              symlink_dest)
+            raise Exception('%s: whilst linking %s to %s' % (e, symlink_src,
+                                                             symlink_dest))
 
         # run all the standard logging commands
         for log in self.test_loggables:
@@ -313,7 +305,6 @@ class base_sysinfo(object):
             removed_packages = "\n".join(old_packages - new_packages) + "\n"
             utils.open_write_close(removed_path, removed_packages)
 
-
     @log.log_and_ignore_errors("pre-test siteration sysinfo error:")
     def log_before_each_iteration(self, test, iteration=None):
         """ Logging hook called before a test iteration."""
@@ -323,7 +314,6 @@ class base_sysinfo(object):
 
         for log in self.before_iteration_loggables:
             log.run(logdir)
-
 
     @log.log_and_ignore_errors("post-test siteration sysinfo error:")
     def log_after_each_iteration(self, test, iteration=None):
@@ -335,12 +325,11 @@ class base_sysinfo(object):
         for log in self.after_iteration_loggables:
             log.run(logdir)
 
-
     def _log_messages(self, logdir):
         """ Log all of the new data in the system log. """
         try:
             # log all of the new data in the system log
-            logpaths =  ["/var/log/messages", "/var/log/syslog"]
+            logpaths = ["/var/log/messages", "/var/log/syslog"]
             for logpath in logpaths:
                 if os.path.exists(logpath):
                     break
@@ -375,7 +364,6 @@ class base_sysinfo(object):
         except Exception, e:
             logging.info("System log collection failed: %s", e)
 
-
     @staticmethod
     def _read_sysinfo_keyvals(loggables, logdir):
         keyval = {}
@@ -383,7 +371,6 @@ class base_sysinfo(object):
             if log.log_in_keyval:
                 keyval["sysinfo-" + log.logf] = log.readline(logdir)
         return keyval
-
 
     def log_test_keyvals(self, test_sysinfodir):
         """ Logging hook called by log_after_each_test to collect keyval
@@ -398,7 +385,7 @@ class base_sysinfo(object):
             os.path.join(test_sysinfodir, "reboot_current")))
 
         # remove hostname from uname info
-        #   Linux lpt36 2.6.18-smp-230.1 #1 [4069269] SMP Fri Oct 24 11:30:...
+        # Linux lpt36 2.6.18-smp-230.1 #1 [4069269] SMP Fri Oct 24 11:30:...
         if "sysinfo-uname" in keyval:
             kernel_vers = " ".join(keyval["sysinfo-uname"].split()[2:])
             keyval["sysinfo-uname"] = kernel_vers
@@ -413,7 +400,7 @@ class base_sysinfo(object):
                 keyval["sysinfo-memtotal-in-kb"] = match.group(1)
 
         # guess the system's total physical memory, including sys tables
-        keyval["sysinfo-phys-mbytes"] = utils_memory.rounded_memtotal()//1024
+        keyval["sysinfo-phys-mbytes"] = utils_memory.rounded_memtotal() // 1024
 
         # return what we collected
         return keyval

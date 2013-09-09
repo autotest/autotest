@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import sys, os
+import sys
+import os
 
 from autotest.client.shared.version import get_version
 from autotest.frontend import setup_django_environment
@@ -25,8 +26,8 @@ release = '%s.%s.%s' % (v_parts[0], v_parts[1], v_parts[2])
 pygments_style = 'sphinx'
 
 latex_documents = [
-  ('index', 'autotest.tex', u'autotest Documentation',
-   u'Autotest Team', 'manual'),
+    ('index', 'autotest.tex', u'autotest Documentation',
+     u'Autotest Team', 'manual'),
 ]
 
 man_pages = [
@@ -36,9 +37,9 @@ man_pages = [
 
 
 texinfo_documents = [
-  ('index', 'autotest', u'autotest Documentation',
-   u'Autotest Team', 'autotest', 'One line description of project.',
-   'Miscellaneous'),
+    ('index', 'autotest', u'autotest Documentation',
+     u'Autotest Team', 'autotest', 'One line description of project.',
+     'Miscellaneous'),
 ]
 
 epub_title = u'autotest'
@@ -51,4 +52,4 @@ intersphinx_mapping = {
     'python': ('http://docs.python.org/', None),
     'django': ('http://docs.djangoproject.com/en/dev/',
                'http://docs.djangoproject.com/en/dev/_objects/')
-    }
+}

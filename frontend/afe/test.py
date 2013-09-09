@@ -2,7 +2,10 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-import os, doctest, glob, sys
+import os
+import doctest
+import glob
+import sys
 from django.conf import settings
 from django.db import connection
 import django.test.utils
@@ -18,13 +21,13 @@ import django.test.utils
 # We use django.test.utils to run the tests against a fresh test database every
 # time.
 
+
 class DoctestRunner(object):
     _PRINT_AFTER = 'Ran %d tests from %s'
 
     def __init__(self, app_dir, app_module_name):
         self._app_dir = app_dir
         self._app_module_name = app_module_name
-
 
     def _get_doctest_paths(self):
         doctest_dir = os.path.join(self._app_dir, 'doctests')
@@ -33,7 +36,6 @@ class DoctestRunner(object):
                          if not filename.startswith('.')
                          if not filename.endswith('~')]
         return sorted(doctest_paths)
-
 
     def _get_modules(self):
         modules = []
@@ -48,7 +50,6 @@ class DoctestRunner(object):
         for module_name in module_names:
             modules.append(getattr(app_module, module_name))
         return modules
-
 
     def run_tests(self):
         """

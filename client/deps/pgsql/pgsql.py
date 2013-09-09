@@ -5,6 +5,7 @@ from autotest.client import utils
 
 version = 4
 
+
 def setup(tarball, topdir):
     srcdir = os.path.join(topdir, 'src')
     if not os.path.exists(tarball):
@@ -19,4 +20,4 @@ def setup(tarball, topdir):
 
 pwd = os.getcwd()
 tarball = os.path.join(pwd, 'postgresql-8.3.1.tar.bz2')
-utils.update_version(pwd+'/src', False, version, setup, tarball, pwd)
+utils.update_version(pwd + '/src', False, version, setup, tarball, pwd)

@@ -10,13 +10,19 @@ You should import the "hosts" package instead of importing each type of host.
         SSHHost: a remote machine with a ssh access
 """
 
-import sys, re, traceback, logging, subprocess, os
+import sys
+import re
+import traceback
+import logging
+import subprocess
+import os
 from autotest.client.shared import error, ssh_key
 from autotest.server import utils
 from autotest.server.hosts import abstract_ssh
 
 
 class SSHHost(abstract_ssh.AbstractSSHHost):
+
     """
     This class represents a remote machine controlled through an ssh
     session on which you can run programs.
@@ -48,19 +54,17 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
         super(SSHHost, self)._initialize(hostname=hostname, *args, **dargs)
         self.setup_ssh()
 
-
     def ssh_command(self, connect_timeout=30, options='', alive_interval=300):
         """
         Construct an ssh command with proper args for this host.
         """
         options = "%s %s" % (options, self.master_ssh_option)
         base_cmd = abstract_ssh.make_ssh_command(user=self.user, port=self.port,
-                                                opts=options,
-                                                hosts_file=self.known_hosts_file,
-                                                connect_timeout=connect_timeout,
-                                                alive_interval=alive_interval)
+                                                 opts=options,
+                                                 hosts_file=self.known_hosts_file,
+                                                 connect_timeout=connect_timeout,
+                                                 alive_interval=alive_interval)
         return "%s %s" % (base_cmd, self.hostname)
-
 
     def _run(self, command, timeout, ignore_status, stdout, stderr,
              connect_timeout, env, options, stdin, args):
@@ -95,7 +99,6 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
 
         return result
 
-
     def run(self, command, timeout=3600, ignore_status=False,
             stdout_tee=utils.TEE_TO_LOGS, stderr_tee=utils.TEE_TO_LOGS,
             connect_timeout=30, options='', stdin=None, verbose=True, args=()):
@@ -126,7 +129,6 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
             # Catch that and stuff it into AutoservRunError and raise it.
             raise error.AutoservRunError(cmderr.args[0], cmderr.args[1])
 
-
     def run_short(self, command, **kwargs):
         """
         Calls the run() command with a short default timeout.
@@ -139,11 +141,10 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
         """
         return self.run(command, timeout=60, **kwargs)
 
-
     def run_grep(self, command, timeout=30, ignore_status=False,
-                             stdout_ok_regexp=None, stdout_err_regexp=None,
-                             stderr_ok_regexp=None, stderr_err_regexp=None,
-                             connect_timeout=30):
+                 stdout_ok_regexp=None, stdout_err_regexp=None,
+                 stderr_ok_regexp=None, stderr_err_regexp=None,
+                 connect_timeout=30):
         """
         Run a command on the remote host and look for regexp
         in stdout or stderr to determine if the command was
@@ -187,23 +188,22 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
         for (regexp, stream) in ((stderr_err_regexp, result.stderr),
                                  (stdout_err_regexp, result.stdout)):
             if regexp and stream:
-                err_re = re.compile (regexp)
+                err_re = re.compile(regexp)
                 if err_re.search(stream):
                     raise error.AutoservRunError(
                         '%s failed, found error pattern: "%s"' % (command,
-                                                                regexp), result)
+                                                                  regexp), result)
 
         for (regexp, stream) in ((stderr_ok_regexp, result.stderr),
                                  (stdout_ok_regexp, result.stdout)):
             if regexp and stream:
-                ok_re = re.compile (regexp)
+                ok_re = re.compile(regexp)
                 if ok_re.search(stream):
                     if ok_re.search(stream):
                         return
 
         if not ignore_status and result.exit_status > 0:
             raise error.AutoservRunError("command execution error", result)
-
 
     def setup_ssh(self):
         if self.password:
@@ -215,6 +215,7 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
 
 
 class AsyncSSHMixin(object):
+
     def __init__(self, *args, **kwargs):
         super(AsyncSSHMixin, self).__init__(*args, **kwargs)
 
@@ -235,7 +236,7 @@ class AsyncSSHMixin(object):
         self.start_master_ssh()
 
         self.send_file(os.path.join(self.job.clientdir, "shared", "hosts",
-                        "scripts", "run_helper.py"),
+                                    "scripts", "run_helper.py"),
                        os.path.join(self.job.tmpdir, "run_helper.py"))
 
         env = " ".join("=".join(pair) for pair in self.env.iteritems())
@@ -250,16 +251,16 @@ class AsyncSSHMixin(object):
         full_cmd = '{ssh_cmd} "{env} {cmd}"'.format(
             ssh_cmd=ssh_cmd, env=env,
             cmd=utils.sh_escape("%s (%s '%s')" % (cmd_outside_subshell,
-                            os.path.join(self.job.tmpdir, "run_helper.py"),
-                            utils.sh_escape(command))))
+                                                  os.path.join(self.job.tmpdir, "run_helper.py"),
+                                                  utils.sh_escape(command))))
 
         job = utils.AsyncJob(full_cmd, stdout_tee=stdout_tee,
-                              stderr_tee=stderr_tee, verbose=verbose,
-                              stderr_level=stderr_level,
-                              stdin=subprocess.PIPE)
+                             stderr_tee=stderr_tee, verbose=verbose,
+                             stderr_level=stderr_level,
+                             stdin=subprocess.PIPE)
 
         def kill_func():
-            #this triggers the remote kill
+            # this triggers the remote kill
             utils.nuke_subprocess(job.sp)
 
         job.kill_func = kill_func

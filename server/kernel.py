@@ -11,6 +11,7 @@ from autotest.server import installable_object
 
 
 class Kernel(installable_object.InstallableObject):
+
     """
     This class represents a kernel.
 
@@ -28,10 +29,8 @@ class Kernel(installable_object.InstallableObject):
     def get_version(self):
         pass
 
-
     def get_image_name(self):
         pass
-
 
     def get_initrd_name(self):
         pass

@@ -10,15 +10,16 @@ SSH_ENGINE = settings.settings.get_value('AUTOSERV', 'ssh_engine')
 # for tracking which hostnames have already had job_start called
 _started_hostnames = set()
 
+
 def create_host(
     hostname, auto_monitor=True, follow_paths=None, pattern_paths=None,
-    netconsole=False, **args):
+        netconsole=False, **args):
     # parse out the profile up-front, if it's there, or else console monitoring
     # will not work
     # Here, ssh_user, ssh_pass and ssh_port are injected in the namespace
     # pylint: disable=E0602
     hostname, args['user'], args['password'], args['port'], args['profile'] = (
-            server_utils.parse_machine(hostname, ssh_user, ssh_pass, ssh_port))# @UndefinedVariable
+        server_utils.parse_machine(hostname, ssh_user, ssh_pass, ssh_port))  # @UndefinedVariable
 
     # by default assume we're using SSH support
     if SSH_ENGINE == 'paramiko':

@@ -29,7 +29,9 @@ See doctests/001_rpc_test.txt for (lots) more examples.
 
 __author__ = 'showard@google.com (Steve Howard)'
 
-import datetime, xmlrpclib, logging
+import datetime
+import xmlrpclib
+import logging
 try:
     import autotest.common as common
 except ImportError:
@@ -52,8 +54,8 @@ INTERFACE_VERSION = (2013, 05, 23)
 
 def add_label(name, kernel_config=None, platform=None, only_if_needed=None):
     return models.Label.add_object(
-            name=name, kernel_config=kernel_config, platform=platform,
-            only_if_needed=only_if_needed).id
+        name=name, kernel_config=kernel_config, platform=platform,
+        only_if_needed=only_if_needed).id
 
 
 def modify_label(id, **data):
@@ -82,16 +84,16 @@ def get_labels(**filter_data):
     @returns A sequence of nested dictionaries of label information.
     """
     return rpc_utils.prepare_rows_as_nested_dicts(
-            models.Label.query_objects(filter_data),
-            ('atomic_group',))
+        models.Label.query_objects(filter_data),
+        ('atomic_group',))
 
 
 # atomic groups
 
 def add_atomic_group(name, max_number_of_machines=None, description=None):
     return models.AtomicGroup.add_object(
-            name=name, max_number_of_machines=max_number_of_machines,
-            description=description).id
+        name=name, max_number_of_machines=max_number_of_machines,
+        description=description).id
 
 
 def modify_atomic_group(id, **data):
@@ -114,7 +116,7 @@ def atomic_group_remove_labels(id, labels):
 
 def get_atomic_groups(**filter_data):
     return rpc_utils.prepare_for_serialization(
-            models.AtomicGroup.list_objects(filter_data))
+        models.AtomicGroup.list_objects(filter_data))
 
 
 # hosts
@@ -168,7 +170,7 @@ def set_host_attribute(attribute, value, **host_filter_data):
     @param host_filter_data filter data to apply to Hosts to choose hosts to act
     upon
     """
-    assert host_filter_data # disallow accidental actions on all hosts
+    assert host_filter_data  # disallow accidental actions on all hosts
     hosts = models.Host.query_objects(host_filter_data)
     models.AclGroup.check_for_acl_violation_hosts(hosts)
 
@@ -215,7 +217,7 @@ def get_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
         host_dict = host_obj.get_object_dict()
         host_dict['labels'] = [label.name for label in host_obj.label_list]
         host_dict['platform'], host_dict['atomic_group'] = (rpc_utils.
-                find_platform_and_atomic_group(host_obj))
+                                                            find_platform_and_atomic_group(host_obj))
         host_dict['acls'] = [acl.name for acl in host_obj.acl_list]
         host_dict['attributes'] = dict((attribute.attribute, attribute.value)
                                        for attribute in host_obj.attribute_list)
@@ -247,7 +249,7 @@ def get_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
                     host_dict['profiles'] = profiles
                     host_dict['profiles'].insert(0, 'Do_not_install')
                     use_current_profile = settings.get_value('INSTALL_SERVER',
-                            'use_current_profile', type=bool, default=True)
+                                                             'use_current_profile', type=bool, default=True)
                     if use_current_profile:
                         host_dict['current_profile'] = system['profile']
                     else:
@@ -357,7 +359,7 @@ def release_hosts(host_filter_data, username=None):
     """
     hosts = models.Host.query_objects(host_filter_data)
     reservations.release(hosts_to_release=[h.hostname for h in hosts],
-                        username=username)
+                         username=username)
 
 
 # tests
@@ -591,38 +593,38 @@ def create_parameterized_job(name, priority, test, parameters, kernel=None,
                      for profiler in profilers]
 
     parameterized_job = models.ParameterizedJob.objects.create(
-            test=test_obj, label=label, use_container=use_container,
-            profile_only=profile_only,
-            upload_kernel_config=upload_kernel_config)
+        test=test_obj, label=label, use_container=use_container,
+        profile_only=profile_only,
+        upload_kernel_config=upload_kernel_config)
     parameterized_job.kernels.add(*kernel_objs)
 
     for profiler in profiler_objs:
         parameterized_profiler = models.ParameterizedJobProfiler.objects.create(
-                parameterized_job=parameterized_job,
-                profiler=profiler)
+            parameterized_job=parameterized_job,
+            profiler=profiler)
         profiler_params = profiler_parameters.get(profiler.name, {})
         for name, (value, param_type) in profiler_params.iteritems():
             models.ParameterizedJobProfilerParameter.objects.create(
-                    parameterized_job_profiler=parameterized_profiler,
-                    parameter_name=name,
-                    parameter_value=value,
-                    parameter_type=param_type)
+                parameterized_job_profiler=parameterized_profiler,
+                parameter_name=name,
+                parameter_value=value,
+                parameter_type=param_type)
 
     try:
         for parameter in test_obj.testparameter_set.all():
             if parameter.name in parameters:
                 param_value, param_type = parameters.pop(parameter.name)
                 parameterized_job.parameterizedjobparameter_set.create(
-                        test_parameter=parameter, parameter_value=param_value,
-                        parameter_type=param_type)
+                    test_parameter=parameter, parameter_value=param_value,
+                    parameter_type=param_type)
 
         if parameters:
             raise Exception('Extra parameters remain: %r' % parameters)
 
         return rpc_utils.create_job_common(
-                parameterized_job=parameterized_job.id,
-                control_type=control_type,
-                **rpc_utils.get_create_job_common_args(args))
+            parameterized_job=parameterized_job.id,
+            control_type=control_type,
+            **rpc_utils.get_create_job_common_args(args))
     except:
         parameterized_job.delete()
         raise
@@ -672,7 +674,7 @@ def create_job(name, priority, control_file, control_type,
     :rtype: integer
     """
     return rpc_utils.create_job_common(
-            **rpc_utils.get_create_job_common_args(locals()))
+        **rpc_utils.get_create_job_common_args(locals()))
 
 
 def abort_host_queue_entries(**filter_data):
@@ -766,7 +768,7 @@ def get_info_for_clone(id, preserve_metahosts, queue_entry_filter_data=None):
                                       queue_entry_filter_data)
 
     host_dicts = []
-    for host,profile in zip(job_info['hosts'],job_info['profiles']):
+    for host, profile in zip(job_info['hosts'], job_info['profiles']):
         host_dict = get_hosts(id=host.id)[0]
         other_labels = host_dict['labels']
         if host_dict['platform']:
@@ -807,8 +809,8 @@ def get_host_queue_entries(**filter_data):
     @returns A sequence of nested dictionaries of host and job information.
     """
     return rpc_utils.prepare_rows_as_nested_dicts(
-            models.HostQueueEntry.query_objects(filter_data),
-            ('host', 'atomic_group', 'job'))
+        models.HostQueueEntry.query_objects(filter_data),
+        ('host', 'atomic_group', 'job'))
 
 
 def get_num_host_queue_entries(**filter_data):
@@ -835,8 +837,8 @@ def get_hqe_percentage_complete(**filter_data):
 
 def get_special_tasks(**filter_data):
     return rpc_utils.prepare_rows_as_nested_dicts(
-            models.SpecialTask.query_objects(filter_data),
-            ('host', 'queue_entry'))
+        models.SpecialTask.query_objects(filter_data),
+        ('host', 'queue_entry'))
 
 
 # support for host detail view
@@ -877,8 +879,8 @@ def get_num_host_queue_entries_and_special_tasks(hostname):
 
 def get_recurring(**filter_data):
     return rpc_utils.prepare_rows_as_nested_dicts(
-            models.RecurringRun.query_objects(filter_data),
-            ('job', 'owner'))
+        models.RecurringRun.query_objects(filter_data),
+        ('job', 'owner'))
 
 
 def get_num_recurring(**filter_data):
@@ -946,7 +948,7 @@ def get_static_data():
     drone_sets = ([default_drone_set_name] +
                   sorted(drone_set.name for drone_set in
                          models.DroneSet.objects.exclude(
-                                 name=default_drone_set_name)))
+                             name=default_drone_set_name)))
 
     result = {}
     result['priorities'] = models.Job.Priority.choices()

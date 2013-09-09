@@ -4,13 +4,16 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-import cStringIO, os, unittest
+import cStringIO
+import os
+import unittest
 from autotest.server.hosts.monitors import monitors_util
 
+
 class _MockWarnFile(object):
+
     def __init__(self):
         self.warnings = []
-
 
     def write(self, data):
         if data == '\n':
@@ -20,20 +23,19 @@ class _MockWarnFile(object):
 
 
 class ConsolePatternsTestCase(unittest.TestCase):
+
     def setUp(self):
         self._warnfile = _MockWarnFile()
         patterns_path = os.path.join(os.path.dirname(__file__),
                                      'console_patterns')
         self._alert_hooks = monitors_util.build_alert_hooks_from_path(
-                patterns_path, self._warnfile)
+            patterns_path, self._warnfile)
         self._logfile = cStringIO.StringIO()
-
 
     def _process_line(self, line):
         input_file = cStringIO.StringIO(line + '\n')
         monitors_util.process_input(input_file, self._logfile,
                                     alert_hooks=self._alert_hooks)
-
 
     def _assert_warning_fired(self, type, message):
         key = (type, message)
@@ -41,12 +43,12 @@ class ConsolePatternsTestCase(unittest.TestCase):
                      'Warning %s not found in: %s' % (key,
                                                       self._warnfile.warnings))
 
-
     def _assert_no_warnings_fired(self):
         self.assertEquals(self._warnfile.warnings, [])
 
 
 class ConsolePatternsTest(ConsolePatternsTestCase):
+
     def test_oops(self):
         self._process_line('<0>Oops: 0002 [1] SMP ')
         self._assert_warning_fired('BUG', "machine Oops'd (: 0002 [1] SMP)")

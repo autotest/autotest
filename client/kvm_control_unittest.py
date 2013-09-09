@@ -14,9 +14,11 @@ from autotest.client.shared import error
 
 
 class test_kvm_control(unittest.TestCase):
+
     """
     Test suite for the autotest.client.kvm_control class
     """
+
     def setUp(self):
         self.god = mock.mock_god()
 

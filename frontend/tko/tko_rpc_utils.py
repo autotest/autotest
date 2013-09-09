@@ -2,43 +2,40 @@ from autotest.frontend.afe import rpc_utils
 from autotest.client.shared import kernel_versions
 from autotest.frontend.tko import models
 
+
 class TooManyRowsError(Exception):
+
     """
     Raised when a database query returns too many rows.
     """
 
 
 class KernelString(str):
+
     """
     Custom string class that uses correct kernel version comparisons.
     """
+
     def _map(self):
         return kernel_versions.version_encode(self)
-
 
     def __hash__(self):
         return hash(self._map())
 
-
     def __eq__(self, other):
         return self._map() == other._map()
-
 
     def __ne__(self, other):
         return self._map() != other._map()
 
-
     def __lt__(self, other):
         return self._map() < other._map()
-
 
     def __lte__(self, other):
         return self._map() <= other._map()
 
-
     def __gt__(self, other):
         return self._map() > other._map()
-
 
     def __gte__(self, other):
         return self._map() >= other._map()
@@ -52,11 +49,11 @@ _INCOMPLETE_COUNT_NAME = 'incomplete_count'
 # (i.e. numeric, not string).  I don't know why.
 _PASS_COUNT_SQL = 'COUNT(IF(status="GOOD", 1, NULL))'
 _COMPLETE_COUNT_SQL = ('COUNT(IF(status NOT IN ("TEST_NA", "RUNNING", '
-                                               '"NOSTATUS"), 1, NULL))')
+                       '"NOSTATUS"), 1, NULL))')
 _INCOMPLETE_COUNT_SQL = 'COUNT(IF(status="RUNNING", 1, NULL))'
-STATUS_FIELDS = {_PASS_COUNT_NAME : _PASS_COUNT_SQL,
-                 _COMPLETE_COUNT_NAME : _COMPLETE_COUNT_SQL,
-                 _INCOMPLETE_COUNT_NAME : _INCOMPLETE_COUNT_SQL}
+STATUS_FIELDS = {_PASS_COUNT_NAME: _PASS_COUNT_SQL,
+                 _COMPLETE_COUNT_NAME: _COMPLETE_COUNT_SQL,
+                 _INCOMPLETE_COUNT_NAME: _INCOMPLETE_COUNT_SQL}
 _INVALID_STATUSES = ('TEST_NA', 'NOSTATUS')
 
 
@@ -90,7 +87,7 @@ def _construct_machine_label_header_sql(machine_labels):
     for label in machine_labels:
         if_clauses.append(
             'IF(FIND_IN_SET("%s", tko_test_attributes_host_labels.value), '
-               '"%s", NULL)' % (label, label))
+            '"%s", NULL)' % (label, label))
     return 'CONCAT_WS(",", %s)' % ', '.join(if_clauses)
 
 
@@ -110,22 +107,18 @@ class GroupDataProcessor(object):
                                    in xrange(len(header_groups))]
         self._group_dicts = []
 
-
     @staticmethod
     def uniqify(values):
         return list(set(values))
 
-
     def _restrict_header_values(self):
         for header_field, values in self._fixed_headers.iteritems():
-            self._query = self._query.filter(**{header_field + '__in' : values})
-
+            self._query = self._query.filter(**{header_field + '__in': values})
 
     def _fetch_data(self):
         self._restrict_header_values()
         self._group_dicts = models.TestView.objects.execute_group_query(
             self._query, self._group_by)
-
 
     @staticmethod
     def _get_field(group_dict, field):
@@ -137,13 +130,12 @@ class GroupDataProcessor(object):
         value = group_dict[field]
         if field == 'kernel':
             return KernelString(value)
-        if value is None: # handle null dates as later than everything else
+        if value is None:  # handle null dates as later than everything else
             if field.startswith('DATE('):
                 return rpc_utils.NULL_DATE
             if field.endswith('_time'):
                 return rpc_utils.NULL_DATETIME
         return value
-
 
     def _process_group_dict(self, group_dict):
         # compute and aggregate header groups
@@ -158,7 +150,6 @@ class GroupDataProcessor(object):
         group_dict['id'] = str(group_values)
         return group_dict
 
-
     def _find_header_value_set(self, field):
         for i, group in enumerate(self._header_groups):
             if [field] == group:
@@ -166,13 +157,11 @@ class GroupDataProcessor(object):
         raise RuntimeError('Field %s not found in header groups %s' %
                            (field, self._header_groups))
 
-
     def _add_fixed_headers(self):
         for field, extra_values in self._fixed_headers.iteritems():
             header_value_set = self._find_header_value_set(field)
             for value in extra_values:
                 header_value_set.add((value,))
-
 
     def _get_sorted_header_values(self):
         self._add_fixed_headers()
@@ -187,7 +176,6 @@ class GroupDataProcessor(object):
 
         return sorted_header_values
 
-
     def _replace_headers_with_indices(self, group_dict):
         group_dict['header_indices'] = [index_map[header_value]
                                         for index_map, header_value
@@ -196,13 +184,12 @@ class GroupDataProcessor(object):
         for field in self._group_by + ['header_values']:
             del group_dict[field]
 
-
     def process_group_dicts(self):
         self._fetch_data()
         if len(self._group_dicts) > self._MAX_GROUP_RESULTS:
             raise TooManyRowsError(
                 'Query yielded %d rows, exceeding maximum %d' % (
-                len(self._group_dicts), self._MAX_GROUP_RESULTS))
+                    len(self._group_dicts), self._MAX_GROUP_RESULTS))
 
         for group_dict in self._group_dicts:
             self._process_group_dict(group_dict)
@@ -211,7 +198,6 @@ class GroupDataProcessor(object):
             for group_dict in self._group_dicts:
                 self._replace_headers_with_indices(group_dict)
 
-
     def get_info_dict(self):
-        return {'groups' : self._group_dicts,
-                'header_values' : self._header_values}
+        return {'groups': self._group_dicts,
+                'header_values': self._header_values}

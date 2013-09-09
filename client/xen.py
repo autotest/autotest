@@ -12,20 +12,17 @@ class xen(kernel.kernel):
         print msg
         self.logfile.write('%s\n' % msg)
 
-
     def __init__(self, job, base_tree, results_dir, tmp_dir, build_dir,
-                                        leave = False, kjob = None):
+                 leave=False, kjob=None):
         # call base-class
         kernel.kernel.__init__(self, job, base_tree, results_dir,
-                                        tmp_dir, build_dir, leave)
+                               tmp_dir, build_dir, leave)
         self.kjob = kjob
 
-
-    def config(self, config_file, config_list = None):
+    def config(self, config_file, config_list=None):
         raise NotImplementedError('config() not implemented for xen')
 
-
-    def build(self, make_opts = '', logfile = '', extraversion='autotest'):
+    def build(self, make_opts='', logfile='', extraversion='autotest'):
         """build xen
 
         make_opts
@@ -34,7 +31,7 @@ class xen(kernel.kernel):
         self.log('running build')
         os_dep.commands('gcc', 'make')
         # build xen with extraversion flag
-        os.environ['XEN_EXTRAVERSION'] = '-unstable-%s'% extraversion
+        os.environ['XEN_EXTRAVERSION'] = '-unstable-%s' % extraversion
         if logfile == '':
             logfile = os.path.join(self.log_dir, 'xen_build')
         os.chdir(self.build_dir)
@@ -59,8 +56,8 @@ class xen(kernel.kernel):
             self.log('building xen kernel version: %s' % v)
 
             # build xen-ified kernel in xen tree
-            kernel_base_tree = os.path.join(self.build_dir, \
-                    'linux-%s' % self.get_xen_kernel_build_ver())
+            kernel_base_tree = os.path.join(self.build_dir,
+                                            'linux-%s' % self.get_xen_kernel_build_ver())
 
             self.log('kernel_base_tree = %s' % kernel_base_tree)
             # fix up XENGUEST value in EXTRAVERSION; we can't have
@@ -87,15 +84,13 @@ class xen(kernel.kernel):
         self.job.logging.restore()
 
         xen_version = self.get_xen_build_ver()
-        self.log('BUILD VERSION: Xen: %s Kernel:%s' % \
-                        (xen_version, self.kjob.get_kernel_build_ver()))
-
+        self.log('BUILD VERSION: Xen: %s Kernel:%s' %
+                (xen_version, self.kjob.get_kernel_build_ver()))
 
     def build_timed(self, *args, **kwds):
         raise NotImplementedError('build_timed() not implemented')
 
-
-    def install(self, tag='', prefix = '/', extraversion='autotest'):
+    def install(self, tag='', prefix='/', extraversion='autotest'):
         """make install in the kernel tree"""
         self.log('Installing ...')
 
@@ -110,10 +105,10 @@ class xen(kernel.kernel):
         # remember what we are going to install
         xen_version = '%s-%s' % (self.get_xen_build_ver(), extraversion)
         self.xen_image = self.boot_dir + '/xen-' + xen_version + '.gz'
-        self.xen_syms  = self.boot_dir + '/xen-syms-' + xen_version
+        self.xen_syms = self.boot_dir + '/xen-syms-' + xen_version
 
         self.log('Installing Xen ...')
-        os.environ['XEN_EXTRAVERSION'] = '-unstable-%s'% extraversion
+        os.environ['XEN_EXTRAVERSION'] = '-unstable-%s' % extraversion
 
         # install xen
         utils.system('make DESTDIR=%s -C xen install' % prefix)
@@ -125,7 +120,6 @@ class xen(kernel.kernel):
         ktag = self.kjob.get_kernel_build_ver()
         kprefix = prefix
         self.kjob.install(tag=ktag, prefix=kprefix)
-
 
     def add_to_bootloader(self, tag='autotest', args=''):
         """ add this kernel to bootloader, taking an
@@ -141,8 +135,8 @@ class xen(kernel.kernel):
 
         # add xen and xen kernel
         self.job.bootloader.add_kernel(
-                self.kjob.image, tag, initrd=self.kjob.initrd,
-                xen_hypervisor=self.xen_image)
+            self.kjob.image, tag, initrd=self.kjob.initrd,
+            xen_hypervisor=self.xen_image)
 
         # if no args passed, populate from /proc/cmdline
         if not args:
@@ -154,7 +148,6 @@ class xen(kernel.kernel):
 
         # turn off xen mode
         self.job.bootloader.disable_xen_mode()
-
 
     def get_xen_kernel_build_ver(self):
         """Check xen buildconfig for current kernel version"""
@@ -171,7 +164,6 @@ class xen(kernel.kernel):
 
         return version
 
-
     def fix_up_xen_kernel_makefile(self, kernel_dir):
         """Fix up broken EXTRAVERSION in xen-ified Linux kernel Makefile"""
         xenguest = ''
@@ -181,12 +173,11 @@ class xen(kernel.kernel):
             if line.startswith('XENGUEST'):
                 start = line.index('=') + 1
                 xenguest = line[start:].strip()
-                break;
+                break
 
         # change out $XENGUEST in EXTRAVERSION line
         utils.system('sed -i.old "s,\$(XENGUEST),%s," %s' % (xenguest,
                                                              makefile))
-
 
     def get_xen_build_ver(self):
         """Check Makefile and .config to return kernel version"""

@@ -1,4 +1,11 @@
-import os, time, socket, shutil, glob, logging, traceback, tempfile
+import os
+import time
+import socket
+import shutil
+import glob
+import logging
+import traceback
+import tempfile
 from autotest.client.shared import autotemp, error
 from autotest.server import utils, autotest_remote
 from autotest.server.hosts import remote
@@ -16,7 +23,7 @@ def _make_ssh_cmd_default(user="root", port=22, opts='', hosts_file='/dev/null',
                     "-o ConnectTimeout=%d -o ServerAliveInterval=%d "
                     "-l %s -p %d")
     assert isinstance(connect_timeout, (int, long))
-    assert connect_timeout > 0 # can't disable the timeout
+    assert connect_timeout > 0  # can't disable the timeout
     return base_command % (opts, hosts_file, connect_timeout,
                            alive_interval, user, port)
 
@@ -33,6 +40,7 @@ SiteHost = utils.import_site_class(
 
 
 class AbstractSSHHost(SiteHost):
+
     """
     This class represents a generic implementation of most of the
     framework necessary for controlling a host via ssh. It implements
@@ -60,7 +68,6 @@ class AbstractSSHHost(SiteHost):
         self.master_ssh_tempdir = None
         self.master_ssh_option = ''
 
-
     def use_rsync(self):
         if self._use_rsync is not None:
             return self._use_rsync
@@ -73,7 +80,6 @@ class AbstractSSHHost(SiteHost):
                          self.hostname)
         return self._use_rsync
 
-
     def _check_rsync(self):
         """
         Check if rsync is available on the remote host.
@@ -84,7 +90,6 @@ class AbstractSSHHost(SiteHost):
             return False
         return True
 
-
     def _encode_remote_paths(self, paths, escape=True):
         """
         Given a list of file paths, encodes it as a single remote path, in
@@ -93,7 +98,6 @@ class AbstractSSHHost(SiteHost):
         if escape:
             paths = [utils.scp_remote_escape(path) for path in paths]
         return '%s@%s:"%s"' % (self.user, self.hostname, " ".join(paths))
-
 
     def _make_rsync_cmd(self, sources, dest, delete_dest, preserve_symlinks):
         """
@@ -116,7 +120,6 @@ class AbstractSSHHost(SiteHost):
         return command % (symlink_flag, delete_flag, ssh_cmd,
                           " ".join(sources), dest)
 
-
     def _make_ssh_cmd(self, cmd):
         """
         Create a base ssh command string for the host which can be used
@@ -138,7 +141,6 @@ class AbstractSSHHost(SiteHost):
                    "-o UserKnownHostsFile=%s -P %d %s '%s'")
         return command % (self.master_ssh_option, self.known_hosts_file,
                           self.port, " ".join(sources), dest)
-
 
     def _make_rsync_compatible_globs(self, path, is_local):
         """
@@ -178,7 +180,6 @@ class AbstractSSHHost(SiteHost):
             return [utils.scp_remote_escape(path) + pattern
                     for pattern in patterns]
 
-
     def _make_rsync_compatible_source(self, source, is_local):
         """
         Applies the same logic as _make_rsync_compatible_globs, but
@@ -187,7 +188,6 @@ class AbstractSSHHost(SiteHost):
         """
         return sum((self._make_rsync_compatible_globs(path, is_local)
                     for path in source), [])
-
 
     def _set_umask_perms(self, dest):
         """
@@ -225,13 +225,11 @@ class AbstractSSHHost(SiteHost):
             for filename in files:
                 set_file_privs(os.path.join(root, filename))
 
-
         # now set privs for the dest itself
         if os.path.isdir(dest):
             os.chmod(dest, max_privs)
         else:
             set_file_privs(dest)
-
 
     def get_file(self, source, dest, delete_dest=False, preserve_perm=True,
                  preserve_symlinks=False):
@@ -308,7 +306,6 @@ class AbstractSSHHost(SiteHost):
             # for rsync we could use "--no-p --chmod=ugo=rwX" but those
             # options are only in very recent rsync versions
             self._set_umask_perms(dest)
-
 
     def send_file(self, source, dest, delete_dest=False,
                   preserve_symlinks=False):
@@ -402,7 +399,6 @@ class AbstractSSHHost(SiteHost):
                 except error.CmdError, e:
                     raise error.AutoservRunError(e.args[0], e.args[1])
 
-
     def ssh_ping(self, timeout=60):
         try:
             self.run("true", timeout=timeout, connect_timeout=timeout)
@@ -410,14 +406,13 @@ class AbstractSSHHost(SiteHost):
             msg = "Host (ssh) verify timed out (timeout = %d)" % timeout
             raise error.AutoservSSHTimeout(msg)
         except error.AutoservSshPermissionDeniedError:
-            #let AutoservSshPermissionDeniedError be visible to the callers
+            # let AutoservSshPermissionDeniedError be visible to the callers
             raise
         except error.AutoservRunError, e:
             # convert the generic AutoservRunError into something more
             # specific for this context
             raise error.AutoservSshPingHostError(e.description + '\n' +
                                                  repr(e.result_obj))
-
 
     def is_up(self):
         """
@@ -431,7 +426,6 @@ class AbstractSSHHost(SiteHost):
             return False
         else:
             return True
-
 
     def wait_up(self, timeout=None):
         """
@@ -462,7 +456,6 @@ class AbstractSSHHost(SiteHost):
                       self.hostname, int(timeout + time.time() - end_time))
         return False
 
-
     def wait_down(self, timeout=None, warning_timer=None, old_boot_id=None):
         """
         Wait until the remote host is down or the timeout expires.
@@ -486,8 +479,8 @@ class AbstractSSHHost(SiteHost):
 
         @returns True if the host was found to be down, False otherwise
         """
-        #TODO: there is currently no way to distinguish between knowing
-        #TODO: boot_id was unsupported and not knowing the boot_id.
+        # TODO: there is currently no way to distinguish between knowing
+        # TODO: boot_id was unsupported and not knowing the boot_id.
         current_time = time.time()
         if timeout:
             end_time = current_time + timeout
@@ -529,13 +522,11 @@ class AbstractSSHHost(SiteHost):
 
         return False
 
-
     # tunable constants for the verify & repair code
     AUTOTEST_GB_DISKSPACE_REQUIRED = settings.get_value("SERVER",
                                                         "gb_diskspace_required",
                                                         type=int,
                                                         default=20)
-
 
     def verify_connectivity(self):
         super(AbstractSSHHost, self).verify_connectivity()
@@ -546,7 +537,6 @@ class AbstractSSHHost(SiteHost):
 
         if self.is_shutting_down():
             raise error.AutoservHostIsShuttingDownError("Host is shutting down")
-
 
     def verify_software(self):
         super(AbstractSSHHost, self).verify_software()
@@ -560,12 +550,10 @@ class AbstractSSHHost(SiteHost):
             logging.debug('autodir space check exception, this is probably '
                           'safe to ignore\n' + traceback.format_exc())
 
-
     def close(self):
         super(AbstractSSHHost, self).close()
         self._cleanup_master_ssh()
         os.remove(self.known_hosts_file)
-
 
     def _cleanup_master_ssh(self):
         """
@@ -582,7 +570,6 @@ class AbstractSSHHost(SiteHost):
             self.master_ssh_tempdir.clean()
             self.master_ssh_tempdir = None
             self.master_ssh_option = ''
-
 
     def start_master_ssh(self):
         """
@@ -614,7 +601,6 @@ class AbstractSSHHost(SiteHost):
             master_cmd = self.ssh_command(options="-N -o ControlMaster=yes")
             logging.info("Starting master ssh connection '%s'" % master_cmd)
             self.master_ssh_job = utils.BgJob(master_cmd)
-
 
     def clear_known_hosts(self):
         """Clears out the temporary ssh known_hosts file.

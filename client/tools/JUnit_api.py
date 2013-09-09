@@ -11,9 +11,9 @@ import re as re_
 
 etree_ = None
 Verbose_import_ = False
-(   XMLParser_import_none, XMLParser_import_lxml,
+(XMLParser_import_none, XMLParser_import_lxml,
     XMLParser_import_elementtree
-    ) = range(3)
+ ) = range(3)
 XMLParser_import_library = None
 try:
     # lxml
@@ -54,9 +54,10 @@ except ImportError:
                 except ImportError:
                     raise ImportError("Failed to import ElementTree from any known place")
 
+
 def parsexml_(*args, **kwargs):
     if (XMLParser_import_library == XMLParser_import_lxml and
-        'parser' not in kwargs):
+            'parser' not in kwargs):
         # Use the lxml ElementTree compatible parser so that, e.g.,
         #   we ignore comments.
         kwargs['parser'] = etree_.ETCompatXMLParser()
@@ -75,16 +76,22 @@ try:
 except ImportError, exp:
 
     class GeneratedsSuper(object):
+
         def gds_format_string(self, input_data, input_name=''):
             return input_data
+
         def gds_validate_string(self, input_data, node, input_name=''):
             return input_data
+
         def gds_format_integer(self, input_data, input_name=''):
             return '%d' % input_data
+
         def gds_validate_integer(self, input_data, node, input_name=''):
             return input_data
+
         def gds_format_integer_list(self, input_data, input_name=''):
             return '%s' % input_data
+
         def gds_validate_integer_list(self, input_data, node, input_name=''):
             values = input_data.split()
             for value in values:
@@ -93,12 +100,16 @@ except ImportError, exp:
                 except (TypeError, ValueError), exp:
                     raise_parse_error(node, 'Requires sequence of integers')
             return input_data
+
         def gds_format_float(self, input_data, input_name=''):
             return '%f' % input_data
+
         def gds_validate_float(self, input_data, node, input_name=''):
             return input_data
+
         def gds_format_float_list(self, input_data, input_name=''):
             return '%s' % input_data
+
         def gds_validate_float_list(self, input_data, node, input_name=''):
             values = input_data.split()
             for value in values:
@@ -107,12 +118,16 @@ except ImportError, exp:
                 except (TypeError, ValueError), exp:
                     raise_parse_error(node, 'Requires sequence of floats')
             return input_data
+
         def gds_format_double(self, input_data, input_name=''):
             return '%e' % input_data
+
         def gds_validate_double(self, input_data, node, input_name=''):
             return input_data
+
         def gds_format_double_list(self, input_data, input_name=''):
             return '%s' % input_data
+
         def gds_validate_double_list(self, input_data, node, input_name=''):
             values = input_data.split()
             for value in values:
@@ -121,20 +136,26 @@ except ImportError, exp:
                 except (TypeError, ValueError), exp:
                     raise_parse_error(node, 'Requires sequence of doubles')
             return input_data
+
         def gds_format_boolean(self, input_data, input_name=''):
             return '%s' % input_data
+
         def gds_validate_boolean(self, input_data, node, input_name=''):
             return input_data
+
         def gds_format_boolean_list(self, input_data, input_name=''):
             return '%s' % input_data
+
         def gds_validate_boolean_list(self, input_data, node, input_name=''):
             values = input_data.split()
             for value in values:
                 if value not in ('true', '1', 'false', '0', ):
                     raise_parse_error(node, 'Requires sequence of booleans ("true", "1", "false", "0")')
             return input_data
+
         def gds_str_lower(self, instring):
             return instring.lower()
+
         def get_path_(self, node):
             path_list = []
             self.get_path_list_(node, path_list)
@@ -142,6 +163,7 @@ except ImportError, exp:
             path = '/'.join(path_list)
             return path
         Tag_strip_pattern_ = re_.compile(r'\{.*\}')
+
         def get_path_list_(self, node, path_list):
             if node is None:
                 return
@@ -149,6 +171,7 @@ except ImportError, exp:
             if tag:
                 path_list.append(tag)
             self.get_path_list_(node.getparent(), path_list)
+
         def get_class_obj_(self, node, default_class=None):
             class_obj1 = default_class
             if 'xsi' in node.nsmap:
@@ -161,6 +184,7 @@ except ImportError, exp:
                     if class_obj2 is not None:
                         class_obj1 = class_obj2
             return class_obj1
+
         def gds_build_any(self, node, type_name=None):
             return None
 
@@ -172,9 +196,9 @@ except ImportError, exp:
 
 ## from IPython.Shell import IPShellEmbed
 ## args = ''
-## ipshell = IPShellEmbed(args,
+# ipshell = IPShellEmbed(args,
 ##     banner = 'Dropping into IPython',
-##     exit_msg = 'Leaving Interpreter, back to program.')
+# exit_msg = 'Leaving Interpreter, back to program.')
 
 # Then use the following line where and when you want to drop into the
 # IPython shell:
@@ -193,9 +217,11 @@ Namespace_extract_pat_ = re_.compile(r'{(.*)}(.*)')
 # Support/utility functions.
 #
 
+
 def showIndent(outfile, level):
     for idx in range(level):
         outfile.write('    ')
+
 
 def quote_xml(inStr):
     if not inStr:
@@ -206,6 +232,7 @@ def quote_xml(inStr):
     s1 = s1.replace('<', '&lt;')
     s1 = s1.replace('>', '&gt;')
     return s1
+
 
 def quote_attrib(inStr):
     s1 = (isinstance(inStr, basestring) and inStr or
@@ -222,6 +249,7 @@ def quote_attrib(inStr):
         s1 = '"%s"' % s1
     return s1
 
+
 def quote_python(inStr):
     s1 = inStr
     if s1.find("'") == -1:
@@ -237,6 +265,7 @@ def quote_python(inStr):
         else:
             return '"""%s"""' % s1
 
+
 def get_all_text_(node):
     if node.text is not None:
         text = node.text
@@ -246,6 +275,7 @@ def get_all_text_(node):
         if child.tail is not None:
             text += child.tail
     return text
+
 
 def find_attr_value_(attr_name, node):
     attrs = node.attrib
@@ -263,6 +293,7 @@ def find_attr_value_(attr_name, node):
 
 class GDSParseError(Exception):
     pass
+
 
 def raise_parse_error(node, msg):
     if XMLParser_import_library == XMLParser_import_lxml:
@@ -287,19 +318,25 @@ class MixedContainer:
     TypeDecimal = 5
     TypeDouble = 6
     TypeBoolean = 7
+
     def __init__(self, category, content_type, name, value):
         self.category = category
         self.content_type = content_type
         self.name = name
         self.value = value
+
     def getCategory(self):
         return self.category
+
     def getContenttype(self, content_type):
         return self.content_type
+
     def getValue(self):
         return self.value
+
     def getName(self):
         return self.name
+
     def export(self, outfile, level, name, namespace):
         if self.category == MixedContainer.CategoryText:
             # Prevent exporting empty content as empty lines.
@@ -308,7 +345,8 @@ class MixedContainer:
         elif self.category == MixedContainer.CategorySimple:
             self.exportSimple(outfile, level, name)
         else:    # category == MixedContainer.CategoryComplex
-            self.value.export(outfile, level, namespace,name)
+            self.value.export(outfile, level, namespace, name)
+
     def exportSimple(self, outfile, level, name):
         if self.content_type == MixedContainer.TypeString:
             outfile.write('<%s>%s</%s>' % (self.name, self.value, self.name))
@@ -320,33 +358,44 @@ class MixedContainer:
             outfile.write('<%s>%f</%s>' % (self.name, self.value, self.name))
         elif self.content_type == MixedContainer.TypeDouble:
             outfile.write('<%s>%g</%s>' % (self.name, self.value, self.name))
+
     def exportLiteral(self, outfile, level, name):
         if self.category == MixedContainer.CategoryText:
             showIndent(outfile, level)
-            outfile.write('model_.MixedContainer(%d, %d, "%s", "%s"),\n' % \
-                (self.category, self.content_type, self.name, self.value))
+            outfile.write('model_.MixedContainer(%d, %d, "%s", "%s"),\n' %
+                         (self.category, self.content_type, self.name, self.value))
         elif self.category == MixedContainer.CategorySimple:
             showIndent(outfile, level)
-            outfile.write('model_.MixedContainer(%d, %d, "%s", "%s"),\n' % \
-                (self.category, self.content_type, self.name, self.value))
+            outfile.write('model_.MixedContainer(%d, %d, "%s", "%s"),\n' %
+                         (self.category, self.content_type, self.name, self.value))
         else:    # category == MixedContainer.CategoryComplex
             showIndent(outfile, level)
-            outfile.write('model_.MixedContainer(%d, %d, "%s",\n' % \
-                (self.category, self.content_type, self.name,))
+            outfile.write('model_.MixedContainer(%d, %d, "%s",\n' %
+                         (self.category, self.content_type, self.name,))
             self.value.exportLiteral(outfile, level + 1)
             showIndent(outfile, level)
             outfile.write(')\n')
 
 
 class MemberSpec_(object):
+
     def __init__(self, name='', data_type='', container=0):
         self.name = name
         self.data_type = data_type
         self.container = container
-    def set_name(self, name): self.name = name
-    def get_name(self): return self.name
-    def set_data_type(self, data_type): self.data_type = data_type
-    def get_data_type_chain(self): return self.data_type
+
+    def set_name(self, name):
+        self.name = name
+
+    def get_name(self):
+        return self.name
+
+    def set_data_type(self, data_type):
+        self.data_type = data_type
+
+    def get_data_type_chain(self):
+        return self.data_type
+
     def get_data_type(self):
         if isinstance(self.data_type, list):
             if len(self.data_type) > 0:
@@ -355,8 +404,13 @@ class MemberSpec_(object):
                 return 'xs:string'
         else:
             return self.data_type
-    def set_container(self, container): self.container = container
-    def get_container(self): return self.container
+
+    def set_container(self, container):
+        self.container = container
+
+    def get_container(self):
+        return self.container
+
 
 def _cast(typ, value):
     if typ is None or value is None:
@@ -367,15 +421,19 @@ def _cast(typ, value):
 # Data representation classes.
 #
 
+
 class testsuites(GeneratedsSuper):
+
     """Contains an aggregation of testsuite results"""
     subclass = None
     superclass = None
+
     def __init__(self, testsuite=None):
         if testsuite is None:
             self.testsuite = []
         else:
             self.testsuite = testsuite
+
     def factory(*args_, **kwargs_):
         if testsuites.subclass:
             # pylint: disable=E1102
@@ -383,10 +441,19 @@ class testsuites(GeneratedsSuper):
         else:
             return testsuites(*args_, **kwargs_)
     factory = staticmethod(factory)
-    def get_testsuite(self): return self.testsuite
-    def set_testsuite(self, testsuite): self.testsuite = testsuite
-    def add_testsuite(self, value): self.testsuite.append(value)
-    def insert_testsuite(self, index, value): self.testsuite[index] = value
+
+    def get_testsuite(self):
+        return self.testsuite
+
+    def set_testsuite(self, testsuite):
+        self.testsuite = testsuite
+
+    def add_testsuite(self, value):
+        self.testsuite.append(value)
+
+    def insert_testsuite(self, index, value):
+        self.testsuite[index] = value
+
     def export(self, outfile, level, namespace_='', name_='testsuites', namespacedef_=''):
         showIndent(outfile, level)
         outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
@@ -399,25 +466,31 @@ class testsuites(GeneratedsSuper):
             outfile.write('</%s%s>\n' % (namespace_, name_))
         else:
             outfile.write('/>\n')
+
     def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='testsuites'):
         pass
+
     def exportChildren(self, outfile, level, namespace_='', name_='testsuites', fromsubclass_=False):
         for testsuite_ in self.testsuite:
             testsuite_.export(outfile, level, namespace_, name_='testsuite')
+
     def hasContent_(self):
         if (
             self.testsuite
-            ):
+        ):
             return True
         else:
             return False
+
     def exportLiteral(self, outfile, level, name_='testsuites'):
         level += 1
         self.exportLiteralAttributes(outfile, level, [], name_)
         if self.hasContent_():
             self.exportLiteralChildren(outfile, level, name_)
+
     def exportLiteralAttributes(self, outfile, level, already_processed, name_):
         pass
+
     def exportLiteralChildren(self, outfile, level, name_):
         showIndent(outfile, level)
         outfile.write('testsuite=[\n')
@@ -431,13 +504,16 @@ class testsuites(GeneratedsSuper):
         level -= 1
         showIndent(outfile, level)
         outfile.write('],\n')
+
     def build(self, node):
         self.buildAttributes(node, node.attrib, [])
         for child in node:
             nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
             self.buildChildren(child, node, nodeName_)
+
     def buildAttributes(self, node, attrs, already_processed):
         pass
+
     def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
         if nodeName_ == 'testsuite':
             obj_ = testsuiteType.factory()
@@ -447,6 +523,7 @@ class testsuites(GeneratedsSuper):
 
 
 class testsuite(GeneratedsSuper):
+
     """Contains the results of exexuting a testsuiteFull class name of the
     test for non-aggregated testsuite documents. Class name without
     the package for aggregated testsuites documentswhen the test was
@@ -462,6 +539,7 @@ class testsuite(GeneratedsSuper):
     seconds) to execute the tests in the suite"""
     subclass = None
     superclass = None
+
     def __init__(self, tests=None, errors=None, name=None, timestamp=None, hostname=None, time=None, failures=None, properties=None, testcase=None, system_out=None, system_err=None, extensiontype_=None):
         self.tests = _cast(int, tests)
         self.errors = _cast(int, errors)
@@ -478,6 +556,7 @@ class testsuite(GeneratedsSuper):
         self.system_out = system_out
         self.system_err = system_err
         self.extensiontype_ = extensiontype_
+
     def factory(*args_, **kwargs_):
         if testsuite.subclass:
             # pylint: disable=E1102
@@ -485,35 +564,89 @@ class testsuite(GeneratedsSuper):
         else:
             return testsuite(*args_, **kwargs_)
     factory = staticmethod(factory)
-    def get_properties(self): return self.properties
-    def set_properties(self, properties): self.properties = properties
-    def get_testcase(self): return self.testcase
-    def set_testcase(self, testcase): self.testcase = testcase
-    def add_testcase(self, value): self.testcase.append(value)
-    def insert_testcase(self, index, value): self.testcase[index] = value
-    def get_system_out(self): return self.system_out
-    def set_system_out(self, system_out): self.system_out = system_out
-    def get_system_err(self): return self.system_err
-    def set_system_err(self, system_err): self.system_err = system_err
-    def get_tests(self): return self.tests
-    def set_tests(self, tests): self.tests = tests
-    def get_errors(self): return self.errors
-    def set_errors(self, errors): self.errors = errors
-    def get_name(self): return self.name
-    def set_name(self, name): self.name = name
-    def get_timestamp(self): return self.timestamp
-    def set_timestamp(self, timestamp): self.timestamp = timestamp
+
+    def get_properties(self):
+        return self.properties
+
+    def set_properties(self, properties):
+        self.properties = properties
+
+    def get_testcase(self):
+        return self.testcase
+
+    def set_testcase(self, testcase):
+        self.testcase = testcase
+
+    def add_testcase(self, value):
+        self.testcase.append(value)
+
+    def insert_testcase(self, index, value):
+        self.testcase[index] = value
+
+    def get_system_out(self):
+        return self.system_out
+
+    def set_system_out(self, system_out):
+        self.system_out = system_out
+
+    def get_system_err(self):
+        return self.system_err
+
+    def set_system_err(self, system_err):
+        self.system_err = system_err
+
+    def get_tests(self):
+        return self.tests
+
+    def set_tests(self, tests):
+        self.tests = tests
+
+    def get_errors(self):
+        return self.errors
+
+    def set_errors(self, errors):
+        self.errors = errors
+
+    def get_name(self):
+        return self.name
+
+    def set_name(self, name):
+        self.name = name
+
+    def get_timestamp(self):
+        return self.timestamp
+
+    def set_timestamp(self, timestamp):
+        self.timestamp = timestamp
+
     def validate_ISO8601_DATETIME_PATTERN(self, value):
         # Validate type ISO8601_DATETIME_PATTERN, a restriction on xs:dateTime.
         pass
-    def get_hostname(self): return self.hostname
-    def set_hostname(self, hostname): self.hostname = hostname
-    def get_time(self): return self.time
-    def set_time(self, time): self.time = time
-    def get_failures(self): return self.failures
-    def set_failures(self, failures): self.failures = failures
-    def get_extensiontype_(self): return self.extensiontype_
-    def set_extensiontype_(self, extensiontype_): self.extensiontype_ = extensiontype_
+
+    def get_hostname(self):
+        return self.hostname
+
+    def set_hostname(self, hostname):
+        self.hostname = hostname
+
+    def get_time(self):
+        return self.time
+
+    def set_time(self, time):
+        self.time = time
+
+    def get_failures(self):
+        return self.failures
+
+    def set_failures(self, failures):
+        self.failures = failures
+
+    def get_extensiontype_(self):
+        return self.extensiontype_
+
+    def set_extensiontype_(self, extensiontype_):
+        self.extensiontype_ = extensiontype_
+
     def export(self, outfile, level, namespace_='', name_='testsuite', namespacedef_=''):
         showIndent(outfile, level)
         outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
@@ -526,6 +659,7 @@ class testsuite(GeneratedsSuper):
             outfile.write('</%s%s>\n' % (namespace_, name_))
         else:
             outfile.write('/>\n')
+
     def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='testsuite'):
         if self.tests is not None and 'tests' not in already_processed:
             already_processed.append('tests')
@@ -552,6 +686,7 @@ class testsuite(GeneratedsSuper):
             already_processed.append('xsi:type')
             outfile.write(' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"')
             outfile.write(' xsi:type="%s"' % self.extensiontype_)
+
     def exportChildren(self, outfile, level, namespace_='', name_='testsuite', fromsubclass_=False):
         if self.properties is not None:
             self.properties.export(outfile, level, namespace_, name_='properties', )
@@ -563,21 +698,24 @@ class testsuite(GeneratedsSuper):
         if self.system_err is not None:
             showIndent(outfile, level)
             outfile.write('<%ssystem-err>%s</%ssystem-err>\n' % (namespace_, self.gds_format_string(quote_xml(self.system_err).encode(ExternalEncoding), input_name='system-err'), namespace_))
+
     def hasContent_(self):
         if (
             self.properties is not None or
             self.testcase or
             self.system_out is not None or
             self.system_err is not None
-            ):
+        ):
             return True
         else:
             return False
+
     def exportLiteral(self, outfile, level, name_='testsuite'):
         level += 1
         self.exportLiteralAttributes(outfile, level, [], name_)
         if self.hasContent_():
             self.exportLiteralChildren(outfile, level, name_)
+
     def exportLiteralAttributes(self, outfile, level, already_processed, name_):
         if self.tests is not None and 'tests' not in already_processed:
             already_processed.append('tests')
@@ -607,6 +745,7 @@ class testsuite(GeneratedsSuper):
             already_processed.append('failures')
             showIndent(outfile, level)
             outfile.write('failures = %d,\n' % (self.failures,))
+
     def exportLiteralChildren(self, outfile, level, name_):
         if self.properties is not None:
             showIndent(outfile, level)
@@ -632,11 +771,13 @@ class testsuite(GeneratedsSuper):
         if self.system_err is not None:
             showIndent(outfile, level)
             outfile.write('system_err=%s,\n' % quote_python(self.system_err).encode(ExternalEncoding))
+
     def build(self, node):
         self.buildAttributes(node, node.attrib, [])
         for child in node:
             nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
             self.buildChildren(child, node, nodeName_)
+
     def buildAttributes(self, node, attrs, already_processed):
         value = find_attr_value_('tests', node)
         if value is not None and 'tests' not in already_processed:
@@ -685,6 +826,7 @@ class testsuite(GeneratedsSuper):
         if value is not None and 'xsi:type' not in already_processed:
             already_processed.append('xsi:type')
             self.extensiontype_ = value
+
     def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
         if nodeName_ == 'properties':
             obj_ = propertiesType.factory()
@@ -706,11 +848,14 @@ class testsuite(GeneratedsSuper):
 
 
 class system_out(GeneratedsSuper):
+
     """Data that was written to standard out while the test was executed"""
     subclass = None
     superclass = None
+
     def __init__(self):
         pass
+
     def factory(*args_, **kwargs_):
         if system_out.subclass:
             # pylint: disable=E1102
@@ -718,6 +863,7 @@ class system_out(GeneratedsSuper):
         else:
             return system_out(*args_, **kwargs_)
     factory = staticmethod(factory)
+
     def export(self, outfile, level, namespace_='', name_='system-out', namespacedef_=''):
         showIndent(outfile, level)
         outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
@@ -729,44 +875,56 @@ class system_out(GeneratedsSuper):
             outfile.write('</%s%s>\n' % (namespace_, name_))
         else:
             outfile.write('/>\n')
+
     def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='system-out'):
         pass
+
     def exportChildren(self, outfile, level, namespace_='', name_='system-out', fromsubclass_=False):
         pass
+
     def hasContent_(self):
         if (
 
-            ):
+        ):
             return True
         else:
             return False
+
     def exportLiteral(self, outfile, level, name_='system-out'):
         level += 1
         self.exportLiteralAttributes(outfile, level, [], name_)
         if self.hasContent_():
             self.exportLiteralChildren(outfile, level, name_)
+
     def exportLiteralAttributes(self, outfile, level, already_processed, name_):
         pass
+
     def exportLiteralChildren(self, outfile, level, name_):
         pass
+
     def build(self, node):
         self.buildAttributes(node, node.attrib, [])
         for child in node:
             nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
             self.buildChildren(child, node, nodeName_)
+
     def buildAttributes(self, node, attrs, already_processed):
         pass
+
     def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
         pass
 # end class system_out
 
 
 class system_err(GeneratedsSuper):
+
     """Data that was written to standard error while the test was executed"""
     subclass = None
     superclass = None
+
     def __init__(self):
         pass
+
     def factory(*args_, **kwargs_):
         if system_err.subclass:
             # pylint: disable=E1102
@@ -774,6 +932,7 @@ class system_err(GeneratedsSuper):
         else:
             return system_err(*args_, **kwargs_)
     factory = staticmethod(factory)
+
     def export(self, outfile, level, namespace_='', name_='system-err', namespacedef_=''):
         showIndent(outfile, level)
         outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
@@ -785,59 +944,80 @@ class system_err(GeneratedsSuper):
             outfile.write('</%s%s>\n' % (namespace_, name_))
         else:
             outfile.write('/>\n')
+
     def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='system-err'):
         pass
+
     def exportChildren(self, outfile, level, namespace_='', name_='system-err', fromsubclass_=False):
         pass
+
     def hasContent_(self):
         if (
 
-            ):
+        ):
             return True
         else:
             return False
+
     def exportLiteral(self, outfile, level, name_='system-err'):
         level += 1
         self.exportLiteralAttributes(outfile, level, [], name_)
         if self.hasContent_():
             self.exportLiteralChildren(outfile, level, name_)
+
     def exportLiteralAttributes(self, outfile, level, already_processed, name_):
         pass
+
     def exportLiteralChildren(self, outfile, level, name_):
         pass
+
     def build(self, node):
         self.buildAttributes(node, node.attrib, [])
         for child in node:
             nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
             self.buildChildren(child, node, nodeName_)
+
     def buildAttributes(self, node, attrs, already_processed):
         pass
+
     def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
         pass
 # end class system_err
 
 
 class testsuiteType(testsuite):
+
     """Derived from testsuite/@name in the non-aggregated documentsStarts
     at '0' for the first testsuite and is incremented by 1 for each
     following testsuite"""
     subclass = None
     superclass = testsuite
+
     def __init__(self, tests=None, errors=None, name=None, timestamp=None, hostname=None, time=None, failures=None, properties=None, testcase=None, system_out=None, system_err=None, id=None, package=None):
         super(testsuiteType, self).__init__(tests, errors, name, timestamp, hostname, time, failures, properties, testcase, system_out, system_err, )
         self.id = _cast(int, id)
         self.package = _cast(None, package)
         pass
+
     def factory(*args_, **kwargs_):
         if testsuiteType.subclass:
             return testsuiteType.subclass(*args_, **kwargs_)
         else:
             return testsuiteType(*args_, **kwargs_)
     factory = staticmethod(factory)
-    def get_id(self): return self.id
-    def set_id(self, id): self.id = id
-    def get_package(self): return self.package
-    def set_package(self, package): self.package = package
+
+    def get_id(self):
+        return self.id
+
+    def set_id(self, id):
+        self.id = id
+
+    def get_package(self):
+        return self.package
+
+    def set_package(self, package):
+        self.package = package
+
     def export(self, outfile, level, namespace_='', name_='testsuiteType', namespacedef_=''):
         showIndent(outfile, level)
         outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
@@ -850,6 +1030,7 @@ class testsuiteType(testsuite):
             outfile.write('</%s%s>\n' % (namespace_, name_))
         else:
             outfile.write('/>\n')
+
     def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='testsuiteType'):
         super(testsuiteType, self).exportAttributes(outfile, level, already_processed, namespace_, name_='testsuiteType')
         if self.id is not None and 'id' not in already_processed:
@@ -858,20 +1039,24 @@ class testsuiteType(testsuite):
         if self.package is not None and 'package' not in already_processed:
             already_processed.append('package')
             outfile.write(' package=%s' % (self.gds_format_string(quote_attrib(self.package).encode(ExternalEncoding), input_name='package'), ))
+
     def exportChildren(self, outfile, level, namespace_='', name_='testsuiteType', fromsubclass_=False):
         super(testsuiteType, self).exportChildren(outfile, level, namespace_, name_, True)
+
     def hasContent_(self):
         if (
             super(testsuiteType, self).hasContent_()
-            ):
+        ):
             return True
         else:
             return False
+
     def exportLiteral(self, outfile, level, name_='testsuiteType'):
         level += 1
         self.exportLiteralAttributes(outfile, level, [], name_)
         if self.hasContent_():
             self.exportLiteralChildren(outfile, level, name_)
+
     def exportLiteralAttributes(self, outfile, level, already_processed, name_):
         if self.id is not None and 'id' not in already_processed:
             already_processed.append('id')
@@ -882,13 +1067,16 @@ class testsuiteType(testsuite):
             showIndent(outfile, level)
             outfile.write('package = "%s",\n' % (self.package,))
         super(testsuiteType, self).exportLiteralAttributes(outfile, level, already_processed, name_)
+
     def exportLiteralChildren(self, outfile, level, name_):
         super(testsuiteType, self).exportLiteralChildren(outfile, level, name_)
+
     def build(self, node):
         self.buildAttributes(node, node.attrib, [])
         for child in node:
             nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
             self.buildChildren(child, node, nodeName_)
+
     def buildAttributes(self, node, attrs, already_processed):
         value = find_attr_value_('id', node)
         if value is not None and 'id' not in already_processed:
@@ -903,6 +1091,7 @@ class testsuiteType(testsuite):
             self.package = value
             self.package = ' '.join(self.package.split())
         super(testsuiteType, self).buildAttributes(node, attrs, already_processed)
+
     def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
         super(testsuiteType, self).buildChildren(child_, node, nodeName_, True)
         pass
@@ -912,11 +1101,13 @@ class testsuiteType(testsuite):
 class propertiesType(GeneratedsSuper):
     subclass = None
     superclass = None
+
     def __init__(self, property=None):
         if property is None:
             self.property = []
         else:
             self.property = property
+
     def factory(*args_, **kwargs_):
         if propertiesType.subclass:
             # pylint: disable=E1102
@@ -924,10 +1115,19 @@ class propertiesType(GeneratedsSuper):
         else:
             return propertiesType(*args_, **kwargs_)
     factory = staticmethod(factory)
-    def get_property(self): return self.property
-    def set_property(self, property): self.property = property
-    def add_property(self, value): self.property.append(value)
-    def insert_property(self, index, value): self.property[index] = value
+
+    def get_property(self):
+        return self.property
+
+    def set_property(self, property):
+        self.property = property
+
+    def add_property(self, value):
+        self.property.append(value)
+
+    def insert_property(self, index, value):
+        self.property[index] = value
+
     def export(self, outfile, level, namespace_='', name_='propertiesType', namespacedef_=''):
         showIndent(outfile, level)
         outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
@@ -940,25 +1140,31 @@ class propertiesType(GeneratedsSuper):
             outfile.write('</%s%s>\n' % (namespace_, name_))
         else:
             outfile.write('/>\n')
+
     def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='propertiesType'):
         pass
+
     def exportChildren(self, outfile, level, namespace_='', name_='propertiesType', fromsubclass_=False):
         for property_ in self.property:
             property_.export(outfile, level, namespace_, name_='property')
+
     def hasContent_(self):
         if (
             self.property
-            ):
+        ):
             return True
         else:
             return False
+
     def exportLiteral(self, outfile, level, name_='propertiesType'):
         level += 1
         self.exportLiteralAttributes(outfile, level, [], name_)
         if self.hasContent_():
             self.exportLiteralChildren(outfile, level, name_)
+
     def exportLiteralAttributes(self, outfile, level, already_processed, name_):
         pass
+
     def exportLiteralChildren(self, outfile, level, name_):
         showIndent(outfile, level)
         outfile.write('property=[\n')
@@ -972,13 +1178,16 @@ class propertiesType(GeneratedsSuper):
         level -= 1
         showIndent(outfile, level)
         outfile.write('],\n')
+
     def build(self, node):
         self.buildAttributes(node, node.attrib, [])
         for child in node:
             nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
             self.buildChildren(child, node, nodeName_)
+
     def buildAttributes(self, node, attrs, already_processed):
         pass
+
     def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
         if nodeName_ == 'property':
             obj_ = propertyType.factory()
@@ -990,10 +1199,12 @@ class propertiesType(GeneratedsSuper):
 class propertyType(GeneratedsSuper):
     subclass = None
     superclass = None
+
     def __init__(self, name=None, value=None):
         self.name = _cast(None, name)
         self.value = _cast(None, value)
         pass
+
     def factory(*args_, **kwargs_):
         if propertyType.subclass:
             # pylint: disable=E1102
@@ -1001,10 +1212,19 @@ class propertyType(GeneratedsSuper):
         else:
             return propertyType(*args_, **kwargs_)
     factory = staticmethod(factory)
-    def get_name(self): return self.name
-    def set_name(self, name): self.name = name
-    def get_value(self): return self.value
-    def set_value(self, value): self.value = value
+
+    def get_name(self):
+        return self.name
+
+    def set_name(self, name):
+        self.name = name
+
+    def get_value(self):
+        return self.value
+
+    def set_value(self, value):
+        self.value = value
+
     def export(self, outfile, level, namespace_='', name_='propertyType', namespacedef_=''):
         showIndent(outfile, level)
         outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
@@ -1016,6 +1236,7 @@ class propertyType(GeneratedsSuper):
             outfile.write('</%s%s>\n' % (namespace_, name_))
         else:
             outfile.write('/>\n')
+
     def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='propertyType'):
         if self.name is not None and 'name' not in already_processed:
             already_processed.append('name')
@@ -1023,20 +1244,24 @@ class propertyType(GeneratedsSuper):
         if self.value is not None and 'value' not in already_processed:
             already_processed.append('value')
             outfile.write(' value=%s' % (self.gds_format_string(quote_attrib(self.value).encode(ExternalEncoding), input_name='value'), ))
+
     def exportChildren(self, outfile, level, namespace_='', name_='propertyType', fromsubclass_=False):
         pass
+
     def hasContent_(self):
         if (
 
-            ):
+        ):
             return True
         else:
             return False
+
     def exportLiteral(self, outfile, level, name_='propertyType'):
         level += 1
         self.exportLiteralAttributes(outfile, level, [], name_)
         if self.hasContent_():
             self.exportLiteralChildren(outfile, level, name_)
+
     def exportLiteralAttributes(self, outfile, level, already_processed, name_):
         if self.name is not None and 'name' not in already_processed:
             already_processed.append('name')
@@ -1046,13 +1271,16 @@ class propertyType(GeneratedsSuper):
             already_processed.append('value')
             showIndent(outfile, level)
             outfile.write('value = "%s",\n' % (self.value,))
+
     def exportLiteralChildren(self, outfile, level, name_):
         pass
+
     def build(self, node):
         self.buildAttributes(node, node.attrib, [])
         for child in node:
             nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
             self.buildChildren(child, node, nodeName_)
+
     def buildAttributes(self, node, attrs, already_processed):
         value = find_attr_value_('name', node)
         if value is not None and 'name' not in already_processed:
@@ -1063,22 +1291,26 @@ class propertyType(GeneratedsSuper):
         if value is not None and 'value' not in already_processed:
             already_processed.append('value')
             self.value = value
+
     def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
         pass
 # end class propertyType
 
 
 class testcaseType(GeneratedsSuper):
+
     """Name of the test methodFull class name for the class the test method
     is in.Time taken (in seconds) to execute the test"""
     subclass = None
     superclass = None
+
     def __init__(self, classname=None, name=None, time=None, error=None, failure=None):
         self.classname = _cast(None, classname)
         self.name = _cast(None, name)
         self.time = _cast(float, time)
         self.error = error
         self.failure = failure
+
     def factory(*args_, **kwargs_):
         if testcaseType.subclass:
             # pylint: disable=E1102
@@ -1086,16 +1318,37 @@ class testcaseType(GeneratedsSuper):
         else:
             return testcaseType(*args_, **kwargs_)
     factory = staticmethod(factory)
-    def get_error(self): return self.error
-    def set_error(self, error): self.error = error
-    def get_failure(self): return self.failure
-    def set_failure(self, failure): self.failure = failure
-    def get_classname(self): return self.classname
-    def set_classname(self, classname): self.classname = classname
-    def get_name(self): return self.name
-    def set_name(self, name): self.name = name
-    def get_time(self): return self.time
-    def set_time(self, time): self.time = time
+
+    def get_error(self):
+        return self.error
+
+    def set_error(self, error):
+        self.error = error
+
+    def get_failure(self):
+        return self.failure
+
+    def set_failure(self, failure):
+        self.failure = failure
+
+    def get_classname(self):
+        return self.classname
+
+    def set_classname(self, classname):
+        self.classname = classname
+
+    def get_name(self):
+        return self.name
+
+    def set_name(self, name):
+        self.name = name
+
+    def get_time(self):
+        return self.time
+
+    def set_time(self, time):
+        self.time = time
+
     def export(self, outfile, level, namespace_='', name_='testcaseType', namespacedef_=''):
         showIndent(outfile, level)
         outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
@@ -1108,6 +1361,7 @@ class testcaseType(GeneratedsSuper):
             outfile.write('</%s%s>\n' % (namespace_, name_))
         else:
             outfile.write('/>\n')
+
     def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='testcaseType'):
         if self.classname is not None and 'classname' not in already_processed:
             already_processed.append('classname')
@@ -1118,24 +1372,28 @@ class testcaseType(GeneratedsSuper):
         if self.time is not None and 'time' not in already_processed:
             already_processed.append('time')
             outfile.write(' time="%s"' % self.gds_format_float(self.time, input_name='time'))
+
     def exportChildren(self, outfile, level, namespace_='', name_='testcaseType', fromsubclass_=False):
         if self.error is not None:
             self.error.export(outfile, level, namespace_, name_='error')
         if self.failure is not None:
             self.failure.export(outfile, level, namespace_, name_='failure')
+
     def hasContent_(self):
         if (
             self.error is not None or
             self.failure is not None
-            ):
+        ):
             return True
         else:
             return False
+
     def exportLiteral(self, outfile, level, name_='testcaseType'):
         level += 1
         self.exportLiteralAttributes(outfile, level, [], name_)
         if self.hasContent_():
             self.exportLiteralChildren(outfile, level, name_)
+
     def exportLiteralAttributes(self, outfile, level, already_processed, name_):
         if self.classname is not None and 'classname' not in already_processed:
             already_processed.append('classname')
@@ -1149,6 +1407,7 @@ class testcaseType(GeneratedsSuper):
             already_processed.append('time')
             showIndent(outfile, level)
             outfile.write('time = %f,\n' % (self.time,))
+
     def exportLiteralChildren(self, outfile, level, name_):
         if self.error is not None:
             showIndent(outfile, level)
@@ -1162,11 +1421,13 @@ class testcaseType(GeneratedsSuper):
             self.failure.exportLiteral(outfile, level, name_='failure')
             showIndent(outfile, level)
             outfile.write('),\n')
+
     def build(self, node):
         self.buildAttributes(node, node.attrib, [])
         for child in node:
             nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
             self.buildChildren(child, node, nodeName_)
+
     def buildAttributes(self, node, attrs, already_processed):
         value = find_attr_value_('classname', node)
         if value is not None and 'classname' not in already_processed:
@@ -1185,6 +1446,7 @@ class testcaseType(GeneratedsSuper):
                 self.time = float(value)
             except ValueError, exp:
                 raise ValueError('Bad float/double attribute (time): %s' % exp)
+
     def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
         if nodeName_ == 'error':
             obj_ = errorType.factory()
@@ -1198,15 +1460,18 @@ class testcaseType(GeneratedsSuper):
 
 
 class errorType(GeneratedsSuper):
+
     """The error message. e.g., if a java exception is thrown, the return
     value of getMessage()The type of error that occurred. e.g., if a
     java execption is thrown the full class name of the exception."""
     subclass = None
     superclass = None
+
     def __init__(self, message=None, type_=None, valueOf_=None):
         self.message = _cast(None, message)
         self.type_ = _cast(None, type_)
         self.valueOf_ = valueOf_
+
     def factory(*args_, **kwargs_):
         if errorType.subclass:
             # pylint: disable=E1102
@@ -1214,12 +1479,25 @@ class errorType(GeneratedsSuper):
         else:
             return errorType(*args_, **kwargs_)
     factory = staticmethod(factory)
-    def get_message(self): return self.message
-    def set_message(self, message): self.message = message
-    def get_type(self): return self.type_
-    def set_type(self, type_): self.type_ = type_
-    def get_valueOf_(self): return self.valueOf_
-    def set_valueOf_(self, valueOf_): self.valueOf_ = valueOf_
+
+    def get_message(self):
+        return self.message
+
+    def set_message(self, message):
+        self.message = message
+
+    def get_type(self):
+        return self.type_
+
+    def set_type(self, type_):
+        self.type_ = type_
+
+    def get_valueOf_(self):
+        return self.valueOf_
+
+    def set_valueOf_(self, valueOf_):
+        self.valueOf_ = valueOf_
+
     def export(self, outfile, level, namespace_='', name_='errorType', namespacedef_=''):
         showIndent(outfile, level)
         outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
@@ -1232,6 +1510,7 @@ class errorType(GeneratedsSuper):
             outfile.write('</%s%s>\n' % (namespace_, name_))
         else:
             outfile.write('/>\n')
+
     def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='errorType'):
         if self.message is not None and 'message' not in already_processed:
             already_processed.append('message')
@@ -1239,15 +1518,18 @@ class errorType(GeneratedsSuper):
         if self.type_ is not None and 'type_' not in already_processed:
             already_processed.append('type_')
             outfile.write(' type=%s' % (self.gds_format_string(quote_attrib(self.type_).encode(ExternalEncoding), input_name='type'), ))
+
     def exportChildren(self, outfile, level, namespace_='', name_='errorType', fromsubclass_=False):
         pass
+
     def hasContent_(self):
         if (
             self.valueOf_
-            ):
+        ):
             return True
         else:
             return False
+
     def exportLiteral(self, outfile, level, name_='errorType'):
         level += 1
         self.exportLiteralAttributes(outfile, level, [], name_)
@@ -1255,6 +1537,7 @@ class errorType(GeneratedsSuper):
             self.exportLiteralChildren(outfile, level, name_)
         showIndent(outfile, level)
         outfile.write('valueOf_ = """%s""",\n' % (self.valueOf_,))
+
     def exportLiteralAttributes(self, outfile, level, already_processed, name_):
         if self.message is not None and 'message' not in already_processed:
             already_processed.append('message')
@@ -1264,14 +1547,17 @@ class errorType(GeneratedsSuper):
             already_processed.append('type_')
             showIndent(outfile, level)
             outfile.write('type_ = "%s",\n' % (self.type_,))
+
     def exportLiteralChildren(self, outfile, level, name_):
         pass
+
     def build(self, node):
         self.buildAttributes(node, node.attrib, [])
         self.valueOf_ = get_all_text_(node)
         for child in node:
             nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
             self.buildChildren(child, node, nodeName_)
+
     def buildAttributes(self, node, attrs, already_processed):
         value = find_attr_value_('message', node)
         if value is not None and 'message' not in already_processed:
@@ -1281,19 +1567,23 @@ class errorType(GeneratedsSuper):
         if value is not None and 'type' not in already_processed:
             already_processed.append('type')
             self.type_ = value
+
     def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
         pass
 # end class errorType
 
 
 class failureType(GeneratedsSuper):
+
     """The message specified in the assertThe type of the assert."""
     subclass = None
     superclass = None
+
     def __init__(self, message=None, type_=None, valueOf_=None):
         self.message = _cast(None, message)
         self.type_ = _cast(None, type_)
         self.valueOf_ = valueOf_
+
     def factory(*args_, **kwargs_):
         if failureType.subclass:
             # pylint: disable=E1102
@@ -1301,12 +1591,25 @@ class failureType(GeneratedsSuper):
         else:
             return failureType(*args_, **kwargs_)
     factory = staticmethod(factory)
-    def get_message(self): return self.message
-    def set_message(self, message): self.message = message
-    def get_type(self): return self.type_
-    def set_type(self, type_): self.type_ = type_
-    def get_valueOf_(self): return self.valueOf_
-    def set_valueOf_(self, valueOf_): self.valueOf_ = valueOf_
+
+    def get_message(self):
+        return self.message
+
+    def set_message(self, message):
+        self.message = message
+
+    def get_type(self):
+        return self.type_
+
+    def set_type(self, type_):
+        self.type_ = type_
+
+    def get_valueOf_(self):
+        return self.valueOf_
+
+    def set_valueOf_(self, valueOf_):
+        self.valueOf_ = valueOf_
+
     def export(self, outfile, level, namespace_='', name_='failureType', namespacedef_=''):
         showIndent(outfile, level)
         outfile.write('<%s%s%s' % (namespace_, name_, namespacedef_ and ' ' + namespacedef_ or '', ))
@@ -1319,6 +1622,7 @@ class failureType(GeneratedsSuper):
             outfile.write('</%s%s>\n' % (namespace_, name_))
         else:
             outfile.write('/>\n')
+
     def exportAttributes(self, outfile, level, already_processed, namespace_='', name_='failureType'):
         if self.message is not None and 'message' not in already_processed:
             already_processed.append('message')
@@ -1326,15 +1630,18 @@ class failureType(GeneratedsSuper):
         if self.type_ is not None and 'type_' not in already_processed:
             already_processed.append('type_')
             outfile.write(' type=%s' % (self.gds_format_string(quote_attrib(self.type_).encode(ExternalEncoding), input_name='type'), ))
+
     def exportChildren(self, outfile, level, namespace_='', name_='failureType', fromsubclass_=False):
         pass
+
     def hasContent_(self):
         if (
             self.valueOf_
-            ):
+        ):
             return True
         else:
             return False
+
     def exportLiteral(self, outfile, level, name_='failureType'):
         level += 1
         self.exportLiteralAttributes(outfile, level, [], name_)
@@ -1342,6 +1649,7 @@ class failureType(GeneratedsSuper):
             self.exportLiteralChildren(outfile, level, name_)
         showIndent(outfile, level)
         outfile.write('valueOf_ = """%s""",\n' % (self.valueOf_,))
+
     def exportLiteralAttributes(self, outfile, level, already_processed, name_):
         if self.message is not None and 'message' not in already_processed:
             already_processed.append('message')
@@ -1351,14 +1659,17 @@ class failureType(GeneratedsSuper):
             already_processed.append('type_')
             showIndent(outfile, level)
             outfile.write('type_ = "%s",\n' % (self.type_,))
+
     def exportLiteralChildren(self, outfile, level, name_):
         pass
+
     def build(self, node):
         self.buildAttributes(node, node.attrib, [])
         self.valueOf_ = get_all_text_(node)
         for child in node:
             nodeName_ = Tag_pattern_.match(child.tag).groups()[-1]
             self.buildChildren(child, node, nodeName_)
+
     def buildAttributes(self, node, attrs, already_processed):
         value = find_attr_value_('message', node)
         if value is not None and 'message' not in already_processed:
@@ -1368,6 +1679,7 @@ class failureType(GeneratedsSuper):
         if value is not None and 'type' not in already_processed:
             already_processed.append('type')
             self.type_ = value
+
     def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):
         pass
 # end class failureType
@@ -1376,6 +1688,7 @@ class failureType(GeneratedsSuper):
 USAGE_TEXT = """
 Usage: python <Parser>.py [ -s ] <in_xml_file>
 """
+
 
 def usage():
     print USAGE_TEXT
@@ -1401,7 +1714,7 @@ def parse(inFileName):
     doc = None
     sys.stdout.write('<?xml version="1.0" ?>\n')
     rootObj.export(sys.stdout, 0, name_=rootTag,
-        namespacedef_='')
+                   namespacedef_='')
     return rootObj
 
 
@@ -1419,7 +1732,7 @@ def parseString(inString):
     doc = None
     sys.stdout.write('<?xml version="1.0" ?>\n')
     rootObj.export(sys.stdout, 0, name_="testsuite",
-        namespacedef_='')
+                   namespacedef_='')
     return rootObj
 
 
@@ -1466,4 +1779,4 @@ __all__ = [
     "testsuite",
     "testsuiteType",
     "testsuites"
-    ]
+]

@@ -6,6 +6,7 @@ DOWN_SQL = """
 ALTER TABLE users DROP COLUMN `show_experimental`;
 """
 
+
 def migrate_up(manager):
     manager.execute_script(UP_SQL)
 

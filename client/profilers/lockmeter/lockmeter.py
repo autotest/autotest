@@ -12,6 +12,7 @@ But read the FAQ first.
 import os
 from autotest.client import utils, profiler
 
+
 class lockmeter(profiler.profiler):
     version = 1
 
@@ -20,14 +21,13 @@ class lockmeter(profiler.profiler):
 # ftp://oss.sgi.com/projects/lockmeter/download/v2.6/patch.2.6.14-lockmeter-1.gz
 # is the kernel patch
 
-    def setup(self, tarball = 'lockstat-1.4.11.tar.bz2'):
+    def setup(self, tarball='lockstat-1.4.11.tar.bz2'):
         self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(self.tarball, self.srcdir)
         os.chdir(self.srcdir)
 
         utils.make()
         self.cmd = self.srcdir + '/lockstat'
-
 
     def initialize(self, **dargs):
         self.job.require_gcc()
@@ -38,16 +38,13 @@ class lockmeter(profiler.profiler):
             print msg
             raise AssertionError(msg)
 
-
     def start(self, test):
         utils.system(self.cmd + ' off')
         utils.system(self.cmd + ' reset')
         utils.system(self.cmd + ' on')
 
-
     def stop(self, test):
         utils.system(self.cmd + ' off')
-
 
     def report(self, test):
         args = ' -m ' + utils.get_systemmap()

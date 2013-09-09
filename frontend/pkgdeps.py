@@ -62,7 +62,7 @@ FEDORA_19_PKGS = [
     'unzip',
     'urw-fonts',
     'wget',
-    ]
+]
 
 
 UBUNTU_PKGS = [

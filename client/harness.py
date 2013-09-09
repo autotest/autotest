@@ -5,13 +5,16 @@ The interface between the client and the server when hosted.
 
 __author__ = """Copyright Andy Whitcroft 2006"""
 
-import os, logging
+import os
+import logging
 try:
     import autotest.common as common
 except ImportError:
     import common
 
+
 class harness(object):
+
     """The NULL server harness
 
     Properties:
@@ -26,7 +29,6 @@ class harness(object):
         """
         self.setup(job)
 
-
     def setup(self, job):
         """
                 job
@@ -38,18 +40,15 @@ class harness(object):
         if os.path.isdir(configd):
             (name, dirs, files) = os.walk(configd).next()
             job.config_set('kernel.default_config_set',
-                           [ configd + '/' ] + files)
-
+                           [configd + '/'] + files)
 
     def run_start(self):
         """A run within this job is starting"""
         pass
 
-
     def run_pause(self):
         """A run within this job is completing (expect continue)"""
         pass
-
 
     def run_reboot(self):
         """A run within this job is performing a reboot
@@ -57,16 +56,13 @@ class harness(object):
         """
         pass
 
-
     def run_abort(self):
         """A run within this job is aborting. It all went wrong"""
         pass
 
-
     def run_complete(self):
         """A run within this job is completing (all done)"""
         pass
-
 
     def run_test_complete(self):
         """A test run by this job is complete. Note that if multiple
@@ -74,11 +70,9 @@ class harness(object):
         of the parallel runs complete."""
         pass
 
-
     def test_status(self, status, tag):
         """A test within this job is completing"""
         pass
-
 
     def test_status_detail(self, code, subdir, operation, status, tag,
                            optional_fields):

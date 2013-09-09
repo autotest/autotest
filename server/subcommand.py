@@ -1,6 +1,11 @@
 __author__ = """Copyright Andy Whitcroft, Martin J. Bligh - 2006, 2007"""
 
-import sys, os, time, signal, cPickle, logging
+import sys
+import os
+import time
+import signal
+import cPickle
+import logging
 
 from autotest.client.shared import error, utils
 
@@ -106,7 +111,7 @@ def parallel_simple(function, arglist, log=True, timeout=None,
 class subcommand(object):
     fork_hooks, join_hooks = [], []
 
-    def __init__(self, func, args, subdir = None):
+    def __init__(self, func, args, subdir=None):
         # func(args) - the subcommand to run
         # subdir     - the subdirectory to log results in
         if subdir:
@@ -126,11 +131,9 @@ class subcommand(object):
         self.pid = None
         self.returncode = None
 
-
     def __str__(self):
         return str('subcommand(func=%s,  args=%s, subdir=%s)' %
                    (self.func, self.args, self.subdir))
-
 
     @classmethod
     def register_fork_hook(cls, hook):
@@ -138,19 +141,16 @@ class subcommand(object):
         forking. """
         cls.fork_hooks.append(hook)
 
-
     @classmethod
     def register_join_hook(cls, hook):
         """ Register a function to be called when from the child process
         just before the child process terminates (joins to the parent). """
         cls.join_hooks.append(hook)
 
-
     def redirect_output(self):
         if self.subdir and logging_manager_object:
             tag = os.path.basename(self.subdir)
             logging_manager_object.tee_redirect_debug_dir(self.debug, tag=tag)
-
 
     def fork_start(self):
         sys.stdout.flush()
@@ -167,7 +167,7 @@ class subcommand(object):
             os.close(r)
 
         # We are the child from this point on. Never return.
-        signal.signal(signal.SIGTERM, signal.SIG_DFL) # clear handler
+        signal.signal(signal.SIGTERM, signal.SIG_DFL)  # clear handler
         if self.subdir:
             os.chdir(self.subdir)
         self.redirect_output()
@@ -192,7 +192,6 @@ class subcommand(object):
             sys.stdout.flush()
             sys.stderr.flush()
             os._exit(exit_code)
-
 
     def _handle_exitstatus(self, sts):
         """
@@ -219,7 +218,6 @@ class subcommand(object):
             print "\n--------------------------------------------\n"
             raise error.AutoservSubcommandError(self.func, self.returncode)
 
-
     def poll(self):
         """
         This is borrowed from subprocess.Popen.
@@ -233,7 +231,6 @@ class subcommand(object):
                 pass
         return self.returncode
 
-
     def wait(self):
         """
         This is borrowed from subprocess.Popen.
@@ -242,7 +239,6 @@ class subcommand(object):
             pid, sts = os.waitpid(self.pid, 0)
             self._handle_exitstatus(sts)
         return self.returncode
-
 
     def fork_waitfor(self, timeout=None):
         if not timeout:

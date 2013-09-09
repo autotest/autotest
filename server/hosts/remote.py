@@ -1,7 +1,9 @@
 """This class defines the Remote host class, mixing in the SiteHost class
 if it is available."""
 
-import os, logging, urllib
+import os
+import logging
+import urllib
 from autotest.client.shared import error
 from autotest.client.shared.settings import settings
 from autotest.server import utils
@@ -25,6 +27,7 @@ def install_server_is_configured():
 
 
 class RemoteHost(base_classes.Host):
+
     """
     This class represents a remote machine on which you can run
     programs.
@@ -59,11 +62,9 @@ class RemoteHost(base_classes.Host):
         self.profile = profile
         self.tmp_dirs = []
 
-
     def __repr__(self):
         return "<remote host: %s, profile: %s>" % (self.hostname,
                                                    self.profile)
-
 
     def close(self):
         super(RemoteHost, self).close()
@@ -75,7 +76,6 @@ class RemoteHost(base_classes.Host):
                     self.run('rm -rf "%s"' % (utils.sh_escape(dir)))
                 except error.AutoservRunError:
                     pass
-
 
     def machine_install(self, profile='', timeout=None):
         """
@@ -95,7 +95,6 @@ class RemoteHost(base_classes.Host):
             server_interface.install_host(self, profile=profile,
                                           timeout=timeout,
                                           num_attempts=num_attempts)
-
 
     def hardreset(self, timeout=DEFAULT_REBOOT_TIMEOUT, wait=True,
                   num_attempts=1, halt=False, **wait_for_restart_kwargs):
@@ -131,13 +130,13 @@ class RemoteHost(base_classes.Host):
                 if wait:
                     warning_msg = ('Machine failed to respond to hard reset '
                                    'attempt (%s/%s)')
-                    for attempt in xrange(num_attempts-1):
+                    for attempt in xrange(num_attempts - 1):
                         try:
                             self.wait_for_restart(timeout, log_failure=False,
                                                   old_boot_id=old_boot_id,
                                                   **wait_for_restart_kwargs)
                         except error.AutoservShutdownError:
-                            logging.warning(warning_msg, attempt+1,
+                            logging.warning(warning_msg, attempt + 1,
                                             num_attempts)
                             # re-send the hard reset command
                             server_interface.power_host(host=self,
@@ -171,7 +170,6 @@ class RemoteHost(base_classes.Host):
             raise error.AutoservUnsupportedError("Empty install server setup "
                                                  "on global_config.ini")
 
-
     def _var_log_messages_path(self):
         """
         Find possible paths for a messages file.
@@ -185,7 +183,6 @@ class RemoteHost(base_classes.Host):
                 logging.debug("Remote path %s is missing", path)
 
         return None
-
 
     def job_start(self):
         """
@@ -211,10 +208,8 @@ class RemoteHost(base_classes.Host):
             logging.info("No remote messages path found, looked %s",
                          self.VAR_LOG_MESSAGES_PATHS)
 
-
     def get_autodir(self):
         return self.autodir
-
 
     def set_autodir(self, autodir):
         """
@@ -224,16 +219,13 @@ class RemoteHost(base_classes.Host):
         """
         self.autodir = autodir
 
-
     def sysrq_reboot(self):
         self.run('echo b > /proc/sysrq-trigger &')
-
 
     def halt(self, timeout=DEFAULT_HALT_TIMEOUT, wait=True):
         self.run('/sbin/halt')
         if wait:
             self.wait_down(timeout=timeout)
-
 
     def reboot(self, timeout=DEFAULT_REBOOT_TIMEOUT, label=LAST_BOOT_TAG,
                kernel_args=None, wait=True, fastsync=False,
@@ -273,6 +265,7 @@ class RemoteHost(base_classes.Host):
 
         # define a function for the reboot and run it in a group
         print "Reboot: initiating reboot"
+
         def reboot():
             self.record("GOOD", None, "reboot.start")
             try:
@@ -296,7 +289,7 @@ class RemoteHost(base_classes.Host):
                              ') </dev/null >/dev/null 2>&1 &)')
             except error.AutoservRunError:
                 self.record("ABORT", None, "reboot.start",
-                              "reboot command failed")
+                            "reboot command failed")
                 raise
             if wait:
                 self.wait_for_restart(timeout, old_boot_id=current_boot_id,
@@ -308,12 +301,10 @@ class RemoteHost(base_classes.Host):
         else:
             reboot()
 
-
     def reboot_followup(self, *args, **dargs):
         super(RemoteHost, self).reboot_followup(*args, **dargs)
         if self.job:
             self.job.profilers.handle_reboot(self)
-
 
     def wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT, **dargs):
         """
@@ -324,11 +315,9 @@ class RemoteHost(base_classes.Host):
             super(RemoteHost, self).wait_for_restart(timeout=timeout, **dargs)
         self.log_reboot(reboot_func)
 
-
     def cleanup(self):
         super(RemoteHost, self).cleanup()
         self.reboot()
-
 
     def get_tmp_dir(self, parent='/tmp'):
         """
@@ -345,7 +334,6 @@ class RemoteHost(base_classes.Host):
         self.tmp_dirs.append(dir_name)
         return dir_name
 
-
     def get_platform_label(self):
         """
         Return the platform label, or None if platform label is not set.
@@ -358,7 +346,6 @@ class RemoteHost(base_classes.Host):
             return keyvals.get('platform', None)
         else:
             return None
-
 
     def get_all_labels(self):
         """
@@ -374,14 +361,12 @@ class RemoteHost(base_classes.Host):
                 return [urllib.unquote(label) for label in all_labels]
         return []
 
-
     def delete_tmp_dir(self, tmpdir):
         """
         Delete the given temporary directory on the remote machine.
         """
         self.run('rm -rf "%s"' % utils.sh_escape(tmpdir), ignore_status=True)
         self.tmp_dirs.remove(tmpdir)
-
 
     def check_uptime(self):
         """
@@ -391,7 +376,6 @@ class RemoteHost(base_classes.Host):
             raise error.AutoservHostError('Client does not appear to be up')
         result = self.run("/bin/cat /proc/uptime", 30)
         return result.stdout.strip().split()[0]
-
 
     def are_wait_up_processes_up(self):
         """
@@ -403,7 +387,7 @@ class RemoteHost(base_classes.Host):
         """
         processes = self.get_wait_up_processes()
         if len(processes) == 0:
-            return True # wait up processes aren't being used
+            return True  # wait up processes aren't being used
         for procname in processes:
             exit_status = self.run("{ ps -e || ps; } | grep '%s'" % procname,
                                    ignore_status=True).exit_status

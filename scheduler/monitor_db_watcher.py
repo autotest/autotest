@@ -2,7 +2,12 @@
 Autotest scheduler watcher main library.
 """
 
-import os, sys, signal, time, subprocess, logging
+import os
+import sys
+import signal
+import time
+import subprocess
+import logging
 from optparse import OptionParser
 try:
     import autotest.common as common
@@ -18,7 +23,7 @@ from autotest.scheduler import monitor_db
 
 
 PAUSE_LENGTH = 60
-STALL_TIMEOUT = 2*60*60
+STALL_TIMEOUT = 2 * 60 * 60
 
 output_dir = settings.get_value('COMMON', 'test_output_dir', default="")
 
@@ -49,7 +54,7 @@ def kill_monitor():
     logging.info("Killing scheduler")
     # try shutdown first
     utils.signal_program(monitor_db.PID_FILE_PREFIX, sig=signal.SIGINT)
-    if utils.program_is_alive(monitor_db.PID_FILE_PREFIX): # was it killed?
+    if utils.program_is_alive(monitor_db.PID_FILE_PREFIX):  # was it killed?
         # give it some time to shutdown
         time.sleep(30)
         # kill it
@@ -71,6 +76,7 @@ SiteMonitorProc = utils.import_site_class(
 
 
 class MonitorProc(SiteMonitorProc):
+
     def __init__(self, do_recovery=False):
         args = [monitor_db_path]
         if do_recovery:
@@ -94,11 +100,9 @@ class MonitorProc(SiteMonitorProc):
         # modify self.args if desired.
         super(MonitorProc, self).__init__()
 
-
     def start(self):
         devnull = open(os.devnull, 'w')
         self.proc = subprocess.Popen(self.args, stdout=devnull)
-
 
     def is_running(self):
         if self.proc.poll() is not None:
@@ -118,12 +122,11 @@ class MonitorProc(SiteMonitorProc):
 
         return True
 
-
     def collect_stalled_info(self):
         INFO_TO_COLLECT = ['uptime',
                            'ps auxwww',
                            'iostat -k -x 2 4',
-                          ]
+                           ]
         db_cmd = '/usr/bin/mysqladmin --verbose processlist -u%s -p%s'
         try:
             user = settings.get_value("BACKUP", "user")
@@ -149,7 +152,7 @@ def main():
                                            "background"))
     (options, args) = parser.parse_args()
 
-    recover = (options.recover == True)
+    recover = (options.recover is True)
 
     if len(args) != 0:
         parser.print_help()
@@ -167,13 +170,13 @@ def main():
 
     if options.background:
         logging_manager.configure_logging(
-             watcher_logging_config.WatcherLoggingConfig(use_console=False))
+            watcher_logging_config.WatcherLoggingConfig(use_console=False))
 
         # Double fork - see http://code.activestate.com/recipes/66012/
         try:
             pid = os.fork()
             if (pid > 0):
-                sys.exit(0) # exit from first parent
+                sys.exit(0)  # exit from first parent
         except OSError, e:
             sys.stderr.write("fork #1 failed: (%d) %s\n" %
                              (e.errno, e.strerror))
@@ -188,14 +191,14 @@ def main():
         try:
             pid = os.fork()
             if (pid > 0):
-                sys.exit(0) # exit from second parent
+                sys.exit(0)  # exit from second parent
         except OSError, e:
             sys.stderr.write("fork #2 failed: (%d) %s\n" %
                              (e.errno, e.strerror))
             sys.exit(1)
     else:
         logging_manager.configure_logging(
-                                watcher_logging_config.WatcherLoggingConfig())
+            watcher_logging_config.WatcherLoggingConfig())
 
     while True:
         proc = MonitorProc(do_recovery=recover)

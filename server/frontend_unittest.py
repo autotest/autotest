@@ -6,7 +6,9 @@
 """Tests for server.frontend."""
 
 from cStringIO import StringIO
-import os, sys, unittest
+import os
+import sys
+import unittest
 try:
     import autotest.common as common
 except ImportError:
@@ -20,6 +22,7 @@ from autotest.server import frontend
 
 
 class BaseRpcClientTest(unittest.TestCase):
+
     def setUp(self):
         self.god = mock.mock_god()
         self.god.mock_up(rpc_client_lib, 'rpc_client_lib')
@@ -28,7 +31,6 @@ class BaseRpcClientTest(unittest.TestCase):
         if 'AUTOTEST_WEB' in os.environ:
             del os.environ['AUTOTEST_WEB']
 
-
     def tearDown(self):
         self.god.unstub_all()
         os.environ.clear()
@@ -36,33 +38,35 @@ class BaseRpcClientTest(unittest.TestCase):
 
 
 class RpcClientTest(BaseRpcClientTest):
+
     def test_init(self):
         os.environ['LOGNAME'] = 'unittest-user'
         settings.override_value('SERVER', 'hostname', 'test-host')
         rpc_client_lib.authorization_headers.expect_call(
-                'unittest-user', 'http://test-host').and_return(
-                        {'AUTHORIZATION': 'unittest-user'})
+            'unittest-user', 'http://test-host').and_return(
+            {'AUTHORIZATION': 'unittest-user'})
         rpc_client_lib.get_proxy.expect_call(
-                'http://test-host/path',
-                headers={'AUTHORIZATION': 'unittest-user'})
+            'http://test-host/path',
+            headers={'AUTHORIZATION': 'unittest-user'})
         frontend.RpcClient('/path', None, None, None, None, None)
         self.god.check_playback()
 
 
 class AFETest(BaseRpcClientTest):
+
     def test_result_notify(self):
         class fake_job(object):
             result = True
             name = 'nameFoo'
             id = 'idFoo'
-            results_platform_map = {'NORAD' : {'Seeking_Joshua': ['WOPR']}}
+            results_platform_map = {'NORAD': {'Seeking_Joshua': ['WOPR']}}
         settings.override_value('SERVER', 'hostname', 'chess')
         rpc_client_lib.authorization_headers.expect_call(
-                'david', 'http://chess').and_return(
-                        {'AUTHORIZATION': 'david'})
+            'david', 'http://chess').and_return(
+            {'AUTHORIZATION': 'david'})
         rpc_client_lib.get_proxy.expect_call(
-                'http://chess/afe/server/rpc/',
-                headers={'AUTHORIZATION': 'david'})
+            'http://chess/afe/server/rpc/',
+            headers={'AUTHORIZATION': 'david'})
         self.god.stub_function(utils, 'send_email')
         mail.send.expect_any_call()
 
@@ -84,7 +88,6 @@ class AFETest(BaseRpcClientTest):
         self.assert_("condition=tag~'idFoo-%25'" in fake_stdout)
         self.assert_('title=Report' in fake_stdout)
         self.assert_('Sending email' in fake_stdout)
-
 
 
 if __name__ == '__main__':

@@ -6,8 +6,14 @@ compute and check regression bug.
 @copyright: Red Hat 2011-2012
 @author: Amos Kong <akong@redhat.com>
 """
-import os, sys, re, commands, warnings, ConfigParser
+import os
+import sys
+import re
+import commands
+import warnings
+import ConfigParser
 import MySQLdb
+
 
 def exec_sql(cmd, conf="../../global_config.ini"):
     config = ConfigParser.ConfigParser()
@@ -20,8 +26,8 @@ def exec_sql(cmd, conf="../../global_config.ini"):
         print "regression.py: only support mysql database!"
         sys.exit(1)
 
-    conn = MySQLdb.connect (host = "localhost", user=user,
-                            passwd=passwd, db=db)
+    conn = MySQLdb.connect(host="localhost", user=user,
+                           passwd=passwd, db=db)
     cursor = conn.cursor()
     cursor.execute(cmd)
     rows = cursor.fetchall()
@@ -36,20 +42,24 @@ def exec_sql(cmd, conf="../../global_config.ini"):
     conn.close()
     return lines
 
+
 def get_test_keyval(jobid, keyname, default=''):
     idx = exec_sql("select job_idx from tko_jobs where afe_job_id=%s"
-                    % jobid)[-1]
+                   % jobid)[-1]
     test_idx = exec_sql('select test_idx from tko_tests where job_idx=%s'
                         % idx)[3]
     try:
         return exec_sql('select value from tko_test_attributes'
                         ' where test_idx=%s and attribute="%s"'
-                         % (test_idx, keyname))[-1]
+                        % (test_idx, keyname))[-1]
     except:
         return default
 
+
 class Sample(object):
+
     """ Collect test results in same environment to a sample """
+
     def __init__(self, type, arg):
         def generate_raw_table(test_dict):
             ret_dict = []
@@ -111,7 +121,7 @@ class Sample(object):
             idx = exec_sql("select job_idx from tko_jobs where afe_job_id=%s"
                            % jobid)[-1]
             data = exec_sql("select test_idx,iteration_key,iteration_value"
-                           " from tko_perf_view where job_idx=%s" % idx)
+                            " from tko_perf_view where job_idx=%s" % idx)
             testidx = None
             job_dict = []
             test_dict = []
@@ -129,7 +139,7 @@ class Sample(object):
             self.files_dict = job_dict
 
         self.version = " userspace: %s\n host kernel: %s\n guest kernel: %s" % (
-                        self.kvmver, self.hostkernel, self.guestkernel)
+            self.kvmver, self.hostkernel, self.guestkernel)
         nrepeat = len(self.files_dict)
         if nrepeat < 2:
             print "`nrepeat' should be larger than 1!"
@@ -143,7 +153,6 @@ class Sample(object):
  - The paired t-test is computed for the averages of same category.
 
 """ % (nrepeat, nrepeat)
-
 
     def getAvg(self, avg_update=None):
         return self._process_files(self.files_dict, self._get_list_avg,
@@ -196,7 +205,7 @@ class Sample(object):
                     flag = "+"
                     if float(avg1) > float(avg2):
                         flag = "-"
-                    tmp.append(flag + "%.3f" % (1 - p ))
+                    tmp.append(flag + "%.3f" % (1 - p))
                 tmp = "|".join(tmp)
             ret.append(tmp)
         return ret
@@ -217,7 +226,7 @@ class Sample(object):
         result = "+0.0"
         if len(data) == 2 and float(data[0]) != 0:
             result = "%+.3f%%" % ((float(data[1]) - float(data[0]))
-                                 / float(data[0]) * 100)
+                                  / float(data[0]) * 100)
         return result
 
     def _get_list_sd(self, data):
@@ -233,9 +242,9 @@ class Sample(object):
             sum += float(i)
             sqsum += float(i) ** 2
         avg = sum / n
-        if avg == 0 or n == 1 or sqsum - (n * avg**2) <= 0:
+        if avg == 0 or n == 1 or sqsum - (n * avg ** 2) <= 0:
             return "0.0"
-        return "%.3f" % (((sqsum - (n * avg**2)) / (n - 1))**0.5)
+        return "%.3f" % (((sqsum - (n * avg ** 2)) / (n - 1)) ** 0.5)
 
     def _get_list_avg(self, data):
         """ Compute the average of list entries """
@@ -323,7 +332,7 @@ def display(lists, rates, allpvalues, f, ignore_col, sum="Augment Rate",
         str += "<TR ALIGN=CENTER>"
         content = content.split("|")
         for i in range(len(content)):
-            if n and i >= 2 and i < ignore_col+2:
+            if n and i >= 2 and i < ignore_col + 2:
                 str += "<TD ROWSPAN=%d WIDTH=1%% >%s</TD>" % (n, content[i])
             else:
                 str += "<TD WIDTH=1%% >%s</TD>" % content[i]
@@ -352,7 +361,7 @@ def display(lists, rates, allpvalues, f, ignore_col, sum="Augment Rate",
                 pfix = prefix1[n]
             if is_diff:
                 if n == 0:
-                    tee_line(pfix + lists[n][i], f, n=len(lists)+len(rates))
+                    tee_line(pfix + lists[n][i], f, n=len(lists) + len(rates))
                 else:
                     tee_line(pfix + str_ignore(lists[n][i], True), f)
             if not is_diff and n == 0:
@@ -360,9 +369,9 @@ def display(lists, rates, allpvalues, f, ignore_col, sum="Augment Rate",
                     tee_line(prefix0 + lists[n][i], f)
                 elif "Category:" in lists[n][i]:
                     if category != 0 and prefix3:
-                        if len(allpvalues[category-1]) > 0:
+                        if len(allpvalues[category - 1]) > 0:
                             tee_line(prefix3 + str_ignore(
-                                     allpvalues[category-1][0]), f)
+                                     allpvalues[category - 1][0]), f)
                         tee("</TBODY></TABLE>", f)
                         tee("<br>", f)
                         tee("<TABLE BORDER=1 CELLSPACING=1 CELLPADDING=1 "
@@ -374,10 +383,11 @@ def display(lists, rates, allpvalues, f, ignore_col, sum="Augment Rate",
         for n in range(len(rates)):
             if lists[0][i] != rates[n][i] and not re.findall("[a-zA-Z]",
                                                              rates[n][i]):
-                tee_line(prefix2[n] +  str_ignore(rates[n][i], True), f)
+                tee_line(prefix2[n] + str_ignore(rates[n][i], True), f)
     if prefix3 and len(allpvalues[-1]) > 0:
-        tee_line(prefix3 + str_ignore(allpvalues[category-1][0]), f)
+        tee_line(prefix3 + str_ignore(allpvalues[category - 1][0]), f)
     tee("</TBODY></TABLE>", f)
+
 
 def analyze(test, type, arg1, arg2, configfile):
     """ Compute averages/p-vales of two samples, print results nicely """
@@ -439,27 +449,28 @@ def analyze(test, type, arg1, arg2, configfile):
     desc = desc % s1.len
 
     tee("<pre>####1. Description of setup#1\n" + s1.version + "</pre>",
-        test+".html")
+        test + ".html")
     tee("<pre>####2. Description of setup#2\n" + s2.version + "</pre>",
-        test+".html")
-    tee("<pre>" + '\n'.join(desc.split('\\n')) + "</pre>", test+".html")
-    tee("<pre>" + s1.desc + "</pre>", test+".html")
+        test + ".html")
+    tee("<pre>" + '\n'.join(desc.split('\\n')) + "</pre>", test + ".html")
+    tee("<pre>" + s1.desc + "</pre>", test + ".html")
 
-    display([avg1, sd1, avg2, sd2], rlist, allpvalues, test+".html",
+    display([avg1, sd1, avg2, sd2], rlist, allpvalues, test + ".html",
             ignore_col, sum="Regression Testing: %s" % test, prefix0="#|Tile|",
             prefix1=["1|Avg|", " |%SD|", "2|Avg|", " |%SD|"],
             prefix2=["-|%Diff between Avg|", "-|Significance|"],
             prefix3="-|Total Significance|")
 
-    display(s1.files_dict, [avg1], [], test+".avg.html", ignore_col,
+    display(s1.files_dict, [avg1], [], test + ".avg.html", ignore_col,
             sum="Raw data of sample 1", prefix0="#|Tile|",
             prefix1=[" |    |"],
             prefix2=["-|Avg |"], prefix3="")
 
-    display(s2.files_dict, [avg2], [], test+".avg.html", ignore_col,
+    display(s2.files_dict, [avg2], [], test + ".avg.html", ignore_col,
             sum="Raw data of sample 2", prefix0="#|Tile|",
             prefix1=[" |    |"],
             prefix2=["-|Avg |"], prefix3="")
+
 
 def is_int(n):
     try:
@@ -467,6 +478,7 @@ def is_int(n):
         return True
     except ValueError:
         return False
+
 
 def tee(content, file):
     """ Write content to standard output and file """
@@ -476,11 +488,10 @@ def tee(content, file):
     print content
 
 
-
 if __name__ == "__main__":
     if len(sys.argv) != 5:
         this = os.path.basename(sys.argv[0])
         print 'Usage: %s <testname> file <dir1> <dir2>' % this
         print '    or %s <testname> db <jobid1> <jobid2>' % this
         sys.exit(1)
-    analyze(sys.argv[1], sys.argv[2], sys.argv[3] ,sys.argv[4], 'perf.conf')
+    analyze(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], 'perf.conf')

@@ -12,13 +12,12 @@ from autotest.scheduler import gc_stats
 
 
 class TestGcStats(unittest.TestCase):
+
     def setUp(self):
         self.god = mock.mock_god()
 
-
     def tearDown(self):
         self.god.unstub_all()
-
 
     def test_log_garbage_collector_stats(self):
         # Call this for code coverage.

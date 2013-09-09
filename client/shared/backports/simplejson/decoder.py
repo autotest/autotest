@@ -5,6 +5,8 @@ import sys
 import struct
 
 from simplejson.scanner import make_scanner
+
+
 def _import_c_scanstring():
     try:
         from simplejson._speedups import scanstring
@@ -16,6 +18,7 @@ c_scanstring = _import_c_scanstring()
 __all__ = ['JSONDecoder']
 
 FLAGS = re.VERBOSE | re.MULTILINE | re.DOTALL
+
 
 def _floatconstants():
     _BYTES = '7FF80000000000007FF0000000000000'.decode('hex')
@@ -30,6 +33,7 @@ NaN, PosInf, NegInf = _floatconstants()
 
 
 class JSONDecodeError(ValueError):
+
     """Subclass of ValueError with the following additional properties:
 
     msg: The unformatted error message
@@ -42,6 +46,7 @@ class JSONDecodeError(ValueError):
     endcolno: The column corresponding to end (may be None)
 
     """
+
     def __init__(self, msg, doc, pos, end=None):
         ValueError.__init__(self, errmsg(msg, doc, pos, end=end))
         self.msg = msg
@@ -69,12 +74,12 @@ def errmsg(msg, doc, pos, end=None):
     lineno, colno = linecol(doc, pos)
     if end is None:
         #fmt = '{0}: line {1} column {2} (char {3})'
-        #return fmt.format(msg, lineno, colno, pos)
+        # return fmt.format(msg, lineno, colno, pos)
         fmt = '%s: line %d column %d (char %d)'
         return fmt % (msg, lineno, colno, pos)
     endlineno, endcolno = linecol(doc, end)
     #fmt = '{0}: line {1} column {2} - line {3} column {4} (char {5} - {6})'
-    #return fmt.format(msg, lineno, colno, endlineno, endcolno, pos, end)
+    # return fmt.format(msg, lineno, colno, endlineno, endcolno, pos, end)
     fmt = '%s: line %d column %d - line %d column %d (char %d - %d)'
     return fmt % (msg, lineno, colno, endlineno, endcolno, pos, end)
 
@@ -93,8 +98,9 @@ BACKSLASH = {
 
 DEFAULT_ENCODING = "utf-8"
 
+
 def py_scanstring(s, end, encoding=None, strict=True,
-        _b=BACKSLASH, _m=STRINGCHUNK.match):
+                  _b=BACKSLASH, _m=STRINGCHUNK.match):
     """Scan the string s for a JSON string. End is the index of the
     character in s after the quote that started the JSON string.
     Unescapes all valid JSON string escape sequences and raises ValueError
@@ -177,9 +183,10 @@ scanstring = c_scanstring or py_scanstring
 WHITESPACE = re.compile(r'[ \t\n\r]*', FLAGS)
 WHITESPACE_STR = ' \t\n\r'
 
+
 def JSONObject((s, end), encoding, strict, scan_once, object_hook,
-        object_pairs_hook, memo=None,
-        _w=WHITESPACE.match, _ws=WHITESPACE_STR):
+               object_pairs_hook, memo=None,
+               _w=WHITESPACE.match, _ws=WHITESPACE_STR):
     # Backwards compatibility
     if memo is None:
         memo = {}
@@ -269,6 +276,7 @@ def JSONObject((s, end), encoding, strict, scan_once, object_hook,
         pairs = object_hook(pairs)
     return pairs, end
 
+
 def JSONArray((s, end), scan_once, _w=WHITESPACE.match, _ws=WHITESPACE_STR):
     values = []
     nextchar = s[end:end + 1]
@@ -305,7 +313,9 @@ def JSONArray((s, end), scan_once, _w=WHITESPACE.match, _ws=WHITESPACE_STR):
 
     return values, end
 
+
 class JSONDecoder(object):
+
     """Simple JSON <http://json.org> decoder
 
     Performs the following translations in decoding by default:
@@ -336,8 +346,8 @@ class JSONDecoder(object):
     """
 
     def __init__(self, encoding=None, object_hook=None, parse_float=None,
-            parse_int=None, parse_constant=None, strict=True,
-            object_pairs_hook=None):
+                 parse_int=None, parse_constant=None, strict=True,
+                 object_pairs_hook=None):
         """
         *encoding* determines the encoding used to interpret any
         :class:`str` objects decoded by this instance (``'utf-8'`` by

@@ -17,6 +17,7 @@ ALTER TABLE acl_groups_users CHANGE
     aclgroup_id acl_group_id int(11) default NULL;
 """
 
+
 def migrate_up(manager):
     manager.execute_script(UP_SQL)
 

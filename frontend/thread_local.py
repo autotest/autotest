@@ -3,6 +3,7 @@ import threading
 _store = threading.local()
 _store.user = None
 
+
 def set_user(user):
     """\
     Sets the current request's logged-in user.  user should be a

@@ -16,17 +16,20 @@ else:
 
 # TODO: add some toplevel non-python files
 
+
 def get_package_dir():
     return {'autotest.tko': tko_dir}
 
+
 def get_package_data():
-    return {'autotest.tko' : get_filelist()}
+    return {'autotest.tko': get_filelist()}
+
 
 def _get_files(path):
     '''
     Given a path, return all the files in there to package
     '''
-    flist=[]
+    flist = []
     for root, _, files in sorted(os.walk(path)):
         for name in files:
             fullname = os.path.join(root, name)
@@ -35,7 +38,7 @@ def _get_files(path):
 
 
 def get_filelist():
-    pd_filelist=_get_files(os.path.join(tko_dir, 'parsers'))
+    pd_filelist = _get_files(os.path.join(tko_dir, 'parsers'))
     return pd_filelist
 
 
@@ -44,6 +47,7 @@ def get_packages():
             'autotest.tko.parsers.test',
             'autotest.tko.parsers.test.templates',
             'autotest.tko']
+
 
 def get_data_files():
     return [('share/autotest/tko', [tko_dir + '/tko.proto'])]

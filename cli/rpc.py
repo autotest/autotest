@@ -33,7 +33,9 @@ def get_autotest_server(web_server=None):
 
 
 class rpc_comm(object):
+
     """Shared AFE/TKO RPC class stuff"""
+
     def __init__(self, web_server, rpc_path, username):
         self.username = username
         self.web_server = get_autotest_server(web_server)
@@ -42,7 +44,6 @@ class rpc_comm(object):
         except rpc_client_lib.AuthError, s:
             raise AuthError(s)
 
-
     def _connect(self, rpc_path):
         # This does not fail even if the address is wrong.
         # We need to wait for an actual RPC to fail
@@ -50,7 +51,6 @@ class rpc_comm(object):
                                                        self.web_server)
         rpc_server = self.web_server + rpc_path
         return rpc_client_lib.get_proxy(rpc_server, headers=headers)
-
 
     def run(self, op, *args, **data):
         if 'AUTOTEST_CLI_DEBUG' in os.environ:
@@ -63,12 +63,16 @@ class rpc_comm(object):
 
 
 class afe_comm(rpc_comm):
+
     """Handles the AFE setup and communication through RPC"""
+
     def __init__(self, web_server=None, rpc_path=AFE_RPC_PATH, username=None):
         super(afe_comm, self).__init__(web_server, rpc_path, username)
 
 
 class tko_comm(rpc_comm):
+
     """Handles the TKO setup and communication through RPC"""
+
     def __init__(self, web_server=None, rpc_path=TKO_RPC_PATH, username=None):
         super(tko_comm, self).__init__(web_server, rpc_path, username)

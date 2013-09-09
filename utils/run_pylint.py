@@ -1,6 +1,8 @@
 #!/usr/bin/python -u
 
-import os, sys, fnmatch
+import os
+import sys
+import fnmatch
 
 # do a basic check to see if pylint is even installed
 try:
@@ -13,6 +15,7 @@ except ImportError:
 IGNORED_ERRORS = 'E1002,E1101,E1103,E1120,F0401,I0011'
 # By default, complain about all things
 LINT_VERBOSE = True
+
 
 def set_verbosity(verbose):
     '''
@@ -27,6 +30,8 @@ pylint_version = float("%s.%s" % (major, minor))
 # patch up the logilab module lookup tools to understand autotest.* trash
 import logilab.common.modutils
 _ffm = logilab.common.modutils.file_from_modpath
+
+
 def file_from_modpath(modpath, path=None, context_file=None):
     if modpath[0] == "autotest":
         if modpath[1:]:
@@ -47,7 +52,9 @@ sys.path.insert(0, autotest_root)
 # patch up pylint import checker to handle our importing magic
 RealImportsChecker = imports.ImportsChecker
 
+
 class CustomImportsChecker(imports.ImportsChecker):
+
     def visit_from(self, node):
         if node.modname.startswith(ROOT_MODULE):
             node.modname = node.modname[len(ROOT_MODULE):]
@@ -129,7 +136,7 @@ if __name__ == "__main__":
     pylint_base_opts = get_pylint_opts()
     if '--' in file_list:
         index = file_list.index('--')
-        pylint_base_opts.extend(file_list[index+1:])
+        pylint_base_opts.extend(file_list[index + 1:])
         file_list = file_list[:index]
     if len(file_list) > 0:
         for path in file_list:

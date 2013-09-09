@@ -40,10 +40,11 @@ def feed_view(request, url, feed_dict=None):
 
 
 class JobFeed(views.Feed):
+
     """
     Common feed functionality.
     """
-    link  =  "/results"
+    link = "/results"
     title_template = "feeds/job_feed_title.html"
     description_template = "feeds/job_feed_description.html"
 
@@ -67,4 +68,4 @@ class JobFeed(views.Feed):
         return item_list.order_by('-id')[:self.NUM_ITEMS]
 
     def item_link(self, obj):
-        return  '%s/%s-%s' % (self.full_link, obj.job.id, obj.job.owner)
+        return '%s/%s-%s' % (self.full_link, obj.job.id, obj.job.owner)

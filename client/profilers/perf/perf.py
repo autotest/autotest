@@ -5,7 +5,10 @@ supports functionality similar to oprofile and more.
 @see: http://lwn.net/Articles/310260/
 """
 
-import os, stat, subprocess, signal
+import os
+import stat
+import subprocess
+import signal
 import logging
 from autotest.client import profiler, os_dep, utils
 
@@ -13,7 +16,7 @@ from autotest.client import profiler, os_dep, utils
 class perf(profiler.profiler):
     version = 1
 
-    def initialize(self, events=["cycles","instructions"], trace=False, **dargs):
+    def initialize(self, events=["cycles", "instructions"], trace=False, **dargs):
         if type(events) == str:
             self.events = [events]
         else:
@@ -32,7 +35,6 @@ class perf(profiler.profiler):
         if not self.sort_keys:
             self.sort_keys = ['comm', 'cpu']
 
-
     def start(self, test):
         self.logfile = os.path.join(test.profdir, "perf")
         cmd = ("exec %s record -a -o %s" %
@@ -46,11 +48,9 @@ class perf(profiler.profiler):
         self._process = subprocess.Popen(cmd, shell=True,
                                          stderr=subprocess.STDOUT)
 
-
     def stop(self, test):
         os.kill(self._process.pid, signal.SIGINT)
         self._process.wait()
-
 
     def report(self, test):
         for key in self.sort_keys:

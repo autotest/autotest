@@ -10,6 +10,7 @@ ALTER TABLE jobs DROP COLUMN `reboot_before`;
 ALTER TABLE jobs DROP COLUMN `reboot_after`;
 """
 
+
 def migrate_up(manager):
     manager.execute_script(UP_SQL)
 

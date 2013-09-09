@@ -1,5 +1,11 @@
-import logging, os, sys, subprocess, tempfile, traceback
-import time, threading
+import logging
+import os
+import sys
+import subprocess
+import tempfile
+import traceback
+import time
+import threading
 
 from autotest.client.shared import utils
 from autotest.server import utils as server_utils
@@ -15,14 +21,17 @@ class Error(Exception):
 
 
 class InvalidPatternsPathError(Error):
+
     """An invalid patterns_path was specified."""
 
 
 class InvalidConfigurationError(Error):
+
     """An invalid configuration was specified."""
 
 
 class FollowFilesLaunchError(Error):
+
     """Error occurred launching followfiles remotely."""
 
 
@@ -148,6 +157,7 @@ def launch_local_console(
 def _log_and_ignore_exceptions(f):
     """Decorator: automatically log exception during a method call.
     """
+
     def wrapped(self, *args, **dargs):
         try:
             return f(self, *args, **dargs)
@@ -162,6 +172,7 @@ def _log_and_ignore_exceptions(f):
 
 
 class LogfileMonitorMixin(abstract_ssh.AbstractSSHHost):
+
     """This can monitor one or more remote files using tail.
 
     This class and its counterpart script, monitors/followfiles.py,
@@ -185,29 +196,24 @@ class LogfileMonitorMixin(abstract_ssh.AbstractSSHHost):
         self._console_proc = None
         self._console_log = console_log or 'logfile_monitor.log'
 
-
     def reboot_followup(self, *args, **dargs):
         super(LogfileMonitorMixin, self).reboot_followup(*args, **dargs)
         self.__stop_loggers()
         self.__start_loggers()
 
-
     def start_loggers(self):
         super(LogfileMonitorMixin, self).start_loggers()
         self.__start_loggers()
-
 
     def remote_path_exists(self, remote_path):
         """Return True if remote_path exists, False otherwise."""
         return not self.run(
             'ls %s' % remote_path, ignore_status=True).exit_status
 
-
     def check_remote_paths(self, remote_paths):
         """Return list of remote_paths that currently exist."""
         return [
             path for path in remote_paths if self.remote_path_exists(path)]
-
 
     @_log_and_ignore_exceptions
     def __start_loggers(self):
@@ -258,11 +264,9 @@ class LogfileMonitorMixin(abstract_ssh.AbstractSSHHost):
         if self.job:
             self.job.warning_loggers.add(self._logfile_warning_stream)
 
-
     def stop_loggers(self):
         super(LogfileMonitorMixin, self).stop_loggers()
         self.__stop_loggers()
-
 
     @_log_and_ignore_exceptions
     def __stop_loggers(self):

@@ -326,6 +326,7 @@ COMMANDS = (
 
 
 class _ServiceResultParser(object):
+
     """
     A class that contains staticmethods to parse the result of service command.
     """
@@ -359,6 +360,7 @@ class _ServiceResultParser(object):
 
 
 class _ServiceCommandGenerator(object):
+
     """
     A class that contains staticmethods that generate partial functions that
     generate command lists for starting/stopping services.
@@ -475,6 +477,7 @@ class _SpecificServiceManager(object):
 
 
 class _GenericServiceManager(object):
+
     """
     Base class for SysVInitServiceManager and SystemdServiceManager.
     """
@@ -493,11 +496,11 @@ class _GenericServiceManager(object):
         :param run: function to call the run the commands, default utils.run
         :type run: function
         """
-        #### create staticmethods in class attributes (not used)
+        # create staticmethods in class attributes (not used)
         # for cmd in service_command_generator.commands:
         #     setattr(self.__class__, cmd,
         #             staticmethod(self.generate_run_function(run, getattr(service_command_generator, cmd))))
-        #### create functions in instance attributes
+        # create functions in instance attributes
         for cmd in service_command_generator.commands:
             setattr(self, cmd,
                     self.generate_run_function(run,
@@ -537,6 +540,7 @@ class _GenericServiceManager(object):
 
 
 class _SysVInitServiceManager(_GenericServiceManager):
+
     """
     Concrete class that implements the SysVInitServiceManager
     """
@@ -616,6 +620,7 @@ def convert_systemd_target_to_runlevel(target):
 
 
 class _SystemdServiceManager(_GenericServiceManager):
+
     """
     Concrete class that implements the SystemdServiceManager
     """

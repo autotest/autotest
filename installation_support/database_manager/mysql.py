@@ -10,16 +10,18 @@ from autotest.installation_support.database_manager import base
 
 
 class MySQLDatabaseManager(base.BaseDatabaseManager):
+
     '''
     Class that manages MySQL database instances
     '''
+
     def __init__(self, name, admin=None, admin_password=None, user=None,
                  password=None, host=None):
         '''
         Creates a new instance
         '''
         super(MySQLDatabaseManager, self).__init__(name, admin, admin_password,
-                                              user, password, host)
+                                                   user, password, host)
 
         if self.admin_credentials_valid():
             self.admin_connection = MySQLdb.connect(host=self.host,
@@ -28,7 +30,6 @@ class MySQLDatabaseManager(base.BaseDatabaseManager):
         else:
             self.admin_connection = None
             logging.error("Failed to logon as the database admin user")
-
 
     def run_sql(self, sql):
         '''
@@ -44,7 +45,6 @@ class MySQLDatabaseManager(base.BaseDatabaseManager):
 
         return True
 
-
     def exists(self):
         '''
         Checks if the database instance exists
@@ -57,7 +57,6 @@ class MySQLDatabaseManager(base.BaseDatabaseManager):
             return True
         except MySQLdb.OperationalError:
             return False
-
 
     def admin_credentials_valid(self):
         '''
@@ -73,7 +72,6 @@ class MySQLDatabaseManager(base.BaseDatabaseManager):
             return True
         except MySQLdb.OperationalError:
             return False
-
 
     def create_instance(self):
         '''
@@ -94,7 +92,6 @@ class MySQLDatabaseManager(base.BaseDatabaseManager):
             return False
 
         return True
-
 
     def grant_privileges(self):
         '''
@@ -125,7 +122,6 @@ class MySQLDatabaseManager(base.BaseDatabaseManager):
 
         self.admin_connection.commit()
         return True
-
 
     def setup(self):
         '''

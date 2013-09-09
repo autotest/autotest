@@ -21,7 +21,7 @@ def _get_files(path):
     '''
     Given a path, return all the files in there to package
     '''
-    flist=[]
+    flist = []
     for root, _, files in sorted(os.walk(path)):
         for name in files:
             fullname = os.path.join(root, name)
@@ -30,7 +30,7 @@ def _get_files(path):
 
 
 def get_filelist():
-    pd_filelist=['config/*' ]
+    pd_filelist = ['config/*']
     pd_filelist.extend(_get_files(os.path.join(client_dir, 'profilers')))
     pd_filelist.extend(_get_files(os.path.join(client_dir, 'tools')))
     return pd_filelist
@@ -58,16 +58,16 @@ def get_scripts():
 
 def get_data_files():
     return [(os.environ.get('AUTOTEST_TOP_PATH', '/etc/autotest'),
-        [autotest_dir + '/global_config.ini',
-                               autotest_dir + '/shadow_config.ini',]),]
+           [autotest_dir + '/global_config.ini',
+            autotest_dir + '/shadow_config.ini', ]), ]
 
 
 def get_package_dir():
-    return {'autotest.client': client_dir, 'autotest' : autotest_dir}
+    return {'autotest.client': client_dir, 'autotest': autotest_dir}
 
 
 def get_package_data():
-    return {'autotest.client' : get_filelist()}
+    return {'autotest.client': get_filelist()}
 
 
 def run():
@@ -79,7 +79,7 @@ def run():
           url='http://autotest.github.com',
           package_dir=get_package_dir(),
           package_data=get_package_data(),
-          packages= get_packages(),
+          packages=get_packages(),
           scripts=get_scripts(),
           data_files=get_data_files())
 

@@ -1,4 +1,11 @@
-import traceback, socket, os, time, smtplib, re, getpass, logging
+import traceback
+import socket
+import os
+import time
+import smtplib
+import re
+import getpass
+import logging
 try:
     import autotest.common as common
 except ImportError:
@@ -9,7 +16,9 @@ CONFIG_SECTION = 'SCHEDULER'
 
 CONFIG_SECTION_SMTP = 'SERVER'
 
+
 class EmailNotificationManager(object):
+
     def __init__(self):
         self._emails = []
 
@@ -33,7 +42,6 @@ class EmailNotificationManager(object):
 
         self._smtp_password = settings.get_value(CONFIG_SECTION_SMTP,
                                                  "smtp_password", default='')
-
 
     def send_email(self, to_string, subject, body):
         """Mails out emails to the addresses listed in to_string.
@@ -62,7 +70,6 @@ class EmailNotificationManager(object):
         except Exception:
             logging.exception('Sending email failed:')
 
-
     def enqueue_notify_email(self, subject, message):
         logging.error(subject + '\n' + message)
         if not self._notify_address:
@@ -74,7 +81,6 @@ class EmailNotificationManager(object):
                                       time.strftime("%X %x"), message)
         self._emails.append(body)
 
-
     def send_queued_emails(self):
         if not self._emails:
             return
@@ -84,7 +90,6 @@ class EmailNotificationManager(object):
 
         self.send_email(self._notify_address, subject, body)
         self._emails = []
-
 
     def log_stacktrace(self, reason):
         logging.exception(reason)

@@ -27,26 +27,33 @@ from xml.dom import minidom
 
 log = logging
 
+
 def xml_attr(node, key, default=None):
     try:
         return str(node.attributes[key].value)
     except:
         return default
 
+
 def xml_get_nodes(node, tag):
     return [n for n in node.childNodes if n.nodeName == tag]
 
+
 class Recipe(object):
+
     def __init__(self):
         self.tasks = []
         self.id = -1
         self.job_id = -1
         self.exclude_dir = []
 
+
 class Task(object):
+
     """
         Simple record to store task properties
     """
+
     def __init__(self):
         self.name = ''
         self.params = {}
@@ -68,10 +75,13 @@ class Task(object):
         else:
             return default
 
+
 class BeakerXMLParser(object):
+
     """
         Handles parsing of beaker job xml
     """
+
     def __init__(self):
         self.recipes = {}
 

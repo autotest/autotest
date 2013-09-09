@@ -2,12 +2,14 @@
 Host Scheduler classes.
 """
 
+
 class HostSchedulingUtility(object):
+
     """Interface to host availability information from the scheduler."""
+
     def hosts_in_label(self, label_id):
         """Return potentially usable hosts with the given label."""
         raise NotImplementedError
-
 
     def remove_host_from_label(self, host_id, label_id):
         """Remove this host from the internal list of usable hosts in the label.
@@ -19,22 +21,18 @@ class HostSchedulingUtility(object):
         """
         raise NotImplementedError
 
-
     def pop_host(self, host_id):
         """Remove and return a host from the internal list of available hosts.
         """
         raise NotImplementedError
 
-
     def ineligible_hosts_for_entry(self, queue_entry):
         """Get the list of hosts ineligible to run the given queue entry."""
         raise NotImplementedError
 
-
     def is_host_usable(self, host_id):
         """Determine if the host is currently usable at all."""
         raise NotImplementedError
-
 
     def is_host_eligible_for_job(self, host_id, queue_entry):
         """Determine if the host is eligible specifically for this queue entry.
@@ -45,6 +43,7 @@ class HostSchedulingUtility(object):
 
 
 class MetahostScheduler(object):
+
     def can_schedule_metahost(self, queue_entry):
         """Return true if this object can schedule the given queue entry.
 
@@ -53,7 +52,6 @@ class MetahostScheduler(object):
         @param queue_entry: a HostQueueEntry DBObject
         """
         raise NotImplementedError
-
 
     def schedule_metahost(self, queue_entry, scheduling_utility):
         """Schedule the given queue entry, if possible.
@@ -67,11 +65,9 @@ class MetahostScheduler(object):
         """
         raise NotImplementedError
 
-
     def recovery_on_startup(self):
         """Perform any necessary recovery upon scheduler startup."""
         pass
-
 
     def tick(self):
         """Called once per scheduler cycle; any actions are allowed."""
@@ -79,15 +75,15 @@ class MetahostScheduler(object):
 
 
 class LabelMetahostScheduler(MetahostScheduler):
+
     def can_schedule_metahost(self, queue_entry):
         return bool(queue_entry.meta_host)
-
 
     def schedule_metahost(self, queue_entry, scheduling_utility):
         label_id = queue_entry.meta_host
         hosts_in_label = scheduling_utility.hosts_in_label(label_id)
         ineligible_host_ids = scheduling_utility.ineligible_hosts_for_entry(
-                queue_entry)
+            queue_entry)
 
         for host_id in hosts_in_label:
             if not scheduling_utility.is_host_usable(host_id):

@@ -55,7 +55,13 @@ High Level Algorithm:
    atest.print_*() methods.
 """
 
-import optparse, os, re, sys, textwrap, traceback, urllib2
+import optparse
+import os
+import re
+import sys
+import textwrap
+import traceback
+import urllib2
 from autotest.cli import rpc
 from autotest.client.shared.test_utils import mock
 
@@ -108,7 +114,7 @@ FAIL_TAG = '<XYZ>'
 
 # Global socket timeout: uploading kernels can take much,
 # much longer than the default
-UPLOAD_SOCKET_TIMEOUT = 60*30
+UPLOAD_SOCKET_TIMEOUT = 60 * 30
 
 
 # Conversion functions to be called for printing,
@@ -156,6 +162,7 @@ class CliError(Exception):
 
 
 class item_parse_info(object):
+
     def __init__(self, attribute_name, inline_option='',
                  filename_option='', use_leftover=False):
         """Object keeping track of the parsing options that will
@@ -168,7 +175,6 @@ class item_parse_info(object):
         self.filename_option = filename_option
         self.inline_option = inline_option
         self.use_leftover = use_leftover
-
 
     def get_values(self, options, leftover=[]):
         """Returns the value for that attribute by accumualting all
@@ -235,6 +241,7 @@ class item_parse_info(object):
 
 
 class atest(object):
+
     """Common class for generic processing
     Should only be instantiated by itself for usage
     references, otherwise, the <topic> objects should
@@ -251,13 +258,12 @@ class atest(object):
         if self.kill_on_failure:
             self.invalid_syntax(header + rest)
         else:
-            #don't print the message here.
+            # don't print the message here.
             #  It will be displayed later by "show_all_failures"
             # header ends with ":\n"
             # so, strip it off
             msg = header.rstrip().rstrip(":")
             self.failure(rest, item="", what_failed=msg)
-
 
     def invalid_syntax(self, msg):
         print
@@ -268,13 +274,11 @@ class atest(object):
         print
         sys.exit(1)
 
-
     def generic_error(self, msg):
         if self.debug:
             traceback.print_exc()
         print >> sys.stderr, msg
         sys.exit(1)
-
 
     def parse_json_exception(self, full_error):
         """Parses the JSON exception to extract the bad
@@ -289,7 +293,6 @@ class atest(object):
         if len(parts) != 3:
             return []
         return [item.strip() for item in parts[2].split(',') if item.strip()]
-
 
     def failure(self, full_error, item=None, what_failed='', fatal=False):
         """If kill_on_failure, print this error and die,
@@ -320,7 +323,6 @@ class atest(object):
         else:
             self.failed[what_failed] = {errmsg: set([item])}
 
-
     def show_all_failures(self):
         if not self.failed:
             return 0
@@ -346,7 +348,6 @@ class atest(object):
                     items.sort()
                     print >> sys.stderr, twrap.fill(', '.join(items))
         return 1
-
 
     def __init__(self):
         """Setup the parser common options"""
@@ -389,18 +390,15 @@ class atest(object):
                                action='store', type='string',
                                dest='username', default=None)
 
-
     def _get_usage(self):
         return ("%s %s %s [options] %s" % (os.path.basename(sys.argv[0]),
                                            self.msg_topic.lower(),
                                            self.usage_action,
                                            self.msg_items))
 
-
     def backward_compatibility(self, action, argv):
         """To be overidden by subclass if their syntax changed"""
         return action
-
 
     def parse(self, parse_info=[], req_items=None):
         """parse_info is a list of item_parse_info objects
@@ -428,7 +426,6 @@ class atest(object):
                                  self.msg_topic))
 
         return (options, leftover)
-
 
     def parse_global(self):
         """Parse the global arguments.
@@ -465,9 +462,8 @@ class atest(object):
 
         return (options, leftover)
 
-
     def check_and_create_items(self, op_get, op_create,
-                                items, **data_create):
+                               items, **data_create):
         """Create the items if they don't exist already"""
         for item in items:
             ret = self.execute_rpc(op_get, name=item)
@@ -478,7 +474,6 @@ class atest(object):
                     self.execute_rpc(op_create, **data_create)
                 except CliError:
                     continue
-
 
     def execute_rpc(self, op, item='', **data):
         retry = 2
@@ -493,7 +488,7 @@ class atest(object):
                 if hasattr(err, 'code'):
                     error_parts = [str(err)]
                     if self.debug:
-                        error_parts.append(err.read()) # read the response body
+                        error_parts.append(err.read())  # read the response body
                     self.failure('\n\n'.join(error_parts), item=item,
                                  what_failed=("Error received from web server"))
                     raise CliError("Error from web server")
@@ -517,7 +512,6 @@ class atest(object):
                 self.failure(full_error, item=item,
                              what_failed='Operation %s failed' % op)
                 raise CliError(str(full_error))
-
 
     # There is no output() method in the atest object (yet?)
     # but here are some helper functions to be used by its
@@ -543,10 +537,8 @@ class atest(object):
                                      subsequent_indent='\t')
         print twrap.fill(', '.join(values))
 
-
     def __conv_value(self, type, value):
         return KEYS_CONVERT.get(type, str)(value)
-
 
     def print_fields_std(self, items, keys, title=None):
         """Print the keys in each item, one on each line"""
@@ -560,19 +552,17 @@ class atest(object):
                                   self.__conv_value(key,
                                                     _get_item_key(item, key)))
 
-
     def print_fields_parse(self, items, keys, title=None):
         """Print the keys in each item as comma
         separated name=value"""
         for item in items:
             values = ['%s=%s' % (KEYS_TO_NAMES_EN[key],
-                                  self.__conv_value(key,
-                                                    _get_item_key(item, key)))
+                                 self.__conv_value(key,
+                                                   _get_item_key(item, key)))
                       for key in keys
                       if self.__conv_value(key,
                                            _get_item_key(item, key)) != '']
             print self.parse_delim.join(values)
-
 
     def __find_justified_fmt(self, items, keys):
         """Find the max length for each field."""
@@ -591,7 +581,6 @@ class atest(object):
         lens[keys[-1]] = 0
 
         return '  '.join(["%%-%ds" % lens[key] for key in keys])
-
 
     def print_table_std(self, items, keys_header, sublist_keys=()):
         """Print a mix of header and lists in a user readable
@@ -613,7 +602,6 @@ class atest(object):
                                        _get_item_key(item, key))
                 print '\n'
 
-
     def print_table_parse(self, items, keys_header, sublist_keys=()):
         """Print a mix of header and lists in a user readable
         format"""
@@ -625,13 +613,12 @@ class atest(object):
                                            _get_item_key(item, key)) != '']
 
             if sublist_keys:
-                [values.append('%s=%s'% (KEYS_TO_NAMES_EN[key],
-                                         ','.join(_get_item_key(item, key))))
+                [values.append('%s=%s' % (KEYS_TO_NAMES_EN[key],
+                                          ','.join(_get_item_key(item, key))))
                  for key in sublist_keys
                  if len(_get_item_key(item, key))]
 
             print self.parse_delim.join(values)
-
 
     def print_by_ids_std(self, items, title=None, line_before=False):
         """Prints ID & names of items in a user readable form"""
@@ -642,7 +629,6 @@ class atest(object):
         if title:
             print title + ':'
         self.print_table_std(items, keys_header=['id', 'name'])
-
 
     def print_by_ids_parse(self, items, title=None, line_before=False):
         """Prints ID & names of items in a parseable format"""
@@ -660,13 +646,11 @@ class atest(object):
                                             _get_item_key(item, key)) != '']
         print self.parse_delim.join(values)
 
-
     def print_list_std(self, items, key):
         """Print a wrapped list of results"""
         if not items:
             return
         print ' '.join(_get_item_key(item, key) for item in items)
-
 
     def print_list_parse(self, items, key):
         """Print a wrapped list of results"""

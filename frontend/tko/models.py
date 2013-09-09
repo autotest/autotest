@@ -5,6 +5,7 @@ from autotest.frontend.afe.models import TestEnvironment
 
 _quote_name = connection.ops.quote_name
 
+
 class TempManager(model_logic.ExtendedManager):
     _GROUP_COUNT_NAME = 'group_count'
 
@@ -12,7 +13,6 @@ class TempManager(model_logic.ExtendedManager):
         if '(' in field:
             return field
         return self.get_key_on_this_table(field)
-
 
     def _get_field_names(self, fields, extra_select_fields={}):
         field_names = []
@@ -23,11 +23,9 @@ class TempManager(model_logic.ExtendedManager):
                 field_names.append(self._get_key_unless_is_function(field))
         return field_names
 
-
     def _get_group_query_sql(self, query, group_by):
         compiler = query.query.get_compiler(using=query.db)
         sql, params = compiler.as_sql()
-
 
         # insert GROUP BY clause into query
         group_fields = self._get_field_names(group_by, query.query.extra_select)
@@ -41,14 +39,12 @@ class TempManager(model_logic.ExtendedManager):
 
         return sql, params
 
-
     def _get_column_names(self, cursor):
         """
         Gets the column names from the cursor description. This method exists
         so that it can be mocked in the unit test for sqlite3 compatibility.
         """
         return [column_info[0] for column_info in cursor.description]
-
 
     def execute_group_query(self, query, group_by):
         """
@@ -64,7 +60,6 @@ class TempManager(model_logic.ExtendedManager):
         row_dicts = [dict(zip(field_names, row)) for row in cursor.fetchall()]
         return row_dicts
 
-
     def get_count_sql(self, query):
         """
         Get the SQL to properly select a per-group count of unique matches for
@@ -77,23 +72,20 @@ class TempManager(model_logic.ExtendedManager):
             count_sql = 'COUNT(1)'
         return self._GROUP_COUNT_NAME, count_sql
 
-
     def _get_num_groups_sql(self, query, group_by):
         group_fields = self._get_field_names(group_by, query.query.extra_select)
-        query = query.order_by() # this can mess up the query and isn't needed
+        query = query.order_by()  # this can mess up the query and isn't needed
 
         compiler = query.query.get_compiler(using=query.db)
         sql, params = compiler.as_sql()
         from_ = sql[sql.find(' FROM'):]
         return ('SELECT DISTINCT %s %s' % (','.join(group_fields),
-                                                  from_),
+                                           from_),
                 params)
-
 
     def _cursor_rowcount(self, cursor):
         """To be stubbed by tests"""
         return cursor.rowcount
-
 
     def get_num_groups(self, query, group_by):
         """
@@ -107,6 +99,7 @@ class TempManager(model_logic.ExtendedManager):
 
 
 class Machine(dbmodels.Model):
+
     '''
     A machine used to run a test
     '''
@@ -127,6 +120,7 @@ class Machine(dbmodels.Model):
 
 
 class Kernel(dbmodels.Model):
+
     '''
     The Linux Kernel used during a test
     '''
@@ -146,6 +140,7 @@ class Kernel(dbmodels.Model):
 
 
 class Patch(dbmodels.Model):
+
     '''
     A Patch applied to a Linux Kernel source during the build process
     '''
@@ -163,6 +158,7 @@ class Patch(dbmodels.Model):
 
 
 class Status(dbmodels.Model):
+
     '''
     The possible results of a test
 
@@ -182,6 +178,7 @@ class Status(dbmodels.Model):
 
 
 class Job(dbmodels.Model, model_logic.ModelExtensions):
+
     """
     A test job, having one or many tests an their results
     """
@@ -208,7 +205,6 @@ class JobKeyval(dbmodels.Model):
     job = dbmodels.ForeignKey(Job)
     key = dbmodels.CharField(max_length=90)
     value = dbmodels.CharField(blank=True, max_length=300)
-
 
     class Meta:
         db_table = 'tko_job_keyvals'
@@ -237,7 +233,6 @@ class Test(dbmodels.Model, model_logic.ModelExtensions,
         return TestAttribute, dict(test=self, attribute=attribute,
                                    user_created=True)
 
-
     def set_attribute(self, attribute, value):
         # ensure non-user-created attributes remain immutable
         try:
@@ -247,7 +242,6 @@ class Test(dbmodels.Model, model_logic.ModelExtensions,
                              'immutable' % (attribute, self.test_idx))
         except TestAttribute.DoesNotExist:
             super(Test, self).set_attribute(attribute, value)
-
 
     class Meta:
         db_table = 'tko_tests'
@@ -335,6 +329,7 @@ class EmbeddedGraphingQuery(dbmodels.Model, model_logic.ModelExtensions):
 # views
 
 class TestViewManager(TempManager):
+
     def get_query_set(self):
         query = super(TestViewManager, self).get_query_set()
 
@@ -343,12 +338,10 @@ class TestViewManager(TempManager):
                             for sql in self.model.extra_fields.iterkeys())
         return query.extra(select=extra_select)
 
-
     def _get_include_exclude_suffix(self, exclude):
         if exclude:
             return '_exclude'
         return '_include'
-
 
     def _add_attribute_join(self, query_set, join_condition,
                             suffix=None, exclude=False):
@@ -359,7 +352,6 @@ class TestViewManager(TempManager):
                              join_condition=join_condition,
                              suffix=suffix, exclude=exclude)
 
-
     def _add_label_pivot_table_join(self, query_set, suffix, join_condition='',
                                     exclude=False, force_left_join=False):
         return self.add_join(query_set, 'tko_test_labels_tests',
@@ -368,10 +360,9 @@ class TestViewManager(TempManager):
                              suffix=suffix, exclude=exclude,
                              force_left_join=force_left_join)
 
-
     def _add_label_joins(self, query_set, suffix=''):
         query_set = self._add_label_pivot_table_join(
-                query_set, suffix=suffix, force_left_join=True)
+            query_set, suffix=suffix, force_left_join=True)
 
         # since we're not joining from the original table, we can't use
         # self.add_join() again
@@ -385,16 +376,14 @@ class TestViewManager(TempManager):
                                         alias=second_join_alias)
         return query_set
 
-
     def _get_label_ids_from_names(self, label_names):
-        label_ids = list( # listifying avoids a double query below
-                TestLabel.objects.filter(name__in=label_names)
-                .values_list('name', 'id'))
+        label_ids = list(  # listifying avoids a double query below
+            TestLabel.objects.filter(name__in=label_names)
+            .values_list('name', 'id'))
         if len(label_ids) < len(set(label_names)):
             raise ValueError('Not all labels found: %s' %
                              ', '.join(label_names))
         return dict(name_and_id for name_and_id in label_ids)
-
 
     def _include_or_exclude_labels(self, query_set, label_names, exclude=False):
         label_ids = self._get_label_ids_from_names(label_names).itervalues()
@@ -407,21 +396,17 @@ class TestViewManager(TempManager):
                                                 suffix=suffix,
                                                 exclude=exclude)
 
-
     def _add_custom_select(self, query_set, select_name, select_sql):
         return query_set.extra(select={select_name: select_sql})
-
 
     def _add_select_value(self, query_set, alias):
         return self._add_custom_select(query_set, alias,
                                        _quote_name(alias) + '.value')
 
-
     def _add_select_ifnull(self, query_set, alias, non_null_value):
         select_sql = "IF(%s.id IS NOT NULL, '%s', NULL)" % (_quote_name(alias),
                                                             non_null_value)
         return self._add_custom_select(query_set, alias, select_sql)
-
 
     def _join_test_label_column(self, query_set, label_name, label_id):
         alias = 'test_label_' + label_name
@@ -432,14 +417,12 @@ class TestViewManager(TempManager):
         query_set = self._add_select_ifnull(query_set, alias, label_name)
         return query_set
 
-
     def _join_test_label_columns(self, query_set, label_names):
         label_id_map = self._get_label_ids_from_names(label_names)
         for label_name in label_names:
             query_set = self._join_test_label_column(query_set, label_name,
                                                      label_id_map[label_name])
         return query_set
-
 
     def _join_test_attribute(self, query_set, attribute, alias=None,
                              extra_join_condition=None):
@@ -453,25 +436,23 @@ class TestViewManager(TempManager):
         attribute_query = TestAttribute.objects.filter(attribute=attribute)
         if extra_join_condition:
             attribute_query = attribute_query.extra(
-                    where=[extra_join_condition])
+                where=[extra_join_condition])
         query_set = Test.objects.join_custom_field(query_set, attribute_query,
                                                    alias)
 
         query_set = self._add_select_value(query_set, alias)
         return query_set
 
-
     def _join_machine_label_columns(self, query_set, machine_label_names):
         for label_name in machine_label_names:
             alias = 'machine_label_' + label_name
             condition = "FIND_IN_SET('%s', %s)" % (
-                    label_name, _quote_name(alias) + '.value')
+                label_name, _quote_name(alias) + '.value')
             query_set = self._join_test_attribute(
-                    query_set, 'host-labels',
-                    alias=alias, extra_join_condition=condition)
+                query_set, 'host-labels',
+                alias=alias, extra_join_condition=condition)
             query_set = self._add_select_ifnull(query_set, alias, label_name)
         return query_set
-
 
     def _join_one_iteration_key(self, query_set, result_key, first_alias=None):
         alias = 'iteration_result_' + result_key
@@ -481,8 +462,8 @@ class TestViewManager(TempManager):
             # otherwise each join will expand the query by the number of
             # iterations and we'll have extraneous rows
             iteration_query = iteration_query.extra(
-                    where=['%s.iteration = %s.iteration'
-                           % (_quote_name(alias), _quote_name(first_alias))])
+                where=['%s.iteration = %s.iteration'
+                       % (_quote_name(alias), _quote_name(first_alias))])
 
         query_set = Test.objects.join_custom_field(query_set, iteration_query,
                                                    alias, left_join=False)
@@ -491,11 +472,10 @@ class TestViewManager(TempManager):
         if not first_alias:
             # for first join, add iteration index select too
             query_set = self._add_custom_select(
-                    query_set, 'iteration_index',
-                    _quote_name(alias) + '.iteration')
+                query_set, 'iteration_index',
+                _quote_name(alias) + '.iteration')
 
         return query_set, alias
-
 
     def _join_iteration_results(self, test_view_query_set, result_keys):
         """Join the given TestView QuerySet to IterationResult for one result.
@@ -518,33 +498,30 @@ class TestViewManager(TempManager):
             return test_view_query_set
 
         query_set, first_alias = self._join_one_iteration_key(
-                test_view_query_set, result_keys[0])
+            test_view_query_set, result_keys[0])
         for result_key in result_keys[1:]:
             query_set, _ = self._join_one_iteration_key(query_set, result_key,
                                                         first_alias=first_alias)
         return query_set
-
 
     def _join_job_keyvals(self, query_set, job_keyvals):
         for job_keyval in job_keyvals:
             alias = 'job_keyval_' + job_keyval
             keyval_query = JobKeyval.objects.filter(key=job_keyval)
             query_set = Job.objects.join_custom_field(query_set, keyval_query,
-                                                       alias)
+                                                      alias)
             query_set = self._add_select_value(query_set, alias)
         return query_set
-
 
     def _join_iteration_attributes(self, query_set, iteration_attributes):
         for attribute in iteration_attributes:
             alias = 'iteration_attribute_' + attribute
             attribute_query = IterationAttribute.objects.filter(
-                    attribute=attribute)
+                attribute=attribute)
             query_set = Test.objects.join_custom_field(query_set,
                                                        attribute_query, alias)
             query_set = self._add_select_value(query_set, alias)
         return query_set
-
 
     def get_query_set_with_joins(self, filter_data):
         """
@@ -653,20 +630,17 @@ class TestViewManager(TempManager):
 
         return query_set
 
-
     def query_test_ids(self, filter_data, apply_presentation=True):
         query = self.model.query_objects(filter_data,
                                          apply_presentation=apply_presentation)
         dicts = query.values('test_idx')
         return [item['test_idx'] for item in dicts]
 
-
     def query_test_label_ids(self, filter_data):
         query_set = self.model.query_objects(filter_data)
         query_set = self._add_label_joins(query_set, suffix='_list')
         rows = self._custom_select_query(query_set, ['tko_test_labels_list.id'])
         return [row[0] for row in rows if row[0] is not None]
-
 
     def escape_user_sql(self, sql):
         sql = super(TestViewManager, self).escape_user_sql(sql)
@@ -675,25 +649,25 @@ class TestViewManager(TempManager):
 
 class TestView(dbmodels.Model, model_logic.ModelExtensions):
     extra_fields = {
-            'DATE(job_queued_time)': 'job queued day',
-            'DATE(test_finished_time)': 'test finished day',
+        'DATE(job_queued_time)': 'job queued day',
+        'DATE(test_finished_time)': 'test finished day',
     }
 
     group_fields = [
-            'test_name',
-            'status',
-            'kernel',
-            'hostname',
-            'job_tag',
-            'job_name',
-            'platform',
-            'reason',
-            'job_owner',
-            'job_queued_time',
-            'DATE(job_queued_time)',
-            'test_started_time',
-            'test_finished_time',
-            'DATE(test_finished_time)',
+        'test_name',
+        'status',
+        'kernel',
+        'hostname',
+        'job_tag',
+        'job_name',
+        'platform',
+        'reason',
+        'job_owner',
+        'job_queued_time',
+        'DATE(job_queued_time)',
+        'test_started_time',
+        'test_finished_time',
+        'DATE(test_finished_time)',
     ]
 
     test_idx = dbmodels.IntegerField('test index', primary_key=True)
@@ -726,10 +700,8 @@ class TestView(dbmodels.Model, model_logic.ModelExtensions):
     def save(self):
         raise NotImplementedError('TestView is read-only')
 
-
     def delete(self):
         raise NotImplementedError('TestView is read-only')
-
 
     @classmethod
     def query_objects(cls, filter_data, initial_query=None,
@@ -737,9 +709,8 @@ class TestView(dbmodels.Model, model_logic.ModelExtensions):
         if initial_query is None:
             initial_query = cls.objects.get_query_set_with_joins(filter_data)
         return super(TestView, cls).query_objects(
-                filter_data, initial_query=initial_query,
-                apply_presentation=apply_presentation)
-
+            filter_data, initial_query=initial_query,
+            apply_presentation=apply_presentation)
 
     class Meta:
         db_table = 'tko_test_view_2'

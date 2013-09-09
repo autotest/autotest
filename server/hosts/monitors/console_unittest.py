@@ -2,21 +2,26 @@
 
 """Tests for console.py"""
 
-import os, shutil, signal, StringIO, tempfile, unittest
+import os
+import shutil
+import signal
+import StringIO
+import tempfile
+import unittest
 
 import common
 from autotest.client.shared.test_utils import mock
 from autotest.server.hosts.monitors import console
 
+
 class console_test(unittest.TestCase):
+
     def setUp(self):
         self.god = mock.mock_god()
         self.tempdir = tempfile.mkdtemp()
 
-
     def tearDown(self):
         shutil.rmtree(self.tempdir)
-
 
     def test_open_logfile(self):
         path = os.path.join(self.tempdir, 'its-log-log')
@@ -35,7 +40,6 @@ class console_test(unittest.TestCase):
             self.assertTrue(name.startswith('its-log-log.'),
                             'unexpected name %s' % name)
             self.assertTrue(name.endswith('.gz'), 'unexpected name %s' % name)
-
 
     def test_logfile_close_signal_handler(self):
         self.god.stub_function(os, 'exit')

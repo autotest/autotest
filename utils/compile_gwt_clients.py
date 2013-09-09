@@ -3,7 +3,12 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-import sys, os, shutil, errno, optparse, logging
+import sys
+import os
+import shutil
+import errno
+import optparse
+import logging
 from autotest.client.shared import error, utils
 from autotest.client.shared import logging_config, logging_manager
 """
@@ -24,11 +29,14 @@ _COMPILE_LINE = ('java  -Xmx512M '
                  'com.google.gwt.dev.Compiler -war "%(compile_dir)s" '
                  '%(extra_args)s %(project_client)s')
 
+
 class CompileClientsLoggingConfig(logging_config.LoggingConfig):
+
     def configure_logging(self, results_dir=None, verbose=False):
         super(CompileClientsLoggingConfig, self).configure_logging(
-                                                               use_console=True,
-                                                               verbose=verbose)
+            use_console=True,
+            verbose=verbose)
+
 
 def enumerate_projects():
     """List projects in _DEFAULT_APP_DIR."""
@@ -129,7 +137,7 @@ def compile_all_projects(projects, extra_args=''):
        @returns list of failed client installations
     """
     failed_clients = []
-    for project,clients in enumerate_projects().iteritems():
+    for project, clients in enumerate_projects().iteritems():
         for client in clients:
             project_client = '%s.%s' % (project, client)
             if not compile_and_install_client(project_client, extra_args):
@@ -140,7 +148,7 @@ def compile_all_projects(projects, extra_args=''):
 
 def print_projects():
     logging.info('Projects that can be compiled:')
-    for project,clients in enumerate_projects().iteritems():
+    for project, clients in enumerate_projects().iteritems():
         for client in clients:
             logging.info('%s.%s', project, client)
 
@@ -155,8 +163,8 @@ def main():
                       help='List all projects and clients that can be compiled')
     parser.add_option('-a', '--compile-all',
                       action='store_true', dest='compile_all',
-                     default=False,
-                     help='Compile all available projects and clients')
+                      default=False,
+                      help='Compile all available projects and clients')
     parser.add_option('-c', '--compile',
                       dest='compile_list', action='store',
                       help='List of clients to compiled (e.g. -c "x.X c.C")')

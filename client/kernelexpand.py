@@ -18,7 +18,10 @@ except ImportError:
     import common
 
 from autotest.client.shared.settings import settings
-import sys, re, urllib2
+import sys
+import re
+import urllib2
+
 
 def get_mappings_2x():
     KERNEL_BASE_URL = settings.get_value('CLIENT', 'kernel_mirror', default='')
@@ -26,38 +29,38 @@ def get_mappings_2x():
     STABLE_GITWEB_BASE_URL = settings.get_value('CLIENT', 'stable_kernel_gitweb', default='')
 
     MAPPINGS_2X = [
-        [ r'^\d+\.\d+$', '', True,
-                map(lambda x : x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
-                map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
-        ],
-        [ r'^\d+\.\d+\.\d+$', '', True,
-                map(lambda x : x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
-                map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
-        ],
-        [ r'^\d+\.\d+\.\d+\.\d+$', '', True,
-                map(lambda x : x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
-                map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', STABLE_GITWEB_BASE_URL.split())
-        ],
-        [ r'-rc\d+$', '%(minor-prev)s', True,
-                map(lambda x : x + 'v%(major)s/testing/v%(minor)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
-                map(lambda x : x + 'v%(major)s/testing/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
-                map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
-        ],
-        [ r'-(git|bk)\d+$', '%(base)s', False,
-                map(lambda x : x + 'v%(major)s/snapshots/old/patch-%(full)s.bz2', KERNEL_BASE_URL.split()) +
-                map(lambda x : x + 'v%(major)s/snapshots/patch-%(full)s.bz2', KERNEL_BASE_URL.split())
-        ],
-        [ r'-mm\d+$', '%(base)s', False,
-                map(lambda x : x + 'people/akpm/patches/' + '%(major)s/%(base)s/%(full)s/%(full)s.bz2', KERNEL_BASE_URL.split())
-        ],
-        [ r'-mjb\d+$', '%(base)s', False,
-                map(lambda x : x + 'people/mbligh/%(base)s/patch-%(full)s.bz2', KERNEL_BASE_URL.split())
-        ],
-        [ r'[a-f0-9]{7,40}$', '', True,
-                map(lambda x : x + ';a=snapshot;h=%(full)s;sf=tgz', GITWEB_BASE_URL.split()) +
-                map(lambda x : x + ';a=snapshot;h=%(full)s;sf=tgz', STABLE_GITWEB_BASE_URL.split())
-        ]
-    ];
+        [r'^\d+\.\d+$', '', True,
+         map(lambda x: x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+         map(lambda x: x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
+         ],
+        [r'^\d+\.\d+\.\d+$', '', True,
+         map(lambda x: x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+         map(lambda x: x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
+         ],
+        [r'^\d+\.\d+\.\d+\.\d+$', '', True,
+         map(lambda x: x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+         map(lambda x: x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', STABLE_GITWEB_BASE_URL.split())
+         ],
+        [r'-rc\d+$', '%(minor-prev)s', True,
+         map(lambda x: x + 'v%(major)s/testing/v%(minor)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+         map(lambda x: x + 'v%(major)s/testing/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+         map(lambda x: x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
+         ],
+        [r'-(git|bk)\d+$', '%(base)s', False,
+         map(lambda x: x + 'v%(major)s/snapshots/old/patch-%(full)s.bz2', KERNEL_BASE_URL.split()) +
+         map(lambda x: x + 'v%(major)s/snapshots/patch-%(full)s.bz2', KERNEL_BASE_URL.split())
+         ],
+        [r'-mm\d+$', '%(base)s', False,
+         map(lambda x: x + 'people/akpm/patches/' + '%(major)s/%(base)s/%(full)s/%(full)s.bz2', KERNEL_BASE_URL.split())
+         ],
+        [r'-mjb\d+$', '%(base)s', False,
+         map(lambda x: x + 'people/mbligh/%(base)s/patch-%(full)s.bz2', KERNEL_BASE_URL.split())
+         ],
+        [r'[a-f0-9]{7,40}$', '', True,
+         map(lambda x: x + ';a=snapshot;h=%(full)s;sf=tgz', GITWEB_BASE_URL.split()) +
+         map(lambda x: x + ';a=snapshot;h=%(full)s;sf=tgz', STABLE_GITWEB_BASE_URL.split())
+         ]
+    ]
 
     return MAPPINGS_2X
 
@@ -68,23 +71,23 @@ def get_mappings_post_2x():
     STABLE_GITWEB_BASE_URL = settings.get_value('CLIENT', 'stable_kernel_gitweb', default='')
 
     MAPPINGS_POST_2X = [
-        [ r'^\d+\.\d+$', '', True,
-                map(lambda x : x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
-                map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
-        ],
-        [ r'^\d+\.\d+\.\d+$', '', True,
-                map(lambda x : x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
-                map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', STABLE_GITWEB_BASE_URL.split())
-        ],
-        [ r'-rc\d+$', '', True,
-                map(lambda x : x + 'v%(major)s/testing/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
-                map(lambda x : x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
-        ],
-        [ r'[a-f0-9]{7,40}$', '', True,
-                map(lambda x : x + ';a=snapshot;h=%(full)s;sf=tgz', GITWEB_BASE_URL.split()) +
-                map(lambda x : x + ';a=snapshot;h=%(full)s;sf=tgz', STABLE_GITWEB_BASE_URL.split())
-        ]
-    ];
+        [r'^\d+\.\d+$', '', True,
+         map(lambda x: x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+         map(lambda x: x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
+         ],
+        [r'^\d+\.\d+\.\d+$', '', True,
+         map(lambda x: x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+         map(lambda x: x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', STABLE_GITWEB_BASE_URL.split())
+         ],
+        [r'-rc\d+$', '', True,
+         map(lambda x: x + 'v%(major)s/testing/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+         map(lambda x: x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
+         ],
+        [r'[a-f0-9]{7,40}$', '', True,
+         map(lambda x: x + ';a=snapshot;h=%(full)s;sf=tgz', GITWEB_BASE_URL.split()) +
+         map(lambda x: x + ';a=snapshot;h=%(full)s;sf=tgz', STABLE_GITWEB_BASE_URL.split())
+         ]
+    ]
 
     return MAPPINGS_POST_2X
 
@@ -119,7 +122,7 @@ def decompose_kernel_2x_once(kernel):
                             "kernel %s" % kernel)
         params['minor'] = match.group(1)
         params['major'] = match.group(2)
-        params['minor-prev'] = match.group(2) + '.%d' % (int(match.group(3)) -1)
+        params['minor-prev'] = match.group(2) + '.%d' % (int(match.group(3)) - 1)
 
         # Build the new kernel and patch list.
         new_kernel = becomes % params
@@ -164,7 +167,7 @@ def decompose_kernel_post_2x_once(kernel):
                 match = re.search(r'^([a-f0-9]{7,40})', kernel)
                 if not match:
                     raise NameError("Unable to determine major/minor version for "
-                                "kernel %s" % kernel)
+                                    "kernel %s" % kernel)
             else:
                 params['minor'] = 0
                 major = match.group(1)
@@ -172,7 +175,7 @@ def decompose_kernel_post_2x_once(kernel):
         else:
             params['minor'] = match.group(1)
             major = match.group(1)
-            params['minor-prev'] = match.group(2) + '.%d' % (int(match.group(3)) -1)
+            params['minor-prev'] = match.group(2) + '.%d' % (int(match.group(3)) - 1)
 
         # Starting with kernels 3.x, we have folders named '3.x' on kernel.org
         first_number = major.split('.')[0]
@@ -199,7 +202,7 @@ def decompose_kernel(kernel):
         match = re.search(r'^([a-f0-9]{7,40})', kernel)
         if not match:
             raise NameError("Unable to determine major/minor version for "
-                        "kernel %s" % kernel)
+                            "kernel %s" % kernel)
         else:
             decompose_func = decompose_kernel_post_2x_once
     else:
@@ -281,9 +284,9 @@ if __name__ == '__main__':
     parser = OptionParser()
 
     parser.add_option("-m", "--mirror", type="string", dest="mirror",
-            action="append", nargs=2, help="mirror prefix")
+                      action="append", nargs=2, help="mirror prefix")
     parser.add_option("-v", "--no-validate", dest="validate",
-            action="store_false", default=True, help="prune invalid entries")
+                      action="store_false", default=True, help="prune invalid entries")
 
     def usage():
         parser.print_help()

@@ -1,59 +1,59 @@
 #!/usr/bin/python
 
-#############################################################################
-#############################################################################
-##
-##  Copyright (C) Sistina Software, Inc.  1997-2003  All rights reserved.
-##  Copyright (C) 2004-2006 Red Hat, Inc.  All rights reserved.
-##
-##  This copyrighted material is made available to anyone wishing to use,
-##  modify, copy, or redistribute it subject to the terms and conditions
-##  of the GNU General Public License v.2.
-##
-#############################################################################
-## This APC Fence script uses snmp to control the APC power
-## switch. This script requires that net-snmp-utils be installed
-## on all nodes in the cluster, and that the powernet369.mib file be
-## located in /usr/share/snmp/mibs/
-#############################################################################
-#############################################################################
+#
+#
+#
+# Copyright (C) Sistina Software, Inc.  1997-2003  All rights reserved.
+# Copyright (C) 2004-2006 Red Hat, Inc.  All rights reserved.
+#
+# This copyrighted material is made available to anyone wishing to use,
+# modify, copy, or redistribute it subject to the terms and conditions
+# of the GNU General Public License v.2.
+#
+#
+# This APC Fence script uses snmp to control the APC power
+# switch. This script requires that net-snmp-utils be installed
+# on all nodes in the cluster, and that the powernet369.mib file be
+# located in /usr/share/snmp/mibs/
+#
+#
 
 
-
-import getopt, sys
+import getopt
+import sys
 import os
 import time
 import select
 import signal
 from glob import glob
 
-#BEGIN_VERSION_GENERATION
-FENCE_RELEASE_NAME=""
-REDHAT_COPYRIGHT=""
-BUILD_DATE=""
-#END_VERSION_GENERATION
+# BEGIN_VERSION_GENERATION
+FENCE_RELEASE_NAME = ""
+REDHAT_COPYRIGHT = ""
+BUILD_DATE = ""
+# END_VERSION_GENERATION
 
-POWER_ON="outletOn"
-POWER_OFF="outletOff"
-POWER_REBOOT="outletReboot"
+POWER_ON = "outletOn"
+POWER_OFF = "outletOff"
+POWER_REBOOT = "outletReboot"
+
 
 def usage():
-    print "Usage:";
-    print "";
-    print "Options:";
-    print "  -a <ip>          IP address or hostname of MasterSwitch";
-    print "  -h               usage";
-    print "  -l <name>        Login name";
-    print "  -n <num>         Outlet number to change";
-    print "  -o <string>      Action: Reboot (default), Off or On";
-    print "  -p <string>      Login password";
-    print "  -q               quiet mode";
-    print "  -V               version";
-    print "  -v               Log to file /tmp/apclog";
+    print "Usage:"
+    print ""
+    print "Options:"
+    print "  -a <ip>          IP address or hostname of MasterSwitch"
+    print "  -h               usage"
+    print "  -l <name>        Login name"
+    print "  -n <num>         Outlet number to change"
+    print "  -o <string>      Action: Reboot (default), Off or On"
+    print "  -p <string>      Login password"
+    print "  -q               quiet mode"
+    print "  -V               version"
+    print "  -v               Log to file /tmp/apclog"
 
     print sys.argv
-    sys.exit(0);
-
+    sys.exit(0)
 
 
 def main():
@@ -76,7 +76,7 @@ def main():
         try:
             opts, args = getopt.getopt(sys.argv[1:], "a:hl:p:n:o:vV", ["help", "output="])
         except getopt.GetoptError:
-            #print help info and quit
+            # print help info and quit
             usage()
             sys.exit(2)
 
@@ -93,8 +93,8 @@ def main():
                 sys.exit(0)
             if o == "-n":
                 port = a
-            if o  == "-o":
-                lcase = a.lower() #Lower case string
+            if o == "-o":
+                lcase = a.lower()  # Lower case string
                 if lcase == "off":
                     action = "outletOff"
                 elif lcase == "on":
@@ -119,9 +119,9 @@ def main():
             usage()
             sys.exit(1)
 
-    else: #Get opts from stdin
+    else:  # Get opts from stdin
         params = {}
-        #place params in dict
+        # place params in dict
         for line in sys.stdin:
             val = line.split("=")
             if len(val) == 2:
@@ -150,7 +150,6 @@ def main():
             sys.stderr.write("FENCE: Missing port param for fence_apc...exiting")
             sys.exit(1)
 
-
         try:
             a = params["option"]
             if a == "Off" or a == "OFF" or a == "off":
@@ -162,7 +161,7 @@ def main():
         except KeyError, e:
             action = POWER_REBOOT
 
-        ####End of stdin section
+        # End of stdin section
 
     apc_command = apc_base + apc_outletctl + port
 
@@ -171,7 +170,7 @@ def main():
     args_on = list()
 
     args_status.append("/usr/bin/snmpget")
-    args_status.append("-Oqu") #sets printing options
+    args_status.append("-Oqu")  # sets printing options
     args_status.append("-v")
     args_status.append("1")
     args_status.append("-c")
@@ -182,7 +181,7 @@ def main():
     args_status.append(apc_command)
 
     args_off.append("/usr/bin/snmpset")
-    args_off.append("-Oqu") #sets printing options
+    args_off.append("-Oqu")  # sets printing options
     args_off.append("-v")
     args_off.append("1")
     args_off.append("-c")
@@ -195,7 +194,7 @@ def main():
     args_off.append("outletOff")
 
     args_on.append("/usr/bin/snmpset")
-    args_on.append("-Oqu") #sets printing options
+    args_on.append("-Oqu")  # sets printing options
     args_on.append("-v")
     args_on.append("1")
     args_on.append("-c")
@@ -211,13 +210,13 @@ def main():
     cmdstr_off = ' '.join(args_off)
     cmdstr_on = ' '.join(args_on)
 
-##This section issues the actual commands. Reboot is split into
-##Off, then On to make certain both actions work as planned.
-##
-##The status command just dumps the outlet status to stdout.
-##The status checks that are made when turning an outlet on or off, though,
-##use the execWithCaptureStatus so that the stdout from snmpget can be
-##examined and the desired operation confirmed.
+# This section issues the actual commands. Reboot is split into
+# Off, then On to make certain both actions work as planned.
+#
+# The status command just dumps the outlet status to stdout.
+# The status checks that are made when turning an outlet on or off, though,
+# use the execWithCaptureStatus so that the stdout from snmpget can be
+# examined and the desired operation confirmed.
 
     if status_check:
         if verbose:
@@ -236,7 +235,7 @@ def main():
                 fd.write("Attempting the following command: %s\n" % cmdstr_off)
             strr = os.system(cmdstr_off)
             time.sleep(1)
-            strr,code = execWithCaptureStatus("/usr/bin/snmpget",args_status)
+            strr, code = execWithCaptureStatus("/usr/bin/snmpget", args_status)
             if verbose:
                 fd.write("Result: %s\n" % strr)
                 fd.close()
@@ -255,7 +254,7 @@ def main():
                 fd.write("Attempting the following command: %s\n" % cmdstr_on)
             strr = os.system(cmdstr_on)
             time.sleep(1)
-            strr,code = execWithCaptureStatus("/usr/bin/snmpget",args_status)
+            strr, code = execWithCaptureStatus("/usr/bin/snmpget", args_status)
             #strr = os.system(cmdstr_status)
             if verbose:
                 fd.write("Result: %s\n" % strr)
@@ -277,7 +276,7 @@ def main():
                 fd.write("Attempting the following command: %s\n" % cmdstr_off)
             strr = os.system(cmdstr_off)
             time.sleep(1)
-            strr,code = execWithCaptureStatus("/usr/bin/snmpget",args_status)
+            strr, code = execWithCaptureStatus("/usr/bin/snmpget", args_status)
             #strr = os.system(cmdstr_status)
             if verbose:
                 fd.write("Result: %s\n" % strr)
@@ -292,7 +291,7 @@ def main():
                 fd.write("Attempting the following command: %s\n" % cmdstr_on)
             strr = os.system(cmdstr_on)
             time.sleep(1)
-            strr,code = execWithCaptureStatus("/usr/bin/snmpget",args_status)
+            strr, code = execWithCaptureStatus("/usr/bin/snmpget", args_status)
             #strr = os.system(cmdstr_status)
             if verbose:
                 fd.write("Result: %s\n" % strr)
@@ -308,17 +307,19 @@ def main():
                     fd.close()
                 sys.exit(1)
 
-def execWithCaptureStatus(command, argv, searchPath = 0, root = '/', stdin = 0,
-                          catchfd = 1, closefd = -1):
 
-    if not os.access (root + command, os.X_OK):
-        raise RuntimeError, command + " cannot be run"
+def execWithCaptureStatus(command, argv, searchPath=0, root='/', stdin=0,
+                          catchfd=1, closefd=-1):
+
+    if not os.access(root + command, os.X_OK):
+        raise RuntimeError(command + " cannot be run")
 
     (read, write) = os.pipe()
 
     childpid = os.fork()
     if (not childpid):
-        if (root and root != '/'): os.chroot (root)
+        if (root and root != '/'):
+            os.chroot(root)
         if isinstance(catchfd, tuple):
             for fd in catchfd:
                 os.dup2(write, fd)

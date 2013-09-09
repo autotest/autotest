@@ -4,6 +4,7 @@ def migrate_up(manager):
                     'DROP submitted_on')
     manager.execute('ALTER TABLE host_queue_entries DROP created_on')
 
+
 def migrate_down(manager):
     manager.execute('ALTER TABLE autotests ADD params VARCHAR(255)')
     manager.execute('ALTER TABLE jobs ADD kernel_url VARCHAR(255), '

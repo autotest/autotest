@@ -42,18 +42,21 @@ you'd prefer. You can always use the --nobackup option to prevent this.
 __version__ = "1"
 
 import tokenize
-import os, shutil
+import os
+import shutil
 import sys
 
-verbose    = 0
-recurse    = 0
-dryrun     = 0
+verbose = 0
+recurse = 0
+dryrun = 0
 makebackup = True
+
 
 def usage(msg=None):
     if msg is not None:
         print >> sys.stderr, msg
     print >> sys.stderr, __doc__
+
 
 def errprint(*args):
     sep = ""
@@ -62,12 +65,13 @@ def errprint(*args):
         sep = " "
     sys.stderr.write("\n")
 
+
 def main():
     import getopt
     global verbose, recurse, dryrun, makebackup
     try:
         opts, args = getopt.getopt(sys.argv[1:], "drnvh",
-                        ["dryrun", "recurse", "nobackup", "verbose", "help"])
+                                   ["dryrun", "recurse", "nobackup", "verbose", "help"])
     except getopt.error, msg:
         usage(msg)
         return
@@ -91,6 +95,7 @@ def main():
     for arg in args:
         check(arg)
 
+
 def check(file):
     if os.path.isdir(file) and not os.path.islink(file):
         if verbose:
@@ -100,7 +105,7 @@ def check(file):
             fullname = os.path.join(file, name)
             if ((recurse and os.path.isdir(fullname) and
                  not os.path.islink(fullname))
-                or name.lower().endswith(".py")):
+                    or name.lower().endswith(".py")):
                 check(fullname)
         return
 
@@ -136,6 +141,7 @@ def check(file):
             print "unchanged."
         return False
 
+
 def _rstrip(line, JUNK='\n \t'):
     """Return line stripped of trailing spaces, tabs, newlines.
 
@@ -145,9 +151,10 @@ def _rstrip(line, JUNK='\n \t'):
     """
 
     i = len(line)
-    while i > 0 and line[i-1] in JUNK:
+    while i > 0 and line[i - 1] in JUNK:
         i -= 1
     return line[:i]
+
 
 class Reindenter:
 
@@ -189,9 +196,9 @@ class Reindenter:
         # we see a line with *something* on it.
         i = stats[0][0]
         after.extend(lines[1:i])
-        for i in range(len(stats)-1):
+        for i in range(len(stats) - 1):
             thisstmt, thislevel = stats[i]
-            nextstmt = stats[i+1][0]
+            nextstmt = stats[i + 1][0]
             have = getlspace(lines[thisstmt])
             want = thislevel * 4
             if want < 0:
@@ -203,7 +210,7 @@ class Reindenter:
                     want = have2want.get(have, -1)
                     if want < 0:
                         # Then it probably belongs to the next real stmt.
-                        for j in xrange(i+1, len(stats)-1):
+                        for j in xrange(i + 1, len(stats) - 1):
                             jline, jlevel = stats[j]
                             if jlevel >= 0:
                                 if have == getlspace(lines[jline]):
@@ -213,11 +220,11 @@ class Reindenter:
                                            # comment like this one,
                         # in which case we should shift it like its base
                         # line got shifted.
-                        for j in xrange(i-1, -1, -1):
+                        for j in xrange(i - 1, -1, -1):
                             jline, jlevel = stats[j]
                             if jlevel >= 0:
-                                want = have + getlspace(after[jline-1]) - \
-                                       getlspace(lines[jline])
+                                want = have + getlspace(after[jline - 1]) - \
+                                    getlspace(lines[jline])
                                 break
                     if want < 0:
                         # Still no luck -- leave it alone.
@@ -293,6 +300,8 @@ class Reindenter:
                 self.stats.append((sline, self.level))
 
 # Count number of leading blanks.
+
+
 def getlspace(line):
     i, n = 0, len(line)
     while i < n and line[i] == " ":

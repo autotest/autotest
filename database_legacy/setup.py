@@ -20,7 +20,7 @@ def get_package_dir():
 
 
 def get_package_data():
-    return {'autotest.database_legacy' : ['*.sql' ]}
+    return {'autotest.database_legacy': ['*.sql']}
 
 
 def get_packages():

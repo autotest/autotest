@@ -1,4 +1,7 @@
-import os, shutil, tempfile, logging
+import os
+import shutil
+import tempfile
+import logging
 
 try:
     import autotest.common as common
@@ -29,6 +32,7 @@ def get_profiler_log_path(autodir):
 
 
 class profilers(profiler_manager.profiler_manager):
+
     def __init__(self, job):
         super(profilers, self).__init__(job)
         self.add_log = {}
@@ -39,28 +43,23 @@ class profilers(profiler_manager.profiler_manager):
         self.installed_hosts = {}
         self.current_test = None
 
-
     def set_start_delay(self, start_delay):
         self.start_delay = start_delay
-
 
     def load_profiler(self, profiler_name, args, dargs):
         newprofiler = profiler.profiler_proxy(profiler_name)
         newprofiler.initialize(*args, **dargs)
-        newprofiler.setup(*args, **dargs) # lazy setup is done client-side
+        newprofiler.setup(*args, **dargs)  # lazy setup is done client-side
         return newprofiler
-
 
     def add(self, profiler, *args, **dargs):
         super(profilers, self).add(profiler, *args, **dargs)
         self.add_log[profiler] = (args, dargs)
 
-
     def delete(self, profiler):
         super(profilers, self).delete(profiler)
         if profiler in self.add_log:
             del self.add_log[profiler]
-
 
     def _install_clients(self):
         """
@@ -104,7 +103,6 @@ class profilers(profiler_manager.profiler_manager):
             host.close()
             del self.installed_hosts[host.hostname]
 
-
     def _get_hosts(self, host=None):
         """
         Returns a list of (Host, Autotest, install directory) tuples for hosts
@@ -119,10 +117,9 @@ class profilers(profiler_manager.profiler_manager):
             return [self.installed_hosts[host.hostname]]
         return []
 
-
     def _get_local_profilers_dir(self, test, hostname):
         in_machine_dir = (
-                os.path.basename(test.job.resultdir) in test.job.machines)
+            os.path.basename(test.job.resultdir) in test.job.machines)
         if len(test.job.machines) > 1 and not in_machine_dir:
             local_dir = os.path.join(test.profdir, hostname)
             if not os.path.exists(local_dir):
@@ -132,7 +129,6 @@ class profilers(profiler_manager.profiler_manager):
 
         return local_dir
 
-
     def _get_failure_logs(self, autodir, test, host):
         """
         Collect the client logs from a profiler run and put them in a
@@ -140,7 +136,7 @@ class profilers(profiler_manager.profiler_manager):
         """
         try:
             fd, path = tempfile.mkstemp(suffix='.log', prefix='failure-',
-                    dir=self._get_local_profilers_dir(test, host.hostname))
+                                        dir=self._get_local_profilers_dir(test, host.hostname))
             os.close(fd)
             host.get_file(get_profiler_log_path(autodir), path)
             # try to collect any partial profiler logs
@@ -150,11 +146,9 @@ class profilers(profiler_manager.profiler_manager):
             # swallow the exception so that we don't override an existing
             # exception being thrown
 
-
     def _get_all_failure_logs(self, test, hosts):
         for host, at, autodir in hosts:
             self._get_failure_logs(autodir, test, host)
-
 
     def _get_profiler_logs(self, autodir, test, host):
         results_dir = get_profiler_results_dir(autodir)
@@ -166,10 +160,9 @@ class profilers(profiler_manager.profiler_manager):
         try:
             host.get_file(results_dir + '/', tempdir)
         except error.AutoservRunError:
-            pass # no files to pull back, nothing we can do
+            pass  # no files to pull back, nothing we can do
         utils.merge_trees(tempdir, local_dir)
         shutil.rmtree(tempdir, ignore_errors=True)
-
 
     def _run_clients(self, test, hosts):
         """
@@ -205,13 +198,11 @@ class profilers(profiler_manager.profiler_manager):
             self._get_all_failure_logs(test, hosts)
             raise
 
-
     def before_start(self, test, host=None):
         # create host objects and install the needed clients
         # so later in start() we don't spend too much time
         self._install_clients()
         self._run_clients(test, self._get_hosts(host))
-
 
     def start(self, test, host=None):
         hosts = self._get_hosts(host)
@@ -226,7 +217,6 @@ class profilers(profiler_manager.profiler_manager):
 
         self.current_test = test
 
-
     def stop(self, test):
         assert self.current_test == test
 
@@ -238,7 +228,6 @@ class profilers(profiler_manager.profiler_manager):
         except Exception:
             self._get_all_failure_logs(test, hosts)
             raise
-
 
     def report(self, test, host=None):
         assert self.current_test == test
@@ -257,7 +246,6 @@ class profilers(profiler_manager.profiler_manager):
         # pull back all the results
         for host, at, autodir in hosts:
             self._get_profiler_logs(autodir, test, host)
-
 
     def handle_reboot(self, host):
         if self.current_test:

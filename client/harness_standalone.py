@@ -5,13 +5,17 @@ The default interface as required for the standalone reboot helper.
 
 __author__ = """Copyright Andy Whitcroft 2007"""
 
+import os
+import shutil
+import logging
 from autotest.client.shared import error
 from autotest.client.shared.settings import settings
 from autotest.client import utils
-import os, harness, shutil, logging
+import harness
 
 
 class harness_standalone(harness.harness):
+
     """The standalone server harness
 
     Properties:

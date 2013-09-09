@@ -146,7 +146,6 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal('tko', ['EmbeddedGraphingQuery'])
 
-
     def backwards(self, orm):
         # Deleting model 'Machine'
         db.delete_table('tko_machines')
@@ -189,7 +188,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'EmbeddedGraphingQuery'
         db.delete_table('tko_embedded_graphing_queries')
-
 
     models = {
         'tko.embeddedgraphingquery': {

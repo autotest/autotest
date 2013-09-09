@@ -1,4 +1,10 @@
-import copy, getpass, logging, pprint, re, urllib, urlparse
+import copy
+import getpass
+import logging
+import pprint
+import re
+import urllib
+import urlparse
 import httplib2
 from django.utils import datastructures, simplejson
 from autotest.frontend.afe import rpc_client_lib
@@ -43,36 +49,33 @@ class ServerError(Exception):
 
 
 class Response(object):
+
     def __init__(self, httplib_response, httplib_content):
         self.status = int(httplib_response['status'])
         self.headers = httplib_response
         self.entity_body = httplib_content
 
-
     def decoded_body(self):
         return simplejson.loads(self.entity_body)
-
 
     def __str__(self):
         return '\n'.join([str(self.status), self.entity_body])
 
 
 class Resource(object):
+
     def __init__(self, representation_dict, http):
         self._http = http
         assert 'href' in representation_dict
         for key, value in representation_dict.iteritems():
             setattr(self, str(key), value)
 
-
     def __repr__(self):
         return 'Resource(%r)' % self._representation()
-
 
     def pprint(self):
         # pretty-print support for debugging/interactive use
         pprint.pprint(self._representation())
-
 
     @classmethod
     def load(cls, uri, http=None):
@@ -80,7 +83,6 @@ class Resource(object):
             http = httplib2.Http()
         directory = cls({'href': uri}, http)
         return directory.get()
-
 
     def _read_representation(self, value):
         # recursively convert representation dicts to Resource objects
@@ -94,7 +96,6 @@ class Resource(object):
             return converted_dict
         return value
 
-
     def _write_representation(self, value):
         # recursively convert Resource objects to representation dicts
         if isinstance(value, list):
@@ -106,13 +107,11 @@ class Resource(object):
             return value._representation()
         return value
 
-
     def _representation(self):
         return dict((key, self._write_representation(value))
                     for key, value in self.__dict__.iteritems()
                     if not key.startswith('_')
                     and not callable(value))
-
 
     def _do_request(self, method, uri, query_parameters, encoded_body):
         uri_parts = [uri]
@@ -134,11 +133,11 @@ class Resource(object):
             logging.debug(entity_body)
 
         site_verify = utils.import_site_function(
-                __file__, 'autotest.frontend.shared.site_rest_client',
-                'site_verify_response', _site_verify_response_default)
+            __file__, 'autotest.frontend.shared.site_rest_client',
+            'site_verify_response', _site_verify_response_default)
         headers, response_body = self._http.request(
-                full_uri, method, body=entity_body,
-                headers=_get_request_headers(uri))
+            full_uri, method, body=entity_body,
+            headers=_get_request_headers(uri))
         if not site_verify(headers, response_body):
             logging.debug('Response verification failed, clearing headers and '
                           'trying again:\n%s', response_body)
@@ -151,7 +150,6 @@ class Resource(object):
 
         return Response(headers, response_body)
 
-
     def _request(self, method, query_parameters=None, encoded_body=None):
         if query_parameters is None:
             query_parameters = {}
@@ -159,7 +157,7 @@ class Resource(object):
         response = self._do_request(method, self.href, query_parameters,
                                     encoded_body)
 
-        if 300 <= response.status < 400: # redirection
+        if 300 <= response.status < 400:  # redirection
             return self._do_request(method, response.headers['location'],
                                     query_parameters, encoded_body)
         if 400 <= response.status < 500:
@@ -168,26 +166,23 @@ class Resource(object):
             raise ServerError(str(response))
         return response
 
-
     def _stringify_query_parameter(self, value):
         if isinstance(value, (list, tuple)):
             return ','.join(self._stringify_query_parameter(item)
                             for item in value)
         return str(value)
 
-
     def _iterlists(self, mapping):
         """This effectively lets us treat dicts as MultiValueDicts."""
-        if hasattr(mapping, 'iterlists'): # mapping is already a MultiValueDict
+        if hasattr(mapping, 'iterlists'):  # mapping is already a MultiValueDict
             return mapping.iterlists()
         return ((key, (value,)) for key, value in mapping.iteritems())
-
 
     def get(self, query_parameters=None, **kwarg_query_parameters):
         """
         @param query_parameters: a dict or MultiValueDict
         """
-        query_parameters = copy.copy(query_parameters) # avoid mutating original
+        query_parameters = copy.copy(query_parameters)  # avoid mutating original
         if query_parameters is None:
             query_parameters = {}
         query_parameters.update(kwarg_query_parameters)
@@ -195,14 +190,13 @@ class Resource(object):
         string_parameters = datastructures.MultiValueDict()
         for key, values in self._iterlists(query_parameters):
             string_parameters.setlist(
-                    key, [self._stringify_query_parameter(value)
-                          for value in values])
+                key, [self._stringify_query_parameter(value)
+                      for value in values])
 
         response = self._request('GET',
                                  query_parameters=string_parameters.lists())
         assert response.status == 200
         return self._read_representation(response.decoded_body())
-
 
     def get_full(self, results_limit, query_parameters=None,
                  **kwarg_query_parameters):
@@ -217,27 +211,23 @@ class Resource(object):
                           **kwarg_query_parameters)
         if result.total_results > results_limit:
             raise ClientError(
-                    'Too many results (%s > %s) for request %s (%s %s)'
-                    % (result.total_results, results_limit, self.href,
-                       query_parameters, kwarg_query_parameters))
+                'Too many results (%s > %s) for request %s (%s %s)'
+                % (result.total_results, results_limit, self.href,
+                   query_parameters, kwarg_query_parameters))
         return result
-
-
 
     def put(self):
         response = self._request('PUT', encoded_body=self._representation())
         assert response.status == 200
         return self._read_representation(response.decoded_body())
 
-
     def delete(self):
         response = self._request('DELETE')
-        assert response.status == 204 # no content
-
+        assert response.status == 204  # no content
 
     def post(self, request_dict):
         # request_dict may still have resources in it
         request_dict = self._write_representation(request_dict)
         response = self._request('POST', encoded_body=request_dict)
-        assert response.status == 201 # created
+        assert response.status == 201  # created
         return self._read_representation({'href': response.headers['location']})

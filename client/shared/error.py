@@ -2,7 +2,10 @@
 Internal global error types
 """
 
-import sys, traceback, threading, logging
+import sys
+import traceback
+import threading
+import logging
 from traceback import format_exception
 
 # Add names you want to be imported by 'from errors import *' to this list.
@@ -158,28 +161,35 @@ def _context_message(e):
 
 
 class JobContinue(SystemExit):
+
     """Allow us to bail out requesting continuance."""
     pass
 
 
 class JobComplete(SystemExit):
+
     """Allow us to bail out indicating continuation not required."""
     pass
 
 
 class AutotestError(Exception):
+
     """The parent of all errors deliberately thrown within the client code."""
+
     def __str__(self):
         return Exception.__str__(self) + _context_message(self)
 
 
 class JobError(AutotestError):
+
     """Indicates an error which terminates and fails the whole job (ABORT)."""
     pass
 
 
 class UnhandledJobError(JobError):
+
     """Indicates an unhandled error in a job."""
+
     def __init__(self, unhandled_exception):
         if isinstance(unhandled_exception, JobError):
             JobError.__init__(self, *unhandled_exception.args)
@@ -196,35 +206,42 @@ class UnhandledJobError(JobError):
 
 
 class TestBaseException(AutotestError):
+
     """The parent of all test exceptions."""
     # Children are required to override this.  Never instantiate directly.
-    exit_status="NEVER_RAISE_THIS"
+    exit_status = "NEVER_RAISE_THIS"
 
 
 class TestError(TestBaseException):
+
     """Indicates that something went wrong with the test harness itself."""
-    exit_status="ERROR"
+    exit_status = "ERROR"
 
 
 class TestNAError(TestBaseException):
+
     """Indictates that the test is Not Applicable.  Should be thrown
     when various conditions are such that the test is inappropriate."""
-    exit_status="TEST_NA"
+    exit_status = "TEST_NA"
 
 
 class TestFail(TestBaseException):
+
     """Indicates that the test failed, but the job will not continue."""
-    exit_status="FAIL"
+    exit_status = "FAIL"
 
 
 class TestWarn(TestBaseException):
+
     """Indicates that bad things (may) have happened, but not an explicit
     failure."""
-    exit_status="WARN"
+    exit_status = "WARN"
 
 
 class UnhandledTestError(TestError):
+
     """Indicates an unhandled error in a test."""
+
     def __init__(self, unhandled_exception):
         if isinstance(unhandled_exception, TestError):
             TestError.__init__(self, *unhandled_exception.args)
@@ -241,7 +258,9 @@ class UnhandledTestError(TestError):
 
 
 class UnhandledTestFail(TestFail):
+
     """Indicates an unhandled fail in a test."""
+
     def __init__(self, unhandled_exception):
         if isinstance(unhandled_exception, TestFail):
             TestFail.__init__(self, *unhandled_exception.args)
@@ -258,9 +277,11 @@ class UnhandledTestFail(TestFail):
 
 
 class CmdError(TestError):
+
     """\
     Indicates that a command failed, is fatal to the test unless caught.
     """
+
     def __init__(self, command, result_obj, additional_text=None):
         TestError.__init__(self, command, result_obj, additional_text)
         self.command = command
@@ -283,45 +304,55 @@ class CmdError(TestError):
 
 
 class PackageError(TestError):
+
     """Indicates an error trying to perform a package operation."""
     pass
 
 
 class BarrierError(JobError):
+
     """Indicates an error happened during a barrier operation."""
     pass
 
 
 class BarrierAbortError(BarrierError):
+
     """Indicate that the barrier was explicitly aborted by a member."""
     pass
 
 
 class NetCommunicationError(JobError):
+
     """Indicate that network communication was broken."""
     pass
 
 
 class DataSyncError(NetCommunicationError):
+
     """Indicates problem during synchronization data over network."""
     pass
 
 
 class HarnessError(JobError):
+
     """Indicates problem with the harness."""
     pass
 
+
 class InstallError(JobError):
+
     """Indicates an installation error which Terminates and fails the job."""
     pass
 
 
 class AutotestRunError(AutotestError):
+
     """Indicates a problem running server side control files."""
     pass
 
 
 class AutotestTimeoutError(AutotestError):
+
     """This exception is raised when an autotest test exceeds the timeout
     parameter passed to run_timed_test and is killed.
     """
@@ -329,12 +360,14 @@ class AutotestTimeoutError(AutotestError):
 
 
 class HostRunErrorMixIn(Exception):
+
     """
     Indicates a problem in the host run() function raised from client code.
     Should always be constructed with a tuple of two args (error description
     (str), run result object). This is a common class mixed in to create the
     client and server side versions of it.
     """
+
     def __init__(self, description, result_obj):
         self.description = description
         self.result_obj = result_obj
@@ -345,6 +378,7 @@ class HostRunErrorMixIn(Exception):
 
 
 class HostInstallTimeoutError(JobError):
+
     """
     Indicates the machine failed to be installed after the predetermined
     timeout.
@@ -353,6 +387,7 @@ class HostInstallTimeoutError(JobError):
 
 
 class HostInstallProfileError(JobError):
+
     """
     Indicates the machine failed to have a profile assigned.
     """
@@ -370,6 +405,7 @@ class AutoservError(Exception):
 
 
 class AutoservSSHTimeout(AutoservError):
+
     """SSH experienced a connection timeout"""
     pass
 
@@ -379,46 +415,55 @@ class AutoservRunError(HostRunErrorMixIn, AutoservError):
 
 
 class AutoservSshPermissionDeniedError(AutoservRunError):
+
     """Indicates that a SSH permission denied error was encountered."""
     pass
 
 
 class AutoservVirtError(AutoservError):
+
     """Vitualization related error"""
     pass
 
 
 class AutoservUnsupportedError(AutoservError):
+
     """Error raised when you try to use an unsupported optional feature"""
     pass
 
 
 class AutoservHostError(AutoservError):
+
     """Error reaching a host"""
     pass
 
 
 class AutoservHostIsShuttingDownError(AutoservHostError):
+
     """Host is shutting down"""
     pass
 
 
 class AutoservNotMountedHostError(AutoservHostError):
+
     """Found unmounted partitions that should be mounted"""
     pass
 
 
 class AutoservSshPingHostError(AutoservHostError):
+
     """SSH ping failed"""
     pass
 
 
 class AutoservDiskFullHostError(AutoservHostError):
+
     """Not enough free disk space on host"""
+
     def __init__(self, path, want_gb, free_space_gb):
         AutoservHostError.__init__(self,
-            'Not enough free space on %s - %.3fGB free, want %.3fGB' %
-            (path, free_space_gb, want_gb))
+                                   'Not enough free space on %s - %.3fGB free, want %.3fGB' %
+                                  (path, free_space_gb, want_gb))
 
         self.path = path
         self.want_gb = want_gb
@@ -426,22 +471,27 @@ class AutoservDiskFullHostError(AutoservHostError):
 
 
 class AutoservHardwareHostError(AutoservHostError):
+
     """Found hardware problems with the host"""
     pass
 
 
 class AutoservRebootError(AutoservError):
+
     """Error occurred while rebooting a machine"""
     pass
 
 
 class AutoservShutdownError(AutoservRebootError):
+
     """Error occurred during shutdown of machine"""
     pass
 
 
 class AutoservSubcommandError(AutoservError):
+
     """Indicates an error while executing a (forked) subcommand"""
+
     def __init__(self, func, exit_code):
         AutoservError.__init__(self, func, exit_code)
         self.func = func
@@ -453,6 +503,7 @@ class AutoservSubcommandError(AutoservError):
 
 
 class AutoservHardwareRepairRequestedError(AutoservError):
+
     """
     Exception class raised from Host.repair_full() (or overrides) when software
     repair fails but it successfully managed to request a hardware repair (by
@@ -462,6 +513,7 @@ class AutoservHardwareRepairRequestedError(AutoservError):
 
 
 class AutoservHardwareRepairRequiredError(AutoservError):
+
     """
     Exception class raised during repairs to indicate that a hardware repair
     is going to be necessary.
@@ -470,6 +522,7 @@ class AutoservHardwareRepairRequiredError(AutoservError):
 
 
 class AutoservInstallError(AutoservError):
+
     """Error occurred while installing autotest on a host"""
     pass
 
@@ -477,38 +530,47 @@ class AutoservInstallError(AutoservError):
 # packaging system errors
 
 class PackagingError(AutotestError):
+
     'Abstract error class for all packaging related errors.'
 
 
 class PackageUploadError(PackagingError):
+
     'Raised when there is an error uploading the package'
 
 
 class PackageFetchError(PackagingError):
+
     'Raised when there is an error fetching the package'
 
 
 class PackageRemoveError(PackagingError):
+
     'Raised when there is an error removing the package'
 
 
 class PackageInstallError(PackagingError):
+
     'Raised when there is an error installing the package'
 
 
 class RepoDiskFullError(PackagingError):
+
     'Raised when the destination for packages is full'
 
 
 class RepoWriteError(PackagingError):
+
     "Raised when packager cannot write to a repo's desitnation"
 
 
 class RepoUnknownError(PackagingError):
+
     "Raised when packager cannot write to a repo's desitnation"
 
 
 class RepoError(PackagingError):
+
     "Raised when a repo isn't working in some way"
 
 

@@ -1,7 +1,18 @@
 #!/usr/bin/python
 
-import pickle, subprocess, os, shutil, sys, time, signal, getpass, logging
-import datetime, traceback, tempfile, itertools
+import pickle
+import subprocess
+import os
+import shutil
+import sys
+import time
+import signal
+import getpass
+import logging
+import datetime
+import traceback
+import tempfile
+import itertools
 try:
     import autotest.common as common
 except ImportError:
@@ -17,7 +28,7 @@ from autotest.scheduler import scheduler_config
 # something else during recovery.  Name credit goes to showard. ;)
 DARK_MARK_ENVIRONMENT_VAR = 'AUTOTEST_SCHEDULER_DARK_MARK'
 
-_OUTPUT_DIR = settings.get_value('COMMON','test_output_dir', default="")
+_OUTPUT_DIR = settings.get_value('COMMON', 'test_output_dir', default="")
 
 if _OUTPUT_DIR:
     _TEMPORARY_DIRECTORY = os.path.join(_OUTPUT_DIR, 'drone_tmp')
@@ -28,16 +39,15 @@ _TRANSFER_FAILED_FILE = '.transfer_failed'
 
 
 class _MethodCall(object):
+
     def __init__(self, method, args, kwargs):
         self._method = method
         self._args = args
         self._kwargs = kwargs
 
-
     def execute_on(self, drone_utility):
         method = getattr(drone_utility, self._method)
         return method(*self._args, **self._kwargs)
-
 
     def __str__(self):
         args = ', '.join(repr(arg) for arg in self._args)
@@ -52,6 +62,7 @@ def call(method, *args, **kwargs):
 
 
 class DroneUtility(object):
+
     """
     This class executes actual OS calls on the drone machine.
 
@@ -65,7 +76,6 @@ class DroneUtility(object):
 
         self.warnings = []
         self._subcommands = []
-
 
     def initialize(self, results_dir):
         if _OUTPUT_DIR:
@@ -82,10 +92,8 @@ class DroneUtility(object):
                                         '../utils/build_externals.py')
         utils.run(build_extern_cmd)
 
-
     def _warn(self, warning):
         self.warnings.append(warning)
-
 
     @staticmethod
     def _check_pid_for_dark_mark(pid, open=open):
@@ -99,9 +107,7 @@ class DroneUtility(object):
             env_file.close()
         return DARK_MARK_ENVIRONMENT_VAR in env_data
 
-
     _PS_ARGS = ('pid', 'pgid', 'ppid', 'comm', 'args')
-
 
     @classmethod
     def _get_process_info(cls):
@@ -118,7 +124,6 @@ class DroneUtility(object):
         split_lines = [line.split(None, 4) for line in ps_output.splitlines()]
         return (dict(itertools.izip(cls._PS_ARGS, line_components))
                 for line_components in split_lines)
-
 
     def _refresh_processes(self, command_name, open=open,
                            site_check_parse=None):
@@ -141,7 +146,6 @@ class DroneUtility(object):
 
         return processes
 
-
     def _read_pidfiles(self, pidfile_paths):
         pidfiles = {}
         for pidfile_path in pidfile_paths:
@@ -154,7 +158,6 @@ class DroneUtility(object):
             except IOError:
                 continue
         return pidfiles
-
 
     def refresh(self, pidfile_paths):
         """
@@ -171,23 +174,21 @@ class DroneUtility(object):
         processes are scanned.
         """
         site_check_parse = utils.import_site_function(
-                __file__, 'autotest.scheduler.site_drone_utility',
-                'check_parse', lambda x: False)
+            __file__, 'autotest.scheduler.site_drone_utility',
+            'check_parse', lambda x: False)
         results = {
-            'pidfiles' : self._read_pidfiles(pidfile_paths),
-            'autoserv_processes' : self._refresh_processes(['autoserv',
-                                                            'autotest-remote']),
-            'parse_processes' : self._refresh_processes(
-                    'parse', site_check_parse=site_check_parse),
-            'pidfiles_second_read' : self._read_pidfiles(pidfile_paths),
+            'pidfiles': self._read_pidfiles(pidfile_paths),
+            'autoserv_processes': self._refresh_processes(['autoserv',
+                                                           'autotest-remote']),
+            'parse_processes': self._refresh_processes(
+                'parse', site_check_parse=site_check_parse),
+            'pidfiles_second_read': self._read_pidfiles(pidfile_paths),
         }
         return results
-
 
     def kill_process(self, process):
         signal_queue = (signal.SIGCONT, signal.SIGTERM, signal.SIGKILL)
         utils.nuke_pid(process.pid, signal_queue=signal_queue)
-
 
     def _convert_old_host_log(self, log_path):
         """
@@ -216,7 +217,6 @@ class DroneUtility(object):
         os.rename(temp_path, os.path.join(log_path, 'old_log'))
         os.rmdir(temp_dir)
 
-
     def _ensure_directory_exists(self, path):
         if os.path.isdir(path):
             return
@@ -230,7 +230,6 @@ class DroneUtility(object):
                 raise IOError('Path %s exists as a file, not a directory')
 
         os.makedirs(path)
-
 
     def execute_command(self, command, working_directory, log_file,
                         pidfile_name):
@@ -263,7 +262,6 @@ class DroneUtility(object):
         out_file.close()
         in_devnull.close()
 
-
     def write_to_file(self, file_path, contents):
         self._ensure_directory_exists(os.path.dirname(file_path))
         try:
@@ -272,7 +270,6 @@ class DroneUtility(object):
             file_object.close()
         except IOError, exc:
             self._warn('Error write to file %s: %s' % (file_path, exc))
-
 
     def copy_file_or_directory(self, source_path, destination_path):
         """
@@ -301,7 +298,6 @@ class DroneUtility(object):
         else:
             shutil.copy(source_path, destination_path)
 
-
     def _same_file(self, source_path, destination_path):
         """Checks if the source and destination are the same
 
@@ -312,12 +308,10 @@ class DroneUtility(object):
             return False
         return os.path.samefile(source_path, destination_path)
 
-
     def wait_for_all_async_commands(self):
         for subproc in self._subcommands:
             subproc.fork_waitfor()
         self._subcommands = []
-
 
     def _poll_async_commands(self):
         still_running = []
@@ -326,7 +320,6 @@ class DroneUtility(object):
                 still_running.append(subproc)
         self._subcommands = still_running
 
-
     def _wait_for_some_async_commands(self):
         self._poll_async_commands()
         max_processes = scheduler_config.config.max_transfer_processes
@@ -334,26 +327,22 @@ class DroneUtility(object):
             time.sleep(1)
             self._poll_async_commands()
 
-
     def run_async_command(self, function, args):
         subproc = subcommand.subcommand(function, args)
         self._subcommands.append(subproc)
         subproc.fork_start()
-
 
     def _sync_get_file_from(self, hostname, source_path, destination_path):
         self._ensure_directory_exists(os.path.dirname(destination_path))
         host = create_host(hostname)
         host.get_file(source_path, destination_path, delete_dest=True)
 
-
     def get_file_from(self, hostname, source_path, destination_path):
         self.run_async_command(self._sync_get_file_from,
                                (hostname, source_path, destination_path))
 
-
     def sync_send_file_to(self, hostname, source_path, destination_path,
-                           can_fail):
+                          can_fail):
         host = create_host(hostname)
         try:
             host.run('mkdir -p ' + os.path.dirname(destination_path))
@@ -377,13 +366,11 @@ class DroneUtility(object):
                 self._ensure_directory_exists(os.path.dirname(copy_to))
                 self.copy_file_or_directory(source_path, copy_to)
 
-
     def send_file_to(self, hostname, source_path, destination_path,
                      can_fail=False):
         self.run_async_command(self.sync_send_file_to,
                                (hostname, source_path, destination_path,
                                 can_fail))
-
 
     def _report_long_execution(self, calls, duration):
         call_count = {}
@@ -393,7 +380,6 @@ class DroneUtility(object):
         call_summary = '\n'.join('%d %s' % (count, method)
                                  for method, count in call_count.iteritems())
         self._warn('Execution took %f sec\n%s' % (duration, call_summary))
-
 
     def execute_calls(self, calls):
         results = []

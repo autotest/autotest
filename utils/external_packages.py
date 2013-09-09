@@ -1,18 +1,28 @@
 # Please keep this code python 2.4 compatible and stand alone.
 
 import distutils.version
-import logging, os, shutil, sys, tempfile, time, urllib2
-import subprocess, re
+import logging
+import os
+import shutil
+import sys
+import tempfile
+import time
+import urllib2
+import subprocess
+import re
 from autotest.client.shared import utils
 
-_READ_SIZE = 64*1024
-_MAX_PACKAGE_SIZE = 120*1024*1024
+_READ_SIZE = 64 * 1024
+_MAX_PACKAGE_SIZE = 120 * 1024 * 1024
 
 
 class Error(Exception):
+
     """Local exception to be raised by code in this file."""
 
+
 class FetchError(Error):
+
     """Failed to fetch a package from any of its listed URLs."""
 
 
@@ -40,6 +50,7 @@ def find_top_of_autotest_tree():
 
 
 class ExternalPackage(object):
+
     """
     Defines an external package with URLs to fetch its sources from and
     a build_and_install() method to unpack it, build it and install it
@@ -72,20 +83,19 @@ class ExternalPackage(object):
     version = None
     os_requirements = None
 
-
     class __metaclass__(type):
+
         """Any time a subclass is defined, add it to our list."""
+
         def __init__(self, name, bases, d):
             if name != 'ExternalPackage':
                 self.subclasses.append(self)
-
 
     def __init__(self):
         self.verified_package = ''
         if not self.module_name:
             self.module_name = self.name.lower()
         self.installed_version = ''
-
 
     @property
     def name(self):
@@ -94,7 +104,6 @@ class ExternalPackage(object):
         if class_name.endswith('Package'):
             return class_name[:-len('Package')]
         return class_name
-
 
     def is_needed(self, unused_install_dir):
         """@returns True if self.module_name needs to be built and installed."""
@@ -117,7 +126,6 @@ class ExternalPackage(object):
             return distutils.version.LooseVersion(self.version) > \
                 distutils.version.LooseVersion(self.installed_version)
 
-
     def _get_installed_version_from_module(self, module):
         """Ask our module its version string and return it or '' if unknown."""
         try:
@@ -126,11 +134,9 @@ class ExternalPackage(object):
             logging.error('could not get version from %s', module)
             return ''
 
-
     def _build_and_install(self, install_dir):
         """Subclasses MUST provide their own implementation."""
         raise NotImplementedError
-
 
     def _build_and_install_current_dir(self, install_dir):
         """
@@ -138,7 +144,6 @@ class ExternalPackage(object):
         their own implementation of this method.
         """
         raise NotImplementedError
-
 
     def build_and_install(self, install_dir):
         """
@@ -151,7 +156,6 @@ class ExternalPackage(object):
             raise Error('Must call fetch() first.  - %s' % self.name)
         self._check_os_requirements()
         return self._build_and_install(install_dir)
-
 
     def _check_os_requirements(self):
         if not self.os_requirements:
@@ -168,14 +172,12 @@ class ExternalPackage(object):
             raise Error('Missing OS requirements for %s.  (see above)' %
                         self.name)
 
-
     def _build_and_install_current_dir_setup_py(self, install_dir):
         """For use as a _build_and_install_current_dir implementation."""
         egg_path = self._build_egg_using_setup_py(setup_py='setup.py')
         if not egg_path:
             return False
         return self._install_from_egg(install_dir, egg_path)
-
 
     def _build_and_install_current_dir_setupegg_py(self, install_dir):
         """For use as a _build_and_install_current_dir implementation."""
@@ -184,12 +186,10 @@ class ExternalPackage(object):
             return False
         return self._install_from_egg(install_dir, egg_path)
 
-
     def _build_and_install_current_dir_noegg(self, install_dir):
         if not self._build_using_setup_py():
             return False
         return self._install_using_setup_py_and_rsync(install_dir)
-
 
     def _build_and_install_from_package(self, install_dir):
         """
@@ -226,7 +226,6 @@ class ExternalPackage(object):
             os.chdir(os.path.join(extracted_dir, '..'))
             shutil.rmtree(extracted_dir)
 
-
     def _extract_compressed_package(self):
         """Extract the fetched compressed .tar or .zip within its directory."""
         if not self.verified_package:
@@ -244,7 +243,6 @@ class ExternalPackage(object):
         if status:
             raise Error('tar failed with %s' % (status,))
 
-
     def _build_using_setup_py(self, setup_py='setup.py'):
         """
         Assuming the cwd is the extracted python package, execute a simple
@@ -261,7 +259,6 @@ class ExternalPackage(object):
             logging.error('%s build failed.' % self.name)
             return False
         return True
-
 
     def _build_egg_using_setup_py(self, setup_py='setup.py'):
         """
@@ -286,7 +283,6 @@ class ExternalPackage(object):
             if filename.endswith('.egg'):
                 return os.path.join(egg_subdir, filename)
 
-
     def _install_from_egg(self, install_dir, egg_path):
         """
         Install a module from an egg file by unzipping the necessary parts
@@ -304,17 +300,14 @@ class ExternalPackage(object):
             shutil.rmtree(egg_info)
         return True
 
-
     def _get_temp_dir(self):
         return tempfile.mkdtemp(dir='/var/tmp')
-
 
     def _site_packages_path(self, temp_dir):
         # This makes assumptions about what python setup.py install
         # does when given a prefix.  Is this always correct?
         python_xy = 'python%s' % sys.version[:3]
         return os.path.join(temp_dir, 'lib', python_xy, 'site-packages')
-
 
     def _install_using_setup_py_and_rsync(self, install_dir,
                                           setup_py='setup.py',
@@ -366,8 +359,6 @@ class ExternalPackage(object):
         finally:
             shutil.rmtree(temp_dir)
 
-
-
     def _build_using_make(self, install_dir):
         """Build the current package using configure/make.
 
@@ -388,7 +379,6 @@ class ExternalPackage(object):
             return False
         return True
 
-
     def _install_using_make(self):
         """Install the current package using make install.
 
@@ -399,7 +389,6 @@ class ExternalPackage(object):
         """
         status = system('make install')
         return status == 0
-
 
     def fetch(self, dest_dir):
         """
@@ -493,12 +482,10 @@ class SetuptoolsPackage(ExternalPackage):
 
     SUDO_SLEEP_DELAY = 15
 
-
     def _build_and_install(self, install_dir):
         """Install setuptools on the system."""
         logging.info('NOTE: setuptools install does not use install_dir.')
         return self._build_and_install_from_package(install_dir)
-
 
     def _build_and_install_current_dir(self, install_dir):
         egg_path = self._build_egg_using_setup_py()
@@ -546,8 +533,7 @@ class MySQLdbPackage(ExternalPackage):
     hex_sum = '945a04773f30091ad81743f9eb0329a3ee3de383'
 
     _build_and_install_current_dir = (
-            ExternalPackage._build_and_install_current_dir_setup_py)
-
+        ExternalPackage._build_and_install_current_dir_setup_py)
 
     def _build_and_install(self, install_dir):
         if not os.path.exists('/usr/bin/mysql_config'):
@@ -567,15 +553,13 @@ class DjangoPackage(ExternalPackage):
 
     _build_and_install = ExternalPackage._build_and_install_from_package
     _build_and_install_current_dir = (
-            ExternalPackage._build_and_install_current_dir_noegg)
-
+        ExternalPackage._build_and_install_current_dir_noegg)
 
     def _get_installed_version_from_module(self, module):
         try:
             return module.get_version().split()[0]
         except AttributeError:
             return '0.9.6'
-
 
 
 class NumpyPackage(ExternalPackage):
@@ -587,7 +571,7 @@ class NumpyPackage(ExternalPackage):
 
     _build_and_install = ExternalPackage._build_and_install_from_package
     _build_and_install_current_dir = (
-            ExternalPackage._build_and_install_current_dir_setupegg_py)
+        ExternalPackage._build_and_install_current_dir_setupegg_py)
 
 
 # This requires numpy so it must be declared after numpy to guarantee that it
@@ -604,7 +588,7 @@ class MatplotlibPackage(ExternalPackage):
 
     _build_and_install = ExternalPackage._build_and_install_from_package
     _build_and_install_current_dir = (
-            ExternalPackage._build_and_install_current_dir_setupegg_py)
+        ExternalPackage._build_and_install_current_dir_setupegg_py)
 
 
 class AtForkPackage(ExternalPackage):
@@ -615,7 +599,7 @@ class AtForkPackage(ExternalPackage):
 
     _build_and_install = ExternalPackage._build_and_install_from_package
     _build_and_install_current_dir = (
-            ExternalPackage._build_and_install_current_dir_noegg)
+        ExternalPackage._build_and_install_current_dir_noegg)
 
 
 class ParamikoPackage(ExternalPackage):
@@ -625,9 +609,7 @@ class ParamikoPackage(ExternalPackage):
             'ftp://mirrors.kernel.org/gentoo/distfiles/' + local_filename,)
     hex_sum = '592be7a08290070b71da63a8e6f28a803399e5c5'
 
-
     _build_and_install = ExternalPackage._build_and_install_from_package
-
 
     def _check_for_pycrypto(self):
         # NOTE(gps): Linux distros have better python-crypto packages than we
@@ -642,7 +624,6 @@ class ParamikoPackage(ExternalPackage):
                           'or your Linux distro\'s equivalent.')
             return False
         return True
-
 
     def _build_and_install_current_dir(self, install_dir):
         if not self._check_for_pycrypto():
@@ -667,7 +648,7 @@ class SimplejsonPackage(ExternalPackage):
 
     _build_and_install = ExternalPackage._build_and_install_from_package
     _build_and_install_current_dir = (
-                        ExternalPackage._build_and_install_current_dir_setup_py)
+        ExternalPackage._build_and_install_current_dir_setup_py)
 
 
 class Httplib2Package(ExternalPackage):
@@ -682,10 +663,11 @@ class Httplib2Package(ExternalPackage):
 
     _build_and_install = ExternalPackage._build_and_install_from_package
     _build_and_install_current_dir = (
-                        ExternalPackage._build_and_install_current_dir_noegg)
+        ExternalPackage._build_and_install_current_dir_noegg)
 
 
 class GwtPackage(ExternalPackage):
+
     """Fetch and extract a local copy of GWT used to build the frontend."""
 
     version = '2.5.1'
@@ -695,7 +677,6 @@ class GwtPackage(ExternalPackage):
     name = 'gwt'
     about_filename = 'about.txt'
     module_name = None  # Not a Python module.
-
 
     def is_needed(self, install_dir):
         gwt_dir = os.path.join(install_dir, self.name)
@@ -716,7 +697,6 @@ class GwtPackage(ExternalPackage):
 
         logging.info('found gwt version %s', match.group(1))
         return match.group(1) != self.version
-
 
     def _build_and_install(self, install_dir):
         if not os.path.isdir(install_dir):

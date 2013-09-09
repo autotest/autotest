@@ -1,6 +1,7 @@
 def migrate_up(manager):
     manager.execute_script(CREATE_TABLE)
 
+
 def migrate_down(manager):
     manager.execute_script(DROP_TABLE)
 

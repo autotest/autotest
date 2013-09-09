@@ -1,6 +1,10 @@
 #!/usr/bin/python -u
 
-import os, sys, unittest, optparse, fcntl
+import os
+import sys
+import unittest
+import optparse
+import fcntl
 try:
     import autotest.common as common
 except ImportError:
@@ -10,6 +14,7 @@ from autotest.client.shared.test_utils import unittest as custom_unittest
 
 
 class StreamProxy(object):
+
     """
     Mechanism to suppress stdout output, while keeping the original stdout.
     """
@@ -58,7 +63,9 @@ def print_stdout(sr, end=True):
     except AttributeError:
         pass
 
+
 class Bcolors(object):
+
     """
     Very simple class with color support.
     """
@@ -130,59 +137,59 @@ parser.add_option("--full", action="store_true", dest="full", default=False,
                   help="whether to run the shortened version of the test")
 parser.add_option("--debug", action="store_true", dest="debug", default=False,
                   help="run in debug mode")
-parser.add_option("--skip-tests", dest="skip_tests",  default=[],
+parser.add_option("--skip-tests", dest="skip_tests", default=[],
                   help="A space separated list of tests to skip")
 
 parser.set_defaults(module_list=None)
 
 
 REQUIRES_DJANGO = set((
-        'monitor_db_unittest.py',
-        'monitor_db_functional_unittest.py',
-        'monitor_db_cleanup_unittest.py',
-        'frontend_unittest.py',
-        'csv_encoder_unittest.py',
-        'rpc_interface_unittest.py',
-        'models_unittest.py',
-        'scheduler_models_unittest.py',
-        'metahost_scheduler_unittest.py',
-        'site_metahost_scheduler_unittest.py',
-        'rpc_utils_unittest.py',
-        'site_rpc_utils_unittest.py',
-        'execution_engine_unittest.py',
-        'service_proxy_lib_unittest.py',
-        'reservations_unittest.py',
-        'autotest_remote_unittest.py',
-        'server_job_unittest.py',
-        ))
+    'monitor_db_unittest.py',
+    'monitor_db_functional_unittest.py',
+    'monitor_db_cleanup_unittest.py',
+    'frontend_unittest.py',
+    'csv_encoder_unittest.py',
+    'rpc_interface_unittest.py',
+    'models_unittest.py',
+    'scheduler_models_unittest.py',
+    'metahost_scheduler_unittest.py',
+    'site_metahost_scheduler_unittest.py',
+    'rpc_utils_unittest.py',
+    'site_rpc_utils_unittest.py',
+    'execution_engine_unittest.py',
+    'service_proxy_lib_unittest.py',
+    'reservations_unittest.py',
+    'autotest_remote_unittest.py',
+    'server_job_unittest.py',
+))
 
 REQUIRES_MYSQLDB = set((
-        'migrate_unittest.py',
-        'db_utils_unittest.py',
-        ))
+    'migrate_unittest.py',
+    'db_utils_unittest.py',
+))
 
 REQUIRES_GWT = set((
-        'client_compilation_unittest.py',
-        ))
+    'client_compilation_unittest.py',
+))
 
 REQUIRES_SIMPLEJSON = set((
-        'resources_unittest.py',
-        'serviceHandler_unittest.py',
-        ))
+    'resources_unittest.py',
+    'serviceHandler_unittest.py',
+))
 
-REQUIRES_AUTH = set ((
+REQUIRES_AUTH = set((
     'trigger_unittest.py',
-    ))
+))
 
 REQUIRES_PROTOBUFS = set((
-        'job_serializer_unittest.py',
-        ))
+    'job_serializer_unittest.py',
+))
 
 LONG_RUNTIME = set((
     'base_barrier_unittest.py',
     'logging_manager_unittest.py',
     'base_syncdata_unittest.py'
-    ))
+))
 
 LONG_TESTS = (REQUIRES_DJANGO |
               REQUIRES_MYSQLDB |
@@ -196,7 +203,8 @@ LONG_TESTS = (REQUIRES_DJANGO |
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 
-class TestFailure(Exception): pass
+class TestFailure(Exception):
+    pass
 
 
 def run_test(mod_names, options):
@@ -211,7 +219,7 @@ def run_test(mod_names, options):
     else:
         sys.stdout = StreamProxy(stream=sys.stdout)
 
-    test_name =  '.'.join(mod_names)
+    test_name = '.'.join(mod_names)
     fail = False
 
     try:
@@ -270,11 +278,12 @@ def scan_for_modules(start, options):
                     continue
                 path_no_py = os.path.join(dirpath, fname).rstrip('.py')
                 assert path_no_py.startswith(ROOT)
-                names = path_no_py[len(ROOT)+1:].split('/')
+                names = path_no_py[len(ROOT) + 1:].split('/')
                 modules.append(['autotest'] + names)
                 if options.debug:
                     print 'testing', path_no_py
     return modules
+
 
 def find_and_run_tests(start, options):
     """

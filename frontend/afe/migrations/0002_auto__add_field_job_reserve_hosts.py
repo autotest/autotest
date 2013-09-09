@@ -13,11 +13,9 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.BooleanField')(default=False),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'Job.reserve_hosts'
         db.delete_column('afe_jobs', 'reserve_hosts')
-
 
     models = {
         'afe.abortedhostqueueentry': {

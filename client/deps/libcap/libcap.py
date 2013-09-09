@@ -5,6 +5,7 @@ from autotest.client import utils
 
 version = 2
 
+
 def setup(srcdir, tarball='libcap-2.16.tar.gz'):
     topdir = os.getcwd()
     utils.extract_tarball_to_dir(tarball, srcdir)

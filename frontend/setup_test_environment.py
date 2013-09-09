@@ -65,7 +65,7 @@ def destroy_test_database():
     # Note this depends on Django internals and will likely need to be changed
     # when we move to Django 1.x.
     if ((not settings.DATABASES['default']['ENGINE'].endswith('sqlite')) and
-        COMPLETELY_DESTROY_THE_DATABASE):
+            COMPLETELY_DESTROY_THE_DATABASE):
         database_name = settings.DATABASES['default']['NAME']
         cur = connection.cursor()
         cur.execute('DROP DATABASE IF EXISTS %s' % database_name)

@@ -1,18 +1,24 @@
 # Copyright 2009 Google Inc. Released under the GPL v2
 
-import os, re, time, urllib2, urlparse, HTMLParser
+import os
+import re
+import time
+import urllib2
+import urlparse
+import HTMLParser
 
 from autotest.mirror import database
 from autotest.client.shared import utils
 
 
 class source(object):
+
     """
     Abstract Base Class for the source classes.
     """
+
     def __init__(self, database):
         self.database = database
-
 
     def _get_new_files(self, files):
         """
@@ -22,10 +28,8 @@ class source(object):
         old_files = self.database.get_dictionary()
         return dict(filter(lambda x: x[0] not in old_files, files.iteritems()))
 
-
     def get_new_files(self):
         raise NotImplementedError('get_new_files not implemented')
-
 
     def store_files(self, files):
         self.database.merge_dictionary(files)
@@ -34,13 +38,12 @@ class source(object):
 class rsync_source(source):
     _cmd_template = '/usr/bin/rsync -rltz --no-motd %s %s/%s'
 
-    def __init__(self, database, prefix, excludes = []):
+    def __init__(self, database, prefix, excludes=[]):
         super(rsync_source, self).__init__(database)
 
         self.prefix = prefix
         self.exclude = ' '.join(['--exclude "' + x + '"' for x in excludes])
         self.sources = []
-
 
     def _parse_output(self, output, prefix):
         """
@@ -66,13 +69,11 @@ class rsync_source(source):
 
         return res
 
-
     def add_path(self, src, prefix=''):
         """
         Add paths to synchronize from the source.
         """
         self.sources.append((src, prefix))
-
 
     def get_new_files(self):
         """
@@ -81,19 +82,19 @@ class rsync_source(source):
         files = {}
         for src, prefix in self.sources:
             output = utils.system_output(self._cmd_template %
-                (self.exclude, self.prefix, src))
+                                        (self.exclude, self.prefix, src))
             files.update(self._parse_output(output, prefix))
 
         return self._get_new_files(files)
 
 
 class _ahref_parser(HTMLParser.HTMLParser):
+
     def reset(self, url=None, pattern=None):
         HTMLParser.HTMLParser.reset(self)
         self.url = url
         self.pattern = pattern
         self.links = []
-
 
     def handle_starttag(self, tag, attrs):
         if tag == 'a':
@@ -104,7 +105,6 @@ class _ahref_parser(HTMLParser.HTMLParser):
                     if self.pattern.match(url):
                         self.links.append(url)
 
-
     def get_ahref_list(self, url, pattern):
         self.reset(url, pattern)
         self.feed(urllib2.urlopen(url).read())
@@ -114,6 +114,7 @@ class _ahref_parser(HTMLParser.HTMLParser):
 
 
 class url_source(source):
+
     """
     A simple URL based source that parses HTML to find references to
     kernel files.
@@ -124,7 +125,6 @@ class url_source(source):
         super(url_source, self).__init__(database)
         self.prefix = prefix
         self.urls = []
-
 
     def add_url(self, url, pattern):
         """
@@ -142,7 +142,6 @@ class url_source(source):
         if url[-1:] != '/' and not self._extension_pattern.match(url):
             url = url + '/'
         self.urls.append((url, re.compile(pattern)))
-
 
     @staticmethod
     def _get_item(url):
@@ -169,7 +168,6 @@ class url_source(source):
 
         return database.item(url, size, timestamp)
 
-
     def get_new_files(self):
         parser = _ahref_parser()
 
@@ -186,9 +184,11 @@ class url_source(source):
 
 
 class directory_source(source):
+
     """
     Source that finds kernel files by listing the contents of a directory.
     """
+
     def __init__(self, database, path):
         """
         Initialize a directory_source instance.
@@ -200,7 +200,6 @@ class directory_source(source):
         super(directory_source, self).__init__(database)
 
         self._path = path
-
 
     def get_new_files(self, _stat_func=os.stat):
         """

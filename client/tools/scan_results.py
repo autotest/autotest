@@ -6,6 +6,7 @@ result.
 @copyright: Red Hat 2008-2009
 """
 
+
 def parse_results(text):
     """
     Parse text containing Autotest results.
@@ -23,7 +24,7 @@ def parse_results(text):
 
         # Found a START line -- get start time
         if (line.startswith("START") and len(parts) >= 5 and
-            parts[3].startswith("timestamp")):
+                parts[3].startswith("timestamp")):
             start_time = float(parts[3].split("=")[1])
             start_time_list.append(start_time)
             info_list.append("")
@@ -70,7 +71,7 @@ def main(resfiles):
         try:
             text = open(resfile).read()
         except IOError, e:
-            if e.errno == 21: # Directory
+            if e.errno == 21:  # Directory
                 continue
             else:
                 print "Bad result file: %s, errno = %d" % (resfile, e.errno)
@@ -90,7 +91,9 @@ def main(resfiles):
 
 
 if __name__ == "__main__":
-    import sys, glob, os
+    import sys
+    import glob
+    import os
     dirname = os.path.dirname(sys.modules[__name__].__file__)
     client_dir = os.path.abspath(os.path.join(dirname, ".."))
     resfiles = glob.glob(os.path.join(client_dir, 'results', '*', 'status*'))

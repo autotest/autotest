@@ -1,4 +1,10 @@
-import pickle, time, socket, errno, threading, logging, signal
+import pickle
+import time
+import socket
+import errno
+import threading
+import logging
+import signal
 from autotest.client.shared import error
 from autotest.client.shared import barrier
 from autotest.client.shared import utils
@@ -45,6 +51,7 @@ def net_recv_object(sock, timeout=60):
 
 
 class SessionData(object):
+
     def __init__(self, hosts, timeout):
         self.hosts = hosts
         self.endtime = time.time() + timeout
@@ -72,9 +79,11 @@ class SessionData(object):
 
 
 class TempDir(autotemp.tempdir):
+
     """
     TempDir class is tempdir for predefined tmpdir.
     """
+
     def __init__(self, tmpdir=None):
         self.name = tmpdir
 
@@ -86,6 +95,7 @@ class TempDir(autotemp.tempdir):
 
 
 class SyncListenServer(object):
+
     def __init__(self, address='', port=_DEFAULT_PORT, tmpdir=None):
         """
         @param address: Address on which server must be started.
@@ -98,7 +108,7 @@ class SyncListenServer(object):
             self.tmpdir = TempDir(tmpdir)
         else:
             self.tmpdir = autotemp.tempdir(unique_id='',
-                                       prefix="SyncListenServer_%d" % (port))
+                                           prefix="SyncListenServer_%d" % (port))
         self.sessions = {}
         self.exit_event = threading.Event()
 
@@ -118,7 +128,7 @@ class SyncListenServer(object):
         for session_id, session in self.sessions.items():
             if session.data_lock.acquire(False):
                 if ((not session.is_finished() and not session.timeout()) or
-                    session.is_finished()):
+                        session.is_finished()):
                     if not session.is_finished():
                         logging.warn("Sync session %s timed out and will"
                                      " be closed and deleted." %
@@ -148,7 +158,7 @@ class SyncListenServer(object):
 
         if not session.is_finished():
             if (session.data_recv == len(session.hosts) and
-                session.timeout()):
+                    session.timeout()):
                 for client, _ in session.connection.values():
                     net_send_object(client, session.sync_data)
                     net_recv_object(client, _DEFAULT_TIMEOUT)
@@ -161,7 +171,7 @@ class SyncListenServer(object):
     def _start_server(self, address, port):
         signal.signal(signal.SIGTERM, self)
         self.server_thread = utils.InterruptedThread(self._server,
-                                                (address, port))
+                                                    (address, port))
         self.server_thread.start()
 
         while not self.exit_event.is_set():
@@ -212,6 +222,7 @@ class SyncListenServer(object):
 
 
 class SyncData(object):
+
     """
     Provides data synchronization between hosts.
 
@@ -220,6 +231,7 @@ class SyncData(object):
     wants to communicate with each other, then communications are identified
     by session_id.
     """
+
     def __init__(self, masterid, hostid, hosts, session_id=None,
                  listen_server=None, port=13234, tmpdir=None):
         self.port = port

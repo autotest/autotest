@@ -1,4 +1,5 @@
-import logging, os
+import logging
+import os
 from datetime import datetime
 from django.db import models as dbmodels, connection
 from xml.sax import saxutils
@@ -19,6 +20,7 @@ DEFAULT_REBOOT_AFTER = model_attributes.RebootBefore.ALWAYS
 
 
 class AclAccessViolation(Exception):
+
     """
     Raised when an operation is attempted with proper permissions as dictated
     by ACLs.
@@ -26,6 +28,7 @@ class AclAccessViolation(Exception):
 
 
 class AtomicGroup(model_logic.ModelWithInvalid, dbmodels.Model):
+
     """
     A collection of hosts which must only be scheduled all at once.
 
@@ -64,7 +67,6 @@ class AtomicGroup(model_logic.ModelWithInvalid, dbmodels.Model):
     objects = model_logic.ModelWithInvalidManager()
     valid_objects = model_logic.ValidObjectsManager()
 
-
     def enqueue_job(self, job, is_template=False):
         """
         Enqueue a job on an associated atomic group of hosts
@@ -79,7 +81,6 @@ class AtomicGroup(model_logic.ModelWithInvalid, dbmodels.Model):
                                             is_template=is_template)
         queue_entry.save()
 
-
     def clean_object(self):
         """
         Clears the labels set on this atomic group.
@@ -89,16 +90,15 @@ class AtomicGroup(model_logic.ModelWithInvalid, dbmodels.Model):
         """
         self.label_set.clear()
 
-
     class Meta:
         db_table = 'afe_atomic_groups'
-
 
     def __unicode__(self):
         return unicode(self.name)
 
 
 class Label(model_logic.ModelWithInvalid, dbmodels.Model):
+
     """
     Identifiers used to tag hosts, tests and jobs, etc
 
@@ -134,7 +134,6 @@ class Label(model_logic.ModelWithInvalid, dbmodels.Model):
     objects = model_logic.ModelWithInvalidManager()
     valid_objects = model_logic.ValidObjectsManager()
 
-
     def clean_object(self):
         """
         Clears this label from all hosts and tests it's associated with
@@ -145,7 +144,6 @@ class Label(model_logic.ModelWithInvalid, dbmodels.Model):
 
         self.host_set.clear()
         self.test_set.clear()
-
 
     def enqueue_job(self, job, profile, atomic_group=None, is_template=False):
         """
@@ -169,7 +167,6 @@ class Label(model_logic.ModelWithInvalid, dbmodels.Model):
                                             atomic_group=atomic_group)
         queue_entry.save()
 
-
     class Meta:
         db_table = 'afe_labels'
 
@@ -178,6 +175,7 @@ class Label(model_logic.ModelWithInvalid, dbmodels.Model):
 
 
 class Drone(dbmodels.Model, model_logic.ModelExtensions):
+
     """
     A scheduler drone
 
@@ -189,18 +187,15 @@ class Drone(dbmodels.Model, model_logic.ModelExtensions):
     name_field = 'hostname'
     objects = model_logic.ExtendedManager()
 
-
     def save(self, *args, **kwargs):
         if not User.current_user().is_superuser():
             raise Exception('Only superusers may edit drones')
         super(Drone, self).save(*args, **kwargs)
 
-
     def delete(self):
         if not User.current_user().is_superuser():
             raise Exception('Only superusers may delete drones')
         super(Drone, self).delete()
-
 
     class Meta:
         db_table = 'afe_drones'
@@ -210,6 +205,7 @@ class Drone(dbmodels.Model, model_logic.ModelExtensions):
 
 
 class DroneSet(dbmodels.Model, model_logic.ModelExtensions):
+
     """
     A set of scheduler :class:`drones <Drone>`
 
@@ -233,18 +229,15 @@ class DroneSet(dbmodels.Model, model_logic.ModelExtensions):
     name_field = 'name'
     objects = model_logic.ExtendedManager()
 
-
     def save(self, *args, **kwargs):
         if not User.current_user().is_superuser():
             raise Exception('Only superusers may edit drone sets')
         super(DroneSet, self).save(*args, **kwargs)
 
-
     def delete(self):
         if not User.current_user().is_superuser():
             raise Exception('Only superusers may delete drone sets')
         super(DroneSet, self).delete()
-
 
     @classmethod
     def drone_sets_enabled(cls):
@@ -255,7 +248,6 @@ class DroneSet(dbmodels.Model, model_logic.ModelExtensions):
         '''
         return cls.DRONE_SETS_ENABLED
 
-
     @classmethod
     def default_drone_set_name(cls):
         '''
@@ -263,14 +255,12 @@ class DroneSet(dbmodels.Model, model_logic.ModelExtensions):
         '''
         return cls.DEFAULT_DRONE_SET_NAME
 
-
     @classmethod
     def get_default(cls):
         '''
         Returns the default :class:`DroneSet` instance from the database
         '''
         return cls.smart_get(cls.DEFAULT_DRONE_SET_NAME)
-
 
     @classmethod
     def resolve_name(cls, drone_set_name):
@@ -294,13 +284,11 @@ class DroneSet(dbmodels.Model, model_logic.ModelExtensions):
 
         return drone_set_name or user_drone_set_name or cls.get_default().name
 
-
     def get_drone_hostnames(self):
         """
         Gets the hostnames of all drones in this drone set
         """
         return set(self.drones.all().values_list('hostname', flat=True))
-
 
     class Meta:
         db_table = 'afe_drone_sets'
@@ -310,6 +298,7 @@ class DroneSet(dbmodels.Model, model_logic.ModelExtensions):
 
 
 class User(dbmodels.Model, model_logic.ModelExtensions):
+
     """
     A user account with a login name, privileges and preferences
 
@@ -350,7 +339,6 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
     name_field = 'login'
     objects = model_logic.ExtendedManager()
 
-
     def save(self, *args, **kwargs):
         # is this a new object being saved for the first time?
         first_time = (self.id is None)
@@ -362,7 +350,6 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
             everyone = AclGroup.objects.get(name='Everyone')
             everyone.users.add(self)
 
-
     def is_superuser(self):
         """
         Returns whether the user is a super user
@@ -371,7 +358,6 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
         :rtype: boolean
         """
         return self.access_level >= self.ACCESS_ROOT
-
 
     @classmethod
     def current_user(cls):
@@ -382,7 +368,6 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
             user.save()
         return user
 
-
     class Meta:
         db_table = 'afe_users'
 
@@ -392,6 +377,7 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
 
 class Host(model_logic.ModelWithInvalid, dbmodels.Model,
            model_logic.ModelWithAttributes):
+
     """
     A machine on which a :class:`job <Job>` will run
 
@@ -451,11 +437,9 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
     objects = model_logic.ModelWithInvalidManager()
     valid_objects = model_logic.ValidObjectsManager()
 
-
     def __init__(self, *args, **kwargs):
         super(Host, self).__init__(*args, **kwargs)
         self._record_attributes(['status'])
-
 
     @staticmethod
     def create_one_time_host(hostname):
@@ -477,16 +461,15 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
             host = query[0]
             if not host.invalid:
                 raise model_logic.ValidationError({
-                    'hostname' : '%s already exists in the autotest DB.  '
-                        'Select it rather than entering it as a one time '
-                        'host.' % hostname
-                    })
+                    'hostname': '%s already exists in the autotest DB.  '
+                    'Select it rather than entering it as a one time '
+                    'host.' % hostname
+                })
         host.protection = host_protections.Protection.DO_NOT_REPAIR
         host.locked = False
         host.save()
         host.clean_object()
         return host
-
 
     def resurrect_object(self, old_object):
         super(Host, self).resurrect_object(old_object)
@@ -494,11 +477,9 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
         # don't change the status
         self.status = old_object.status
 
-
     def clean_object(self):
         self.aclgroup_set.clear()
         self.labels.clear()
-
 
     def save(self, *args, **kwargs):
         # extra spaces in the hostname can be a sneaky source of errors
@@ -520,7 +501,6 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
             everyone.hosts.add(self)
         self._check_for_updated_attributes()
 
-
     def delete(self):
         AclGroup.check_for_acl_violation_hosts([self])
         for queue_entry in self.hostqueueentry_set.all():
@@ -528,11 +508,9 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
             queue_entry.abort()
         super(Host, self).delete()
 
-
     def on_attribute_changed(self, attribute, old_value):
         assert attribute == 'status'
         logging.info(self.hostname + ' -> ' + self.status)
-
 
     def enqueue_job(self, job, profile, atomic_group=None, is_template=False):
         """
@@ -562,7 +540,6 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
         block = IneligibleHostQueue(job=job, host=self)
         block.save()
 
-
     def platform(self):
         # TODO(showard): slightly hacky?
         platforms = self.labels.filter(platform=True)
@@ -570,7 +547,6 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
             return None
         return platforms[0]
     platform.short_description = 'Platform'
-
 
     @classmethod
     def check_no_platform(cls, hosts):
@@ -587,10 +563,8 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
         if errors:
             raise model_logic.ValidationError({'labels': '; '.join(errors)})
 
-
     def is_dead(self):
         return self.status == Host.Status.REPAIR_FAILED
-
 
     def active_queue_entry(self):
         active = list(self.hostqueueentry_set.filter(active=True))
@@ -600,10 +574,8 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
                                   'host ' + self.hostname)
         return active[0]
 
-
     def _get_attribute_model_and_args(self, attribute):
         return HostAttribute, dict(host=self, attribute=attribute)
-
 
     class Meta:
         db_table = 'afe_hosts'
@@ -613,6 +585,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
 
 
 class HostAttribute(dbmodels.Model):
+
     """
     Arbitrary keyvals associated with hosts
 
@@ -632,6 +605,7 @@ class HostAttribute(dbmodels.Model):
 
 
 class Test(dbmodels.Model, model_logic.ModelExtensions):
+
     """
     A test that can be scheduled and run on a :class:`host <Host>`
 
@@ -696,13 +670,11 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
     name_field = 'name'
     objects = model_logic.ExtendedManager()
 
-
     def admin_description(self):
         escaped_description = saxutils.escape(self.description)
         return '<span style="white-space:pre">%s</span>' % escaped_description
     admin_description.allow_tags = True
     admin_description.short_description = 'Description'
-
 
     class Meta:
         db_table = 'afe_autotests'
@@ -712,6 +684,7 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
 
 
 class TestParameter(dbmodels.Model):
+
     """
     A declared parameter of a test
 
@@ -729,6 +702,7 @@ class TestParameter(dbmodels.Model):
 
 
 class Profiler(dbmodels.Model, model_logic.ModelExtensions):
+
     """\
     Required:
     name: profiler name
@@ -743,7 +717,6 @@ class Profiler(dbmodels.Model, model_logic.ModelExtensions):
     name_field = 'name'
     objects = model_logic.ExtendedManager()
 
-
     class Meta:
         db_table = 'afe_profilers'
 
@@ -752,6 +725,7 @@ class Profiler(dbmodels.Model, model_logic.ModelExtensions):
 
 
 class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
+
     """
     Required:
     name: name of ACL group
@@ -838,7 +812,6 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
         raise AclAccessViolation('You cannot abort the following job entries: '
                                  + entry_names)
 
-
     def check_for_acl_violation_acl_group(self):
         user = User.current_user()
         if user.is_superuser():
@@ -871,7 +844,6 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
                 acled_hosts.add(host)
         everyone.hosts.remove(*acled_hosts)
 
-
     def delete(self):
         if (self.name == 'Everyone'):
             raise AclAccessViolation("You cannot delete 'Everyone'!")
@@ -879,18 +851,15 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
         super(AclGroup, self).delete()
         self.on_host_membership_change()
 
-
     def add_current_user_if_empty(self):
         if not self.users.count():
             self.users.add(User.current_user())
-
 
     def perform_after_save(self, change):
         if not change:
             self.users.add(User.current_user())
         self.add_current_user_if_empty()
         self.on_host_membership_change()
-
 
     def save(self, *args, **kwargs):
         change = bool(self.id)
@@ -900,7 +869,6 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
         super(AclGroup, self).save(*args, **kwargs)
         self.perform_after_save(change)
 
-
     class Meta:
         db_table = 'afe_acl_groups'
 
@@ -909,6 +877,7 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
 
 
 class Kernel(dbmodels.Model):
+
     """
     A kernel configuration for a parameterized job
     """
@@ -929,7 +898,6 @@ class Kernel(dbmodels.Model):
             return None
         return [cls._create(kernel) for kernel in kernel_list]
 
-
     @classmethod
     def _create(cls, kernel_dict):
         version = kernel_dict.pop('version')
@@ -943,7 +911,6 @@ class Kernel(dbmodels.Model):
                                               cmdline=cmdline)
         return kernel
 
-
     class Meta:
         db_table = 'afe_kernels'
         unique_together = ('version', 'cmdline')
@@ -953,6 +920,7 @@ class Kernel(dbmodels.Model):
 
 
 class ParameterizedJob(dbmodels.Model):
+
     """
     Auxiliary configuration for a parameterized job
     """
@@ -963,22 +931,19 @@ class ParameterizedJob(dbmodels.Model):
     upload_kernel_config = dbmodels.BooleanField(default=False)
 
     kernels = dbmodels.ManyToManyField(
-            Kernel, db_table='afe_parameterized_job_kernels')
+        Kernel, db_table='afe_parameterized_job_kernels')
     profilers = dbmodels.ManyToManyField(
-            Profiler, through='ParameterizedJobProfiler')
-
+        Profiler, through='ParameterizedJobProfiler')
 
     @classmethod
     def smart_get(cls, id_or_name, *args, **kwargs):
         """For compatibility with Job.add_object"""
         return cls.objects.get(pk=id_or_name)
 
-
     def job(self):
         jobs = self.job_set.all()
         assert jobs.count() <= 1
         return jobs and jobs[0] or None
-
 
     class Meta:
         db_table = 'afe_parameterized_jobs'
@@ -988,6 +953,7 @@ class ParameterizedJob(dbmodels.Model):
 
 
 class ParameterizedJobProfiler(dbmodels.Model):
+
     """
     A profiler to run on a parameterized job
     """
@@ -1000,6 +966,7 @@ class ParameterizedJobProfiler(dbmodels.Model):
 
 
 class ParameterizedJobProfilerParameter(dbmodels.Model):
+
     """
     A parameter for a profiler in a parameterized job
     """
@@ -1007,7 +974,7 @@ class ParameterizedJobProfilerParameter(dbmodels.Model):
     parameter_name = dbmodels.CharField(max_length=255)
     parameter_value = dbmodels.TextField()
     parameter_type = dbmodels.CharField(
-            max_length=8, choices=model_attributes.ParameterTypes.choices())
+        max_length=8, choices=model_attributes.ParameterTypes.choices())
 
     class Meta:
         db_table = 'afe_parameterized_job_profiler_parameters'
@@ -1019,6 +986,7 @@ class ParameterizedJobProfilerParameter(dbmodels.Model):
 
 
 class ParameterizedJobParameter(dbmodels.Model):
+
     """
     Parameters for a parameterized job
     """
@@ -1026,7 +994,7 @@ class ParameterizedJobParameter(dbmodels.Model):
     test_parameter = dbmodels.ForeignKey(TestParameter)
     parameter_value = dbmodels.TextField()
     parameter_type = dbmodels.CharField(
-            max_length=8, choices=model_attributes.ParameterTypes.choices())
+        max_length=8, choices=model_attributes.ParameterTypes.choices())
 
     class Meta:
         db_table = 'afe_parameterized_job_parameters'
@@ -1038,7 +1006,9 @@ class ParameterizedJobParameter(dbmodels.Model):
 
 
 class JobManager(model_logic.ExtendedManager):
+
     'Custom manager to provide efficient status counts querying.'
+
     def get_status_counts(self, job_ids):
         """\
         Returns a dictionary mapping the given job IDs to their status
@@ -1065,6 +1035,7 @@ class JobManager(model_logic.ExtendedManager):
 
 
 class Job(dbmodels.Model, model_logic.ModelExtensions):
+
     """
     A test job scheduled throught the AFE application
     """
@@ -1074,7 +1045,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
                                                  'job_max_runtime_hrs_default',
                                                  default=72)
     DEFAULT_PARSE_FAILED_REPAIR = settings.get_value('AUTOTEST_WEB',
-                                                  'parse_failed_repair_default',
+                                                     'parse_failed_repair_default',
                                                      type=bool,
                                                      default=False)
 
@@ -1089,7 +1060,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
 
     #: Low, Medium, High, Urgent (or 0-3)
     priority = dbmodels.SmallIntegerField(choices=Priority.choices(),
-                                          blank=True, # to allow 0
+                                          blank=True,  # to allow 0
                                           default=Priority.MEDIUM)
 
     #: contents of control file
@@ -1097,7 +1068,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
 
     #: Client or Server
     control_type = dbmodels.SmallIntegerField(choices=ControlType.choices(),
-                                              blank=True, # to allow 0
+                                              blank=True,  # to allow 0
                                               default=ControlType.CLIENT)
 
     #: date of job creation
@@ -1112,15 +1083,14 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     #: Whether or not to run the verify phase
     run_verify = dbmodels.BooleanField(default=True)
 
-
     #: list of people to email on job completion. Delimited by one of:
     #: white space, comma (``,``), colon (``:``) or semi-colon (``;``)
     email_list = dbmodels.CharField(max_length=250, blank=True)
 
     #: many-to-many relationship with labels corresponding to job dependencies
     dependency_labels = (
-            dbmodels.ManyToManyField(Label, blank=True,
-                                     db_table='afe_jobs_dependency_labels'))
+        dbmodels.ManyToManyField(Label, blank=True,
+                                 db_table='afe_jobs_dependency_labels'))
 
     #: Never, If dirty, or Always
     reboot_before = dbmodels.SmallIntegerField(
@@ -1154,16 +1124,13 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
     # custom manager
     objects = JobManager()
 
-
     def is_server_job(self):
         return self.control_type == self.ControlType.SERVER
-
 
     @classmethod
     def parameterized_jobs_enabled(cls):
         return settings.get_value('AUTOTEST_WEB', 'parameterized_jobs',
                                   type=bool)
-
 
     @classmethod
     def check_parameterized_job(cls, control_file, parameterized_job):
@@ -1191,7 +1158,6 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
         if parameterized_job and not parameterized_jobs_enabled:
             raise Exception('Parameterized job specified, but parameterized '
                             'jobs are not enabled')
-
 
     @classmethod
     def create(cls, owner, options, hosts):
@@ -1252,12 +1218,10 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
 
         return job
 
-
     def save(self, *args, **kwargs):
         self.check_parameterized_job(control_file=self.control_file,
                                      parameterized_job=self.parameterized_job)
         super(Job, self).save(*args, **kwargs)
-
 
     def queue(self, hosts, profiles, atomic_group=None, is_template=False):
         """Enqueue a job on the given hosts."""
@@ -1275,10 +1239,9 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
 
         if not profiles:
             profiles = [''] * len(hosts)
-        for host,profile in zip(hosts,profiles):
+        for host, profile in zip(hosts, profiles):
             host.enqueue_job(self, profile=profile, atomic_group=atomic_group,
                              is_template=is_template)
-
 
     def create_recurring_job(self, start_date, loop_period, loop_count, owner):
         rec = RecurringRun(job=self, start_date=start_date,
@@ -1288,27 +1251,22 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
         rec.save()
         return rec.id
 
-
     def user(self):
         try:
             return User.objects.get(login=self.owner)
         except self.DoesNotExist:
             return None
 
-
     def abort(self):
         for queue_entry in self.hostqueueentry_set.all():
             queue_entry.abort()
 
-
     def tag(self):
         return '%s-%s' % (self.id, self.owner)
-
 
     def keyval_dict(self):
         return dict((keyval.key, keyval.value)
                     for keyval in self.jobkeyval_set.all())
-
 
     class Meta:
         db_table = 'afe_jobs'
@@ -1318,6 +1276,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
 
 
 class JobKeyval(dbmodels.Model, model_logic.ModelExtensions):
+
     """Keyvals associated with jobs"""
     job = dbmodels.ForeignKey(Job)
     key = dbmodels.CharField(max_length=90)
@@ -1363,15 +1322,13 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
 
     objects = model_logic.ExtendedManager()
 
-
     def __init__(self, *args, **kwargs):
         super(HostQueueEntry, self).__init__(*args, **kwargs)
         self._record_attributes(['status'])
 
-
     @classmethod
     def create(cls, job, host=None, profile='', meta_host=None, atomic_group=None,
-                 is_template=False):
+               is_template=False):
         if is_template:
             status = cls.Status.TEMPLATE
         else:
@@ -1380,19 +1337,16 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
         return cls(job=job, host=host, profile=profile, meta_host=meta_host,
                    atomic_group=atomic_group, status=status)
 
-
     def save(self, *args, **kwargs):
         self._set_active_and_complete()
         super(HostQueueEntry, self).save(*args, **kwargs)
         self._check_for_updated_attributes()
-
 
     def execution_path(self):
         """
         Path to this entry's results (relative to the base results directory).
         """
         return os.path.join(self.job.tag(), self.execution_subdir)
-
 
     def host_or_metahost_name(self):
         if self.host:
@@ -1403,7 +1357,6 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
             assert self.atomic_group, "no host, meta_host or atomic group!"
             return self.atomic_group.name
 
-
     def _set_active_and_complete(self):
         if self.status in self.ACTIVE_STATUSES:
             self.active, self.complete = True, False
@@ -1412,22 +1365,18 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
         else:
             self.active, self.complete = False, False
 
-
     def on_attribute_changed(self, attribute, old_value):
         assert attribute == 'status'
         logging.info('%s/%d (%d) -> %s' % (self.host, self.job.id, self.id,
                                            self.status))
 
-
     def is_meta_host_entry(self):
         'True if this is a entry has a meta_host instead of a host.'
         return self.host is None and self.meta_host is not None
 
-
     def log_abort(self, user):
         abort_log = AbortedHostQueueEntry(queue_entry=self, aborted_by=user)
         abort_log.save()
-
 
     def abort(self):
         # this isn't completely immune to race conditions since it's not atomic,
@@ -1437,27 +1386,21 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
             self.aborted = True
             self.save()
 
-
     @classmethod
     def compute_full_status(cls, status, aborted, complete):
         if aborted and not complete:
             return 'Aborted (%s)' % status
         return status
 
-
     def full_status(self):
         return self.compute_full_status(self.status, self.aborted,
                                         self.complete)
 
-
     def _postprocess_object_dict(self, object_dict):
         object_dict['full_status'] = self.full_status()
 
-
     class Meta:
         db_table = 'afe_host_queue_entries'
-
-
 
     def __unicode__(self):
         hostname = None
@@ -1473,7 +1416,6 @@ class AbortedHostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
 
     objects = model_logic.ExtendedManager()
 
-
     def save(self, *args, **kwargs):
         self.aborted_on = datetime.now()
         super(AbortedHostQueueEntry, self).save(*args, **kwargs)
@@ -1483,6 +1425,7 @@ class AbortedHostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
 
 
 class RecurringRun(dbmodels.Model, model_logic.ModelExtensions):
+
     """\
     job: job to use as a template
     owner: owner of the instantiated template
@@ -1509,6 +1452,7 @@ class RecurringRun(dbmodels.Model, model_logic.ModelExtensions):
 
 
 class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
+
     """\
     Tasks to run on hosts at the next time they are in the Ready state. Use this
     for high-priority tasks, such as forced repair or forced reinstall.
@@ -1538,19 +1482,16 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
 
     objects = model_logic.ExtendedManager()
 
-
     def save(self, **kwargs):
         if self.queue_entry:
             self.requested_by = User.objects.get(
-                    login=self.queue_entry.job.owner)
+                login=self.queue_entry.job.owner)
         super(SpecialTask, self).save(**kwargs)
-
 
     def execution_path(self):
         """@see HostQueueEntry.execution_path()"""
         return 'hosts/%s/%s-%s' % (self.host.hostname, self.id,
                                    self.task.lower())
-
 
     # property to emulate HostQueueEntry.status
     @property
@@ -1568,12 +1509,10 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
             return HostQueueEntry.Status.RUNNING
         return HostQueueEntry.Status.QUEUED
 
-
     # property to emulate HostQueueEntry.started_on
     @property
     def started_on(self):
         return self.time_started
-
 
     @classmethod
     def schedule_special_task(cls, host, task):
@@ -1591,7 +1530,6 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
         special_task.save()
         return special_task
 
-
     def activate(self):
         """
         Sets a task as active and sets the time started to the current time.
@@ -1600,7 +1538,6 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
         self.is_active = True
         self.time_started = datetime.now()
         self.save()
-
 
     def finish(self, success):
         """
@@ -1612,10 +1549,8 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
         self.success = success
         self.save()
 
-
     class Meta:
         db_table = 'afe_special_tasks'
-
 
     def __unicode__(self):
         result = u'Special Task %s (host %s, task %s, time %s)' % (
@@ -1638,6 +1573,7 @@ class MigrateInfo(dbmodels.Model, model_logic.ModelExtensions):
 
 
 class SoftwareComponentKind(dbmodels.Model, model_logic.ModelExtensions):
+
     '''
     The type of software component
 
@@ -1662,6 +1598,7 @@ class SoftwareComponentKind(dbmodels.Model, model_logic.ModelExtensions):
 
 
 class SoftwareComponentArch(dbmodels.Model, model_logic.ModelExtensions):
+
     '''
     The architecture of the software component
     '''
@@ -1678,6 +1615,7 @@ class SoftwareComponentArch(dbmodels.Model, model_logic.ModelExtensions):
 
 
 class SoftwareComponent(dbmodels.Model, model_logic.ModelExtensions):
+
     '''
     A given software component that plays an important role in the test
 
@@ -1713,7 +1651,6 @@ class SoftwareComponent(dbmodels.Model, model_logic.ModelExtensions):
     #: the release version of the software component, such as `-2`
     release = dbmodels.CharField(max_length=120)
 
-
     #: the checksum of the package, main binary or the hash that describes
     #: the state of the source code repo from where the software component
     #: was built from. Besides comparing the version, a integrity check can
@@ -1729,7 +1666,6 @@ class SoftwareComponent(dbmodels.Model, model_logic.ModelExtensions):
     objects = model_logic.ExtendedManager()
     name_field = 'name'
 
-
     class Meta:
         db_table = 'software_component'
         unique_together = (("kind", "name", "version", "release", "checksum",
@@ -1740,6 +1676,7 @@ class SoftwareComponent(dbmodels.Model, model_logic.ModelExtensions):
 
 
 class LinuxDistro(dbmodels.Model, model_logic.ModelExtensions):
+
     '''
     Represents a given linux distribution base version
 
@@ -1781,17 +1718,16 @@ class LinuxDistro(dbmodels.Model, model_logic.ModelExtensions):
     objects = model_logic.ExtendedManager()
     name_field = 'name'
 
-
     class Meta:
         db_table = 'linux_distro'
         unique_together = (("name", "version", "release", "arch"))
-
 
     def __unicode__(self):
         return unicode(self.name)
 
 
 class TestEnvironment(dbmodels.Model, model_logic.ModelExtensions):
+
     '''
     Collects machine information that could determine the test result
 
@@ -1819,7 +1755,6 @@ class TestEnvironment(dbmodels.Model, model_logic.ModelExtensions):
         db_table='test_environment_installed_software_components')
 
     objects = model_logic.ExtendedManager()
-
 
     class Meta:
         db_table = 'test_environment'

@@ -34,7 +34,8 @@ include RELEASE-VERSION
 __all__ = ("get_version",)
 
 
-import os, sys
+import os
+import sys
 import common
 from autotest.client import utils
 from autotest.client.shared import error

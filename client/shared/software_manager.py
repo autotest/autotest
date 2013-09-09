@@ -15,7 +15,11 @@ implement the given backend class.
 @copyright: IBM 2008-2009
 @copyright: Red Hat 2009-2010
 """
-import os, re, logging, ConfigParser, optparse
+import os
+import re
+import logging
+import ConfigParser
+import optparse
 try:
     import yum
 except ImportError:
@@ -33,28 +37,31 @@ SUPPORTED_PACKAGE_MANAGERS = ['apt-get', 'yum', 'zypper']
 
 
 class SoftwareManagerLoggingConfig(logging_config.LoggingConfig):
+
     """
     Used with the sole purpose of providing logging setup for this program.
     """
+
     def configure_logging(self, results_dir=None, verbose=False):
         super(SoftwareManagerLoggingConfig, self).configure_logging(
-                                                            use_console=True,
-                                                            verbose=verbose)
+            use_console=True,
+            verbose=verbose)
 
 
 class SystemInspector(object):
+
     """
     System inspector class.
 
     This may grow up to include more complete reports of operating system and
     machine properties.
     """
+
     def __init__(self):
         """
         Probe system, and save information for future reference.
         """
         self.distro = distro.detect().name
-
 
     def get_package_management(self):
         """
@@ -77,7 +84,7 @@ class SystemInspector(object):
             pm_supported = list_supported[0]
         elif len(list_supported) > 1:
             if ('apt-get' in list_supported and
-                self.distro in ('debian', 'ubuntu')):
+                    self.distro in ('debian', 'ubuntu')):
                 pm_supported = 'apt-get'
             elif ('yum' in list_supported and
                   self.distro in ('redhat', 'fedora')):
@@ -89,6 +96,7 @@ class SystemInspector(object):
 
 
 class SoftwareManager(object):
+
     """
     Package management abstraction layer.
 
@@ -96,6 +104,7 @@ class SoftwareManager(object):
     uses the concept of a backend, a helper class that implements the set of
     operations of a given package management tool.
     """
+
     def __init__(self):
         """
         Lazily instantiate the object
@@ -105,7 +114,6 @@ class SoftwareManager(object):
         self.lowlevel_base_command = None
         self.base_command = None
         self.pm_version = None
-
 
     def _init_on_demand(self):
         """
@@ -127,16 +135,17 @@ class SoftwareManager(object):
             self.backend = backend()
             self.initialized = True
 
-
     def __getattr__(self, name):
         self._init_on_demand()
         return self.backend.__getattribute__(name)
 
 
 class BaseBackend(object):
+
     """
     This class implements all common methods among backends.
     """
+
     def install_what_provides(self, path):
         """
         Installs package that provides [path].
@@ -152,15 +161,16 @@ class BaseBackend(object):
 
 
 class RpmBackend(BaseBackend):
+
     """
     This class implements operations executed with the rpm package manager.
 
     rpm is a lower level package manager, used by higher level managers such
     as yum and zypper.
     """
+
     def __init__(self):
         self.lowlevel_base_cmd = os_dep.command('rpm')
-
 
     def _check_installed_version(self, name, version):
         """
@@ -180,7 +190,6 @@ class RpmBackend(BaseBackend):
             return True
         else:
             return False
-
 
     def check_installed(self, name, version=None, arch=None):
         """
@@ -211,7 +220,6 @@ class RpmBackend(BaseBackend):
             except error.CmdError:
                 return False
 
-
     def list_all(self):
         """
         List all installed packages.
@@ -221,7 +229,6 @@ class RpmBackend(BaseBackend):
         out = cmd_result.stdout.strip()
         installed_packages = out.splitlines()
         return installed_packages
-
 
     def list_files(self, name):
         """
@@ -247,6 +254,7 @@ class RpmBackend(BaseBackend):
 
 
 class DpkgBackend(BaseBackend):
+
     """
     This class implements operations executed with the dpkg package manager.
 
@@ -254,13 +262,10 @@ class DpkgBackend(BaseBackend):
     as apt and aptitude.
     """
 
-
     INSTALLED_OUTPUT = 'install ok installed'
-
 
     def __init__(self):
         self.lowlevel_base_cmd = os_dep.command('dpkg')
-
 
     def check_installed(self, name):
         if os.path.isfile(name):
@@ -275,7 +280,6 @@ class DpkgBackend(BaseBackend):
         if dpkg_not_installed:
             return False
         return True
-
 
     def list_all(self):
         """
@@ -292,7 +296,6 @@ class DpkgBackend(BaseBackend):
                 installed_packages.append("%s-%s" % (parts[1], parts[2]))
         return installed_packages
 
-
     def list_files(self, package):
         """
         List files installed by package [package].
@@ -308,6 +311,7 @@ class DpkgBackend(BaseBackend):
 
 
 class YumBackend(RpmBackend):
+
     """
     Implements the yum backend for software manager.
 
@@ -315,6 +319,7 @@ class YumBackend(RpmBackend):
     Linux and Red Hat based distributions, such as Fedora and Red Hat
     Enterprise Linux.
     """
+
     def __init__(self):
         """
         Initializes the base command and the yum package repository.
@@ -333,19 +338,17 @@ class YumBackend(RpmBackend):
         try:
             ver = re.findall('\d*.\d*.\d*', out)[0]
         except IndexError:
-            ver= out
+            ver = out
         self.pm_version = ver
         logging.debug('Yum version: %s' % self.pm_version)
 
         self.yum_base = yum.YumBase()
-
 
     def _cleanup(self):
         """
         Clean up the yum cache so new package information can be downloaded.
         """
         utils.system("yum clean all")
-
 
     def install(self, name):
         """
@@ -365,7 +368,6 @@ class YumBackend(RpmBackend):
         except error.CmdError:
             return False
 
-
     def remove(self, name):
         """
         Removes package [name].
@@ -378,7 +380,6 @@ class YumBackend(RpmBackend):
             return True
         except error.CmdError:
             return False
-
 
     def add_repo(self, url):
         """
@@ -405,7 +406,6 @@ class YumBackend(RpmBackend):
         self.cfgparser.set(section_name, 'gpgcheck', 0)
         self.cfgparser.write(open(self.repo_file_path, "w"))
 
-
     def remove_repo(self, url):
         """
         Removes package repository located on [url].
@@ -418,7 +418,6 @@ class YumBackend(RpmBackend):
                     self.cfgparser.remove_section(section)
                     self.cfgparser.write(open(self.repo_file_path, "w"))
 
-
     def upgrade(self):
         """
         Upgrade all available packages.
@@ -429,7 +428,6 @@ class YumBackend(RpmBackend):
             return True
         except error.CmdError:
             return False
-
 
     def provides(self, name):
         """
@@ -452,11 +450,13 @@ class YumBackend(RpmBackend):
 
 
 class ZypperBackend(RpmBackend):
+
     """
     Implements the zypper backend for software manager.
 
     Set of operations for the zypper package manager, found on SUSE Linux.
     """
+
     def __init__(self):
         """
         Initializes the base command and the yum package repository.
@@ -470,10 +470,9 @@ class ZypperBackend(RpmBackend):
         try:
             ver = re.findall('\d.\d*.\d*', out)[0]
         except IndexError:
-            ver= out
+            ver = out
         self.pm_version = ver
         logging.debug('Zypper version: %s' % self.pm_version)
-
 
     def install(self, name):
         """
@@ -488,7 +487,6 @@ class ZypperBackend(RpmBackend):
         except error.CmdError:
             return False
 
-
     def add_repo(self, url):
         """
         Adds repository [url].
@@ -501,7 +499,6 @@ class ZypperBackend(RpmBackend):
             return True
         except error.CmdError:
             return False
-
 
     def remove_repo(self, url):
         """
@@ -516,7 +513,6 @@ class ZypperBackend(RpmBackend):
         except error.CmdError:
             return False
 
-
     def remove(self, name):
         """
         Removes package [name].
@@ -529,7 +525,6 @@ class ZypperBackend(RpmBackend):
         except error.CmdError:
             return False
 
-
     def upgrade(self):
         """
         Upgrades all packages of the system.
@@ -541,7 +536,6 @@ class ZypperBackend(RpmBackend):
             return True
         except error.CmdError:
             return False
-
 
     def provides(self, name):
         """
@@ -574,12 +568,14 @@ class ZypperBackend(RpmBackend):
 
 
 class AptBackend(DpkgBackend):
+
     """
     Implements the apt backend for software manager.
 
     Set of operations for the apt package manager, commonly found on Debian and
     Debian based distributions, such as Ubuntu Linux.
     """
+
     def __init__(self):
         """
         Initializes the base command and the debian package repository.
@@ -595,11 +591,10 @@ class AptBackend(DpkgBackend):
         try:
             ver = re.findall('\d\S*', out)[0]
         except IndexError:
-            ver= out
+            ver = out
         self.pm_version = ver
 
         logging.debug('apt-get version: %s' % self.pm_version)
-
 
     def install(self, name):
         """
@@ -615,7 +610,6 @@ class AptBackend(DpkgBackend):
             return True
         except error.CmdError:
             return False
-
 
     def remove(self, name):
         """
@@ -633,7 +627,6 @@ class AptBackend(DpkgBackend):
         except error.CmdError:
             return False
 
-
     def add_repo(self, repo):
         """
         Add an apt repository.
@@ -645,7 +638,6 @@ class AptBackend(DpkgBackend):
         repo_file_contents = repo_file.read()
         if repo not in repo_file_contents:
             repo_file.write(repo)
-
 
     def remove_repo(self, repo):
         """
@@ -665,7 +657,6 @@ class AptBackend(DpkgBackend):
         repo_file.write(new_file_contents)
         repo_file.close()
 
-
     def upgrade(self):
         """
         Upgrade all packages of the system with eventual new versions.
@@ -683,7 +674,6 @@ class AptBackend(DpkgBackend):
             return True
         except error.CmdError:
             return False
-
 
     def provides(self, path):
         """
@@ -759,14 +749,14 @@ def install_distro_packages(distro_pkg_map, interactive=False):
             continue
 
         if (distro_spec.arch is not None and
-            distro_spec.arch != detected_distro.arch):
+                distro_spec.arch != detected_distro.arch):
             continue
 
         if int(detected_distro.version) < distro_spec.min_version:
             continue
 
         if (distro_spec.min_release is not None and
-            int(detected_distro.release) < distro_spec.min_release):
+                int(detected_distro.release) < distro_spec.min_release):
             continue
 
         pkgs = distro_pkg_map[distro_spec]
@@ -790,8 +780,8 @@ def install_distro_packages(distro_pkg_map, interactive=False):
 
 if __name__ == '__main__':
     parser = optparse.OptionParser(
-    "usage: %prog [install|remove|check-installed|list-all|list-files|add-repo|"
-    "remove-repo| upgrade|what-provides|install-what-provides] arguments")
+        "usage: %prog [install|remove|check-installed|list-all|list-files|add-repo|"
+        "remove-repo| upgrade|what-provides|install-what-provides] arguments")
     parser.add_option('--verbose', dest="debug", action='store_true',
                       help='include debug messages in console output')
 

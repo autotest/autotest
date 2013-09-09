@@ -108,17 +108,17 @@ def reverse_cleanup_m2m_pivot(manager, pivot_table, first_field, second_field,
 
 
 TABLES = (
-        ('hosts_labels', 'host_id', 'hosts', 'label_id', 'labels', True),
-        ('acl_groups_hosts', 'host_id', 'hosts', 'aclgroup_id', 'acl_groups',
-         True),
-        ('acl_groups_users', 'user_id', 'users', 'aclgroup_id', 'acl_groups',
-         True),
-        ('autotests_dependency_labels', 'test_id', 'autotests', 'label_id',
-         'labels', False),
-        ('jobs_dependency_labels', 'job_id', 'jobs', 'label_id', 'labels',
-         False),
-        ('ineligible_host_queues', 'job_id', 'jobs', 'host_id', 'hosts', True),
-    )
+    ('hosts_labels', 'host_id', 'hosts', 'label_id', 'labels', True),
+    ('acl_groups_hosts', 'host_id', 'hosts', 'aclgroup_id', 'acl_groups',
+     True),
+    ('acl_groups_users', 'user_id', 'users', 'aclgroup_id', 'acl_groups',
+     True),
+    ('autotests_dependency_labels', 'test_id', 'autotests', 'label_id',
+     'labels', False),
+    ('jobs_dependency_labels', 'job_id', 'jobs', 'label_id', 'labels',
+     False),
+    ('ineligible_host_queues', 'job_id', 'jobs', 'host_id', 'hosts', True),
+)
 
 
 def migrate_up(manager):

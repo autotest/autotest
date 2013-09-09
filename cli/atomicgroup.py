@@ -13,10 +13,13 @@ remove:  Removes labels from an atomic group.
 See topic_common.py for a High Level Design and Algorithm.
 """
 
-import os, sys
+import os
+import sys
 from autotest.cli import topic_common, action_common
 
+
 class atomicgroup(topic_common.atest):
+
     """
     Atomic group class
 
@@ -26,7 +29,6 @@ class atomicgroup(topic_common.atest):
     topic = 'atomic_group'
     msg_topic = 'atomicgroup'
     msg_items = '<atomicgroups>'
-
 
     def __init__(self):
         super(atomicgroup, self).__init__()
@@ -40,34 +42,33 @@ class atomicgroup(topic_common.atest):
             filename_option='glist',
             use_leftover=True)
 
-
     def get_items(self):
         return self.atomicgroups
 
 
 class atomicgroup_help(atomicgroup):
+
     """Just to get the atest logic working.  Usage is set by its parent."""
     pass
 
 
 class atomicgroup_list(action_common.atest_list, atomicgroup):
+
     """atest atomicgroup list [--show-invalid]"""
+
     def __init__(self):
         super(atomicgroup_list, self).__init__()
         self.parser.add_option('-d', '--show-invalid',
                                help='Don\'t hide invalid atomic groups.',
                                action='store_true')
 
-
     def parse(self):
         options, leftover = super(atomicgroup_list, self).parse()
         self.show_invalid = options.show_invalid
         return options, leftover
 
-
     def execute(self):
         return super(atomicgroup_list, self).execute(op='get_atomic_groups')
-
 
     def output(self, results):
         if not self.show_invalid:
@@ -79,6 +80,7 @@ class atomicgroup_list(action_common.atest_list, atomicgroup):
 
 
 class atomicgroup_create(action_common.atest_create, atomicgroup):
+
     def __init__(self):
         super(atomicgroup_create, self).__init__()
         self.parser.add_option('-n', '--max_number_of_machines',
@@ -87,7 +89,6 @@ class atomicgroup_create(action_common.atest_create, atomicgroup):
         self.parser.add_option('-d', '--description',
                                help='Description of this atomic group.',
                                type='string', default='')
-
 
     def parse(self):
         options, leftover = super(atomicgroup_create, self).parse()
@@ -98,6 +99,7 @@ class atomicgroup_create(action_common.atest_create, atomicgroup):
 
 
 class atomicgroup_delete(action_common.atest_delete, atomicgroup):
+
     """atest atomicgroup delete <atomicgroup>"""
     pass
 
@@ -120,7 +122,6 @@ class atomicgroup_add_or_remove(atomicgroup):
                                type='string',
                                metavar='LABEL_FLIST')
 
-
     def parse(self):
         label_info = topic_common.item_parse_info(attribute_name='labels',
                                                   inline_option='label',
@@ -137,12 +138,14 @@ class atomicgroup_add_or_remove(atomicgroup):
 
 
 class atomicgroup_add(action_common.atest_add, atomicgroup_add_or_remove):
+
     """atest atomicgroup add <atomicgroup>
      [--label <label>] [--label_list <file>]"""
     pass
 
 
 class atomicgroup_remove(action_common.atest_remove, atomicgroup_add_or_remove):
+
     """atest atomicgroup remove <atomicgroup>
      [--label <label>] [--label_list <file>]"""
     pass

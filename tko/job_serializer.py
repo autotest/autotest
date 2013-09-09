@@ -26,7 +26,9 @@ __author__ = 'darrenkuo@google.com (Darren Kuo)'
 mktime = time.mktime
 datetime = datetime.datetime
 
+
 class JobSerializer(object):
+
     """A class that takes a job object of the tko module and package
     it with a protocol buffer.
 
@@ -37,29 +39,28 @@ class JobSerializer(object):
 
     def __init__(self):
 
-        self.job_type_dict = {'dir':str, 'tests':list, 'user':str,
-                              'label':str, 'machine':str,
-                              'queued_time':datetime,
-                              'started_time':datetime,
-                              'finished_time':datetime,
-                              'machine_owner':str,
-                              'machine_group':str, 'aborted_by':str,
-                              'aborted_on':datetime,
-                              'keyval_dict':dict}
+        self.job_type_dict = {'dir': str, 'tests': list, 'user': str,
+                              'label': str, 'machine': str,
+                              'queued_time': datetime,
+                              'started_time': datetime,
+                              'finished_time': datetime,
+                              'machine_owner': str,
+                              'machine_group': str, 'aborted_by': str,
+                              'aborted_on': datetime,
+                              'keyval_dict': dict}
 
-        self.test_type_dict = {'subdir':str, 'testname':str,
-                               'status':str, 'reason':str,
-                               'kernel':models.kernel, 'machine':str,
-                               'started_time':datetime,
-                               'finished_time':datetime,
-                               'iterations':list, 'attributes':dict,
-                               'labels':list}
+        self.test_type_dict = {'subdir': str, 'testname': str,
+                               'status': str, 'reason': str,
+                               'kernel': models.kernel, 'machine': str,
+                               'started_time': datetime,
+                               'finished_time': datetime,
+                               'iterations': list, 'attributes': dict,
+                               'labels': list}
 
-        self.kernel_type_dict = {'base':str, 'kernel_hash':str}
+        self.kernel_type_dict = {'base': str, 'kernel_hash': str}
 
-        self.iteration_type_dict = {'index':int, 'attr_keyval':dict,
-                                    'perf_keyval':dict}
-
+        self.iteration_type_dict = {'index': int, 'attr_keyval': dict,
+                                    'perf_keyval': dict}
 
     def deserialize_from_binary(self, infile):
         """Takes in a binary file name and returns a tko job object.
@@ -84,7 +85,6 @@ class JobSerializer(object):
             binary.close()
 
         return self.get_tko_job(job_pb)
-
 
     def serialize_to_binary(self, the_job, tag, binaryfilename):
         """Serializes the tko job object into a binary by using a
@@ -117,7 +117,6 @@ class JobSerializer(object):
         finally:
             out.close()
 
-
     def set_afe_job_id_and_tag(self, pb_job, tag):
         """Sets the pb job's afe_job_id and tag field.
 
@@ -127,7 +126,6 @@ class JobSerializer(object):
         """
         pb_job.tag = tag
         pb_job.afe_job_id = utils.get_afe_job_id(tag)
-
 
     # getter setter methods
     def get_tko_job(self, job):
@@ -166,7 +164,6 @@ class JobSerializer(object):
 
         return newjob
 
-
     def set_pb_job(self, tko_job, pb_job, tag):
         """Set the fields for the new job object.
 
@@ -193,7 +190,6 @@ class JobSerializer(object):
             newkeyval = pb_job.keyval_dict.add()
             newkeyval.name = key
             newkeyval.value = str(val)
-
 
     def get_tko_test(self, test):
         """Creates a tko test from pb_test.
@@ -230,7 +226,6 @@ class JobSerializer(object):
                            fields_dict['attributes'],
                            fields_dict['labels'])
 
-
     def set_pb_test(self, tko_test, pb_test):
         """Sets the various fields of test object of the tko protocol.
 
@@ -259,7 +254,6 @@ class JobSerializer(object):
         for current_label in tko_test.labels:
             pb_test.labels.append(current_label)
 
-
     def get_tko_kernel(self, kernel):
         """Constructs a new tko kernel object from a pb kernel object.
 
@@ -277,7 +271,6 @@ class JobSerializer(object):
 
         return models.kernel(fields_dict['base'], [], fields_dict['kernel_hash'])
 
-
     def set_pb_kernel(self, tko_kernel, pb_kernel):
         """Set a specific kernel of a test.
 
@@ -292,7 +285,6 @@ class JobSerializer(object):
         """
 
         self.set_trivial_attr(tko_kernel, pb_kernel, self.kernel_type_dict)
-
 
     def get_tko_iteration(self, iteration):
         """Creates a new tko iteration with the data in the provided
@@ -320,7 +312,6 @@ class JobSerializer(object):
                                 fields_dict['attr_keyval'],
                                 fields_dict['perf_keyval'])
 
-
     def set_pb_iteration(self, tko_iteration, pb_iteration):
         """Sets all fields for a particular iteration.
 
@@ -346,7 +337,6 @@ class JobSerializer(object):
             newkeyval.name = key
             newkeyval.value = str(val)
 
-
     def get_trivial_attr(self, obj, objdict):
         """Get all trivial attributes from the object.
 
@@ -368,10 +358,9 @@ class JobSerializer(object):
                 resultdict[field] = field_type(value)
             elif field_type == datetime:
                 resultdict[field] = (
-                            datetime.fromtimestamp(value/1000.0))
+                    datetime.fromtimestamp(value / 1000.0))
 
         return resultdict
-
 
     def set_trivial_attr(self, tko_obj, pb_obj, objdict):
         """Sets all the easy attributes appropriately according to the
@@ -395,11 +384,10 @@ class JobSerializer(object):
                     self.set_attr_safely(pb_obj, attr, t, int)
                 else:
                     t = mktime(t.timetuple()) + 1e-6 * t.microsecond
-                    setattr(pb_obj, attr, long(t*1000))
+                    setattr(pb_obj, attr, long(t * 1000))
             else:
                 value = getattr(tko_obj, attr)
                 self.set_attr_safely(pb_obj, attr, value, attr_type)
-
 
     def set_attr_safely(self, var, attr, value, vartype):
         """Sets a particular attribute of var if the provided value is
@@ -423,7 +411,7 @@ class JobSerializer(object):
                 value = vartype()
             else:
                 assert isinstance(value, vartype), (
-                'Unexpected type %s for attr %s, should be %s' %
-                (type(value), attr, vartype))
+                    'Unexpected type %s for attr %s, should be %s' %
+                    (type(value), attr, vartype))
 
             setattr(var, attr, value)

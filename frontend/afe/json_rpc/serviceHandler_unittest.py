@@ -9,6 +9,7 @@ import serviceHandler
 
 
 class RpcMethodHolder(object):
+
     @staticmethod
     def service_1(x, y):
         return x + y
@@ -49,20 +50,18 @@ json_request3 = """
 
 
 class TestServiceHandler(unittest.TestCase):
+
     def setUp(self):
         holder = RpcMethodHolder()
         self.serviceHandler = serviceHandler.ServiceHandler(holder)
-
 
     def test_handleRequest1(self):
         response = self.serviceHandler.handleRequest(json_request1)
         self.assertEquals(response, expected_response1)
 
-
     def test_handleRequest2(self):
         response = self.serviceHandler.handleRequest(json_request2)
         self.assertEquals(response, expected_response2)
-
 
     def test_handleRequest3(self):
         response = self.serviceHandler.handleRequest(json_request3)

@@ -8,7 +8,13 @@ DO NOT import this file directly - it is mixed in by server/utils.py,
 import that instead
 """
 
-import atexit, os, re, shutil, sys, tempfile, types
+import atexit
+import os
+import re
+import shutil
+import sys
+import tempfile
+import types
 
 from autotest.client.shared import barrier, utils
 from autotest.server import subcommand
@@ -35,9 +41,9 @@ def scp_remote_escape(filename):
             quotes are NOT added and so should be added at some point by
             the caller.
     """
-    escape_chars= r' !"$&' "'" r'()*,:;<=>?[\]^`{|}'
+    escape_chars = r' !"$&' "'" r'()*,:;<=>?[\]^`{|}'
 
-    new_name= []
+    new_name = []
     for char in filename:
         if char in escape_chars:
             new_name.append("\\%s" % (char,))
@@ -47,7 +53,7 @@ def scp_remote_escape(filename):
     return utils.sh_escape("".join(new_name))
 
 
-def get(location, local_copy = False):
+def get(location, local_copy=False):
     """Get a file or directory to a local temporary directory.
 
     Args:
@@ -159,18 +165,18 @@ def unarchive(host, source_material):
     if (source_material.endswith(".gz") or
             source_material.endswith(".gzip")):
         host.run('gunzip "%s"' % (utils.sh_escape(source_material)))
-        source_material= ".".join(source_material.split(".")[:-1])
+        source_material = ".".join(source_material.split(".")[:-1])
     elif source_material.endswith("bz2"):
         host.run('bunzip2 "%s"' % (utils.sh_escape(source_material)))
-        source_material= ".".join(source_material.split(".")[:-1])
+        source_material = ".".join(source_material.split(".")[:-1])
 
     # untar
     if source_material.endswith(".tar"):
-        retval= host.run('tar -C "%s" -xvf "%s"' % (
-                utils.sh_escape(os.path.dirname(source_material)),
-                utils.sh_escape(source_material),))
-        source_material= os.path.join(os.path.dirname(source_material),
-                retval.stdout.split()[0])
+        retval = host.run('tar -C "%s" -xvf "%s"' % (
+            utils.sh_escape(os.path.dirname(source_material)),
+            utils.sh_escape(source_material),))
+        source_material = os.path.join(os.path.dirname(source_material),
+                                       retval.stdout.split()[0])
 
     return source_material
 
@@ -189,8 +195,8 @@ def find_pid(command):
 
 
 def nohup(command, stdout='/dev/null', stderr='/dev/null', background=True,
-                                                                env = {}):
-    cmd = ' '.join(key+'='+val for key, val in env.iteritems())
+          env={}):
+    cmd = ' '.join(key + '=' + val for key, val in env.iteritems())
     cmd += ' nohup ' + command
     cmd += ' > %s' % stdout
     if stdout == stderr:
@@ -313,7 +319,7 @@ def get_sync_control_file(control, host_name, host_num,
     if host_num < 0:
         print "Please provide a non negative number for the host"
         return None
-    s_bar_port = port_base + 1 + host_num # The set of s_bar_ports are
+    s_bar_port = port_base + 1 + host_num  # The set of s_bar_ports are
                                           # the same for a given machine
 
     sc_bar_timeout = 180
@@ -345,19 +351,19 @@ def get_sync_control_file(control, host_name, host_num,
             'b0 = job.barrier("%s", "sc_bar", %d, port=%d)'
             % (jobid, sc_bar_timeout, sc_bar_port))
         control_new.append(
-        'b0.rendezvous_servers("PARALLEL_MASTER", "%s")'
-         % jobid)
+            'b0.rendezvous_servers("PARALLEL_MASTER", "%s")'
+            % jobid)
 
     elif instance == 1:
         # Wait at the server barrier to wait for instance=0
         # process to complete setup
         b0 = barrier.barrier("PARALLEL_MASTER", "sc_bar", sc_bar_timeout,
-                     port=sc_bar_port)
+                             port=sc_bar_port)
         b0.rendezvous_servers("PARALLEL_MASTER", jobid)
 
         if(num_jobs > 2):
             b1 = barrier.barrier(jobid, "s_bar", s_bar_timeout,
-                         port=s_bar_port)
+                                 port=s_bar_port)
             b1.rendezvous(rendvstr)
 
     else:
@@ -367,7 +373,7 @@ def get_sync_control_file(control, host_name, host_num,
 
     # Client side barrier for all the tests to start at the same time
     control_new.append('b1 = job.barrier("%s", "c_bar", %d, port=%d)'
-                    % (jobid, c_bar_timeout, c_bar_port))
+                       % (jobid, c_bar_timeout, c_bar_port))
     control_new.append("b1.rendezvous(%s)" % rendvstr)
 
     # Stick in the rest of the control file

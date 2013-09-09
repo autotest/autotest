@@ -23,7 +23,6 @@ class blktrace(profiler.profiler):
         self.gcc_flags = ldflags + ' ' + cflags
         self.device = dargs.get('device', None)
 
-
     def setup(self, tarball='blktrace.tar.bz2', **dargs):
         # v1.0.1, pulled from git, 2009/06/10
         # commit 1e09f6e9012826fca69fa07222b7bc53c3e629ee
@@ -32,17 +31,15 @@ class blktrace(profiler.profiler):
         os.chdir(self.srcdir)
         utils.make('"CFLAGS=' + self.gcc_flags + '"')
 
-
     def get_device(self, test):
         if getattr(test, 'device', None):
             device = test.device
         else:
             if self.device:
-                device=self.device
+                device = self.device
             else:
                 raise error.TestWarn('No device specified for blktrace')
         return device
-
 
     def start(self, test):
         result = utils.system("mount | grep '%s'" % self.mountpoint,
@@ -52,12 +49,10 @@ class blktrace(profiler.profiler):
         device = self.get_device(test)
         self.blktrace_job = utils.BgJob('%s /dev/%s' % (self.blktrace, device))
 
-
     def stop(self, test):
         if self.blktrace_job is not None:
             utils.nuke_subprocess(self.blktrace_job.sp)
         self.blktrace_job = None
-
 
     def report(self, test):
         output_file = os.path.join(test.profdir, 'blktrace')

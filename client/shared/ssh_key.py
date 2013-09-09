@@ -1,6 +1,8 @@
-import os, logging
+import os
+import logging
 from autotest.client.shared import pxssh
 from autotest.client.shared import base_utils as utils
+
 
 def get_public_key():
     """
@@ -56,7 +58,7 @@ def setup_ssh_key(hostname, user, password, port):
         host.sendline('chmod 700 ~/.ssh')
         host.prompt()
         host.sendline("echo '%s' >> ~/.ssh/authorized_keys; " %
-                        public_key)
+                      public_key)
         host.prompt()
         host.sendline('chmod 600 ~/.ssh/authorized_keys')
         host.prompt()

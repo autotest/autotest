@@ -17,7 +17,10 @@ While much is done automatically, a scenario harness is meant to
 be easily extended and configured once generated.
 """
 
-import optparse, os, shutil, sys
+import optparse
+import os
+import shutil
+import sys
 from os import path
 
 try:
@@ -103,7 +106,7 @@ def main():
         scenario_package_dirpath,
         status_version=harness.status_version,
         parser_result_tag=options.parser_result_tag,
-        )
+    )
 
     scenario_base.install_unittest_module(
         scenario_package_dirpath, options.template_type)

@@ -10,6 +10,7 @@ class DatabaseOperations(SQLiteDatabaseOperations):
 
 
 class DatabaseWrapper(SQLiteDatabaseWrapper):
+
     def __init__(self, *args, **kwargs):
         super(DatabaseWrapper, self).__init__(*args, **kwargs)
         try:

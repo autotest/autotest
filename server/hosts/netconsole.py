@@ -1,10 +1,15 @@
-import os, re, sys, subprocess, socket
+import os
+import re
+import sys
+import subprocess
+import socket
 
 from autotest.client.shared import utils, error
 from autotest.server.hosts import remote
 
 
 class NetconsoleHost(remote.RemoteHost):
+
     def _initialize(self, console_log="netconsole.log", *args, **dargs):
         super(NetconsoleHost, self)._initialize(*args, **dargs)
 
@@ -15,7 +20,6 @@ class NetconsoleHost(remote.RemoteHost):
         self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.__socket.bind(('', 0))
         self.__port = self.__socket.getsockname()[1]
-
 
     @classmethod
     def host_is_supported(cls, run_func):
@@ -37,7 +41,6 @@ class NetconsoleHost(remote.RemoteHost):
             supported = (msg == "ping")
         s.close()
         return supported
-
 
     def start_loggers(self):
         super(NetconsoleHost, self).start_loggers()
@@ -66,7 +69,6 @@ class NetconsoleHost(remote.RemoteHost):
         self.__unload_netconsole_module()
         self.__load_netconsole_module()
 
-
     def stop_loggers(self):
         super(NetconsoleHost, self).stop_loggers()
 
@@ -76,7 +78,6 @@ class NetconsoleHost(remote.RemoteHost):
             if self.job:
                 self.job.warning_loggers.discard(self.__warning_stream)
             self.__warning_stream.close()
-
 
     def reboot_setup(self, *args, **dargs):
         super(NetconsoleHost, self).reboot_setup(*args, **dargs)
@@ -89,11 +90,9 @@ class NetconsoleHost(remote.RemoteHost):
             self.bootloader.add_args(label, args)
         self.__unload_netconsole_module()
 
-
     def reboot_followup(self, *args, **dargs):
         super(NetconsoleHost, self).reboot_followup(*args, **dargs)
         self.__load_netconsole_module()
-
 
     def __determine_netconsole_params(self):
         """
@@ -133,7 +132,6 @@ class NetconsoleHost(remote.RemoteHost):
         return 'netconsole=@%s/,%s@%s/%s' % (remote_ip, self.__port, local_ip,
                                              gateway_mac)
 
-
     def __load_netconsole_module(self):
         """
         Make a best effort to load the netconsole module.
@@ -151,7 +149,6 @@ class NetconsoleHost(remote.RemoteHost):
         except error.AutoservRunError, e:
             # if it fails there isn't much we can do, just keep going
             print "ERROR occurred while loading netconsole: %s" % e
-
 
     def __unload_netconsole_module(self):
         try:

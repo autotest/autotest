@@ -7,6 +7,7 @@ One day, when this module grows up, it might actually try to fix things.
 the same. With added distro-independant pixie dust.
 """
 
+
 def command(cmd):
     # this could use '/usr/bin/which', I suppose. But this seems simpler
     for dir in os.environ['PATH'].split(':'):

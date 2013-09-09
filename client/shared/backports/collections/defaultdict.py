@@ -4,7 +4,10 @@ http://code.activestate.com/recipes/523034-emulate-collectionsdefaultdict/
 '''
 
 # pylint: disable=I0011,C0103
+
+
 class defaultdict(dict):
+
     """
     collections.defaultdict is a handy shortcut added in Python 2.5 which can
     be emulated in older versions of Python. This recipe tries to backport
@@ -20,6 +23,7 @@ class defaultdict(dict):
     recommended by Aaron Lav
     * reformated with autopep8
     """
+
     def __init__(self, default_factory=None, *a, **kw):
         if (default_factory is not None and
                 not hasattr(default_factory, '__call__')):

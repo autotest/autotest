@@ -12,7 +12,8 @@ Without system wide install, we need some hacks, that are performed here.
 
 @author: John Admanski (jadmanski@google.com)
 """
-import os, sys
+import os
+import sys
 
 try:
     import autotest.client.shared.check_version as check_version
@@ -26,7 +27,8 @@ except ImportError:
 
 check_version.check_python_version()
 
-import new, imp
+import new
+import imp
 
 
 def _create_module(name):

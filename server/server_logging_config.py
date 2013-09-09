@@ -2,15 +2,17 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-import logging, os
+import logging
+import os
 from autotest.client.shared import logging_config
 
+
 class ServerLoggingConfig(logging_config.LoggingConfig):
+
     def add_debug_file_handlers(self, log_dir, log_name=None):
         if not log_name:
             log_name = 'autoserv'
         self._add_file_handlers_for_all_levels(log_dir, log_name)
-
 
     def configure_logging(self, results_dir=None, use_console=True,
                           verbose=False, no_console_prefix=False):

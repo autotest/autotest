@@ -3,8 +3,10 @@ What's eating the battery life of my laptop? Why isn't it many more
 hours? Which software component causes the most power to be burned?
 These are important questions without a good answer... until now.
 """
-import time, os
+import time
+import os
 from autotest.client import utils, profiler
+
 
 class powertop(profiler.profiler):
     version = 1
@@ -14,7 +16,6 @@ class powertop(profiler.profiler):
     def setup(self, *args, **dargs):
         os.chdir(self.srcdir)
         utils.make()
-
 
     def start(self, test):
         self.child_pid = os.fork()
@@ -31,10 +32,8 @@ class powertop(profiler.profiler):
                 output.write('\n=========================\n')
                 output.close()
 
-
     def stop(self, test):
         os.kill(self.child_pid, 15)
-
 
     def report(self, test):
         return None

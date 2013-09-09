@@ -13,10 +13,8 @@ from autotest.client import kvm_control, profiler, utils
 class kvm_modload(profiler.profiler):
     version = 4
 
-
     def initialize(self, interval=None, options=None, **dargs):
         pass
-
 
     def log_lsmod(self, log):
         log.write("lsmod: \n")
@@ -28,22 +26,19 @@ class kvm_modload(profiler.profiler):
             log.write(cmd_status.stderr)
             log.write("\n")
 
-
     def start(self, test):
         load_status = kvm_control.load_kvm()
         self.logfile = open(os.path.join(test.profdir, "kvm_modload"), 'w')
         self.logfile.write("Loaded KVM module with status %s.\n" %
-          repr(load_status))
+                           repr(load_status))
         self.log_lsmod(self.logfile)
-
 
     def stop(self, test):
         unload_status = kvm_control.unload_kvm()
         self.logfile.write("Unloaded KVM module with status %s.\n" %
-          repr(unload_status))
+                           repr(unload_status))
         self.log_lsmod(self.logfile)
         self.logfile.close()
-
 
     def report(self, test):
         output = os.path.join(test.profdir, "kvm_modload")

@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
-import unittest, time
+import unittest
+import time
 try:
     import autotest.common as common
 except ImportError:
@@ -20,20 +21,20 @@ _CONNECT_KWARGS = dict(host=_HOST, username=_USER, password=_PASS,
                        db_name=_DB_NAME)
 _RECONNECT_DELAY = 10
 
+
 class FakeDatabaseError(Exception):
     pass
 
 
 class DatabaseConnectionTest(unittest.TestCase):
+
     def setUp(self):
         self.god = mock.mock_god()
         self.god.stub_function(time, 'sleep')
 
-
     def tearDown(self):
         settings.settings.reset_values()
         self.god.unstub_all()
-
 
     def _get_database_connection(self, config_section=_CONFIG_SECTION):
         if config_section == _CONFIG_SECTION:
@@ -54,7 +55,6 @@ class DatabaseConnectionTest(unittest.TestCase):
         db.reconnect_delay_sec = _RECONNECT_DELAY
         return db
 
-
     def _override_config(self):
         c = settings.settings
         c.override_value(_CONFIG_SECTION, 'host', _HOST)
@@ -62,7 +62,6 @@ class DatabaseConnectionTest(unittest.TestCase):
         c.override_value(_CONFIG_SECTION, 'password', _PASS)
         c.override_value(_CONFIG_SECTION, 'database', _DB_NAME)
         c.override_value(_CONFIG_SECTION, 'db_type', _DB_TYPE)
-
 
     def test_connect(self):
         db = self._get_database_connection(config_section=None)
@@ -74,7 +73,6 @@ class DatabaseConnectionTest(unittest.TestCase):
         self.assertEquals(self._db_type, _DB_TYPE)
         self.god.check_playback()
 
-
     def test_settings(self):
         db = self._get_database_connection()
         self._fake_backend.connect.expect_call(**_CONNECT_KWARGS)
@@ -84,13 +82,11 @@ class DatabaseConnectionTest(unittest.TestCase):
         self.assertEquals(self._db_type, _DB_TYPE)
         self.god.check_playback()
 
-
     def _expect_reconnect(self, fail=False):
         self._fake_backend.disconnect.expect_call()
         call = self._fake_backend.connect.expect_call(**_CONNECT_KWARGS)
         if fail:
             call.and_raises(FakeDatabaseError())
-
 
     def _expect_fail_and_reconnect(self, num_reconnects, fail_last=False):
         self._fake_backend.connect.expect_call(**_CONNECT_KWARGS).and_raises(
@@ -101,7 +97,6 @@ class DatabaseConnectionTest(unittest.TestCase):
                 self._expect_reconnect(fail=True)
             else:
                 self._expect_reconnect(fail=fail_last)
-
 
     def test_connect_retry(self):
         db = self._get_database_connection()
@@ -122,7 +117,6 @@ class DatabaseConnectionTest(unittest.TestCase):
         self.assertRaises(FakeDatabaseError, db.connect)
         self.god.check_playback()
 
-
     def test_max_reconnect(self):
         db = self._get_database_connection()
         db.max_reconnect_attempts = 5
@@ -130,7 +124,6 @@ class DatabaseConnectionTest(unittest.TestCase):
 
         self.assertRaises(FakeDatabaseError, db.connect)
         self.god.check_playback()
-
 
     def test_reconnect_forever(self):
         db = self._get_database_connection()
@@ -140,12 +133,10 @@ class DatabaseConnectionTest(unittest.TestCase):
         db.connect()
         self.god.check_playback()
 
-
     def _simple_connect(self, db):
         self._fake_backend.connect.expect_call(**_CONNECT_KWARGS)
         db.connect()
         self.god.check_playback()
-
 
     def test_disconnect(self):
         db = self._get_database_connection()
@@ -155,7 +146,6 @@ class DatabaseConnectionTest(unittest.TestCase):
         db.disconnect()
         self.god.check_playback()
 
-
     def test_execute(self):
         db = self._get_database_connection()
         self._simple_connect(db)
@@ -164,7 +154,6 @@ class DatabaseConnectionTest(unittest.TestCase):
 
         db.execute('query', params)
         self.god.check_playback()
-
 
     def test_execute_retry(self):
         db = self._get_database_connection()

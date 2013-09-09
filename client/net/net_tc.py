@@ -66,37 +66,29 @@ class tcclass(object):
         self._handle = handle
         self._minor = minor
 
-
     def get_leaf_qdisc(self):
         return self._leaf_qdisc
-
 
     def set_leaf_qdisc(self, leaf_qdisc):
         leaf_qdisc.set_parent_class(self)
         self._leaf_qdisc = leaf_qdisc
 
-
     def get_parent_class(self):
         return self._parent_class
-
 
     def set_parent_class(self, parent_class):
         self._parent_class = parent_class
 
-
     def get_minor(self):
         return self._minor
 
-
     def id(self):
         return '%s:%s' % (self._handle, self._minor)
-
 
     def add_child(self, child_class):
         child_class.set_parent_class(self)
         if child_class not in self._children:
             self._child.append(child_class)
-
 
     def setup(self, netif):
         # setup leaf qdisc
@@ -106,7 +98,6 @@ class tcclass(object):
         # setup child classes
         for child in self._children:
             child.setup()
-
 
     def restore(self, netif):
         # restore child classes
@@ -123,8 +114,8 @@ class tcclass(object):
 class tcfilter(object):
 
     _tc_cmd = 'tc filter %(cmd)s dev %(dev)s parent %(parent)s protocol ' \
-               '%(protocol)s prio %(priority)s %(filtertype)s \\\n ' \
-               '%(rules)s \\\n  flowid %(flowid)s'
+        '%(protocol)s prio %(priority)s %(filtertype)s \\\n ' \
+        '%(rules)s \\\n  flowid %(flowid)s'
 
     conf_device = 'dev'
     conf_parent = 'parent'
@@ -138,7 +129,6 @@ class tcfilter(object):
     conf_name = 'name'
     conf_params = 'params'
 
-
     def __init__(self):
         self._parent_qdisc = None
         self._dest_qdisc = None
@@ -147,46 +137,35 @@ class tcfilter(object):
         self._handle = None
         self._tc_conf = None
 
-
     def get_parent_qdisc(self):
         return self._parent_qdisc
-
 
     def set_parent_qdisc(self, parent_qdisc):
         self._parent_qdisc = parent_qdisc
 
-
     def get_dest_qdisc(self):
         return self._dest_qdisc
-
 
     def set_dest_qdisc(self, dest_qdisc):
         self._dest_qdisc = dest_qdisc
 
-
     def get_protocol(self):
         return self._protocol
-
 
     def set_protocol(self, protocol):
         self._protocol = protocol
 
-
     def get_priority(self):
         return self._priority
-
 
     def set_priority(self, priority):
         self._priority = priority
 
-
     def get_handle(self):
         return self._handle
 
-
     def set_handle(self, handle):
         self._handle = handle
-
 
     def _get_tc_conf(self, netif):
         if self._tc_conf:
@@ -201,14 +180,11 @@ class tcfilter(object):
             self._dest_qdisc.get_parent_class().id())
         return self._tc_conf
 
-
     def tc_cmd(self, tc_conf):
         print self._tc_cmd % tc_conf
 
-
     def setup(self, netif):
         pass
-
 
     def restore(self, netif):
         pass
@@ -222,14 +198,11 @@ class u32filter(tcfilter):
         super(u32filter, self).__init__()
         self._rules = []
 
-
     def _filter_rules(self):
         return ' \\\n  '.join(self._rules)
 
-
     def add_rule(self, rule):
         self._rules.append(rule)
-
 
     def setup(self, netif):
         tc_conf = self._get_tc_conf(netif)
@@ -237,15 +210,16 @@ class u32filter(tcfilter):
         tc_conf[tcfilter.conf_rules] = self._filter_rules()
         self.tc_cmd(tc_conf)
 
-
     def restore(self, netif):
         tc_conf = self._get_tc_conf(netif)
         tc_conf[tcfilter.conf_cmd] = 'del'
         tc_conf[tcfilter.conf_rules] = self._filter_rules()
         self.tc_cmd(tc_conf)
 
-#TODO (ncrao): generate some typical rules: ack, syn, synack,
+# TODO (ncrao): generate some typical rules: ack, syn, synack,
 #              dport/sport, daddr/sddr, etc.
+
+
 class qdisc(object):
 
     # tc command
@@ -257,18 +231,14 @@ class qdisc(object):
         self._parent_class = None
         self._tc_conf = None
 
-
     def get_handle(self):
         return self._handle
-
 
     def get_parent_class(self):
         return self._parent_class
 
-
     def set_parent_class(self, parent_class):
         self._parent_class = parent_class
-
 
     def _get_tc_conf(self, netif):
         if self._tc_conf:
@@ -285,20 +255,16 @@ class qdisc(object):
         self._tc_conf[tcfilter.conf_params] = ''
         return self._tc_conf
 
-
     def id(self):
         return '%s:0' % self._handle
 
-
     def tc_cmd(self, tc_conf):
         print self._tc_cmd % tc_conf
-
 
     def setup(self, netif):
         tc_conf = self._get_tc_conf(netif)
         tc_conf[tcfilter.conf_command] = 'add'
         self.tc_cmd(tc_conf)
-
 
     def restore(self, netif):
         tc_conf = self._get_tc_conf(netif)
@@ -315,15 +281,12 @@ class classful_qdisc(qdisc):
         self._classes = []
         self._filters = []
 
-
     def add_class(self, child_class):
         self._classes.append(child_class)
-
 
     def add_filter(self, filter):
         filter.set_parent_qdisc(self)
         self._filters.append(filter)
-
 
     def setup(self, netif):
         super(classful_qdisc, self).setup(netif)
@@ -335,7 +298,6 @@ class classful_qdisc(qdisc):
         # setup filters
         for filter in self._filters:
             filter.setup(netif)
-
 
     def restore(self, netif):
         # restore filters
@@ -363,14 +325,12 @@ class prio(classful_qdisc):
         for counter in range(bands):
             self.add_class(tcclass(handle, counter + 1))
 
-
     def setup(self, netif):
         super(prio, self).setup(netif)
 
-
     def get_class(self, band):
         if band > self._bands:
-            raise error.TestError('error inserting %s at band %s' % \
+            raise error.TestError('error inserting %s at band %s' %
                                   (qdisc.name, band))
         return self._classes[band]
 
@@ -390,7 +350,6 @@ class pfifo(classless_qdisc):
     def __init__(self, handle=new_handle()):
         super(pfifo, self).__init__(handle)
 
-
     def setup(self, netif):
         super(pfifo, self).setup(netif)
 
@@ -403,10 +362,8 @@ class netem(classless_qdisc):
         super(netem, self).__init__(handle)
         self._params = list()
 
-
     def add_param(self, param):
         self._params.append(param)
-
 
     def setup(self, netif):
         super(netem, self).setup(netif)

@@ -4,7 +4,9 @@
 
 __author__ = 'gps@google.com (Gregory P. Smith)'
 
-import os, sys, unittest
+import os
+import sys
+import unittest
 from cStringIO import StringIO
 try:
     import autotest.common as common
@@ -15,6 +17,7 @@ from autotest.client import partition
 
 
 class FsOptions_common(object):
+
     def test_constructor(self):
         self.assertRaises(ValueError, partition.FsOptions, '', '', '', '')
         self.assertRaises(ValueError, partition.FsOptions, 'ext2', '', '', '')
@@ -25,7 +28,6 @@ class FsOptions_common(object):
         self.assertEqual('shortie', obj.fs_tag)
         self.assertEqual('mkfs opts', obj.mkfs_flags)
         self.assertEqual('mount opts', obj.mount_options)
-
 
     def test__str__(self):
         str_obj = str(partition.FsOptions('abc', 'def', 'ghi', 'jkl'))
@@ -67,25 +69,23 @@ Units = sectors of 1 * 512 = 512 bytes
 
 
 class get_partition_list_common(object):
+
     def setUp(self):
         self.god = mock.mock_god()
         self.god.stub_function(os, 'popen')
 
-
     def tearDown(self):
         self.god.unstub_all()
-
 
     def test_is_linux_fs_type(self):
         for unused in xrange(4):
             os.popen.expect_call(SAMPLE_FDISK).and_return(
-                    StringIO(SAMPLE_FDISK_OUTPUT))
+                StringIO(SAMPLE_FDISK_OUTPUT))
         self.assertFalse(partition.is_linux_fs_type('/dev/hdc1'))
         self.assertFalse(partition.is_linux_fs_type('/dev/hdc2'))
         self.assertTrue(partition.is_linux_fs_type('/dev/hdc3'))
         self.assertTrue(partition.is_linux_fs_type('/dev/hdc4'))
         self.god.check_playback()
-
 
     def test_get_partition_list(self):
         def fake_open(filename):
@@ -135,12 +135,14 @@ class get_partition_list_common(object):
 # to check that the overrides to not break expected functionality of the
 # non site specific code
 class FSOptions_base_test(FsOptions_common, unittest.TestCase):
+
     def setUp(self):
         sys.modules['autotest.client.site_partition'] = None
         reload(partition)
 
 
 class get_partition_list_base_test(get_partition_list_common, unittest.TestCase):
+
     def setUp(self):
         sys.modules['autotest.client.site_partition'] = None
         reload(partition)
@@ -148,6 +150,7 @@ class get_partition_list_base_test(get_partition_list_common, unittest.TestCase)
 
 
 class FSOptions_test(FsOptions_common, unittest.TestCase):
+
     def setUp(self):
         if 'autotest.client.site_partition' in sys.modules:
             del sys.modules['autotest.client.site_partition']
@@ -155,6 +158,7 @@ class FSOptions_test(FsOptions_common, unittest.TestCase):
 
 
 class get_partition_list_test(get_partition_list_common, unittest.TestCase):
+
     def setUp(self):
         if 'autotest.client.site_partition' in sys.modules:
             del sys.modules['autotest.client.site_partition']

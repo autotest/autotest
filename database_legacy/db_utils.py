@@ -33,7 +33,7 @@ def rename(manager, mapping):
                    an entry in this dictionary will not be renamed
     """
     check_exists(manager, (table for table, _ in mapping.iteritems()),
-                  TABLE_TYPE)
+                 TABLE_TYPE)
     for orig_name, new_name in mapping.iteritems():
         manager.execute('RENAME TABLE `%s` TO `%s`' % (orig_name, new_name))
 
@@ -89,7 +89,7 @@ def check_exists(manager, names, type):
     for name in names:
         if name not in existing_names:
             raise NameMissingException(
-                    '%s missing from database, stopping' % name)
+                '%s missing from database, stopping' % name)
 
 
 def check_index_exists(manager, table_name, index_name):
@@ -107,6 +107,7 @@ def check_index_exists(manager, table_name, index_name):
 
 
 DJANGO_AUTH_TABLES = ('auth_group', 'auth_group_permissions', 'auth_permission')
+
 
 def auth_tables_exist(manager):
     try:

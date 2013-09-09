@@ -12,6 +12,7 @@ MEGABYTE = 1024 * 1024
 
 rpc_logger = None
 
+
 def configure_logging():
     MAX_LOG_SIZE = settings.get_value('SERVER', 'rpc_max_log_size_mb', type=int)
     NUMBER_OF_OLD_LOGS = settings.get_value('SERVER', 'rpc_num_old_logs',
@@ -22,8 +23,8 @@ def configure_logging():
         fmt='[%(asctime)s %(levelname)-5.5s] %(message)s',
         datefmt='%m/%d %H:%M:%S')
     handler = logging.handlers.RotatingFileHandler(log_path,
-                                                 maxBytes=MAX_LOG_SIZE*MEGABYTE,
-                                                 backupCount=NUMBER_OF_OLD_LOGS)
+                                                   maxBytes=MAX_LOG_SIZE * MEGABYTE,
+                                                   backupCount=NUMBER_OF_OLD_LOGS)
     handler.setFormatter(formatter)
 
     global rpc_logger

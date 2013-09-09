@@ -4,14 +4,17 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-import logging, unittest
+import logging
+import unittest
 from autotest.frontend import setup_django_environment
 from autotest.database_legacy import database_connection
 from autotest.frontend.afe import frontend_test_utils, models
 from autotest.scheduler import monitor_db_cleanup, scheduler_config
 from autotest.client.shared import host_protections
 
+
 class UserCleanupTest(unittest.TestCase, frontend_test_utils.FrontendTestMixin):
+
     def setUp(self):
         logging.basicConfig(level=logging.DEBUG)
         self._frontend_common_setup()
@@ -20,10 +23,8 @@ class UserCleanupTest(unittest.TestCase, frontend_test_utils.FrontendTestMixin):
         self._database.connect(db_type='django')
         self.cleanup = monitor_db_cleanup.UserCleanup(self._database, 1)
 
-
     def tearDown(self):
         self._frontend_common_teardown()
-
 
     def test_reverify_dead_hosts(self):
         # unlimited reverifies
@@ -40,14 +41,13 @@ class UserCleanupTest(unittest.TestCase, frontend_test_utils.FrontendTestMixin):
         self.hosts[2].save()
 
         self.god.stub_with(self.cleanup, '_should_reverify_hosts_now',
-                           lambda : True)
+                           lambda: True)
         self.cleanup._reverify_dead_hosts()
 
         tasks = models.SpecialTask.objects.all()
         self.assertEquals(len(tasks), 1)
         self.assertEquals(tasks[0].host.id, 1)
         self.assertEquals(tasks[0].task, models.SpecialTask.Task.VERIFY)
-
 
     def test_reverify_dead_hosts_limits(self):
         # limit the number of reverifies
@@ -66,7 +66,7 @@ class UserCleanupTest(unittest.TestCase, frontend_test_utils.FrontendTestMixin):
         self.hosts[2].save()
 
         self.god.stub_with(self.cleanup, '_should_reverify_hosts_now',
-                           lambda : True)
+                           lambda: True)
         self.cleanup._reverify_dead_hosts()
 
         tasks = models.SpecialTask.objects.all()

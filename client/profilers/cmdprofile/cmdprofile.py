@@ -3,14 +3,15 @@ Sets up a subprocess to run any generic command in the background every
 few seconds (by default the interval is 60 secs)
 """
 
-import time, os
+import time
+import os
 from autotest.client import profiler
 from autotest.client.shared import utils, error
+
 
 class cmdprofile(profiler.profiler):
     version = 2
     supports_reboot = True
-
 
     def initialize(self, cmds=['ps'], interval=60, outputfile='cmdprofile',
                    outputfiles=None, **dargs):
@@ -34,7 +35,6 @@ class cmdprofile(profiler.profiler):
         else:
             self.outputfiles = [outputfile] * len(cmds)
 
-
     def start(self, test):
         self.pid = os.fork()
         if self.pid:  # parent
@@ -47,7 +47,6 @@ class cmdprofile(profiler.profiler):
                     logfile.write('\n')
                     logfile.close()
                 time.sleep(self.interval)
-
 
     def stop(self, test):
         utils.nuke_pid(self.pid)

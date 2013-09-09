@@ -1,5 +1,6 @@
 #!/usr/bin/python
-import unittest, os
+import unittest
+import os
 
 try:
     import autotest.common as common
@@ -13,11 +14,11 @@ from autotest.client.shared import utils
 
 
 class iscsi_test(unittest.TestCase):
+
     def setup_stubs_init(self):
         os_dep.command.expect_call("iscsiadm")
         utils.system_output.expect_call("hostname").and_return("localhost")
         os_dep.command.expect_call("tgtadm")
-
 
     def setup_stubs_login(self, iscsi_obj):
         c_cmd = "dd if=/dev/zero of=/tmp/iscsitest count=1024 bs=1K"
@@ -33,7 +34,6 @@ class iscsi_test(unittest.TestCase):
         lg_msg = "successful"
         utils.system_output.expect_call(lg_cmd).and_return(lg_msg)
 
-
     def setup_stubs_get_device_name(self, iscsi_obj):
         s_msg = "127.0.0.1:3260,1 %s" % iscsi_obj.target
         utils.system_output.expect_call("iscsiadm --mode session"
@@ -42,8 +42,7 @@ class iscsi_test(unittest.TestCase):
         utils.system_output.expect_call("iscsiadm -m session -P 3"
                                         ).and_return(detail)
 
-
-    def setup_stubs_cleanup(self, iscsi_obj,fname=""):
+    def setup_stubs_cleanup(self, iscsi_obj, fname=""):
         s_msg = "127.0.0.1:3260,1 %s" % iscsi_obj.target
         utils.system_output.expect_call("iscsiadm --mode session"
                                         ).and_return(s_msg)
@@ -55,22 +54,19 @@ class iscsi_test(unittest.TestCase):
         os.path.isfile.expect_call(fname).and_return(False)
         s_cmd = "tgtadm --lld iscsi --mode target --op show"
         utils.system_output.expect_call(s_cmd
-                                       ).and_return("Target 1: iqn.iscsitest")
+                                        ).and_return("Target 1: iqn.iscsitest")
         d_cmd = "tgtadm --lld iscsi --mode target --op delete"
         d_cmd += " --tid %s" % iscsi_obj.emulated_id
         utils.system.expect_call(d_cmd)
-
 
     def setup_stubs_logged_in(self, result=""):
         utils.system_output.expect_call("iscsiadm --mode session"
                                         ).and_return(result)
 
-
     def setup_stubs_portal_visible(self, iscsi_obj, result=""):
         host_name = iscsi_obj.portal_ip
         v_cmd = "iscsiadm -m discovery -t sendtargets -p %s" % host_name
         utils.system_output.expect_call(v_cmd).and_return(result)
-
 
     def setup_stubs_export_target(self, iscsi_obj):
         s_cmd = "tgtadm --lld iscsi --mode target --op show"
@@ -89,12 +85,10 @@ class iscsi_test(unittest.TestCase):
         utils.system.expect_call(l_cmd)
         utils.system.expect_call(b_cmd)
 
-
     def setup_stubs_get_target_id(self):
         s_cmd = "tgtadm --lld iscsi --mode target --op show"
         s_msg = "Target 1: iqn.iscsitest\nBacking store path: /tmp/iscsitest"
         utils.system_output.expect_call(s_cmd).and_return(s_msg)
-
 
     def setUp(self):
         # The normal iscsi with iscsi server should configure following
@@ -105,18 +99,16 @@ class iscsi_test(unittest.TestCase):
         #                       "initiator": ""}
 
         self.iscsi_emulated_params = {"emulated_image": "/tmp/iscsitest",
-                                     "target": "iqn.iscsitest",
-                                     "image_size": "1024K"}
+                                      "target": "iqn.iscsitest",
+                                      "image_size": "1024K"}
         self.god = mock.mock_god()
         self.god.stub_function(os_dep, "command")
         self.god.stub_function(utils, "system")
         self.god.stub_function(utils, "system_output")
         self.god.stub_function(os.path, "isfile")
 
-
     def tearDown(self):
         self.god.unstub_all()
-
 
     def test_iscsi_get_device_name(self):
         self.setup_stubs_init()
@@ -131,7 +123,6 @@ class iscsi_test(unittest.TestCase):
         iscsi_emulated.cleanup()
         self.god.check_playback()
 
-
     def test_iscsi_login(self):
         self.setup_stubs_init()
         iscsi_emulated = iscsi.Iscsi(self.iscsi_emulated_params)
@@ -141,7 +132,6 @@ class iscsi_test(unittest.TestCase):
         self.setup_stubs_logged_in(result)
         self.assertTrue(iscsi_emulated.logged_in())
 
-
     def test_iscsi_visible(self):
         self.setup_stubs_init()
         iscsi_emulated = iscsi.Iscsi(self.iscsi_emulated_params)
@@ -149,7 +139,6 @@ class iscsi_test(unittest.TestCase):
         self.assertFalse(iscsi_emulated.portal_visible())
         self.setup_stubs_portal_visible(iscsi_emulated, "127.0.0.1:3260,1 %s"
                                         % iscsi_emulated.target)
-
 
     def test_iscsi_target_id(self):
         self.setup_stubs_init()

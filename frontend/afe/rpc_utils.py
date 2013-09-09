@@ -5,19 +5,23 @@ only RPC interface functions go into that file.
 
 __author__ = 'showard@google.com (Steve Howard)'
 
-import datetime, os, sys, inspect
+import datetime
+import os
+import sys
+import inspect
 import django.http
 from autotest.frontend.afe import models, model_logic, model_attributes
 
 NULL_DATETIME = datetime.datetime.max
 NULL_DATE = datetime.date.max
 
+
 def prepare_for_serialization(objects):
     """
     Prepare Python objects to be returned via RPC.
     """
     if (isinstance(objects, list) and len(objects) and
-        isinstance(objects[0], dict) and 'id' in objects[0]):
+            isinstance(objects[0], dict) and 'id' in objects[0]):
         objects = gather_unique_dicts(objects)
     return _prepare_data(objects)
 
@@ -143,8 +147,8 @@ def get_host_query(multiple_labels, exclude_only_if_needed_labels,
             only_if_needed=True)
         if only_if_needed_labels.count() > 0:
             only_if_needed_ids = ','.join(
-                    str(label['id'])
-                    for label in only_if_needed_labels.values('id'))
+                str(label['id'])
+                for label in only_if_needed_labels.values('id'))
             query = models.Host.objects.add_join(
                 query, 'afe_hosts_labels', join_key='host_id',
                 join_condition=('afe_hosts_labels_exclude_OIN.label_id IN (%s)'
@@ -153,17 +157,17 @@ def get_host_query(multiple_labels, exclude_only_if_needed_labels,
 
     if exclude_atomic_group_hosts:
         atomic_group_labels = models.Label.valid_objects.filter(
-                atomic_group__isnull=False)
+            atomic_group__isnull=False)
         if atomic_group_labels.count() > 0:
             atomic_group_label_ids = ','.join(
-                    str(atomic_group['id'])
-                    for atomic_group in atomic_group_labels.values('id'))
+                str(atomic_group['id'])
+                for atomic_group in atomic_group_labels.values('id'))
             query = models.Host.objects.add_join(
-                    query, 'afe_hosts_labels', join_key='host_id',
-                    join_condition=(
-                            'afe_hosts_labels_exclude_AG.label_id IN (%s)'
-                            % atomic_group_label_ids),
-                    suffix='_exclude_AG', exclude=True)
+                query, 'afe_hosts_labels', join_key='host_id',
+                join_condition=(
+                    'afe_hosts_labels_exclude_AG.label_id IN (%s)'
+                    % atomic_group_label_ids),
+                suffix='_exclude_AG', exclude=True)
 
     assert 'extra_args' not in filter_data
     filter_data['extra_args'] = extra_host_filters(multiple_labels)
@@ -171,6 +175,7 @@ def get_host_query(multiple_labels, exclude_only_if_needed_labels,
 
 
 class InconsistencyException(Exception):
+
     'Raised when a list of objects does not have a consistent value'
 
 
@@ -197,9 +202,9 @@ def prepare_generate_control_file(tests, kernel, label, profilers):
     except InconsistencyException, exc:
         test1, test2 = exc.args
         raise model_logic.ValidationError(
-            {'tests' : 'You cannot run both server- and client-side '
+            {'tests': 'You cannot run both server- and client-side '
              'tests together (tests %s and %s differ' % (
-            test1.name, test2.name)})
+                 test1.name, test2.name)})
 
     is_server = (test_type == model_attributes.TestTypes.SERVER)
     if test_objects:
@@ -233,10 +238,9 @@ def check_job_dependencies(host_objects, job_dependencies):
                      set(host.hostname for host in ok_hosts))
     if failing_hosts:
         raise model_logic.ValidationError(
-            {'hosts' : 'Host(s) failed to meet job dependencies (' +
-                       (', '.join(job_dependencies)) + '): ' +
-                       (', '.join(failing_hosts))})
-
+            {'hosts': 'Host(s) failed to meet job dependencies (' +
+                                         (', '.join(job_dependencies)) + '): ' +
+                                         (', '.join(failing_hosts))})
 
 
 def _execution_key_for(host_queue_entry):
@@ -257,10 +261,10 @@ def check_abort_synchronous_jobs(host_queue_entries):
         execution_count = count_per_execution[_execution_key_for(queue_entry)]
         if execution_count < queue_entry.job.synch_count:
             raise model_logic.ValidationError(
-                {'' : 'You cannot abort part of a synchronous job execution '
-                      '(%d/%s), %d included, %d expected'
-                      % (queue_entry.job.id, queue_entry.execution_subdir,
-                         execution_count, queue_entry.job.synch_count)})
+                {'': 'You cannot abort part of a synchronous job execution '
+                 '(%d/%s), %d included, %d expected'
+                 % (queue_entry.job.id, queue_entry.execution_subdir,
+                    execution_count, queue_entry.job.synch_count)})
 
 
 def check_atomic_group_create_job(synch_count, host_objects, metahost_objects,
@@ -284,11 +288,11 @@ def check_atomic_group_create_job(synch_count, host_objects, metahost_objects,
     # that there are enough to satisfy the synch_count.
     minimum_required = synch_count or 1
     if (host_objects and not metahost_objects and
-        len(host_objects) < minimum_required):
+            len(host_objects) < minimum_required):
         raise model_logic.ValidationError(
-                {'hosts':
-                 'only %d hosts provided for job with synch_count = %d' %
-                 (len(host_objects), synch_count)})
+            {'hosts':
+             'only %d hosts provided for job with synch_count = %d' %
+                                         (len(host_objects), synch_count)})
 
     # Check that the atomic group has a hope of running this job
     # given any supplied metahosts and dependancies that may limit.
@@ -328,10 +332,10 @@ def check_atomic_group_create_job(synch_count, host_objects, metahost_objects,
 
     if len(host_set) < minimum_required:
         raise model_logic.ValidationError(
-                {'atomic_group_name':
-                 'Insufficient hosts in Atomic Group "%s" with the'
-                 ' supplied dependencies and meta_hosts.' %
-                 (atomic_group.name,)})
+            {'atomic_group_name':
+             'Insufficient hosts in Atomic Group "%s" with the'
+             ' supplied dependencies and meta_hosts.' %
+                                         (atomic_group.name,)})
 
 
 def check_modify_host(update_data):
@@ -346,7 +350,7 @@ def check_modify_host(update_data):
     # beneath tasks being run on a host.
     if 'status' in update_data:
         raise model_logic.ValidationError({
-                'status': 'Host status can not be modified by the frontend.'})
+            'status': 'Host status can not be modified by the frontend.'})
 
 
 def check_modify_host_locking(host, update_data):
@@ -361,11 +365,11 @@ def check_modify_host_locking(host, update_data):
     if locked is not None:
         if locked and host.locked:
             raise model_logic.ValidationError({
-                    'locked': 'Host already locked by %s on %s.' %
-                    (host.locked_by, host.lock_time)})
+                'locked': 'Host already locked by %s on %s.' %
+                (host.locked_by, host.lock_time)})
         if not locked and not host.locked:
             raise model_logic.ValidationError({
-                    'locked': 'Host already unlocked.'})
+                'locked': 'Host already unlocked.'})
 
 
 def get_motd():
@@ -427,9 +431,9 @@ def get_job_info(job, preserve_metahosts=False, queue_entry_filter_data=None):
                 atomic_group = queue_entry.atomic_group
         else:
             assert atomic_group.name == queue_entry.atomic_group.name, (
-                    'DB inconsistency.  HostQueueEntries with multiple atomic'
-                    ' groups on job %s: %s != %s' % (
-                        id, atomic_group.name, queue_entry.atomic_group.name))
+                'DB inconsistency.  HostQueueEntries with multiple atomic'
+                ' groups on job %s: %s != %s' % (
+                    id, atomic_group.name, queue_entry.atomic_group.name))
 
     meta_host_counts = _get_metahost_counts(meta_hosts)
 
@@ -456,8 +460,8 @@ def check_for_duplicate_hosts(host_objects):
 
     if duplicate_hostnames:
         raise model_logic.ValidationError(
-                {'hosts' : 'Duplicate hosts: %s'
-                 % ', '.join(duplicate_hostnames)})
+            {'hosts': 'Duplicate hosts: %s'
+             % ', '.join(duplicate_hostnames)})
 
 
 def create_new_job(owner, options, host_objects, profiles, metahost_objects,
@@ -490,24 +494,24 @@ def create_new_job(owner, options, host_objects, profiles, metahost_objects,
 
     if atomic_group:
         check_atomic_group_create_job(
-                synch_count, host_objects, metahost_objects,
-                dependencies, atomic_group, labels_by_name)
+            synch_count, host_objects, metahost_objects,
+            dependencies, atomic_group, labels_by_name)
     else:
         if synch_count is not None and synch_count > len(all_host_objects):
             raise model_logic.ValidationError(
-                    {'hosts':
-                     'only %d hosts provided for job with synch_count = %d' %
-                     (len(all_host_objects), synch_count)})
+                {'hosts':
+                 'only %d hosts provided for job with synch_count = %d' %
+                                             (len(all_host_objects), synch_count)})
         atomic_hosts = models.Host.objects.filter(
-                id__in=[host.id for host in host_objects],
-                labels__atomic_group=True)
+            id__in=[host.id for host in host_objects],
+            labels__atomic_group=True)
         unusable_host_names = [host.hostname for host in atomic_hosts]
         if unusable_host_names:
             raise model_logic.ValidationError(
-                    {'hosts':
-                     'Host(s) "%s" are atomic group hosts but no '
-                     'atomic group was specified for this job.' %
-                     (', '.join(unusable_host_names),)})
+                {'hosts':
+                 'Host(s) "%s" are atomic group hosts but no '
+                 'atomic group was specified for this job.' %
+                                             (', '.join(unusable_host_names),)})
 
     check_for_duplicate_hosts(host_objects)
 
@@ -518,17 +522,17 @@ def create_new_job(owner, options, host_objects, profiles, metahost_objects,
     for label in metahost_objects + options['dependencies']:
         if label.atomic_group and not atomic_group:
             raise model_logic.ValidationError(
-                    {'atomic_group_name':
-                     'Dependency %r requires an atomic group but no '
-                     'atomic_group_name or meta_host in an atomic group was '
-                     'specified for this job.' % label.name})
+                {'atomic_group_name':
+                 'Dependency %r requires an atomic group but no '
+                 'atomic_group_name or meta_host in an atomic group was '
+                 'specified for this job.' % label.name})
         elif (label.atomic_group and
               label.atomic_group.name != atomic_group.name):
             raise model_logic.ValidationError(
-                    {'atomic_group_name':
-                     'meta_hosts or dependency %r requires atomic group '
-                     '%r instead of the supplied atomic_group_name=%r.' %
-                     (label.name, label.atomic_group.name, atomic_group.name)})
+                {'atomic_group_name':
+                 'meta_hosts or dependency %r requires atomic group '
+                 '%r instead of the supplied atomic_group_name=%r.' %
+                                             (label.name, label.atomic_group.name, atomic_group.name)})
 
     job = models.Job.create(owner=owner, options=options,
                             hosts=all_host_objects)
@@ -599,8 +603,8 @@ def _compute_next_job_for_tasks(queue_entries, special_tasks):
     * if the task has neither, or if use of time_started fails, just use the
       last computed job ID.
     """
-    next_job_id = None # most recently computed next job
-    hqe_index = 0 # index for scanning by started_on times
+    next_job_id = None  # most recently computed next job
+    hqe_index = 0  # index for scanning by started_on times
     for task in special_tasks:
         if task.queue_entry:
             next_job_id = task.queue_entry.job.id
@@ -681,21 +685,21 @@ def create_job_common(name, priority, control_type, control_file=None,
     if not (hosts or meta_hosts or one_time_hosts or atomic_group_name
             or hostless):
         raise model_logic.ValidationError({
-            'arguments' : "You must pass at least one of 'hosts', "
-                          "'meta_hosts', 'one_time_hosts', "
-                          "'atomic_group_name', or 'hostless'"
-            })
+            'arguments': "You must pass at least one of 'hosts', "
+                                          "'meta_hosts', 'one_time_hosts', "
+                                          "'atomic_group_name', or 'hostless'"
+                                          })
 
     if hostless:
         if hosts or meta_hosts or one_time_hosts or atomic_group_name:
             raise model_logic.ValidationError({
-                    'hostless': 'Hostless jobs cannot include any hosts!'})
+                'hostless': 'Hostless jobs cannot include any hosts!'})
         server_type = models.Job.ControlType.get_string(
-                models.Job.ControlType.SERVER)
+            models.Job.ControlType.SERVER)
         if control_type != server_type:
             raise model_logic.ValidationError({
-                    'control_type': 'Hostless jobs cannot use client-side '
-                                    'control files'})
+                'control_type': 'Hostless jobs cannot use client-side '
+                'control files'})
 
     labels_by_name = dict((label.name.lower(), label)
                           for label in models.Label.objects.all())
@@ -724,29 +728,31 @@ def create_job_common(name, priority, control_type, control_file=None,
             atomic_group = atomic_groups_by_name[label_name]
             if atomic_group_name and atomic_group_name != atomic_group.name:
                 raise model_logic.ValidationError({
-                        'meta_hosts': (
-                                'Label "%s" not found.  If assumed to be an '
-                                'atomic group it would conflict with the '
-                                'supplied atomic group "%s".' % (
-                                        label_name, atomic_group_name))})
+                    'meta_hosts': (
+                        'Label "%s" not found.  If assumed to be an '
+                        'atomic group it would conflict with the '
+                        'supplied atomic group "%s".' %
+                        (label_name, atomic_group_name))})
             atomic_group_name = atomic_group.name
         else:
             raise model_logic.ValidationError(
-                {'meta_hosts' : 'Label "%s" not found' % label_name})
+                {'meta_hosts': 'Label "%s" not found' % label_name})
 
     # Create and sanity check an AtomicGroup object if requested.
     if atomic_group_name:
         if one_time_hosts:
-            raise model_logic.ValidationError(
-                    {'one_time_hosts':
-                     'One time hosts cannot be used with an Atomic Group.'})
+            raise model_logic.ValidationError({'one_time_hosts':
+                                               'One time hosts cannot be used '
+                                               'with an Atomic Group.'})
         atomic_group = models.AtomicGroup.smart_get(atomic_group_name)
-        if synch_count and synch_count > atomic_group.max_number_of_machines:
-            raise model_logic.ValidationError(
-                    {'atomic_group_name' :
-                     'You have requested a synch_count (%d) greater than the '
-                     'maximum machines in the requested Atomic Group (%d).' %
-                     (synch_count, atomic_group.max_number_of_machines)})
+        max_machines = atomic_group.max_number_of_machines
+        if synch_count and synch_count > max_machines:
+            raise model_logic.ValidationError({'atomic_group_name':
+                                               'You have requested a '
+                                               'synch_count (%d) greater than '
+                                               'the maximum machines in the '
+                                               'requested Atomic Group (%d).' %
+                                               (synch_count, max_machines)})
     else:
         atomic_group = None
 

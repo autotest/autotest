@@ -44,17 +44,14 @@ class TestBackports(unittest.TestCase):
         self.assertFalse(backports.any(set()))
         self.assertFalse(backports.any(["", 0, False]))
 
-
     def test_all(self):
         self.assertFalse(backports.all([False, 0, 1, "", True]))
         self.assertTrue(backports.all([]))
         self.assertFalse(backports.all(["", 0, False, set()]))
         self.assertTrue(backports.all(["True", 1, True]))
 
-
     def test_bin(self):
         self.assertEquals(backports.bin(170), '0b10101010')
-
 
     def test_many_bin(self):
         try:
@@ -67,12 +64,10 @@ class TestBackports(unittest.TestCase):
             # NameError will occur on Python versions that lack bin()
             pass
 
-
     def test_next(self):
         self.assertEquals(backports.next((x * 2 for x in range(3, 5))), 6)
         self.assertEquals(backports.next((x * 2 for x in range(3, 5) if x > 100),
                                          "default"), "default")
-
 
     def test_next_extra_arg(self):
         @staticmethod
@@ -81,7 +76,6 @@ class TestBackports(unittest.TestCase):
                            ("default", "extra arg"))
         self.assertRaises(TypeError, _fail_extra_arg)
 
-
     def test_namedtuple_pickle(self):
         '''
         Verify that instances can be pickled
@@ -89,12 +83,12 @@ class TestBackports(unittest.TestCase):
         p = Point(x=10, y=20)
         self.assertEquals(p, pickle.loads(pickle.dumps(p, -1)))
 
-
     def test_namedtuple_override(self):
         '''
         Test and demonstrate ability to override methods
         '''
         class HypotPoint(namedtuple('Point', 'x y')):
+
             @property
             def hypot(self):
                 return (self.x ** 2 + self.y ** 2) ** 0.5
@@ -109,7 +103,6 @@ class TestBackports(unittest.TestCase):
         self.assertEquals(p1.hypot, 5.0)
         self.assertAlmostEquals(p2.hypot, 14.866068747318506)
         self.assertAlmostEquals(p3.hypot, 6.136209027118437)
-
 
     def test_namedtuple_optimize(self):
         """

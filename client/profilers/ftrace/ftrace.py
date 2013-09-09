@@ -3,12 +3,16 @@ Function tracer profiler for autotest.
 
 @author: David Sharp (dhsharp@google.com)
 """
-import logging, os, signal, time
+import logging
+import os
+import signal
+import time
 from autotest.client import profiler, utils
 from autotest.client.shared import error
 
 
 class ftrace(profiler.profiler):
+
     """
     ftrace profiler for autotest. It builds ftrace from souce and runs
     trace-cmd with configurable parameters.
@@ -33,7 +37,6 @@ class ftrace(profiler.profiler):
             result += [arg]
         return ' '.join(result)
 
-
     def setup(self, tarball='trace-cmd.tar.bz2', **kwargs):
         """
         Build and install trace-cmd from source.
@@ -50,7 +53,6 @@ class ftrace(profiler.profiler):
         os.chdir(self.srcdir)
         utils.make("prefix='%s'" % self.builddir)
         utils.make("prefix='%s' install" % self.builddir)
-
 
     def initialize(self, tracepoints, buffer_size_kb=1408, **kwargs):
         """
@@ -78,7 +80,6 @@ class ftrace(profiler.profiler):
         if not os.path.isdir(self.builddir):
             os.makedirs(self.builddir)
         self.trace_cmd = os.path.join(self.builddir, 'bin', 'trace-cmd')
-
 
     def start(self, test):
         """
@@ -121,12 +122,12 @@ class ftrace(profiler.profiler):
         # shrink the buffer to free memory.
         utils.system('%s reset -b 1' % self.trace_cmd)
 
-        #compress output
+        # compress output
         utils.system('bzip2 %s' % self.output)
         compressed_output = self.output + '.bz2'
         # if the compressed trace file is large (10MB), just delete it.
         compressed_output_size = os.path.getsize(compressed_output)
-        if compressed_output_size > 10*1024*1024:
+        if compressed_output_size > 10 * 1024 * 1024:
             logging.warn('Deleting large trace file %s (%d bytes)',
                          compressed_output, compressed_output_size)
             os.remove(compressed_output)

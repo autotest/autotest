@@ -24,6 +24,7 @@ cmdclass = {'build_doc': BuildDoc}
 
 from autotest.client.shared import version
 
+
 def _combine_dicts(list_dicts):
     result_dict = {}
     for d in list_dicts:
@@ -95,14 +96,14 @@ def get_data_files():
 
 def get_package_data():
     return _combine_dicts([
-            _fix_data_paths(client.setup.get_package_data()),
-            _fix_data_paths(frontend.setup.get_package_data()),
-            _fix_data_paths(cli.setup.get_package_data()),
-            _fix_data_paths(server.setup.get_package_data()),
-            _fix_data_paths(scheduler.setup.get_package_data()),
-            _fix_data_paths(database_legacy.setup.get_package_data()),
-            _fix_data_paths(utils.setup.get_package_data())
-            ])
+        _fix_data_paths(client.setup.get_package_data()),
+        _fix_data_paths(frontend.setup.get_package_data()),
+        _fix_data_paths(cli.setup.get_package_data()),
+        _fix_data_paths(server.setup.get_package_data()),
+        _fix_data_paths(scheduler.setup.get_package_data()),
+        _fix_data_paths(database_legacy.setup.get_package_data()),
+        _fix_data_paths(utils.setup.get_package_data())
+    ])
 
 
 def get_scripts():
@@ -125,17 +126,13 @@ def run():
           url='http://autotest.github.com',
           package_dir=get_package_dir(),
           package_data=get_package_data(),
-          packages= get_packages(),
+          packages=get_packages(),
           scripts=get_scripts(),
           data_files=get_data_files(),
           cmdclass=cmdclass,
-          command_options={
-            'build_doc': {
-                'source_dir': ('setup.py', 'documentation/source')
-                }
-            }
+          command_options={'build_doc': {'source_dir':
+                                         ('setup.py', 'documentation/source')}}
           )
-
 
 
 if __name__ == '__main__':

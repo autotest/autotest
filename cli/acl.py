@@ -17,11 +17,13 @@ See topic_common.py for a High Level Design and Algorithm.
 
 """
 
-import os, sys
+import os
+import sys
 from autotest.cli import topic_common, action_common
 
 
 class acl(topic_common.atest):
+
     """ACL class
     atest acl [create|delete|list|add|remove] <options>"""
     usage_action = '[create|delete|list|add|remove]'
@@ -43,20 +45,22 @@ class acl(topic_common.atest):
             filename_option='alist',
             use_leftover=True)
 
-
     def get_items(self):
         return self.acls
 
 
 class acl_help(acl):
+
     """Just here to get the atest logic working.
     Usage is set by its parent"""
     pass
 
 
 class acl_list(action_common.atest_list, acl):
+
     """atest acl list [--verbose]
     [--user <users>|--mach <machine>|--alist <file>] [<acls>]"""
+
     def __init__(self):
         super(acl_list, self).__init__()
 
@@ -68,7 +72,6 @@ class acl_list(action_common.atest_list, acl):
                                help='List ACLs containing MACHINE',
                                type='string',
                                metavar='MACHINE')
-
 
     def parse(self):
         user_info = topic_common.item_parse_info(attribute_name='users',
@@ -83,7 +86,7 @@ class acl_list(action_common.atest_list, acl):
         hosts = getattr(self, 'hosts')
         acls = getattr(self, 'acls')
         if ((users and (hosts or acls)) or
-            (hosts and acls)):
+                (hosts and acls)):
             self.invalid_syntax('Only specify one of --user,'
                                 '--machine or ACL')
 
@@ -102,7 +105,6 @@ class acl_list(action_common.atest_list, acl):
         except IndexError:
             pass
         return (options, leftover)
-
 
     def execute(self):
         filters = {}
@@ -124,7 +126,6 @@ class acl_list(action_common.atest_list, acl):
                                    filters=filters,
                                    check_results=check_results)
 
-
     def output(self, results):
         # If an ACL was specified, always print its details
         if self.acls or self.verbose:
@@ -138,14 +139,15 @@ class acl_list(action_common.atest_list, acl):
 
 
 class acl_create(action_common.atest_create, acl):
+
     """atest acl create <acl> --desc <description>"""
+
     def __init__(self):
         super(acl_create, self).__init__()
         self.parser.add_option('-d', '--desc',
                                help='Creates the ACL with the DESCRIPTION',
                                type='string')
         self.parser.remove_option('--alist')
-
 
     def parse(self):
         (options, leftover) = super(acl_create, self).parse(req_items='acls')
@@ -163,11 +165,13 @@ class acl_create(action_common.atest_create, acl):
 
 
 class acl_delete(action_common.atest_delete, acl):
+
     """atest acl delete [<acls> | --alist <file>"""
     pass
 
 
 class acl_add_or_remove(acl):
+
     def __init__(self):
         super(acl_add_or_remove, self).__init__()
         # Get the appropriate help for adding or removing.
@@ -193,7 +197,6 @@ class acl_add_or_remove(acl):
                                type='string',
                                metavar='MACHINE_FLIST')
 
-
     def parse(self):
         user_info = topic_common.item_parse_info(attribute_name='users',
                                                  inline_option='user',
@@ -206,19 +209,21 @@ class acl_add_or_remove(acl):
                                                 req_items='acls')
 
         if (not getattr(self, 'users', None) and
-            not getattr(self, 'hosts', None)):
+                not getattr(self, 'hosts', None)):
             self.invalid_syntax('Specify at least one USER or MACHINE')
 
         return (options, leftover)
 
 
 class acl_add(action_common.atest_add, acl_add_or_remove):
+
     """atest acl add <acl> --user <user>|
        --machine <machine>|--mlist <FILE>]"""
     pass
 
 
 class acl_remove(action_common.atest_remove, acl_add_or_remove):
+
     """atest acl remove [<acls> | --alist <file>
     --user <user> | --machine <machine> | --mlist <FILE>]"""
     pass

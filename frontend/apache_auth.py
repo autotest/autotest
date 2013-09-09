@@ -8,12 +8,15 @@ from autotest.frontend.afe import models, management
 
 DEBUG_USER = 'debug_user'
 
+
 class SimpleAuthBackend(backends.ModelBackend):
+
     """
     Automatically allows any login.  This backend is for use when Apache is
     doing the real authentication.  Also ensures logged-in user exists in
     autotest.frontend.afe.models.User database.
     """
+
     def authenticate(self, username=None, password=None):
         try:
             user = User.objects.get(username=username)
@@ -22,13 +25,12 @@ class SimpleAuthBackend(backends.ModelBackend):
             user = User(username=username,
                         password='apache authentication')
             user.is_staff = True
-            user.save() # need to save before adding groups
+            user.save()  # need to save before adding groups
             user.groups.add(Group.objects.get(
                 name=management.BASIC_ADMIN))
 
         SimpleAuthBackend.check_afe_user(username)
         return user
-
 
     @staticmethod
     def check_afe_user(username):
@@ -44,6 +46,7 @@ class SimpleAuthBackend(backends.ModelBackend):
 
 
 class GetApacheUserMiddleware(object):
+
     """
     Middleware for use when Apache is doing authentication.  Looks for
     REMOTE_USER in headers and passed the username found to
@@ -66,12 +69,12 @@ class GetApacheUserMiddleware(object):
 
 
 class ApacheAuthMiddleware(GetApacheUserMiddleware):
+
     """
     Like GetApacheUserMiddleware, but also logs the user into Django's auth
     system, and replaces the username in thread_local with the actual User model
     object.
     """
-
 
     def process_request(self, request):
         super(ApacheAuthMiddleware, self).process_request(request)

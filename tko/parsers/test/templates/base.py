@@ -4,7 +4,8 @@ This is not meant to be executed unless copied into a
 scenario package and renamed with a _unittest suffix.
 """
 
-import os, unittest
+import os
+import unittest
 from os import path
 try:
     import autotest.common as common
@@ -16,6 +17,7 @@ GOLDEN = 'golden'
 
 
 class ParserScenerioTestCase(scenario_base.BaseScenarioTestCase):
+
     def test_regression(self):
         """We want to ensure that result matches the golden.
 

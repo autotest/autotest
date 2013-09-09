@@ -1,6 +1,9 @@
 #!/usr/bin/python
 
-import unittest, os, sys, logging
+import unittest
+import os
+import sys
+import logging
 try:
     import autotest.common as common
 except ImportError:
@@ -9,14 +12,14 @@ except ImportError:
 from autotest.client.shared.test_utils import mock
 from autotest.client.shared import boottool
 
+
 class TestEfiSys(unittest.TestCase):
+
     def setUp(self):
         self.god = mock.mock_god()
 
-
     def tearDown(self):
         self.god.unstub_all()
-
 
     def test_efi_path_not_found(self):
         self.god.stub_function(os.path, 'exists')
@@ -30,6 +33,7 @@ class TestEfiSys(unittest.TestCase):
 
 
 class TestBoottool(unittest.TestCase):
+
     def setUp(self):
         self.god = mock.mock_god()
         # creates a bootloader with _run_boottool mocked out
@@ -41,10 +45,8 @@ class TestBoottool(unittest.TestCase):
         self.god.stub_function(self.bt_mock, 'get_info')
         self.god.stub_function(self.bt_mock, 'get_info_lines')
 
-
     def tearDown(self):
         self.god.unstub_all()
-
 
     def test_get_bootloader(self):
         # set up the recording
@@ -53,7 +55,6 @@ class TestBoottool(unittest.TestCase):
         # run the test
         self.assertEquals(self.bt_mock.get_bootloader(), 'lilo')
         self.god.check_playback()
-
 
     def test_get_architecture(self):
         self.god.stub_function(os, 'uname')
@@ -66,7 +67,6 @@ class TestBoottool(unittest.TestCase):
         self.assertEquals(self.bt_mock.get_architecture(), 'x86_64')
         self.god.check_playback()
 
-
     def test_get_default_index(self):
         # set up the recording
         self.bt_mock._run_grubby_get_output.expect_call(['--default-index']).and_return(0)
@@ -74,16 +74,14 @@ class TestBoottool(unittest.TestCase):
         self.assertEquals(self.bt_mock.get_default_index(), 0)
         self.god.check_playback()
 
-
     def test_get_titles(self):
         # set up the recording
-        output = ['index=0', 'title=title #1', 'index=1','title=title #2']
+        output = ['index=0', 'title=title #1', 'index=1', 'title=title #2']
         self.bt_mock.get_info_lines.expect_call().and_return(output)
         # run the test
         self.assertEquals(self.bt_mock.get_titles(),
                           ['title #1', 'title #2'])
         self.god.check_playback()
-
 
     def test_get_entry(self):
         index = 5
@@ -106,7 +104,6 @@ initrd=/boot/initramfs-3.2.6-3.fc16.x86_64.img
                          'title': '"Fedora 16, kernel 3.2.6-3"'}
         self.assertEquals(expected_info, actual_info)
 
-
     def test_get_entry_missing_result(self):
         index = 4
         RESULT = """
@@ -116,7 +113,6 @@ initrd=/boot/initramfs-3.2.6-3.fc16.x86_64.img
         actual_info = self.bt_mock.get_entry(index)
         expected_info = {}
         self.assertEquals(expected_info, actual_info)
-
 
     def test_get_entries(self):
         self.god.stub_function(self.bt_mock, '_get_entry_indexes')
@@ -167,10 +163,8 @@ initrd=/boot/initramfs-3.2.6-3.fc16.x86_64.img
 
         self.god.check_playback()
 
-
     def test_set_default(self):
         pass
-
 
     def test_add_args(self):
         # set up the recording
@@ -184,7 +178,6 @@ initrd=/boot/initramfs-3.2.6-3.fc16.x86_64.img
         self.bt_mock.add_args(kernel, args)
         self.god.check_playback()
 
-
     def test_remove_args(self):
         # set up the recording
         kernel = 12
@@ -197,7 +190,6 @@ initrd=/boot/initramfs-3.2.6-3.fc16.x86_64.img
         self.bt_mock.remove_args(kernel, args)
         self.god.check_playback()
 
-
     def setup_add_kernel(self, oldtitle, path, title, root=None, args=None,
                          initrd=None, default=False, position='end'):
         self.bt_mock.get_titles = self.god.create_mock_function('get_titles')
@@ -209,8 +201,8 @@ initrd=/boot/initramfs-3.2.6-3.fc16.x86_64.img
             self.bt_mock.remove_kernel.expect_call(title)
 
         parameters = ['--add-kernel=%s' % path, '--title=%s' % title]
-        #FIXME: grubby takes no --root parameter
-        #if root:
+        # FIXME: grubby takes no --root parameter
+        # if root:
         #    parameters.append('--root=%s' % root)
         if args:
             parameters.append('--args=%s' %
@@ -229,11 +221,10 @@ initrd=/boot/initramfs-3.2.6-3.fc16.x86_64.img
         # So, for now, until I fix grubby, we'll *not* respect the position
         # (--position=end) command line option.
 
-        #if position:
+        # if position:
         #    parameters.append('--position=%s' % position)
         parameters.append("--copy-default")
         self.bt_mock._run_grubby_get_return.expect_call(parameters)
-
 
     def test_add_kernel_basic(self):
         # set up the recording
@@ -244,7 +235,6 @@ initrd=/boot/initramfs-3.2.6-3.fc16.x86_64.img
                                 title='mylabel')
         self.god.check_playback()
 
-
     def test_add_kernel_removes_old(self):
         # set up the recording
         self.setup_add_kernel(oldtitle='mylabel',
@@ -253,7 +243,6 @@ initrd=/boot/initramfs-3.2.6-3.fc16.x86_64.img
         self.bt_mock.add_kernel(path='/unittest/kernels/vmlinuz',
                                 title='mylabel')
         self.god.check_playback()
-
 
     def test_add_kernel_adds_root(self):
         # set up the recording
@@ -265,7 +254,6 @@ initrd=/boot/initramfs-3.2.6-3.fc16.x86_64.img
                                 title='mylabel', root='/unittest/root')
         self.god.check_playback()
 
-
     def test_add_kernel_adds_args(self):
         # set up the recording
         self.setup_add_kernel(oldtitle='notmylabel',
@@ -275,7 +263,6 @@ initrd=/boot/initramfs-3.2.6-3.fc16.x86_64.img
         self.bt_mock.add_kernel(path='/unittest/kernels/vmlinuz',
                                 title='mylabel', args='my kernel args')
         self.god.check_playback()
-
 
     def test_add_kernel_args_remove_duplicates(self):
         # set up the recording
@@ -287,7 +274,6 @@ initrd=/boot/initramfs-3.2.6-3.fc16.x86_64.img
                                 title='mylabel', args='param1 param2 param1')
         self.god.check_playback()
 
-
     def test_add_kernel_adds_initrd(self):
         # set up the recording
         self.setup_add_kernel(oldtitle='notmylabel',
@@ -297,7 +283,6 @@ initrd=/boot/initramfs-3.2.6-3.fc16.x86_64.img
         self.bt_mock.add_kernel(path='/unittest/kernels/vmlinuz',
                                 title='mylabel', initrd='/unittest/initrd')
         self.god.check_playback()
-
 
     def test_add_kernel_enables_make_default(self):
         # set up the recording
@@ -309,7 +294,6 @@ initrd=/boot/initramfs-3.2.6-3.fc16.x86_64.img
                                 title='mylabel', default=True)
         self.god.check_playback()
 
-
     def test_add_kernel_position(self):
         # set up the recording
         self.setup_add_kernel(oldtitle='notmylabel',
@@ -320,7 +304,6 @@ initrd=/boot/initramfs-3.2.6-3.fc16.x86_64.img
                                 title='mylabel', position=5)
         self.god.check_playback()
 
-
     def test_remove_kernel(self):
         index = 14
         # set up the recording
@@ -330,7 +313,6 @@ initrd=/boot/initramfs-3.2.6-3.fc16.x86_64.img
         # run the test
         self.bt_mock.remove_kernel(index)
         self.god.check_playback()
-
 
     def test_boot_once(self):
         self.god.stub_function(self.bt_mock, 'get_bootloader')

@@ -1,4 +1,9 @@
-import BaseHTTPServer, cgi, threading, urllib, fcntl, logging
+import BaseHTTPServer
+import cgi
+import threading
+import urllib
+import fcntl
+import logging
 try:
     import autotest.common as common
 except ImportError:
@@ -22,12 +27,13 @@ _FOOTER = """
 </html>
 """
 
+
 class StatusServerRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+
     def _send_headers(self):
         self.send_response(200, 'OK')
         self.send_header('Content-Type', 'text/html')
         self.end_headers()
-
 
     def _parse_arguments(self):
         path_parts = self.path.split('?', 1)
@@ -37,21 +43,17 @@ class StatusServerRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         encoded_args = path_parts[1]
         return cgi.parse_qs(encoded_args)
 
-
     def _write_line(self, line=''):
         self.wfile.write(line + '<br>\n')
 
-
     def _write_field(self, field, value):
         self._write_line('%s=%s' % (field, value))
-
 
     def _write_all_fields(self):
         self._write_line('Config values:')
         for field in scheduler_config.SchedulerConfig.FIELDS:
             self._write_field(field, getattr(scheduler_config.config, field))
         self._write_line()
-
 
     def _write_drone(self, drone):
         if drone.allowed_users:
@@ -65,13 +67,11 @@ class StatusServerRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             line += ' (disabled)'
         self._write_line(line)
 
-
     def _write_drone_list(self):
         self._write_line('Drones:')
         for drone in self.server._drone_manager.get_drones():
             self._write_drone(drone)
         self._write_line()
-
 
     def _execute_actions(self, arguments):
         if 'reparse_config' in arguments:
@@ -82,7 +82,6 @@ class StatusServerRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.server._shutdown_scheduler = True
             self._write_line('Posted the shutdown request')
         self._write_line()
-
 
     def do_GET(self):
         self._send_headers()
@@ -97,6 +96,7 @@ class StatusServerRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 
 class StatusServer(BaseHTTPServer.HTTPServer):
+
     def __init__(self):
         address = ('', _PORT)
         # HTTPServer is an old-style class :(
@@ -110,7 +110,6 @@ class StatusServer(BaseHTTPServer.HTTPServer):
         old_flags = fcntl.fcntl(self.fileno(), fcntl.F_GETFD)
         fcntl.fcntl(self.fileno(), fcntl.F_SETFD, old_flags | fcntl.FD_CLOEXEC)
 
-
     def shutdown(self):
         if self._shutting_down:
             return
@@ -119,12 +118,10 @@ class StatusServer(BaseHTTPServer.HTTPServer):
         # make one last request to awaken the server thread and make it exit
         urllib.urlopen('http://localhost:%s' % _PORT)
 
-
     def _serve_until_shutdown(self):
         logging.info('Status server running on %s', self.server_address)
         while not self._shutting_down:
             self.handle_request()
-
 
     def start(self):
         self._thread = threading.Thread(target=self._serve_until_shutdown,

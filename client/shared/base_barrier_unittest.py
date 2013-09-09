@@ -2,7 +2,9 @@
 
 __author__ = """Ashwin Ganti (aganti@google.com)"""
 
-import socket, unittest, threading
+import socket
+import unittest
+import threading
 try:
     import autotest.common as common
 except ImportError:
@@ -16,7 +18,6 @@ class listen_server_test(unittest.TestCase):
     def test_init(self):
         server = barrier.listen_server()
         server.close()
-
 
     def test_close(self):
         server = barrier.listen_server()
@@ -34,10 +35,8 @@ class barrier_test(unittest.TestCase):
         self.god = mock.mock_god()
         self.god.mock_io()
 
-
     def tearDown(self):
         self.god.unmock_io()
-
 
     def test_initialize(self):
         b = barrier.barrier('127.0.0.1#', 'testtag', 100, 11921)
@@ -45,7 +44,6 @@ class barrier_test(unittest.TestCase):
         self.assertEqual(b._tag, 'testtag')
         self.assertEqual(b._timeout_secs, 100)
         self.assertEqual(b._port, 11921)
-
 
     def test_get_host_from_id(self):
         hostname = base_barrier.get_host_from_id('my_host')
@@ -57,18 +55,15 @@ class barrier_test(unittest.TestCase):
         self.assertRaises(error.BarrierError,
                           base_barrier.get_host_from_id, '#my_host')
 
-
     def test_update_timeout(self):
         b = barrier.barrier('127.0.0.1#', 'update', 100)
         b._update_timeout(120)
         self.assertEqual(b._timeout_secs, 120)
 
-
     def test_remaining(self):
         b = barrier.barrier('127.0.0.1#', 'remain', 100)
         remain = b._remaining()
         self.assertEqual(remain, 100)
-
 
     def test_master_welcome_garbage(self):
         b = barrier.barrier('127.0.0.1#', 'garbage', 100)
@@ -85,7 +80,7 @@ class barrier_test(unittest.TestCase):
             self.assertEqual(seen_before, b._seen)
 
             sender, receiver = socket.socketpair()
-            sender.send('abcdefg\x00\x01\x02\n'*5)
+            sender.send('abcdefg\x00\x01\x02\n' * 5)
             # This should not raise an exception.
             b._master_welcome((receiver, 'fakeaddr'))
 
@@ -95,11 +90,9 @@ class barrier_test(unittest.TestCase):
             sender.close()
             receiver.close()
 
-
     def test_rendezvous_basic(self):
         # Basic rendezvous testing
         self.rendezvous_test(60, port=11920)
-
 
     def test_rendezvous_timeout(self):
         # The rendezvous should time out here and throw a
@@ -107,12 +100,10 @@ class barrier_test(unittest.TestCase):
         self.assertRaises(error.BarrierError,
                           self.rendezvous_test, 0, port=11921)
 
-
     def test_rendezvous_abort_ok(self):
         # Test with abort flag set to not abort.
         self.rendezvous_test(60, port=11920,
                              test_abort=True, abort=False)
-
 
     def test_rendezvous_abort(self):
         # The rendezvous should abort here and throw a
@@ -121,13 +112,11 @@ class barrier_test(unittest.TestCase):
                           self.rendezvous_test, 0, port=11921,
                           test_abort=True, abort=True)
 
-
     def test_rendezvous_servers_basic(self):
         # The rendezvous should time out here and throw a
         # BarrierError since we are specifying a timeout of 0
         self.rendezvous_test(60, port=11921,
                              rendezvous_servers=True)
-
 
     def test_rendezvous_servers_timeout(self):
         # The rendezvous should time out here and throw a
@@ -136,12 +125,10 @@ class barrier_test(unittest.TestCase):
                           self.rendezvous_test, 0, port=11922,
                           rendezvous_servers=True)
 
-
     def test_rendezvous_servers_abort_ok(self):
         # Test with abort flag set to not abort.
         self.rendezvous_test(60, port=11920, rendezvous_servers=True,
                              test_abort=True, abort=False)
-
 
     def test_rendezvous_servers_abort(self):
         # The rendezvous should abort here and throw a
@@ -150,7 +137,6 @@ class barrier_test(unittest.TestCase):
                           self.rendezvous_test, 0, port=11922,
                           rendezvous_servers=True,
                           test_abort=True, abort=True)
-
 
     # Internal utility function (not a unit test)
     def rendezvous_test(self, timeout, port=11922,
@@ -174,7 +160,6 @@ class barrier_test(unittest.TestCase):
                 else:
                     b1.rendezvous_servers('127.0.0.1#0', '127.0.0.1#1')
 
-
         def _thread_rdv(addr):
             # We need to ignore the exception on one side.
             try:
@@ -187,7 +172,6 @@ class barrier_test(unittest.TestCase):
         client.start()
         _rdv('127.0.0.1#1')
         client.join()
-
 
     def test_reusing_listen_server(self):
         """

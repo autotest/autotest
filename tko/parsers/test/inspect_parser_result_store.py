@@ -5,7 +5,9 @@ Load in parser_result.store as 'sto' and launch interactive interp.
 Define some helper functions as required.
 """
 
-import optparse, os, sys
+import optparse
+import os
+import sys
 from os import path
 try:
     import autotest.common as common
@@ -41,5 +43,5 @@ def compare(left_tag, right_tag):
         return
 
     for diffline in scenario_base.compare_parser_results(
-        sto[left_tag], sto[right_tag]):
+            sto[left_tag], sto[right_tag]):
         print diffline

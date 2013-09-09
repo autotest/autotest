@@ -1,5 +1,7 @@
 #!/usr/bin/python
-import sys, os, textwrap
+import sys
+import os
+import textwrap
 try:
     import autotest.common as common
 except ImportError:

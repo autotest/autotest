@@ -19,7 +19,10 @@
 #       tmpdir          eg. tmp/<testname.tag>
 #       virtdir         eg. virt
 
-import os, logging, resource, glob
+import os
+import logging
+import resource
+import glob
 
 from autotest.client.shared import utils
 from autotest.client.shared import test as common_test
@@ -29,6 +32,7 @@ from autotest.client import os_dep
 class test(common_test.base_test):
     # Segmentation fault handling is something that is desirable only for
     # client side tests.
+
     def configure_crash_handler(self):
         """
         Configure the crash handler by:
@@ -83,7 +87,6 @@ class test(common_test.base_test):
             except ValueError:
                 logging.warning('Could not find GDB installed. Crash handling '
                                 'will operate with limited functionality')
-
 
     def crash_handler_report(self):
         """

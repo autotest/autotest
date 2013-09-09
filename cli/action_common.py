@@ -40,7 +40,9 @@ For 'atest label add':
 
 """
 
-import re, socket, types
+import re
+import socket
+import types
 from autotest.cli import topic_common
 
 
@@ -48,9 +50,9 @@ from autotest.cli import topic_common
 # List action
 #
 class atest_list(topic_common.atest):
+
     """atest <topic> list"""
     usage_action = 'list'
-
 
     def _convert_wildcard(self, old_key, new_key,
                           value, filters, check_results):
@@ -59,20 +61,17 @@ class atest_list(topic_common.atest):
         del filters[old_key]
         del check_results[old_key]
 
-
     def _convert_name_wildcard(self, key, value, filters, check_results):
         if value.endswith('*'):
             # Could be __name, __login, __hostname
             new_key = key + '__startswith'
             self._convert_wildcard(key, new_key, value, filters, check_results)
 
-
     def _convert_in_wildcard(self, key, value, filters, check_results):
         if value.endswith('*'):
             assert key.endswith('__in'), 'Key %s does not end with __in' % key
             new_key = key.replace('__in', '__startswith', 1)
             self._convert_wildcard(key, new_key, value, filters, check_results)
-
 
     def check_for_wildcard(self, filters, check_results):
         """Check if there is a wilcard (only * for the moment)
@@ -93,7 +92,6 @@ class atest_list(topic_common.atest):
                     if value.endswith('*'):
                         # Can only be a wildcard if it is by itelf
                         self.invalid_syntax('Cannot mix wilcards and items')
-
 
     def execute(self, op, filters={}, check_results={}):
         """Generic list execute:
@@ -124,7 +122,6 @@ class atest_list(topic_common.atest):
                              ', '.join(set(filters[dbkey]) - good))
         return results
 
-
     def output(self, results, keys, sublist_keys=[]):
         self.print_table(results, keys, sublist_keys)
 
@@ -133,6 +130,7 @@ class atest_list(topic_common.atest):
 # Creation & Deletion of a topic (ACL, label, user)
 #
 class atest_create_or_delete(topic_common.atest):
+
     """atest <topic> [create|delete]
     To subclass this, you must define:
                          Example          Comment
@@ -143,6 +141,7 @@ class atest_create_or_delete(topic_common.atest):
     self.msg_topic:      'ACL'           The printable version of the topic.
     self.msg_done:       'Deleted'       The printable version of the action.
     """
+
     def execute(self):
         handled = []
 
@@ -156,7 +155,6 @@ class atest_create_or_delete(topic_common.atest):
             except topic_common.CliError:
                 pass
         return handled
-
 
     def output(self, results):
         if results:
@@ -182,6 +180,7 @@ class atest_delete(atest_create_or_delete):
 # (ACL, Label or AtomicGroup)
 #
 class atest_add_or_remove(topic_common.atest):
+
     """atest <topic> [add|remove]
     To subclass this, you must define these attributes:
                        Example             Comment
@@ -194,7 +193,6 @@ class atest_add_or_remove(topic_common.atest):
     """
 
     add_remove_things = {'users': 'user', 'hosts': 'host'}  # Original behavior
-
 
     def _add_remove_uh_to_topic(self, item, what):
         """Adds the 'what' (such as users or hosts) to the 'item'"""
@@ -216,7 +214,6 @@ class atest_add_or_remove(topic_common.atest):
                 setattr(self, 'good_%s' % what, good_uhs)
             else:
                 raise
-
 
     def execute(self):
         """Adds or removes things (users, hosts, etc.) from a topic, e.g.:
@@ -258,7 +255,6 @@ class atest_add_or_remove(topic_common.atest):
             results[thing] = things_ok
 
         return results
-
 
     def output(self, results):
         for thing, single_thing in self.add_remove_things.iteritems():

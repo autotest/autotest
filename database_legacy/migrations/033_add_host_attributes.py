@@ -13,6 +13,7 @@ DOWN_SQL = """
 DROP TABLE IF EXISTS host_attributes;
 """
 
+
 def migrate_up(manager):
     manager.execute_script(UP_SQL)
 

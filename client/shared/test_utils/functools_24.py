@@ -31,7 +31,7 @@ __revision__ = '$Dima: pylib/functools/functools.py,v 1.2 2005/08/22 07:05:22 di
 def compose(*args):
 
     if len(args) < 1:
-        raise TypeError, 'compose expects at least one argument'
+        raise TypeError('compose expects at least one argument')
     fs = args[-2::-1]
     g = args[-1]
 
@@ -48,7 +48,7 @@ def fastcut(*sargs, **skw):
     try:
         fun = sargs[0]
     except IndexError:
-        raise TypeError, 'fastcut requires at least one argument'
+        raise TypeError('fastcut requires at least one argument')
     sargs = sargs[1:]
 
     def fastcutcall(*args, **kw):

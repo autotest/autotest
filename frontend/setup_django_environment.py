@@ -9,5 +9,5 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "autotest.frontend.settings")
 
 def enable_autocommit():
     from django.db import connection
-    connection.cursor() # ensure a connection is open
+    connection.cursor()  # ensure a connection is open
     connection.connection.autocommit(True)

@@ -24,11 +24,11 @@ def migrate_up(manager):
 
     if not manager.force:
         response = raw_input(
-                'This migration will merge the autotest_web and tko databases. '
-                'Following the migration, the tko database will be dropped. '
-                'Any user-added tables in tko will NOT be migrated. This '
-                'migration is NOT reversible. Are you sure you want to '
-                'continue? (yes/no) ')
+            'This migration will merge the autotest_web and tko databases. '
+            'Following the migration, the tko database will be dropped. '
+            'Any user-added tables in tko will NOT be migrated. This '
+            'migration is NOT reversible. Are you sure you want to '
+            'continue? (yes/no) ')
         if response != 'yes':
             raise Exception('User has chosen to abort migration')
 

@@ -33,7 +33,10 @@ The ramdisk volume group size is in MB.
 """
 
 import logging
-import re, os, shutil, time
+import re
+import os
+import shutil
+import time
 
 from autotest.client import utils
 from autotest.client.shared import error
@@ -71,7 +74,7 @@ def vg_ramdisk(vg_name, ramdisk_vg_size,
     except error.CmdError, ex:
         logging.error(ex)
         vg_ramdisk_cleanup(ramdisk_filename,
-                                 vg_ramdisk_dir, vg_name, "")
+                           vg_ramdisk_dir, vg_name, "")
         raise ex
 
     loop_device = result.stdout.rstrip()
@@ -217,7 +220,7 @@ def lv_remove(vg_name, lv_name):
 
 
 @error.context_aware
-def lv_create(vg_name, lv_name, lv_size, force_flag = True):
+def lv_create(vg_name, lv_name, lv_size, force_flag=True):
     """
     Create a logical volume in a volume group.
 
@@ -240,7 +243,7 @@ def lv_create(vg_name, lv_name, lv_size, force_flag = True):
 
 @error.context_aware
 def lv_take_snapshot(vg_name, lv_name,
-                    lv_snapshot_name, lv_snapshot_size):
+                     lv_snapshot_name, lv_snapshot_size):
     """
     Take a snapshot of the original logical volume.
     """
@@ -295,7 +298,7 @@ def lv_revert(vg_name, lv_name, lv_snapshot_name):
         cmd = ("lvconvert --merge /dev/%s/%s" % (vg_name, lv_snapshot_name))
         result = utils.run(cmd)
         if ("Merging of snapshot %s will start next activation." %
-            lv_snapshot_name) in result.stdout:
+                lv_snapshot_name) in result.stdout:
             raise error.TestError("The logical volume %s is still active" %
                                   lv_name)
         result = result.stdout.rstrip()
@@ -306,7 +309,7 @@ def lv_revert(vg_name, lv_name, lv_snapshot_name):
         if (('Snapshot could not be found' in ex and
             re.search(re.escape(lv_snapshot_name + " [active]"),
                       utils.run("lvdisplay").stdout))
-            or ("The logical volume %s is still active" % lv_name) in ex):
+                or ("The logical volume %s is still active" % lv_name) in ex):
             logging.warning(("Logical volume %s is still active! " +
                              "Attempting to deactivate..."), lv_name)
             lv_reactivate(vg_name, lv_name)
@@ -334,7 +337,7 @@ def lv_revert_with_snapshot(vg_name, lv_name,
 
 
 @error.context_aware
-def lv_reactivate(vg_name, lv_name, timeout = 10):
+def lv_reactivate(vg_name, lv_name, timeout=10):
     """
     In case of unclean shutdowns some of the lvs is still active and merging
     is postponed. Use this function to attempt to deactivate and reactivate

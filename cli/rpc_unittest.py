@@ -4,7 +4,8 @@
 
 """Test for the rpc proxy class."""
 
-import unittest, os
+import unittest
+import os
 try:
     import autotest.common as common
 except ImportError:
@@ -14,31 +15,27 @@ from autotest.client.shared.settings import settings
 
 
 class rpc_unittest(unittest.TestCase):
+
     def setUp(self):
         self.old_environ = os.environ.copy()
         if 'AUTOTEST_WEB' in os.environ:
             del os.environ['AUTOTEST_WEB']
 
-
     def tearDown(self):
         os.environ.clear()
         os.environ.update(self.old_environ)
 
-
     def test_get_autotest_server_specific(self):
         self.assertEqual('http://foo', rpc.get_autotest_server('foo'))
-
 
     def test_get_autotest_server_none(self):
         settings.override_value('SERVER', 'hostname', 'Prince')
         self.assertEqual('http://Prince', rpc.get_autotest_server(None))
 
-
     def test_get_autotest_server_environ(self):
         os.environ['AUTOTEST_WEB'] = 'foo-dev'
         self.assertEqual('http://foo-dev', rpc.get_autotest_server(None))
         del os.environ['AUTOTEST_WEB']
-
 
     def test_get_autotest_server_environ_precedence(self):
         os.environ['AUTOTEST_WEB'] = 'foo-dev'

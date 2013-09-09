@@ -13,13 +13,12 @@ from autotest.client.shared.test_utils import mock
 
 
 class Probe(unittest.TestCase):
+
     def setUp(self):
         self.god = mock.mock_god()
 
-
     def tearDown(self):
         self.god.unstub_all()
-
 
     def test_check_name_for_file_fail(self):
         class MyProbe(distro.Probe):
@@ -27,7 +26,6 @@ class Probe(unittest.TestCase):
 
         my_probe = MyProbe()
         self.assertFalse(my_probe.check_name_for_file())
-
 
     def test_check_name_for_file(self):
         class MyProbe(distro.Probe):
@@ -37,7 +35,6 @@ class Probe(unittest.TestCase):
         my_probe = MyProbe()
         self.assertTrue(my_probe.check_name_for_file())
 
-
     def test_check_name_for_file_contains_fail(self):
         class MyProbe(distro.Probe):
             CHECK_FILE = '/etc/issue'
@@ -45,7 +42,6 @@ class Probe(unittest.TestCase):
 
         my_probe = MyProbe()
         self.assertFalse(my_probe.check_name_for_file_contains())
-
 
     def test_check_name_for_file_contains(self):
         class MyProbe(distro.Probe):
@@ -56,14 +52,12 @@ class Probe(unittest.TestCase):
         my_probe = MyProbe()
         self.assertTrue(my_probe.check_name_for_file_contains())
 
-
     def test_check_version_fail(self):
         class MyProbe(distro.Probe):
             CHECK_VERSION_REGEX = re.compile(r'distro version (\d+)')
 
         my_probe = MyProbe()
         self.assertFalse(my_probe.check_version())
-
 
     def test_version_returnable(self):
         class MyProbe(distro.Probe):
@@ -72,7 +66,6 @@ class Probe(unittest.TestCase):
 
         my_probe = MyProbe()
         self.assertTrue(my_probe.check_version())
-
 
     def test_name_for_file(self):
         distro_file = '/etc/issue'

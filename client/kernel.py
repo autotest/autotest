@@ -1,4 +1,10 @@
-import os, copy, pickle, re, glob, time, logging
+import os
+import copy
+import pickle
+import re
+import glob
+import time
+import logging
 from autotest.client import kernel_config, os_dep, kernelexpand
 from autotest.client import utils
 from autotest.client.shared import log, error
@@ -56,7 +62,6 @@ class BootableKernel(object):
         self.image = None
         self.initrd = ''
 
-
     def _boot_kernel(self, args, ident_check, expected_ident, subdir, notes):
         """
         Boot a kernel, with post-boot kernel id check
@@ -86,7 +91,6 @@ class BootableKernel(object):
         self.job.start_reboot()
         self.job.reboot(tag=self.installed_as)
 
-
     def add_to_bootloader(self, args=''):
         # Point bootloader to the selected tag.
         _add_kernel_to_bootloader(self.job.bootloader,
@@ -96,6 +100,7 @@ class BootableKernel(object):
 
 
 class kernel(BootableKernel):
+
     """ Class for compiling kernels.
 
     Data for the object includes the src files
@@ -144,13 +149,13 @@ class kernel(BootableKernel):
         super(kernel, self).__init__(job)
         self.autodir = job.autodir
 
-        self.src_dir    = os.path.join(tmp_dir, 'src')
-        self.build_dir  = os.path.join(tmp_dir, build_dir)
+        self.src_dir = os.path.join(tmp_dir, 'src')
+        self.build_dir = os.path.join(tmp_dir, build_dir)
                 # created by get_kernel_tree
         self.config_dir = os.path.join(subdir, 'config')
-        self.log_dir    = os.path.join(subdir, 'debug')
+        self.log_dir = os.path.join(subdir, 'debug')
         self.results_dir = os.path.join(subdir, 'results')
-        self.subdir     = os.path.basename(subdir)
+        self.subdir = os.path.basename(subdir)
 
         if not leave:
             if os.path.isdir(self.src_dir):
@@ -196,7 +201,6 @@ class kernel(BootableKernel):
             # Actually extract the tree.  Make sure we know it occurred
             self.extract(base_tree)
 
-
     def kernelexpand(self, kernel):
         # If we have something like a path, just use it as it is
         if '/' in kernel:
@@ -210,16 +214,15 @@ class kernel(BootableKernel):
             if mirror:
                 korg = 'http://www.kernel.org/pub/linux/kernel'
                 mirrors = [
-                  [ korg + '/v2.6', mirror + '/v2.6' ],
-                  [ korg + '/people/akpm/patches/2.6', mirror + '/akpm' ],
-                  [ korg + '/people/mbligh', mirror + '/mbligh' ],
+                    [korg + '/v2.6', mirror + '/v2.6'],
+                    [korg + '/people/akpm/patches/2.6', mirror + '/akpm'],
+                    [korg + '/people/mbligh', mirror + '/mbligh'],
                 ]
 
         patches = kernelexpand.expand_classic(kernel, mirrors)
         print patches
 
         return patches
-
 
     @log.record
     @tee_output_logdir_mark
@@ -234,7 +237,6 @@ class kernel(BootableKernel):
             if base_components:      # apply remaining patches
                 self.patch(*base_components)
 
-
     @log.record
     @tee_output_logdir_mark
     def patch(self, *patches):
@@ -243,7 +245,6 @@ class kernel(BootableKernel):
             return
         print 'Applying patches: ', patches
         self.apply_patches(self.get_patches(patches))
-
 
     @log.record
     @tee_output_logdir_mark
@@ -259,7 +260,6 @@ class kernel(BootableKernel):
                                          config.build_config):
             self.build_target = 'uImage'
 
-
     def get_patches(self, patches):
         """fetch the patches to the local src_dir"""
         local_patches = []
@@ -274,7 +274,6 @@ class kernel(BootableKernel):
             md5sum = utils.system_output('md5sum ' + dest).split()[0]
             local_patches.append((patch, dest, md5sum))
         return local_patches
-
 
     def apply_patches(self, local_patches):
         """apply the list of patches, in order"""
@@ -296,7 +295,6 @@ class kernel(BootableKernel):
             self.logfile.write(log)
             self.applied_patches.append(patch_id)
 
-
     def get_kernel_tree(self, base_tree):
         """Extract/link base_tree to self.build_dir"""
 
@@ -316,7 +314,6 @@ class kernel(BootableKernel):
             print 'Extracting kernel tarball:', tarball, '...'
             utils.extract_tarball_to_dir(tarball, self.build_dir)
 
-
     def extraversion(self, tag, append=True):
         os.chdir(self.build_dir)
         extraversion_sub = r's/^CONFIG_LOCALVERSION=\s*"\(.*\)"/CONFIG_LOCALVERSION='
@@ -332,10 +329,9 @@ class kernel(BootableKernel):
         else:
             self.config()
 
-
     @log.record
     @tee_output_logdir_mark
-    def build(self, make_opts='', logfile ='', extraversion='autotest'):
+    def build(self, make_opts='', logfile='', extraversion='autotest'):
         """build the kernel
 
         make_opts
@@ -354,7 +350,7 @@ class kernel(BootableKernel):
         utils.system('make dep', ignore_status=True)
         threads = 2 * utils.count_cpus()
         build_string = 'make -j %d %s %s' % (threads, make_opts,
-                                     self.build_target)
+                                             self.build_target)
                                 # eg make bzImage, or make zImage
         print build_string
         utils.system(build_string)
@@ -366,7 +362,6 @@ class kernel(BootableKernel):
         self.logfile.write('BUILD VERSION: %s\n' % kernel_version)
 
         utils.force_copy(self.build_dir + '/System.map', self.results_dir)
-
 
     def build_timed(self, threads, timefile='/dev/null', make_opts='',
                     output='/dev/null'):
@@ -385,7 +380,6 @@ class kernel(BootableKernel):
             errmsg = "no vmlinux found, kernel build failed"
             raise error.TestError(errmsg)
 
-
     @log.record
     @tee_output_logdir_mark
     def clean(self):
@@ -393,7 +387,6 @@ class kernel(BootableKernel):
         os.chdir(self.build_dir)
         print "make clean"
         utils.system('make clean > /dev/null 2> /dev/null')
-
 
     @log.record
     @tee_output_logdir_mark
@@ -458,10 +451,8 @@ class kernel(BootableKernel):
         else:
             raise error.TestError('Unsupported vendor %s' % vendor)
 
-
     def set_build_image(self, image):
         self.build_image = image
-
 
     @log.record
     @tee_output_logdir_mark
@@ -515,7 +506,6 @@ class kernel(BootableKernel):
             self.mkinitrd(self.get_kernel_build_ver(), self.image,
                           self.system_map, self.initrd)
 
-
     def get_kernel_build_arch(self, arch=None):
         """
         Work out the current kernel architecture (as a kernel arch)
@@ -541,10 +531,9 @@ class kernel(BootableKernel):
         else:
             return arch
 
-
     def get_kernel_build_release(self):
-        releasem = re.compile(r'.*UTS_RELEASE\s+"([^"]+)".*');
-        versionm = re.compile(r'.*UTS_VERSION\s+"([^"]+)".*');
+        releasem = re.compile(r'.*UTS_RELEASE\s+"([^"]+)".*')
+        versionm = re.compile(r'.*UTS_VERSION\s+"([^"]+)".*')
 
         release = None
         version = None
@@ -567,7 +556,6 @@ class kernel(BootableKernel):
 
         return (release, version)
 
-
     def get_kernel_build_ident(self):
         (release, version) = self.get_kernel_build_release()
 
@@ -575,7 +563,6 @@ class kernel(BootableKernel):
             raise error.JobError('kernel has no identity')
 
         return release + '::' + version
-
 
     def boot(self, args='', ident=True):
         """ install and boot this kernel, do not care how
@@ -590,7 +577,6 @@ class kernel(BootableKernel):
         expected_ident = self.get_kernel_build_ident()
         self._boot_kernel(args, ident, expected_ident,
                           self.subdir, self.applied_patches)
-
 
     def get_kernel_build_ver(self):
         """Check Makefile and .config to return kernel version"""
@@ -610,14 +596,12 @@ class kernel(BootableKernel):
             if line.startswith('CONFIG_LOCALVERSION='):
                 localversion = line.rstrip().split('"')[1]
 
-        return "%s.%s.%s%s%s" %(version, patchlevel, sublevel, extraversion, localversion)
-
+        return "%s.%s.%s%s%s" % (version, patchlevel, sublevel, extraversion, localversion)
 
     def set_build_target(self, build_target):
         if build_target:
             self.build_target = build_target
             print 'BUILD TARGET: %s' % self.build_target
-
 
     def set_cross_cc(self, target_arch=None, cross_compile=None,
                      build_target='bzImage'):
@@ -674,7 +658,6 @@ class kernel(BootableKernel):
         if self.cross_compile:
             os.environ['CROSS_COMPILE'] = self.cross_compile
 
-
     def pickle_dump(self, filename):
         """dump a pickle of ourself out to the specified filename
 
@@ -688,6 +671,7 @@ class kernel(BootableKernel):
 
 
 class rpm_kernel(BootableKernel):
+
     """
     Class for installing a binary rpm kernel package
     """
@@ -701,13 +685,11 @@ class rpm_kernel(BootableKernel):
             utils.system('rm -rf ' + self.log_dir)
         os.mkdir(self.log_dir)
 
-
     def build(self, *args, **dargs):
         """
         Dummy function, binary kernel so nothing to build.
         """
         pass
-
 
     @log.record
     @tee_output_logdir_mark
@@ -734,8 +716,8 @@ class rpm_kernel(BootableKernel):
 
                     # get version and release number
                     self.version, self.release = utils.system_output(
-                            'rpm --queryformat="%{VERSION}\\n%{RELEASE}\\n" -q '
-                            + rpm_name).splitlines()[0:2]
+                        'rpm --queryformat="%{VERSION}\\n%{RELEASE}\\n" -q '
+                        + rpm_name).splitlines()[0:2]
 
                     # prefer /boot/kernel-version before /boot/kernel
                     if self.full_version:
@@ -749,7 +731,7 @@ class rpm_kernel(BootableKernel):
                     if len(file) > len('/boot/initrd'):
                         break
 
-        if self.image == None:
+        if self.image is None:
             errmsg = "specified rpm file(s) don't contain /boot/vmlinuz"
             raise error.TestError(errmsg)
 
@@ -757,13 +739,12 @@ class rpm_kernel(BootableKernel):
         if install_vmlinux:
             for rpm_pack in self.rpm_package:
                 vmlinux = utils.system_output(
-                        'rpm -q -l -p %s | grep /boot/vmlinux' % rpm_pack)
+                    'rpm -q -l -p %s | grep /boot/vmlinux' % rpm_pack)
             utils.system('cd /; rpm2cpio %s | cpio -imuv .%s 2>&1'
                          % (rpm_pack, vmlinux))
             if not os.path.exists(vmlinux):
                 raise error.TestError('%s does not exist after installing %s'
                                       % (vmlinux, rpm_pack))
-
 
     def boot(self, args='', ident=True):
         """ install and boot this kernel
@@ -785,6 +766,7 @@ class rpm_kernel(BootableKernel):
 
 
 class rpm_kernel_suse(rpm_kernel):
+
     """ Class for installing openSUSE/SLE rpm kernel package
     """
 
@@ -797,7 +779,6 @@ class rpm_kernel_suse(rpm_kernel):
         if not self.installed_as:
             errmsg = "cannot find installed kernel in bootloader configuration"
             raise error.TestError(errmsg)
-
 
     def add_to_bootloader(self, tag='dummy', args=''):
         """ Set parameters of this kernel in bootloader
@@ -826,8 +807,8 @@ def _preprocess_path_dummy(path):
 
 # pull in some optional site-specific path pre-processing
 preprocess_path = utils.import_site_function(__file__,
-    "autotest.client.site_kernel", "preprocess_path",
-    _preprocess_path_dummy)
+                                             "autotest.client.site_kernel", "preprocess_path",
+                                             _preprocess_path_dummy)
 
 
 def auto_kernel(job, path, subdir, tmp_dir, build_dir, leave=False):

@@ -6,7 +6,9 @@ provides access to global configuration file.
 
 __author__ = 'raphtee@google.com (Travis Miller)'
 
-import os, sys, ConfigParser
+import os
+import sys
+import ConfigParser
 from autotest.client.shared import error
 
 
@@ -63,6 +65,7 @@ else:
     DEFAULT_SHADOW_FILE = None
     RUNNING_STAND_ALONE_CLIENT = True
 
+
 class Settings(object):
     _NO_DEFAULT_SPECIFIED = object()
 
@@ -71,17 +74,14 @@ class Settings(object):
     shadow_file = DEFAULT_SHADOW_FILE
     running_stand_alone_client = RUNNING_STAND_ALONE_CLIENT
 
-
     def check_stand_alone_client_run(self):
         return self.running_stand_alone_client
 
-
     def set_config_files(self, config_file=DEFAULT_CONFIG_FILE,
-                            shadow_file=DEFAULT_SHADOW_FILE):
+                         shadow_file=DEFAULT_SHADOW_FILE):
         self.config_file = config_file
         self.shadow_file = shadow_file
         self.config = None
-
 
     def _handle_no_value(self, section, key, default):
         if default is self._NO_DEFAULT_SPECIFIED:
@@ -90,7 +90,6 @@ class Settings(object):
             raise SettingsError(msg)
         else:
             return default
-
 
     def get_section_values(self, sections):
         """
@@ -112,7 +111,6 @@ class Settings(object):
                 cfgparser.set(section, option, value)
         return cfgparser
 
-
     def get_value(self, section, key, type=str, default=_NO_DEFAULT_SPECIFIED,
                   allow_blank=False):
         self._ensure_config_parsed()
@@ -127,14 +125,12 @@ class Settings(object):
 
         return self._convert_value(key, section, val, type)
 
-
     def override_value(self, section, key, new_value):
         """
         Override a value from the config file with a new value.
         """
         self._ensure_config_parsed()
         self.config.set(section, key, new_value)
-
 
     def reset_values(self):
         """
@@ -143,11 +139,9 @@ class Settings(object):
         """
         self.parse_config_file()
 
-
     def _ensure_config_parsed(self):
         if self.config is None:
             self.parse_config_file()
-
 
     def merge_configs(self, shadow_config):
         # overwrite whats in config with whats in shadow_config
@@ -161,7 +155,6 @@ class Settings(object):
             for option in options:
                 val = shadow_config.get(section, option)
                 self.config.set(section, option, val)
-
 
     def parse_config_file(self):
         self.config = ConfigParser.ConfigParser()
@@ -178,7 +171,6 @@ class Settings(object):
             shadow_config.read(self.shadow_file)
             # now we merge shadow into global
             self.merge_configs(shadow_config)
-
 
     # the values that are pulled from ini
     # are strings.  But we should attempt to
@@ -217,7 +209,7 @@ class Settings(object):
             return conv_val
         except Exception:
             msg = ("Could not convert %s value %r in section %s to type %s" %
-                    (key, sval, section, value_type))
+                  (key, sval, section, value_type))
             raise SettingsValueError(msg)
 
 

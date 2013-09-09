@@ -3,29 +3,30 @@
 This library is to release in the public repository.
 """
 
-import os, re, socket, time, struct
+import os
+import re
+import socket
+import time
+import struct
 from autotest.client.shared import error
 from autotest.client import utils
 
-TIMEOUT = 10 # Used for socket timeout and barrier timeout
+TIMEOUT = 10  # Used for socket timeout and barrier timeout
 
 
 class network_utils(object):
+
     def reset(self, ignore_status=False):
         utils.system('service network restart', ignore_status=ignore_status)
-
 
     def start(self, ignore_status=False):
         utils.system('service network start', ignore_status=ignore_status)
 
-
     def stop(self, ignore_status=False):
         utils.system('service network stop', ignore_status=ignore_status)
 
-
     def list(self):
         utils.system('/sbin/ifconfig -a')
-
 
     def get_ip_local(self, query_ip, netmask="24"):
         """
@@ -41,13 +42,11 @@ class network_utils(object):
             return ip
         return ip.group(1)
 
-
     def disable_ip_local_loopback(self, ignore_status=False):
         utils.system("echo '1' > /proc/sys/net/ipv4/route/no_local_loopback",
                      ignore_status=ignore_status)
         utils.system('echo 1 > /proc/sys/net/ipv4/route/flush',
                      ignore_status=ignore_status)
-
 
     def enable_ip_local_loopback(self, ignore_status=False):
         utils.system("echo '0' > /proc/sys/net/ipv4/route/no_local_loopback",
@@ -55,8 +54,7 @@ class network_utils(object):
         utils.system('echo 1 > /proc/sys/net/ipv4/route/flush',
                      ignore_status=ignore_status)
 
-
-    def process_mpstat(self, mpstat_out, sample_count, loud = True):
+    def process_mpstat(self, mpstat_out, sample_count, loud=True):
         """Parses mpstat output of the following two forms:
         02:10:17     0    0.00    0.00    0.00    0.00    0.00    0.00   \
         0.00  100.00   1012.87
@@ -123,7 +121,6 @@ class network_interface(object):
         self._socket.settimeout(TIMEOUT)
         self._socket.bind((name, raw_socket.ETH_P_ALL))
 
-
     def restore(self):
         self.set_ipaddr(self.orig_ipaddr)
         # TODO (msb): The additional conditional guard needs cleanup:
@@ -138,10 +135,8 @@ class network_interface(object):
         if self.was_down:
             self.down()
 
-
     def get_name(self):
         return self._name
-
 
     def parse_ethtool(self, field, match, option='', next_field=''):
         output = utils.system_output('%s %s %s' % (self.ethtool,
@@ -154,7 +149,6 @@ class network_interface(object):
 
         return ''
 
-
     def get_stats(self):
         stats = {}
         stats_path = '/sys/class/net/%s/statistics/' % self._name
@@ -165,7 +159,6 @@ class network_interface(object):
                 f.close()
         return stats
 
-
     def get_stats_diff(self, orig_stats):
         stats = self.get_stats()
         for stat in stats.keys():
@@ -175,12 +168,10 @@ class network_interface(object):
                 stats[stat] = stats[stat]
         return stats
 
-
     def get_driver(self):
         driver_path = os.readlink('/sys/class/net/%s/device/driver' %
                                   self._name)
         return os.path.basename(driver_path)
-
 
     def get_carrier(self):
         f = open('/sys/class/net/%s/carrier' % self._name)
@@ -190,84 +181,68 @@ class network_interface(object):
         f.close()
         return carrier
 
-
     def get_supported_link_modes(self):
         result = self.parse_ethtool('Supported link modes', '.*',
                                     next_field='Supports auto-negotiation')
         return result.split()
-
 
     def get_advertised_link_modes(self):
         result = self.parse_ethtool('Advertised link modes', '.*',
                                     next_field='Advertised auto-negotiation')
         return result.split()
 
-
     def is_autoneg_advertised(self):
         result = self.parse_ethtool('Advertised auto-negotiation',
-                                        'Yes|No')
+                                    'Yes|No')
         return result == 'Yes'
-
 
     def get_speed(self):
         return int(self.parse_ethtool('Speed', '\d+'))
-
 
     def is_full_duplex(self):
         result = self.parse_ethtool('Duplex', 'Full|Half')
         return result == 'Full'
 
-
     def is_autoneg_on(self):
         result = self.parse_ethtool('Auto-negotiation', 'on|off')
         return result == 'on'
 
-
     def get_wakeon(self):
         return self.parse_ethtool('Wake-on', '\w+')
-
 
     def is_rx_summing_on(self):
         result = self.parse_ethtool('rx-checksumming', 'on|off', '-k')
         return result == 'on'
 
-
     def is_tx_summing_on(self):
         result = self.parse_ethtool('tx-checksumming', 'on|off', '-k')
         return result == 'on'
 
-
     def is_scatter_gather_on(self):
         result = self.parse_ethtool('scatter-gather', 'on|off', '-k')
         return result == 'on'
-
 
     def is_tso_on(self):
         result = self.parse_ethtool('tcp segmentation offload',
                                     'on|off', '-k')
         return result == 'on'
 
-
     def is_pause_autoneg_on(self):
         result = self.parse_ethtool('Autonegotiate', 'on|off', '-a')
         return result == 'on'
-
 
     def is_tx_pause_on(self):
         result = self.parse_ethtool('TX', 'on|off', '-a')
         return result == 'on'
 
-
     def is_rx_pause_on(self):
         result = self.parse_ethtool('RX', 'on|off', '-a')
         return result == 'on'
 
-
     def _set_loopback(self, mode, enable_disable):
         return utils.system('%s -L %s %s %s' %
-                      (self.ethtool, self._name, mode, enable_disable),
-                      ignore_status=True)
-
+                           (self.ethtool, self._name, mode, enable_disable),
+                            ignore_status=True)
 
     def enable_loopback(self):
         # If bonded do not set loopback mode.
@@ -277,7 +252,7 @@ class network_interface(object):
             raise error.TestError('Unable to enable loopback while '
                                   'bonding is enabled.')
         if (self._set_loopback('phyint', 'enable') > 0 and
-            self._set_loopback('mac', 'enable') > 0):
+                self._set_loopback('mac', 'enable') > 0):
             raise error.TestError('Unable to enable loopback')
         # Add a 1 second wait for drivers which do not have
         # a synchronous loopback enable
@@ -286,14 +261,12 @@ class network_interface(object):
             time.sleep(1)
         self.wait_for_carrier(timeout=30)
 
-
     def disable_loopback(self):
         # Try mac loopback first then phy loopback
         # If both fail, raise an error
         if (self._set_loopback('phyint', 'disable') > 0 and
-            self._set_loopback('mac', 'disable') > 0):
+                self._set_loopback('mac', 'disable') > 0):
             raise error.TestError('Unable to disable loopback')
-
 
     def is_loopback_enabled(self):
         # Don't try ethtool -l on a bonded host
@@ -304,14 +277,11 @@ class network_interface(object):
             return 'enabled' in output
         return False
 
-
     def enable_promisc(self):
         utils.system('ifconfig %s promisc' % self._name)
 
-
     def disable_promisc(self):
         utils.system('ifconfig %s -promisc' % self._name)
-
 
     def get_hwaddr(self):
         f = open('/sys/class/net/%s/address' % self._name)
@@ -319,18 +289,14 @@ class network_interface(object):
         f.close()
         return hwaddr
 
-
     def set_hwaddr(self, hwaddr):
         utils.system('ifconfig %s hw ether %s' % (self._name, hwaddr))
-
 
     def add_maddr(self, maddr):
         utils.system('ip maddr add %s dev %s' % (maddr, self._name))
 
-
     def del_maddr(self, maddr):
         utils.system('ip maddr del %s dev %s' % (maddr, self._name))
-
 
     def get_ipaddr(self):
         ipaddr = "0.0.0.0"
@@ -341,10 +307,8 @@ class network_interface(object):
                 ipaddr = match.group(1)
         return ipaddr
 
-
     def set_ipaddr(self, ipaddr):
         utils.system('ifconfig %s %s' % (self._name, ipaddr))
-
 
     def is_down(self):
         output = utils.system_output('ifconfig %s' % self._name)
@@ -355,10 +319,8 @@ class network_interface(object):
     def up(self):
         utils.system('ifconfig %s up' % self._name)
 
-
     def down(self):
         utils.system('ifconfig %s down' % self._name)
-
 
     def wait_for_carrier(self, timeout=60):
         while timeout and self.get_carrier() != '1':
@@ -367,14 +329,11 @@ class network_interface(object):
         if timeout == 0:
             raise error.TestError('Timed out waiting for carrier.')
 
-
     def send(self, buf):
         self._socket.send(buf)
 
-
     def recv(self, len):
         return self._socket.recv(len)
-
 
     def flush(self):
         self._socket.close()
@@ -394,6 +353,7 @@ def netif(name):
 
 
 class bonding(object):
+
     """This class implements bonding interface abstraction."""
 
     NO_MODE = 0
@@ -403,26 +363,20 @@ class bonding(object):
     def is_enabled(self):
         raise error.TestError('Undefined')
 
-
     def is_bondable(self):
         raise error.TestError('Undefined')
-
 
     def enable(self):
         raise error.TestError('Undefined')
 
-
     def disable(self):
         raise error.TestError('Undefined')
-
 
     def get_mii_status(self):
         return {}
 
-
     def get_mode(self):
         return bonding.NO_MODE
-
 
     def wait_for_state_change(self):
         """Wait for bonding state change.
@@ -441,10 +395,8 @@ class bonding(object):
             wait_time += 10
         return False
 
-
     def get_active_interfaces(self):
         return []
-
 
     def get_slave_interfaces(self):
         return []
@@ -461,9 +413,11 @@ def bond():
 
 
 class raw_socket(object):
+
     """This class implements an raw socket abstraction."""
-    ETH_P_ALL = 0x0003 # Use for binding a RAW Socket to all protocols
+    ETH_P_ALL = 0x0003  # Use for binding a RAW Socket to all protocols
     SOCKET_TIMEOUT = 1
+
     def __init__(self, iface_name):
         """Initialize an interface for use.
 
@@ -477,15 +431,12 @@ class raw_socket(object):
         if self._name is None:
             raise error.TestError('Invalid interface name')
 
-
     def socket(self):
         return self._socket
-
 
     def socket_timeout(self):
         """Get the timeout use by recv_from"""
         return self._socket_timeout
-
 
     def set_socket_timeout(self, timeout):
         """Set the timeout use by recv_from.
@@ -515,7 +466,7 @@ class raw_socket(object):
                                          socket.htons(protocol))
             self._socket.bind((self._name, self.ETH_P_ALL))
 
-        self._socket.settimeout(1) # always running with 1 second timeout
+        self._socket.settimeout(1)  # always running with 1 second timeout
 
     def close(self):
         """ Close the raw socket"""
@@ -524,7 +475,6 @@ class raw_socket(object):
             self._socket = None
         else:
             raise error.TestError('Raw socket not open')
-
 
     def recv(self, timeout):
         """Synchroneous receive.
@@ -551,7 +501,7 @@ class raw_socket(object):
         while time_left or (timeout == 0):
             try:
                 packet = self._socket.recv(ethernet.ETH_PACKET_MAX_SIZE)
-                if len(packet) >= (ethernet.ETH_PACKET_MIN_SIZE-4):
+                if len(packet) >= (ethernet.ETH_PACKET_MIN_SIZE - 4):
                     break
                 packet = None
                 if timeout and time_left:
@@ -563,14 +513,12 @@ class raw_socket(object):
 
         return packet, time_left
 
-
     def send(self, packet):
         """Send an ethernet packet."""
         if self._socket is None:
             raise error.TestError('Raw socket not open')
 
         self._socket.send(packet)
-
 
     def send_to(self, dst_mac, src_mac, protocol, payload):
         """Send an ethernet frame.
@@ -590,7 +538,6 @@ class raw_socket(object):
         except Exception:
             raise error.TestError('Invalid Packet')
         self.send(packet)
-
 
     def recv_from(self, dst_mac, src_mac, protocol):
         """Receive an ethernet frame that matches the dst, src and proto.
@@ -622,15 +569,15 @@ class raw_socket(object):
                 frame = ethernet.unpack(packet)
                 if ((src_mac is None or frame['src'] == src_mac) and
                     (dst_mac is None or frame['dst'] == dst_mac) and
-                    (protocol is None or frame['proto'] == protocol)):
-                    break;
+                        (protocol is None or frame['proto'] == protocol)):
+                    break
                 elif (timeout == 0 or
                       time.clock() - start_time > float(self._socket_timeout)):
                     frame = None
                     break
             else:
                 if (timeout == 0 or
-                    time.clock() - start_time > float(self._socket_timeout)):
+                        time.clock() - start_time > float(self._socket_timeout)):
                     frame = None
                     break
                 continue
@@ -639,33 +586,32 @@ class raw_socket(object):
 
 
 class ethernet(object):
+
     """Provide ethernet packet manipulation methods."""
     HDR_LEN = 14     # frame header length
-    CHECKSUM_LEN = 4 # frame checksum length
+    CHECKSUM_LEN = 4  # frame checksum length
 
     # Ethernet payload types - http://standards.ieee.org/regauth/ethertype
-    ETH_TYPE_IP        = 0x0800 # IP protocol
-    ETH_TYPE_ARP       = 0x0806 # address resolution protocol
-    ETH_TYPE_CDP       = 0x2000 # Cisco Discovery Protocol
-    ETH_TYPE_8021Q     = 0x8100 # IEEE 802.1Q VLAN tagging
-    ETH_TYPE_IP6       = 0x86DD # IPv6 protocol
-    ETH_TYPE_LOOPBACK  = 0x9000 # used to test interfaces
-    ETH_TYPE_LLDP      = 0x88CC # LLDP frame type
+    ETH_TYPE_IP = 0x0800  # IP protocol
+    ETH_TYPE_ARP = 0x0806  # address resolution protocol
+    ETH_TYPE_CDP = 0x2000  # Cisco Discovery Protocol
+    ETH_TYPE_8021Q = 0x8100  # IEEE 802.1Q VLAN tagging
+    ETH_TYPE_IP6 = 0x86DD  # IPv6 protocol
+    ETH_TYPE_LOOPBACK = 0x9000  # used to test interfaces
+    ETH_TYPE_LLDP = 0x88CC  # LLDP frame type
 
     ETH_PACKET_MAX_SIZE = 1518  # maximum ethernet frane size
     ETH_PACKET_MIN_SIZE = 64    # minimum ethernet frane size
 
-    ETH_LLDP_DST_MAC = '01:80:C2:00:00:0E' # LLDP destination mac
+    ETH_LLDP_DST_MAC = '01:80:C2:00:00:0E'  # LLDP destination mac
 
-    FRAME_KEY_DST_MAC = 'dst' # frame destination mac address
-    FRAME_KEY_SRC_MAC = 'src' # frame source mac address
-    FRAME_KEY_PROTO = 'proto' # frame protocol
-    FRAME_KEY_PAYLOAD = 'payload' # frame payload
-
+    FRAME_KEY_DST_MAC = 'dst'  # frame destination mac address
+    FRAME_KEY_SRC_MAC = 'src'  # frame source mac address
+    FRAME_KEY_PROTO = 'proto'  # frame protocol
+    FRAME_KEY_PAYLOAD = 'payload'  # frame payload
 
     def __init__(self):
-        pass;
-
+        pass
 
     @staticmethod
     def mac_string_to_binary(hwaddr):
@@ -680,10 +626,9 @@ class ethernet(object):
         Returns:
           A byte string.
         """
-        val = ''.join([chr(b) for b in [int(c, 16) \
-                                        for c in hwaddr.split(':',6)]])
+        val = ''.join([chr(b) for b in [int(c, 16)
+                                        for c in hwaddr.split(':', 6)]])
         return val
-
 
     @staticmethod
     def mac_binary_to_string(hwaddr):
@@ -699,7 +644,6 @@ class ethernet(object):
          A text string.
         """
         return "%02x:%02x:%02x:%02x:%02x:%02x" % tuple(map(ord, hwaddr))
-
 
     @staticmethod
     def pack(dst, src, protocol, payload):
@@ -717,7 +661,6 @@ class ethernet(object):
         # numbers are converted to network byte order (!)
         frame = struct.pack("!6s6sH", dst, src, protocol) + payload
         return frame
-
 
     @staticmethod
     def unpack(raw_frame):
@@ -738,11 +681,11 @@ class ethernet(object):
         payload_len = packet_len - ethernet.HDR_LEN
         frame = {}
         frame[ethernet.FRAME_KEY_DST_MAC], \
-        frame[ethernet.FRAME_KEY_SRC_MAC], \
-        frame[ethernet.FRAME_KEY_PROTO] = \
+            frame[ethernet.FRAME_KEY_SRC_MAC], \
+            frame[ethernet.FRAME_KEY_PROTO] = \
             struct.unpack("!6s6sH", raw_frame[:ethernet.HDR_LEN])
         frame[ethernet.FRAME_KEY_PAYLOAD] = \
-            raw_frame[ethernet.HDR_LEN:ethernet.HDR_LEN+payload_len]
+            raw_frame[ethernet.HDR_LEN:ethernet.HDR_LEN + payload_len]
         return frame
 
 

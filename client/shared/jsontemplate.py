@@ -48,6 +48,7 @@ import urlparse  # for urljoin
 
 
 class Error(Exception):
+
     """Base class for all exceptions in this module.
 
     Thus you can "except jsontemplate.Error: to catch all exceptions thrown by
@@ -67,40 +68,54 @@ class Error(Exception):
 
 
 class CompilationError(Error):
+
     """Base class for errors that happen during the compilation stage."""
 
 
 class EvaluationError(Error):
+
     """Base class for errors that happen when expanding the template.
 
     This class of errors generally involve the data dictionary or the execution of
     the formatters.
     """
+
     def __init__(self, msg, original_exception=None):
         Error.__init__(self, msg)
         self.original_exception = original_exception
 
 
 class BadFormatter(CompilationError):
+
     """A bad formatter was specified, e.g. {variable|BAD}"""
 
+
 class BadPredicate(CompilationError):
+
     """A bad predicate was specified, e.g. {.BAD?}"""
 
+
 class MissingFormatter(CompilationError):
+
     """
     Raised when formatters are required, and a variable is missing a formatter.
     """
 
+
 class ConfigurationError(CompilationError):
+
     """
     Raised when the Template options are invalid and it can't even be compiled.
     """
 
+
 class TemplateSyntaxError(CompilationError):
+
     """Syntax error in the template text."""
 
+
 class UndefinedVariable(EvaluationError):
+
     """The template contains a variable not defined by the data dictionary."""
 
 
@@ -113,6 +128,7 @@ SIMPLE_FUNC, ENHANCED_FUNC = 0, 1
 
 
 class FunctionRegistry(object):
+
     """Abstract class for looking up formatters or predicates at compile time."""
 
     def Lookup(self, user_str):
@@ -149,6 +165,7 @@ def _DecideFuncType(user_str):
 
 
 class DictRegistry(FunctionRegistry):
+
     """Look up functions in a simple dictionary."""
 
     def __init__(self, func_dict):
@@ -159,6 +176,7 @@ class DictRegistry(FunctionRegistry):
 
 
 class CallableRegistry(FunctionRegistry):
+
     """Look up functions in a (higher-order) function."""
 
     def __init__(self, func):
@@ -169,6 +187,7 @@ class CallableRegistry(FunctionRegistry):
 
 
 class PrefixRegistry(FunctionRegistry):
+
     """Lookup functions with arguments.
 
     The function name is identified by a prefix.  The character after the prefix,
@@ -202,6 +221,7 @@ class PrefixRegistry(FunctionRegistry):
 
 
 class ChainedRegistry(FunctionRegistry):
+
     """Look up functions in chain of other FunctionRegistry instances."""
 
     def __init__(self, registries):
@@ -218,6 +238,7 @@ class ChainedRegistry(FunctionRegistry):
 
 
 class _ProgramBuilder(object):
+
     """
     Receives method calls from the parser, and constructs a tree of _Section()
     instances.
@@ -242,7 +263,7 @@ class _ProgramBuilder(object):
         # default formatters with arguments
         default_formatters = PrefixRegistry([
             ('pluralize', _Pluralize), ('cycle', _Cycle)
-            ])
+        ])
 
         # First consult user formatters, then the default formatters
         self.formatters = ChainedRegistry(
@@ -358,6 +379,7 @@ class _AbstractSection(object):
 
 
 class _Section(_AbstractSection):
+
     """Represents a (repeated) section."""
 
     def __init__(self, section_name=None):
@@ -388,6 +410,7 @@ class _Section(_AbstractSection):
 
 
 class _RepeatedSection(_Section):
+
     """Repeated section is like section, but it supports {.alternates with}"""
 
     def AlternatesWith(self):
@@ -396,6 +419,7 @@ class _RepeatedSection(_Section):
 
 
 class _PredicateSection(_AbstractSection):
+
     """Represents a sequence of predicate clauses."""
 
     def __init__(self):
@@ -411,6 +435,7 @@ class _PredicateSection(_AbstractSection):
 
 
 class _Frame(object):
+
     """A stack frame."""
 
     def __init__(self, context, index=-1):
@@ -423,6 +448,7 @@ class _Frame(object):
 
 
 class _ScopedContext(object):
+
     """Allows scoped lookup of variables.
 
     If the variable isn't in the current context, then we search up the stack.
@@ -611,7 +637,7 @@ _DEFAULT_FORMATTERS = {
     # argument only, which is a common case.
     'json': None,
     'js-string': None,
-    }
+}
 
 
 def _Pluralize(value, unused_context, args):
@@ -650,7 +676,7 @@ _DEFAULT_PREDICATES = {
     'singular?': lambda x: x == 1,
     'plural?': lambda x: x > 1,
     'Debug?': _IsDebugMode,
-    }
+}
 
 
 def SplitMeta(meta):
@@ -664,10 +690,11 @@ def SplitMeta(meta):
     if n % 2 == 1:
         raise ConfigurationError(
             '%r has an odd number of metacharacters' % meta)
-    return meta[:n/2], meta[n/2:]
+    return meta[:n / 2], meta[n / 2:]
 
 
 _token_re_cache = {}
+
 
 def MakeTokenRegex(meta_left, meta_right):
     """Return a (compiled) regular expression for tokenization.
@@ -694,15 +721,15 @@ def MakeTokenRegex(meta_left, meta_right):
 
 # Examples:
 
-( LITERAL_TOKEN,  # "Hi"
-  SUBSTITUTION_TOKEN,  # {var|html}
-  SECTION_TOKEN,  # {.section name}
-  REPEATED_SECTION_TOKEN,  # {.repeated section name}
-  PREDICATE_TOKEN,  # {.predicate?}
-  ALTERNATES_TOKEN,  # {.or}
-  OR_TOKEN,  # {.or}
-  END_TOKEN,  # {.end}
-  ) = range(8)
+(LITERAL_TOKEN,  # "Hi"
+ SUBSTITUTION_TOKEN,  # {var|html}
+ SECTION_TOKEN,  # {.section name}
+ REPEATED_SECTION_TOKEN,  # {.repeated section name}
+ PREDICATE_TOKEN,  # {.predicate?}
+ ALTERNATES_TOKEN,  # {.or}
+ OR_TOKEN,  # {.or}
+ END_TOKEN,  # {.end}
+ ) = range(8)
 
 
 def _MatchDirective(token):
@@ -760,10 +787,10 @@ def _Tokenize(template_str, meta_left, meta_right):
         # directives, say '{.end} # {#comment}' on a line.
 
         if len(tokens) == 3:
-            # ''.isspace() == False, so work around that
+            # ''.isspace() is False, so work around that
             if (tokens[0].isspace() or not tokens[0]) and \
                (tokens[2].isspace() or not tokens[2]):
-                token = tokens[1][trimlen : -trimlen]
+                token = tokens[1][trimlen: -trimlen]
 
                 if token.startswith('#'):
                     continue  # The whole line is omitted
@@ -783,7 +810,7 @@ def _Tokenize(template_str, meta_left, meta_right):
 
                 assert token.startswith(meta_left), repr(token)
                 assert token.endswith(meta_right), repr(token)
-                token = token[trimlen : -trimlen]
+                token = token[trimlen: -trimlen]
 
                 # It's a comment
                 if token.startswith('#'):
@@ -797,7 +824,7 @@ def _Tokenize(template_str, meta_left, meta_right):
                         '.space': ' ',
                         '.tab': '\t',
                         '.newline': '\n',
-                        }.get(token)
+                    }.get(token)
 
                     if literal is not None:
                         yield LITERAL_TOKEN, literal
@@ -814,7 +841,7 @@ def _Tokenize(template_str, meta_left, meta_right):
 def CompileTemplate(
     template_str, builder=None, meta='{}', format_char='|',
     more_formatters=lambda x: None, more_predicates=lambda x: None,
-    default_formatter='str'):
+        default_formatter='str'):
     """Compile the template string, calling methods on the 'program builder'.
 
     Args:
@@ -922,7 +949,7 @@ def CompileTemplate(
 
     if balance_counter != 0:
         raise TemplateSyntaxError('Got too few %send%s statements' %
-            (meta_left, meta_right))
+                                 (meta_left, meta_right))
 
     return builder.Root()
 
@@ -1001,6 +1028,7 @@ def FromFile(f, more_formatters=lambda x: None, _constructor=None):
 
 
 class Template(object):
+
     """Represents a compiled template.
 
     Like many template systems, the template string is compiled into a program,
@@ -1214,8 +1242,8 @@ def _Execute(statements, context, callback):
                 func(args, context, callback)
             except UndefinedVariable, e:
                 # Show context for statements
-                start = max(0, i-3)
-                end = i+3
+                start = max(0, i - 3)
+                end = i + 3
                 e.near = statements[start:end]
                 raise
 

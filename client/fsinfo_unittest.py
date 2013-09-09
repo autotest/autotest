@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
-import unittest, StringIO
+import unittest
+import StringIO
 try:
     import autotest.common as common
 except ImportError:
@@ -8,21 +9,19 @@ except ImportError:
 from autotest.client import fsinfo
 from autotest.client.shared.test_utils import mock
 
+
 class fsionfo_test(unittest.TestCase):
 
     def setUp(self):
         self.god = mock.mock_god()
         self.god.stub_function(fsinfo, 'open')
 
-
     def tearDown(self):
         self.god.unstub_all()
-
 
     def _create_test_file(self, filename, contents):
         test_file = StringIO.StringIO(contents)
         fsinfo.open.expect_call(filename, 'r').and_return(test_file)
-
 
     def test_ext_mkfs_options(self):
         tune2fs_dict = {'Filesystem volume name': '<none>',
@@ -51,7 +50,6 @@ class fsionfo_test(unittest.TestCase):
 
         for option, value in expected_option.iteritems():
             self.assertEqual(value, mkfs_option[option])
-
 
     def test_xfs_mkfs_options(self):
         tune2fs_dict = {'meta-data: isize': 256,
@@ -100,7 +98,6 @@ class fsionfo_test(unittest.TestCase):
         for option, value in expected_option.iteritems():
             self.assertEqual(value, mkfs_option[option])
 
-
     def test_opt_string2dict(self):
         test_string = '-q -b 1234   -O fdasfa,fdasfdas -l adfas -k -L'
         result = fsinfo.opt_string2dict(test_string)
@@ -112,7 +109,6 @@ class fsionfo_test(unittest.TestCase):
                            '-L': None}
         self.assertEqual(expected_result, result)
 
-
     def test_merge_ext_features(self):
         conf = 'a,b,d,d,d,d,d,e,e,a,f'.split(',')
         user = '^e,a,^f,g,h,i'
@@ -120,13 +116,11 @@ class fsionfo_test(unittest.TestCase):
         result = fsinfo.merge_ext_features(conf, user)
         self.assertEqual(expected_result, result)
 
-
     def test_compare_features(self):
         f1 = ['sparse_super', 'filetype', 'resize_inode', 'dir_index']
         f2 = ['filetype', 'resize_inode', 'dir_index', 'large_file']
         self.assertTrue(fsinfo.compare_features(f1, f1))
         self.assertFalse(fsinfo.compare_features(f1, f2))
-
 
     def test_mke2fs_conf(self):
         content = ('[defaults]\n'

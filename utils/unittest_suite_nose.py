@@ -16,7 +16,7 @@ import os
 import nose
 import sys
 
-#we can replace this with a @attr(duration='long') on each test
+# we can replace this with a @attr(duration='long') on each test
 from autotest.utils.unittest_suite import LONG_TESTS
 
 

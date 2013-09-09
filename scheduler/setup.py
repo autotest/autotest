@@ -8,7 +8,7 @@ except ImportError:
 
 from autotest.client.shared import version
 
-#mostly needed when called one level up
+# mostly needed when called one level up
 if os.path.isdir('scheduler'):
     scheduler_dir = 'scheduler'
 else:

@@ -1,6 +1,11 @@
 #!/usr/bin/python
 
-import logging, os, shutil, sys, StringIO, unittest
+import logging
+import os
+import shutil
+import sys
+import StringIO
+import unittest
 
 try:
     import autotest.common as common
@@ -15,6 +20,7 @@ from autotest.client.shared.test_utils import mock
 
 
 class setup_job_test_case(unittest.TestCase):
+
     """Generic job TestCase class that defines a standard job setUp and
     tearDown, with some standard stubs."""
 
@@ -27,7 +33,6 @@ class setup_job_test_case(unittest.TestCase):
         self.job = self.job_class.__new__(self.job_class)
         self.job._job_directory = base_job_unittest.stub_job_directory
         self.job.args = []
-
 
     def tearDown(self):
         self.god.unstub_all()
@@ -42,13 +47,13 @@ class test_find_base_directories(
         self.assertEqual(autodir, '/adir')
         self.assertEqual(clientdir, '/adir')
 
-
     def test_serverdir_is_none(self):
         _, _, serverdir = self.job._find_base_directories()
         self.assertEqual(serverdir, None)
 
 
 class abstract_test_init(base_job_unittest.test_init.generic_tests):
+
     """Generic client job mixin used when defining variations on the
     job.__init__ generic tests."""
     PUBLIC_ATTRIBUTES = (
@@ -56,10 +61,11 @@ class abstract_test_init(base_job_unittest.test_init.generic_tests):
         - set(['bootloader', 'control', 'drop_caches',
                'drop_caches_between_iterations', 'harness', 'hosts', 'logging',
                'machines', 'num_tests_failed', 'num_tests_run', 'profilers',
-               'sysinfo', 'user',  'warning_loggers', 'warning_manager']))
+               'sysinfo', 'user', 'warning_loggers', 'warning_manager']))
 
 
 class test_init_minimal_options(abstract_test_init, setup_job_test_case):
+
     def call_init(self):
         # TODO(jadmanski): refactor more of the __init__ code to not need to
         # stub out countless random APIs
@@ -68,7 +74,9 @@ class test_init_minimal_options(abstract_test_init, setup_job_test_case):
         self.god.stub_function_to_return(self.job, '_load_state', None)
         self.god.stub_function_to_return(logging_manager,
                                          'configure_logging', None)
+
         class manager:
+
             def start_logging(self):
                 return None
         self.god.stub_function_to_return(logging_manager,
@@ -89,20 +97,22 @@ class test_init_minimal_options(abstract_test_init, setup_job_test_case):
 
 
 class dummy(object):
+
     """A simple placeholder for attributes"""
     pass
 
 
 class first_line_comparator(mock.argument_comparator):
+
     def __init__(self, first_line):
         self.first_line = first_line
-
 
     def is_satisfied_by(self, parameter):
         return self.first_line == parameter.splitlines()[0]
 
 
 class test_setup_job(unittest.TestCase):
+
     def setUp(self):
         # make god
         self.god = mock.mock_god()
@@ -118,11 +128,13 @@ class test_setup_job(unittest.TestCase):
         sys.stdout = StringIO.StringIO()
         logging_manager.configure_logging(logging_config.TestingConfig())
         logging.disable(logging.CRITICAL)
+
         def dummy_configure_logging(*args, **kwargs):
             pass
         self.god.stub_with(logging_manager, 'configure_logging',
                            dummy_configure_logging)
         real_get_logging_manager = logging_manager.get_logging_manager
+
         def get_logging_manager_no_fds(manage_stdout_and_stderr=False,
                                        redirect_fds=False):
             return real_get_logging_manager(manage_stdout_and_stderr, False)
@@ -147,11 +159,9 @@ class test_setup_job(unittest.TestCase):
         self.god.stub_with(base_job.job_directory, '_ensure_valid',
                            lambda *_: None)
 
-
     def tearDown(self):
         sys.stdout = sys.__stdout__
         self.god.unstub_all()
-
 
     def _setup_pre_record_init(self):
         resultdir = os.path.join(self.autodir, 'results', self.jobtag)
@@ -181,7 +191,6 @@ class test_setup_job(unittest.TestCase):
         # check
         self.god.check_playback()
 
-
     def get_partition_mock(self, devname):
         """
         Create a mock of a partition object and return it.
@@ -191,21 +200,17 @@ class test_setup_job(unittest.TestCase):
             get_mountpoint = self.god.create_mock_function('get_mountpoint')
         return mock
 
-
     def test_constructor_first_run(self):
         self.construct_job()
 
-
     def test_constructor_continuation(self):
         self.construct_job()
-
 
     def test_relative_path(self):
         self.construct_job()
         dummy = "asdf"
         ret = self.job.relative_path(os.path.join(self.job.resultdir, dummy))
         self.assertEquals(ret, dummy)
-
 
     def test_setup_dirs_raise(self):
         self.construct_job()
@@ -221,7 +226,6 @@ class test_setup_job(unittest.TestCase):
         # test
         self.assertRaises(ValueError, self.job.setup_dirs, results_dir, tmp_dir)
         self.god.check_playback()
-
 
     def test_setup_dirs(self):
         self.construct_job()

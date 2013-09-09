@@ -21,12 +21,15 @@ See topic_common.py for a High Level Design and Algorithm.
 
 """
 
-import os, sys, socket
+import os
+import sys
+import socket
 from autotest.cli import topic_common, action_common
 from autotest.client.shared import host_protections
 
 
 class host(topic_common.atest):
+
     """Host class
     atest host [create|delete|list|stat|mod|jobs] <options>"""
     usage_action = '[create|delete|list|stat|mod|jobs]'
@@ -34,7 +37,6 @@ class host(topic_common.atest):
     msg_items = '<hosts>'
 
     protections = host_protections.Protection.names
-
 
     def __init__(self):
         """Add to the parser the options common to all the
@@ -52,7 +54,6 @@ class host(topic_common.atest):
             filename_option='mlist',
             use_leftover=True)
 
-
     def _parse_lock_options(self, options):
         if options.lock and options.unlock:
             self.invalid_syntax('Only specify one of '
@@ -64,7 +65,6 @@ class host(topic_common.atest):
         elif options.unlock:
             self.data['locked'] = False
             self.messages.append('Unlocked host')
-
 
     def _cleanup_labels(self, labels, platform=None):
         """Removes the platform label from the overall labels"""
@@ -80,18 +80,19 @@ class host(topic_common.atest):
                 # do this, so all this code should be removed.
                 return labels
 
-
     def get_items(self):
         return self.hosts
 
 
 class host_help(host):
+
     """Just here to get the atest logic working.
     Usage is set by its parent"""
     pass
 
 
 class host_list(action_common.atest_list, host):
+
     """atest host list [--mlist <file>|<hosts>] [--label <label>]
        [--status <status1,status2>] [--acl <ACL>] [--user <user>]"""
 
@@ -124,8 +125,6 @@ class host_list(action_common.atest_list, host):
                                help='Only list unlocked hosts',
                                action='store_true')
 
-
-
     def parse(self):
         """Consume the specific options"""
         label_info = topic_common.item_parse_info(attribute_name='labels',
@@ -144,7 +143,6 @@ class host_list(action_common.atest_list, host):
         self.locked = options.locked
         self.unlocked = options.unlocked
         return (options, leftover)
-
 
     def execute(self):
         filters = {}
@@ -185,7 +183,6 @@ class host_list(action_common.atest_list, host):
                                               filters=filters,
                                               check_results=check_results)
 
-
     def output(self, results):
         if results:
             # Remove the platform from the labels.
@@ -200,6 +197,7 @@ class host_list(action_common.atest_list, host):
 
 
 class host_stat(host):
+
     """atest host stat --mlist <file>|<hosts>"""
     usage_action = 'stat'
 
@@ -229,23 +227,23 @@ class host_stat(host):
             acls = self.execute_rpc('get_acl_groups', hosts__hostname=host)
 
             labels = self.execute_rpc('get_labels', host__hostname=host)
-            results.append ([[stat], acls, labels])
+            results.append([[stat], acls, labels])
         return results
-
 
     def output(self, results):
         for stats, acls, labels in results:
-            print '-'*5
+            print '-' * 5
             self.print_fields(stats,
                               keys=['hostname', 'platform',
                                     'status', 'locked', 'locked_by',
-                                    'lock_time', 'protection',])
+                                    'lock_time', 'protection', ])
             self.print_by_ids(acls, 'ACLs', line_before=True)
             labels = self._cleanup_labels(labels)
             self.print_by_ids(labels, 'Labels', line_before=True)
 
 
 class host_jobs(host):
+
     """atest host jobs [--max-query] --mlist <file>|<hosts>"""
     usage_action = 'jobs'
 
@@ -256,13 +254,11 @@ class host_jobs(host):
                                '(20 by default)',
                                type='int', default=20)
 
-
     def parse(self):
         """Consume the specific options"""
         (options, leftover) = super(host_jobs, self).parse()
         self.max_queries = options.max_query
         return (options, leftover)
-
 
     def execute(self):
         results = []
@@ -293,10 +289,9 @@ class host_jobs(host):
             results.append((host, jobs))
         return results
 
-
     def output(self, results):
         for host, jobs in results:
-            print '-'*5
+            print '-' * 5
             print 'Hostname: %s' % host
             self.print_table(jobs, keys_header=['job_id',
                                                 'job_owner',
@@ -305,6 +300,7 @@ class host_jobs(host):
 
 
 class host_mod(host):
+
     """atest host mod --lock|--unlock|--protection
     --mlist <file>|<hosts>"""
     usage_action = 'mod'
@@ -327,7 +323,6 @@ class host_mod(host):
                                                for p in self.protections)),
                                choices=self.protections)
 
-
     def parse(self):
         """Consume the specific options"""
         (options, leftover) = super(host_mod, self).parse()
@@ -341,7 +336,6 @@ class host_mod(host):
         if len(self.data) == 0:
             self.invalid_syntax('No modification requested')
         return (options, leftover)
-
 
     def execute(self):
         successes = []
@@ -358,14 +352,13 @@ class host_mod(host):
 
         return successes
 
-
     def output(self, hosts):
         for msg in self.messages:
             self.print_wrapped(msg, hosts)
 
 
-
 class host_create(host):
+
     """atest host create [--lock|--unlock --platform <arch>
     --labels <labels>|--blist <label_file>
     --acls <acls>|--alist <acl_file>
@@ -404,11 +397,10 @@ class host_create(host):
                                                for p in self.protections)),
                                choices=self.protections)
 
-
     def parse(self):
         label_info = topic_common.item_parse_info(attribute_name='labels',
-                                                 inline_option='labels',
-                                                 filename_option='blist')
+                                                  inline_option='labels',
+                                                  filename_option='blist')
         acl_info = topic_common.item_parse_info(attribute_name='acls',
                                                 inline_option='acls',
                                                 filename_option='alist')
@@ -424,7 +416,6 @@ class host_create(host):
             self.data['protection'] = options.protection
         return (options, leftover)
 
-
     def _execute_add_one_host(self, host):
         # Always add the hosts as locked to avoid the host
         # being picked up by the scheduler before it's ACL'ed
@@ -436,9 +427,8 @@ class host_create(host):
         labels = self.labels[:]
         if self.platform:
             labels.append(self.platform)
-        if len (labels):
+        if len(labels):
             self.execute_rpc('host_add_labels', id=host, labels=labels)
-
 
     def execute(self):
         # We need to check if these labels & ACLs exist,
@@ -469,7 +459,6 @@ class host_create(host):
                     self.execute_rpc('modify_host', id=host, locked=False)
         return success
 
-
     def site_create_hosts_hook(self):
         success = []
         for host in self.hosts:
@@ -481,11 +470,11 @@ class host_create(host):
 
         return success
 
-
     def output(self, hosts):
         self.print_wrapped('Added host', hosts)
 
 
 class host_delete(action_common.atest_delete, host):
+
     """atest host delete [--mlist <mach_file>] <hosts>"""
     pass

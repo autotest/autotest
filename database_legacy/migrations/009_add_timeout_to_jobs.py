@@ -1,5 +1,6 @@
 from autotest.client.shared.settings import settings
 
+
 def migrate_up(manager):
     # Add the column with a default first, and then drop the default.
     # We cannot add the column, populate the values, and then specify NOT NULL
@@ -7,6 +8,7 @@ def migrate_up(manager):
     # into the table before NOT NULL is specified.
     manager.execute(ADD_COLUMN)
     manager.execute(DROP_DEFAULT)
+
 
 def migrate_down(manager):
     manager.execute(DROP_COLUMN)

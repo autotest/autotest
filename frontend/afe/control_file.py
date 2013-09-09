@@ -4,7 +4,8 @@ Logic for control file generation.
 
 __author__ = 'showard@google.com (Steve Howard)'
 
-import re, os
+import re
+import os
 
 try:
     import autotest.common as common
@@ -159,7 +160,7 @@ CALL_UPLOAD_CONFIG = 'kernel_info = upload_kernel_config(host, kernel_info)'
 
 def kernel_config_file(kernel, platform):
     if (not kernel.endswith('.rpm') and platform and
-        platform.kernel_config):
+            platform.kernel_config):
         return platform.kernel_config
     return None
 
@@ -186,7 +187,7 @@ def read_control_file(test):
 def get_kernel_stanza(kernel_list, platform=None, kernel_args='',
                       is_server=False, upload_kernel_config=False):
 
-    template_args = {'kernel_args' : kernel_args}
+    template_args = {'kernel_args': kernel_args}
 
     # add 'config_file' keys to the kernel_info dictionaries
     new_kernel_list = []
@@ -351,16 +352,16 @@ def _sanity_check_generate_control(is_server, client_control_file, kernels,
     """
     if is_server and client_control_file:
         raise model_logic.ValidationError(
-                {'tests' : 'You cannot run server tests at the same time '
-                 'as directly supplying a client-side control file.'})
+            {'tests': 'You cannot run server tests at the same time '
+             'as directly supplying a client-side control file.'})
 
     if kernels:
         # make sure that kernel is a list of dictionarions with at least
         # the 'version' key in them
         kernel_error = model_logic.ValidationError(
-                {'kernel': 'The kernel parameter must be a sequence of '
-                 'dictionaries containing at least the "version" key '
-                 '(got: %r)' % kernels})
+            {'kernel': 'The kernel parameter must be a sequence of '
+             'dictionaries containing at least the "version" key '
+             '(got: %r)' % kernels})
         try:
             iter(kernels)
         except TypeError:
@@ -372,8 +373,8 @@ def _sanity_check_generate_control(is_server, client_control_file, kernels,
 
         if upload_kernel_config and not is_server:
             raise model_logic.ValidationError(
-                    {'upload_kernel_config': 'Cannot use upload_kernel_config '
-                                             'with client side tests'})
+                {'upload_kernel_config': 'Cannot use upload_kernel_config '
+                 'with client side tests'})
 
 
 def generate_control(tests, kernels=None, platform=None, is_server=False,
@@ -406,8 +407,8 @@ def generate_control(tests, kernels=None, platform=None, is_server=False,
     control_file_text = ''
     if kernels:
         control_file_text = get_kernel_stanza(
-                kernels, platform, is_server=is_server,
-                upload_kernel_config=upload_kernel_config)
+            kernels, platform, is_server=is_server,
+            upload_kernel_config=upload_kernel_config)
     else:
         control_file_text = EMPTY_TEMPLATE
 

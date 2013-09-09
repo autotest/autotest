@@ -17,6 +17,7 @@ def usage():
            "e.g. ./read_var_config.py SCHEDULER.drones TKO.host.\n")
     sys.exit(1)
 
+
 def main(args):
 
     if len(args) <= 1:

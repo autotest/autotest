@@ -25,6 +25,7 @@ from autotest.server.hosts import bootloader
 
 
 class Host(hosts.Host):
+
     """
     This class represents a machine on which you can run programs.
 
@@ -53,14 +54,12 @@ class Host(hosts.Host):
 
     bootloader = None
 
-
     def __init__(self, *args, **dargs):
         super(Host, self).__init__(*args, **dargs)
 
         self.start_loggers()
         if self.job:
             self.job.hosts.add(self)
-
 
     def _initialize(self, target_file_owner=None,
                     *args, **dargs):
@@ -71,7 +70,6 @@ class Host(hosts.Host):
         self.bootloader = bootloader.Bootloader(self)
         self.env = {}
         self.target_file_owner = target_file_owner
-
 
     def close(self):
         super(Host, self).close()

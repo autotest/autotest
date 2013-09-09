@@ -1,9 +1,12 @@
-import os, sys, optparse
+import os
+import sys
+import optparse
 
 from autotest.client.shared import host_protections, utils
 
 
 class base_autoserv_parser(object):
+
     """Custom command-line options parser for autoserv.
 
     We can't use the general getopt methods here, as there will be unknown
@@ -11,6 +14,7 @@ class base_autoserv_parser(object):
     Thus we process the arguments by hand, for which we are duly repentant.
     Making a single function here just makes it harder to read. Suck it up.
     """
+
     def __init__(self):
         self.args = sys.argv[1:]
         self.parser = optparse.OptionParser(usage="%prog [options] [control-file]")
@@ -21,7 +25,6 @@ class base_autoserv_parser(object):
         # reached from an autoserv process (when they actually are not)
         # will still work
         self.options, self.args = self.parser.parse_args(args=[])
-
 
     def setup_options(self):
         self.parser.add_option("-m", action="store", type="string",
@@ -61,10 +64,10 @@ class base_autoserv_parser(object):
                                     "Defaults to the value passed to -P.")
         self.parser.add_option("-i", action="store_true",
                                dest="install_before", default=False,
-                       help="reinstall machines before running the job")
+                               help="reinstall machines before running the job")
         self.parser.add_option("-I", action="store_true",
                                dest="install_after", default=False,
-                        help="reinstall machines after running the job")
+                               help="reinstall machines after running the job")
         self.parser.add_option("-v", action="store_true",
                                dest="verify", default=False,
                                help="verify the machines only")
@@ -110,7 +113,7 @@ class base_autoserv_parser(object):
                                type="string", dest="ssh_user",
                                default="root",
                                help=("specify the user for ssh"
-                               "connections"))
+                                     "connections"))
         self.parser.add_option("--ssh-port", action="store",
                                type="int", dest="ssh_port",
                                default=22,
@@ -133,7 +136,6 @@ class base_autoserv_parser(object):
                                help=("filename to use for the server control "
                                      "file in the results directory"))
 
-
     def parse_args(self):
         self.options, self.args = self.parser.parse_args()
         if self.options.args:
@@ -143,6 +145,7 @@ class base_autoserv_parser(object):
 site_autoserv_parser = utils.import_site_class(
     __file__, "autotest.server.site_autoserv_parser",
     "site_autoserv_parser", base_autoserv_parser)
+
 
 class autoserv_parser(site_autoserv_parser):
     pass

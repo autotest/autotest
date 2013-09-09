@@ -1,5 +1,11 @@
-import os, sys, time
-import inspect, new, logging, string, tempfile
+import os
+import sys
+import time
+import inspect
+import new
+import logging
+import string
+import tempfile
 
 from autotest.cli import job
 from autotest.client.shared import logging_config
@@ -16,6 +22,7 @@ class site_job(job.job):
 
 
 class site_job_create(job.job_create):
+
     """
     Adds job manipulation including installing packages from brew
     """
@@ -46,7 +53,6 @@ class site_job_create(job.job_create):
                                'specified multiple times.')
         self.koji_client = None
 
-
     def parse(self):
         '''
         Parse options.
@@ -60,7 +66,7 @@ class site_job_create(job.job_create):
         # creating the new control file
         #
         if (self.command_line_options.template and
-            self.command_line_options.control_file):
+                self.command_line_options.control_file):
             generated_control_file = self._generate_control_file()
             self.data['control_file'] = open(generated_control_file).read()
 
@@ -69,7 +75,6 @@ class site_job_create(job.job_create):
                 self.koji_client = utils_koji.KojiClient()
 
         return (self.command_line_options, self.command_line_leftover)
-
 
     def _process_options(self):
         '''
@@ -83,7 +88,6 @@ class site_job_create(job.job_create):
 
         return all_options_valid
 
-
     def _set_koji_tag(self):
         '''
         Sets the default koji tag.
@@ -92,7 +96,6 @@ class site_job_create(job.job_create):
         '''
         if self.command_line_options.koji_tag is not None:
             utils_koji.set_default_koji_tag(self.command_line_options.koji_tag)
-
 
     def _check_koji_packages(self):
         '''
@@ -150,7 +153,6 @@ class site_job_create(job.job_create):
         # ... and return as string that will be eval'd as a Python list
         return "[%s]" % ', '.join(extra)
 
-
     def _generate_control_file(self):
         '''
         Generates a controle file from a template
@@ -166,7 +168,6 @@ class site_job_create(job.job_create):
         os.write(output_fd, control_file_text)
         os.close(output_fd)
         return path
-
 
     def execute(self):
         if not self._process_options():

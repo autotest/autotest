@@ -6,7 +6,10 @@ The interface as required for ABAT.
 __author__ = """Copyright Andy Whitcroft 2006"""
 
 from autotest.client import utils
-import os, harness, re
+import os
+import harness
+import re
+
 
 def autobench_load(fn):
     disks = re.compile(r'^\s*DATS_FREE_DISKS\s*=(.*\S)\s*$')
@@ -38,6 +41,7 @@ def autobench_load(fn):
 
 
 class harness_ABAT(harness.harness):
+
     """The ABAT server harness
 
     Properties:
@@ -57,17 +61,14 @@ class harness_ABAT(harness.harness):
         else:
             self.status = None
 
-
     def __send(self, msg):
         if self.status:
             msg = msg.rstrip()
             self.status.write(msg + "\n")
             self.status.flush()
 
-
     def __send_status(self, code, subdir, operation, msg):
         self.__send("STATUS %s %s %s %s" % (code, subdir, operation, msg))
-
 
     def __root_device(self):
         device = None
@@ -81,7 +82,6 @@ class harness_ABAT(harness.harness):
 
         return device
 
-
     def run_start(self):
         """A run within this job is starting"""
         self.__send_status('GOOD', '----', '----', 'run starting')
@@ -90,7 +90,7 @@ class harness_ABAT(harness.harness):
         conf = autobench_load("/etc/autobench.conf")
         if 'partitions' in conf:
             self.job.config_set('partition.partitions',
-                    conf['partitions'])
+                                conf['partitions'])
 
         # Search the boot loader configuration for the autobench entry,
         # and extract its args.
@@ -118,18 +118,15 @@ class harness_ABAT(harness.harness):
                 args += " --with " + mod
             self.job.config_set('kernel.mkinitrd_extra_args', args)
 
-
     def run_reboot(self):
         """A run within this job is performing a reboot
            (expect continue following reboot)
         """
         self.__send("REBOOT")
 
-
     def run_complete(self):
         """A run within this job is completing (all done)"""
         self.__send("DONE")
-
 
     def test_status_detail(self, code, subdir, operation, msg, tag,
                            optional_fields):
@@ -138,7 +135,6 @@ class harness_ABAT(harness.harness):
         # Send the first line with the status code as a STATUS message.
         lines = msg.split("\n")
         self.__send_status(code, subdir, operation, lines[0])
-
 
     def test_status(self, msg, tag):
         lines = msg.split("\n")

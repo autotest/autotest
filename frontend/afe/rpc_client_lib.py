@@ -5,7 +5,8 @@ server.
 
 __author__ = 'showard@google.com (Steve Howard)'
 
-import getpass, os
+import getpass
+import os
 from json_rpc import proxy
 from autotest.client.shared import utils
 
@@ -31,9 +32,9 @@ def _base_authorization_headers(username, server):
             username = os.environ['AUTOTEST_USER']
         else:
             username = getpass.getuser()
-    return {'AUTHORIZATION' : username}
+    return {'AUTHORIZATION': username}
 
 
 authorization_headers = utils.import_site_function(
-        __file__, 'autotest.frontend.afe.site_rpc_client_lib',
-        'authorization_headers', _base_authorization_headers)
+    __file__, 'autotest.frontend.afe.site_rpc_client_lib',
+    'authorization_headers', _base_authorization_headers)

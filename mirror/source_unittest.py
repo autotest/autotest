@@ -1,7 +1,11 @@
 #!/usr/bin/python
 # Copyright 2009 Google Inc. Released under the GPL v2
 
-import unittest, cStringIO, httplib, time, os
+import unittest
+import cStringIO
+import httplib
+import time
+import os
 
 try:
     import autotest.common as common
@@ -12,19 +16,20 @@ from autotest.client.shared.test_utils import mock
 
 
 class common_source(unittest.TestCase):
+
     """
     Common support class for source unit tests.
     """
+
     def setUp(self):
         self.god = mock.mock_god()
         self.db_mock = self.god.create_mock_class(
-                source.database.database, 'database')
+            source.database.database, 'database')
 
         # Set fixed timezone so parsing time values does not break.
         self._old_tz = getattr(os.environ, 'TZ', '')
         os.environ['TZ'] = 'America/Los_Angeles'
         time.tzset()
-
 
     def tearDown(self):
         self.god.unstub_all()
@@ -64,7 +69,7 @@ class rsync_source_unittest(common_source):
             'v2.6/patch-2.6.11.10.bz2', 15141, 1116267443),
         'v2.6/testing/patch-2.6.30-rc1.bz2': source.database.item(
             'v2.6/testing/patch-2.6.30-rc1.bz2', 10462721, 1239144335),
-        }
+    }
     _result = {
         'v2.6/patch-2.6.0.bz2': source.database.item(
             'v2.6/patch-2.6.0.bz2', 10727, 1071716674),
@@ -82,13 +87,12 @@ class rsync_source_unittest(common_source):
             'v2.6/testing/patch-2.6.30-rc3.bz2', 11032734, 1240370891),
         'v2.6/testing/patch-2.6.30-rc2.bz2': source.database.item(
             'v2.6/testing/patch-2.6.30-rc2.bz2', 10815919, 1239760900),
-        }
+    }
 
     def setUp(self):
         super(rsync_source_unittest, self).setUp()
 
         self.god.stub_function(source.utils, 'system_output')
-
 
     def test_simple(self):
         # record
@@ -106,7 +110,6 @@ class rsync_source_unittest(common_source):
         s.add_path('v2.6/testing/patch*.bz2', 'v2.6/testing')
         self.assertEquals(s.get_new_files(), self._result)
         self.god.check_playback()
-
 
     def test_exclusions(self):
         # setup
@@ -209,17 +212,17 @@ class url_source_unittest(common_source):
             (2009, 1, 25, 0, 47, 0, 0, 1, 0)),
         (_full_path1 + 'linux-2.6.28.3.tar.bz2', '52703558',
             (2009, 2, 2, 18, 21, 0, 0, 1, 0)),
-        )
+    )
 
     _extracted_links2 = (
         (_full_path2 + 'patch-2.6.30-rc1.bz2', '10462721',
             (2009, 4, 7, 22, 43, 0, 0, 1, 0)),
-        )
+    )
 
     _known_files = {
         _full_path1 + 'linux-2.6.28.2.tar.gz': source.database.item(
             _full_path1 + 'linux-2.6.28.2.tar.gz', 66781113, 1232873220),
-        }
+    }
 
     _result = {
         _full_path1 + 'linux-2.6.28.3.tar.bz2': source.database.item(
@@ -232,7 +235,7 @@ class url_source_unittest(common_source):
             _full_path1 + 'linux-2.6.28.2.tar.bz2', 52697313, 1232873220),
         _full_path1 + 'patch-2.6.19.6.gz': source.database.item(
             _full_path1 + 'patch-2.6.19.6.gz', 70021, 1172912760),
-        }
+    }
 
     def setUp(self):
         super(url_source_unittest, self).setUp()
@@ -242,7 +245,6 @@ class url_source_unittest(common_source):
             source.urllib2.addinfourl, 'addinfourl')
         self.mime_mock = self.god.create_mock_class(
             httplib.HTTPMessage, 'HTTPMessage')
-
 
     def test_get_new_files(self):
         # record
@@ -275,15 +277,16 @@ class url_source_unittest(common_source):
 
 
 class directory_source_unittest(common_source):
+
     """
     Unit test class for directory_source.
     """
+
     def setUp(self):
         super(directory_source_unittest, self).setUp()
 
         self.god.stub_function(os, 'listdir')
         self._stat_mock = self.god.create_mock_function('stat')
-
 
     @staticmethod
     def _get_stat_result(mode=0644, ino=12345, dev=12345, nlink=1, uid=1000,
@@ -297,7 +300,6 @@ class directory_source_unittest(common_source):
         return os.stat_result((mode, ino, dev, nlink, uid, gid, size, atime,
                                mtime, ctime))
 
-
     def test_get_new_files_invalid_path(self):
         """
         Test directory_source.get_new_files() on an invalid path.
@@ -309,7 +311,6 @@ class directory_source_unittest(common_source):
         self.assertRaises(OSError, s.get_new_files)
         self.god.check_playback()
 
-
     def test_get_new_files_stat_fails(self):
         """
         Test directory_source.get_new_files() when stat fails.
@@ -317,7 +318,7 @@ class directory_source_unittest(common_source):
         path = '/some/valid/path'
         os.listdir.expect_call(path).and_return(['file1', 'file2'])
         (self._stat_mock.expect_call(os.path.join(path, 'file1'))
-                .and_raises(OSError('Error')))
+         .and_raises(OSError('Error')))
         stat_result = self._get_stat_result(size=1010, mtime=123)
         file2_full_path = os.path.join(path, 'file2')
         self._stat_mock.expect_call(file2_full_path).and_return(stat_result)
@@ -328,7 +329,6 @@ class directory_source_unittest(common_source):
         expected = {'file2': source.database.item(file2_full_path, 1010, 123)}
         self.assertEquals(expected, s.get_new_files(_stat_func=self._stat_mock))
         self.god.check_playback()
-
 
     def test_get_new_files_success(self):
         """
@@ -351,15 +351,15 @@ class directory_source_unittest(common_source):
         self._stat_mock.expect_call(file3_full_path).and_return(stat_result)
 
         known_files = {
-                'file2': source.database.item(file2_full_path, 1020, 1234),
-                }
+            'file2': source.database.item(file2_full_path, 1020, 1234),
+        }
         self.db_mock.get_dictionary.expect_call().and_return(known_files)
 
         s = source.directory_source(self.db_mock, path)
         expected = {
-                'file1': source.database.item(file1_full_path, 1010, 123),
-                'file3': source.database.item(file3_full_path, 1030, 12345),
-                }
+            'file1': source.database.item(file1_full_path, 1010, 123),
+            'file3': source.database.item(file3_full_path, 1030, 12345),
+        }
         self.assertEquals(expected, s.get_new_files(_stat_func=self._stat_mock))
         self.god.check_playback()
 

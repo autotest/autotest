@@ -29,7 +29,7 @@ import harness
 import time
 import re
 import sys
-from autotest.client.shared import utils,error
+from autotest.client.shared import utils, error
 
 from autotest.client.bkr_xml import BeakerXMLParser
 from autotest.client.bkr_proxy import BkrProxy
@@ -37,22 +37,26 @@ from autotest.client.bkr_proxy import BkrProxy
 '''Use 5 minutes for console heartbeat'''
 BEAKER_CONSOLE_HEARTBEAT = 60 * 5
 
+
 class HarnessException(Exception):
+
     def __init__(self, text):
         Exception.__init__(self, text)
 
+
 class harness_beaker(harness.harness):
+
     def __init__(self, job, harness_args):
         logging.debug('harness_beaker __init__')
         super(harness_beaker, self).__init__(job)
 
-        #temporary hack until BEAKER_RECIPE_ID and BEAKER_LAB_CONTROLLER_URL is setup in beaker
+        # temporary hack until BEAKER_RECIPE_ID and BEAKER_LAB_CONTROLLER_URL is setup in beaker
         os.environ['BEAKER_RECIPE_ID'] = open('/root/RECIPE.TXT', 'r').read().strip()
         os.environ['BEAKER_LAB_CONTROLLER_URL'] = re.sub("/bkr/", ":8000", os.environ['BEAKER'])
 
-        #control whether bootstrap environment remotely connects or stays offline
-        #cheap hack to support flexible debug environment
-        #the bootstrap job object is just a stub and won't have the '_state' attribute
+        # control whether bootstrap environment remotely connects or stays offline
+        # cheap hack to support flexible debug environment
+        # the bootstrap job object is just a stub and won't have the '_state' attribute
         if hasattr(job, '_state'):
             is_bootstrap = False
             recipe_id = os.environ.get('RECIPE_ID') or '0'
@@ -70,14 +74,13 @@ class harness_beaker(harness.harness):
         self.offline = False
         self.cmd = None
 
-        #handle legacy rhts scripts called from inside tests
-        os.environ['PATH']  = "%s:%s" % ('/var/cache/autotest', os.environ['PATH'])
+        # handle legacy rhts scripts called from inside tests
+        os.environ['PATH'] = "%s:%s" % ('/var/cache/autotest', os.environ['PATH'])
 
         if harness_args:
             logging.info('harness_args: %s' % harness_args)
             os.environ['AUTOTEST_HARNESS_ARGS'] = harness_args
         self.args = self.parse_args(harness_args, is_bootstrap)
-
 
         logging.debug('harness_beaker: state_file: <%s>', self.state_file)
         logging.debug('harness_beaker: hostname: <%s>', self.hostname)
@@ -86,7 +89,7 @@ class harness_beaker(harness.harness):
         if not self.hostname:
             raise error.HarnessError('Need valid hostname')
 
-        #hack for flexible debug environment
+        # hack for flexible debug environment
         labc = not self.offline and self.labc_url or None
 
         self.bkr_proxy = BkrProxy(self.recipe_id, labc)
@@ -99,15 +102,15 @@ class harness_beaker(harness.harness):
 
         for a in args.split(','):
             if a == 'offline':
-                #use cached recipe and stay offline whole time
+                # use cached recipe and stay offline whole time
                 self.offline = True
 
             elif a[:5] == 'cache':
                 if len(a) > 5 and a[5] == '=':
-                    #cache a different recipe instead
+                    # cache a different recipe instead
                     self.recipe_id = a[6:]
 
-                #remotely retrieve recipe, but stay offline during run
+                # remotely retrieve recipe, but stay offline during run
                 if not is_bootstrap:
                     self.offline = True
 
@@ -120,7 +123,7 @@ class harness_beaker(harness.harness):
                 raise error.HarnessError("Unknown beaker harness arg: %s" % a)
 
     def parse_quickcmd(self, args):
-        #hack allow tests to quickly submit feedback through harness
+        # hack allow tests to quickly submit feedback through harness
 
         if not args:
             return
@@ -129,12 +132,12 @@ class harness_beaker(harness.harness):
             raise error.HarnessError("No BEAKER_TASK_ID set")
         task_id = os.environ['BEAKER_TASK_ID']
 
-        #Commands are from tests and should be reported as results
-        cmd,q_args =  args.split(':')
+        # Commands are from tests and should be reported as results
+        cmd, q_args = args.split(':')
         if cmd == 'submit_log':
             try:
-                #rhts_submit_log has as args: -S -T -l
-                #we just care about -l
+                # rhts_submit_log has as args: -S -T -l
+                # we just care about -l
                 f = None
                 arg_list = q_args.split(' ')
                 while arg_list:
@@ -153,7 +156,7 @@ class harness_beaker(harness.harness):
                 return testname, status, logfile, score
 
             try:
-                #report_result has TESTNAME STATUS LOGFILE SCORE
+                # report_result has TESTNAME STATUS LOGFILE SCORE
                 arg_list = q_args.split(' ')
                 testname, status, logfile, score = init_args(*arg_list)
 
@@ -164,18 +167,18 @@ class harness_beaker(harness.harness):
                    os.path.getsize(logfile) != 0):
                     self.bkr_proxy.result_upload_file(task_id, resultid, logfile)
 
-                #save the dmesg file
+                # save the dmesg file
                 dfile = '/tmp/beaker.dmesg'
                 utils.system('dmesg -c > %s' % dfile)
                 if os.path.getsize(dfile) != 0:
                     self.bkr_proxy.result_upload_file(task_id, resultid, dfile)
-                #os.remove(dfile)
+                # os.remove(dfile)
 
             except Exception:
                 logging.critical('ERROR: Failed to process quick cmd %s' % cmd)
 
         elif cmd == 'reboot':
-            #we are in a stub job.  Can't use self.job.reboot() :-(
+            # we are in a stub job.  Can't use self.job.reboot() :-(
             utils.system("sync; sync; reboot")
             self.run_pause()
             raise error.JobContinue("more to come")
@@ -189,47 +192,47 @@ class harness_beaker(harness.harness):
            and pass it back to autotest. Much like bootstrapping.. :-)
         '''
 
-        #hack to sneakily pass results back to beaker without running
-        #autotest.  Need to avoid calling get_recipe below
+        # hack to sneakily pass results back to beaker without running
+        # autotest.  Need to avoid calling get_recipe below
         if self.cmd:
             self.parse_quickcmd(self.cmd)
             return None
 
         recipe = self.init_recipe_from_beaker()
 
-        #remove stale file
+        # remove stale file
         if os.path.isfile(self.state_file):
             os.remove(self.state_file)
             self.tests = {}
 
-        #sanity check
+        # sanity check
         if self.recipe_id != recipe.id:
             raise error.HarnessError('Recipe mismatch: machine %s.. != XML %s..' %
-                                      (self.recipe_id, recipe.id))
+                                    (self.recipe_id, recipe.id))
 
-        #create unique name
+        # create unique name
         control_file_name = recipe.job_id + '_' + recipe.id + '.control'
         control_file_path = fetchdir + '/' + control_file_name
 
         logging.debug('setting up control file - %s' % control_file_path)
         control_file = open(control_file_path, 'w')
         try:
-            #convert recipe xml into control file
+            # convert recipe xml into control file
             for task in recipe.tasks:
                 self.convert_task_to_control(fetchdir, control_file, task)
 
-                #getting the task id later, will be hard, store it in file/memory
+                # getting the task id later, will be hard, store it in file/memory
                 self.write_processed_tests(self.get_test_name(task), task.id)
 
             control_file.close()
         except HarnessException:
-            #hook to bail out on reservesys systems and not run autotest
+            # hook to bail out on reservesys systems and not run autotest
             return None
         except Exception, ex:
             os.remove(control_file_path)
             raise error.HarnessError('beaker_harness: convert failed with -> %s' % ex)
 
-        #autotest should find this under FETCHDIRTEST because it is unique
+        # autotest should find this under FETCHDIRTEST because it is unique
         return control_file_path
 
     def init_recipe_from_beaker(self):
@@ -242,7 +245,7 @@ class harness_beaker(harness.harness):
 
     def init_task_params(self, task):
         logging.debug('PrepareTaskParams')
-        if task == None:
+        if task is None:
             raise error.HarnessError('No valid task')
 
         for (name, value) in task.params.items():
@@ -265,14 +268,13 @@ class harness_beaker(harness.harness):
                 return recipes_dict[h]
         raise error.HarnessError('No valid recipe for host %s' % self.hostname)
 
-
     # the block below was taken from standalone harness
     def setupInitSymlink(self):
         logging.debug('Symlinking init scripts')
         autodir = os.environ.get('AUTODIR')
         rc = os.path.join(autodir, 'tools/autotest')
         if os.path.isfile(rc) and os.path.islink(rc):
-            #nothing to do
+            # nothing to do
             return
 
         # see if system supports event.d versus inittab
@@ -299,8 +301,8 @@ class harness_beaker(harness.harness):
             logging.warning('Linking init scripts failed')
 
     def get_test_name(self, task):
-        name = re.sub('-','_', task.rpmName)
-        return re.sub('\.','_', name)
+        name = re.sub('-', '_', task.rpmName)
+        return re.sub('\.', '_', name)
 
     def convert_task_to_control(self, fetchdir, control, task):
         """Tasks are really just:
@@ -314,10 +316,10 @@ class harness_beaker(harness.harness):
         if task.timeout:
             timeout = ", timeout=%s" % task.timeout
 
-        #python doesn't like '-' in its class names
+        # python doesn't like '-' in its class names
         rpm_name = self.get_test_name(task)
         rpm_dir = fetchdir + '/' + rpm_name
-        rpm_file = rpm_dir  + '/' + rpm_name + '.py'
+        rpm_file = rpm_dir + '/' + rpm_name + '.py'
 
         if task.status == 'Completed' and not self.offline:
             logging.debug("SKIP Completed test %s" % rpm_name)
@@ -330,17 +332,17 @@ class harness_beaker(harness.harness):
             else:
                 logging.warning("Found Running test %s that isn't reservesys" % task.rpmName)
 
-        #append test name to control file
+        # append test name to control file
         logging.debug('adding test %s to control file' % rpm_name)
 
-        #Trick to avoid downloading XML all the time
-        #statically update each TASK_ID
+        # Trick to avoid downloading XML all the time
+        # statically update each TASK_ID
         control.write("os.environ['BEAKER_TASK_ID']='%s'\n" % task.id)
         control.write("job.run_test('%s'%s)\n" % (rpm_name, timeout))
 
-        #TODO check for git commands in task.params
+        # TODO check for git commands in task.params
 
-        #create the test itself
+        # create the test itself
         logging.debug('setting up test %s' % (rpm_file))
         if not os.path.exists(rpm_dir):
             os.mkdir(rpm_dir)
@@ -404,11 +406,10 @@ class harness_beaker(harness.harness):
         """A test within this job is completing (detail)"""
 
         logging.debug('test_status_detail %s / %s / %s / %s / %s / %s',
-                  code, subdir, operation, status, tag, str(optional_fields))
-
+                      code, subdir, operation, status, tag, str(optional_fields))
 
         if not subdir:
-            #recipes - covered by run_start/complete/abort
+            # recipes - covered by run_start/complete/abort
             return
 
         """The mapping between beaker tasks and non-beaker tasks is not easy to
@@ -424,29 +425,29 @@ class harness_beaker(harness.harness):
         """
         if code.startswith('START'):
             if subdir in self.tests and self.tests[subdir] != '0':
-                #predefined beaker task
+                # predefined beaker task
                 self.bkr_proxy.task_start(self.tests[subdir])
             else:
-                #some random sub-task, save for cleanup purposes
+                # some random sub-task, save for cleanup purposes
                 self.write_processed_tests(subdir)
             return
 
         elif code.startswith('END'):
             if subdir in self.tests and self.tests[subdir] != '0':
-                #predefined beaker task
+                # predefined beaker task
                 self.upload_task_files(self.tests[subdir], subdir)
                 self.bkr_proxy.task_stop(self.tests[subdir])
             return
 
         else:
             if subdir in self.tests and self.tests[subdir] != '0':
-                #predefine beaker tasks, will upload on END
+                # predefine beaker tasks, will upload on END
                 task_id = self.tests[subdir]
                 task_upload = False
             else:
-                #some random sub-task, save upload as task result
-                #because there is no beaker task to add them too
-                #task id was not saved in dictionary, get it from env
+                # some random sub-task, save upload as task result
+                # because there is no beaker task to add them too
+                # task id was not saved in dictionary, get it from env
                 if 'BEAKER_TASK_ID' not in os.environ:
                     raise error.HarnessError("No BEAKER_TASK_ID set")
                 task_id = os.environ['BEAKER_TASK_ID']
@@ -489,7 +490,7 @@ class harness_beaker(harness.harness):
     def watchdog_loop(self, heartbeat):
         while True:
             time.sleep(heartbeat)
-            logging.info('[-- MARK -- %s]' % time.asctime( time.localtime(time.time())))
+            logging.info('[-- MARK -- %s]' % time.asctime(time.localtime(time.time())))
         sys.exit()
 
     def get_processed_tests(self):
@@ -505,10 +506,10 @@ class harness_beaker(harness.harness):
         for line in lines:
             subdir, t_id = line.strip().split()
 
-            #duplicates result from multiple writers
-            #once during the conversion and then again
-            #during an update of a test run
-            #former has task ids, latter will not
+            # duplicates result from multiple writers
+            # once during the conversion and then again
+            # during an update of a test run
+            # former has task ids, latter will not
             if not subdir in tests:
                 tests[subdir] = t_id
         return tests
@@ -521,7 +522,7 @@ class harness_beaker(harness.harness):
     def upload_recipe_files(self):
         path = self.job.resultdir
 
-        #refresh latest executed tests
+        # refresh latest executed tests
         tests = self.get_processed_tests()
         logging.debug("Recipe filtering following tests: %s" % tests)
 
@@ -532,12 +533,12 @@ class harness_beaker(harness.harness):
                     dirnames.remove(d)
 
             for name in files:
-                #strip full path
+                # strip full path
                 remotepath = re.sub(path, "", root)
                 # The localfile has the full path
                 localfile = os.path.join(root, name)
                 if os.path.getsize(localfile) == 0:
-                    continue  #skip empty files
+                    continue  # skip empty files
 
                 # Upload the file
                 self.bkr_proxy.recipe_upload_file(localfile, remotepath)
@@ -547,12 +548,12 @@ class harness_beaker(harness.harness):
 
         for root, _, files in os.walk(path):
             for name in files:
-                #strip full path
+                # strip full path
                 remotepath = re.sub(path, "", root)
                 # The localfile has the full path
                 localfile = os.path.join(root, name)
                 if os.path.getsize(localfile) == 0:
-                    continue  #skip empty files
+                    continue  # skip empty files
 
                 # Upload the file
                 self.bkr_proxy.task_upload_file(task_id, localfile,
@@ -563,16 +564,17 @@ class harness_beaker(harness.harness):
 
         for root, _, files in os.walk(path):
             for name in files:
-                #strip full path
+                # strip full path
                 remotepath = re.sub(path, "", root)
                 # The localfile has the full path
                 localfile = os.path.join(root, name)
                 if os.path.getsize(localfile) == 0:
-                    continue  #skip empty files
+                    continue  # skip empty files
 
                 # Upload the file
                 self.bkr_proxy.result_upload_file(task_id, resultid, localfile,
                                                   remotepath)
+
 
 def get_beaker_code(at_code):
     bkr_status = 'Warn'

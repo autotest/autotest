@@ -2,7 +2,9 @@
 
 __author__ = "raphtee@google.com (Travis Miller)"
 
-import mock, mock_demo_MUT
+import mock
+import mock_demo_MUT
+
 
 class MyError(Exception):
     pass
@@ -21,7 +23,9 @@ class A(object):
     def method2(self, y):
         return y * self.x
 
+
 class B(A):
+
     def method3(self, z):
         return self.x + z
 
@@ -30,6 +34,7 @@ class B(A):
 
 
 class C(B):
+
     def method5(self):
         self.method1()
         t = self.method2(4)
@@ -38,13 +43,16 @@ class C(B):
 
 
 class D(C):
+
     def method6(self, error):
         if error:
             raise MyError("woops")
         else:
             return 10
 
+
 class E(D):
+
     def __init__(self, val):
         self.val = val
 

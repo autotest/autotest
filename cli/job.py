@@ -16,26 +16,30 @@ The common options are:
 See topic_common.py for a High Level Design and Algorithm.
 """
 
-import getpass, os, pwd, re, socket, sys
+import getpass
+import os
+import pwd
+import re
+import socket
+import sys
 from autotest.cli import topic_common, action_common
 
 
 class job(topic_common.atest):
+
     """Job class
     atest job [create|clone|list|stat|abort] <options>"""
     usage_action = '[create|clone|list|stat|abort]'
     topic = msg_topic = 'job'
     msg_items = '<job_ids>'
 
-
     def _convert_status(self, results):
         for result in results:
             total = sum(result['status_counts'].values())
-            status = ['%s=%s(%.1f%%)' % (key, val, 100.0*float(val)/total)
+            status = ['%s=%s(%.1f%%)' % (key, val, 100.0 * float(val) / total)
                       for key, val in result['status_counts'].iteritems()]
             status.sort()
             result['status_counts'] = ', '.join(status)
-
 
     def backward_compatibility(self, action, argv):
         """ 'job create --clone' became 'job clone --id' """
@@ -48,19 +52,20 @@ class job(topic_common.atest):
 
 
 class job_help(job):
+
     """Just here to get the atest logic working.
     Usage is set by its parent"""
     pass
 
 
 class job_list_stat(action_common.atest_list, job):
+
     def __init__(self):
         super(job_list_stat, self).__init__()
 
         self.topic_parse_info = topic_common.item_parse_info(
             attribute_name='jobs',
             use_leftover=True)
-
 
     def __split_jobs_between_ids_names(self):
         job_ids = []
@@ -74,7 +79,6 @@ class job_list_stat(action_common.atest_list, job):
                 job_names.append(job_id)
         return (job_ids, job_names)
 
-
     def execute_on_ids_and_names(self, op, filters={},
                                  check_results={'id__in': 'id',
                                                 'name__in': 'id'},
@@ -87,7 +91,7 @@ class job_list_stat(action_common.atest_list, job):
         (job_ids, job_names) = self.__split_jobs_between_ids_names()
 
         for items, tag in [(job_ids, tag_id),
-                          (job_names, tag_name)]:
+                           (job_names, tag_name)]:
             if items:
                 new_filters = filters.copy()
                 new_filters[tag] = items
@@ -101,7 +105,9 @@ class job_list_stat(action_common.atest_list, job):
 
 
 class job_list(job_list_stat):
+
     """atest job list [<jobs>] [--all] [--running] [--user <username>]"""
+
     def __init__(self):
         super(job_list, self).__init__()
         self.parser.add_option('-a', '--all', help='List jobs for all '
@@ -110,7 +116,6 @@ class job_list(job_list_stat):
                                'jobs', action='store_true')
         self.parser.add_option('-u', '--user', help='List jobs for given '
                                'user', type='string')
-
 
     def parse(self):
         options, leftover = super(job_list, self).parse()
@@ -126,11 +131,9 @@ class job_list(job_list_stat):
 
         return options, leftover
 
-
     def execute(self):
         return self.execute_on_ids_and_names(op='get_jobs_summary',
                                              filters=self.data)
-
 
     def output(self, results):
         keys = ['id', 'owner', 'name', 'status_counts']
@@ -140,8 +143,8 @@ class job_list(job_list_stat):
         super(job_list, self).output(results, keys)
 
 
-
 class job_stat(job_list_stat):
+
     """atest job stat <job>"""
     usage_action = 'stat'
 
@@ -157,11 +160,10 @@ class job_stat(job_list_stat):
                                help='Display only the hosts in these statuses '
                                'for a job.', action='store')
 
-
     def parse(self):
         status_list = topic_common.item_parse_info(
-                attribute_name='status_list',
-                inline_option='list_hosts_status')
+            attribute_name='status_list',
+            inline_option='list_hosts_status')
         options, leftover = super(job_stat, self).parse([status_list],
                                                         req_items='jobs')
 
@@ -180,7 +182,6 @@ class job_stat(job_list_stat):
 
         return options, leftover
 
-
     def _merge_results(self, summary, qes):
         hosts_status = {}
         for qe in qes:
@@ -197,7 +198,7 @@ class job_stat(job_list_stat):
                 this_job = hosts_status[job_id]
                 job['hosts'] = ' '.join(' '.join(host) for host in
                                         this_job.itervalues())
-                host_per_status = ['%s="%s"' %(status, ' '.join(host))
+                host_per_status = ['%s="%s"' % (status, ' '.join(host))
                                    for status, host in this_job.iteritems()]
                 job['hosts_status'] = ', '.join(host_per_status)
                 if self.status_list:
@@ -214,7 +215,6 @@ class job_stat(job_list_stat):
 
         return summary
 
-
     def execute(self):
         summary = self.execute_on_ids_and_names(op='get_jobs_summary')
 
@@ -228,7 +228,6 @@ class job_stat(job_list_stat):
 
         return self._merge_results(summary, qes)
 
-
     def output(self, results):
         if self.list_hosts:
             keys = ['hosts']
@@ -238,7 +237,7 @@ class job_stat(job_list_stat):
             keys = ['id', 'name', 'priority', 'status_counts', 'hosts_status']
         else:
             keys = ['id', 'name', 'priority', 'status_counts', 'hosts_status',
-                    'owner', 'control_type',  'synch_count', 'created_on',
+                    'owner', 'control_type', 'synch_count', 'created_on',
                     'run_verify', 'reboot_before', 'reboot_after',
                     'parse_failed_repair']
 
@@ -249,6 +248,7 @@ class job_stat(job_list_stat):
 
 
 class job_create_or_clone(action_common.atest_create, job):
+
     """Class containing the code common to the job create and clone actions"""
     msg_items = 'job_name'
 
@@ -259,7 +259,7 @@ class job_create_or_clone(action_common.atest_create, job):
         self.parser.add_option('-p', '--priority', help='Job priority (low, '
                                'medium, high, urgent), default=medium',
                                type='choice', choices=('low', 'medium', 'high',
-                               'urgent'), default='medium')
+                                                       'urgent'), default='medium')
         self.parser.add_option('-b', '--labels',
                                help='Comma separated list of labels '
                                'to get machine list from.', default='')
@@ -307,7 +307,7 @@ class job_create_or_clone(action_common.atest_create, job):
                     meta_hosts += int(num) * self._parse_meta_host_labels(host)
                 elif re.match('^[*](\w*)', host):
                     meta_hosts += self._parse_meta_host_labels(
-                                        re.match('^[*](\w*)', host).group(1))
+                        re.match('^[*](\w*)', host).group(1))
                 elif host != '' and host not in hosts:
                     # Real hostname and not a duplicate
                     hosts.append(host)
@@ -326,8 +326,8 @@ class job_create_or_clone(action_common.atest_create, job):
                                                   inline_option='labels')
 
         options, leftover = super(job_create_or_clone, self).parse(
-                [host_info, job_info, oth_info, label_info] + parse_info,
-                req_items='jobname')
+            [host_info, job_info, oth_info, label_info] + parse_info,
+            req_items='jobname')
         self.data = {}
         jobname = getattr(self, 'jobname')
         if len(jobname) > 1:
@@ -356,11 +356,9 @@ class job_create_or_clone(action_common.atest_create, job):
 
         return options, leftover
 
-
     def create_job(self):
         job_id = self.execute_rpc(op='create_job', **self.data)
         return ['%s (id %s)' % (self.jobname, job_id)]
-
 
     # The unittests will hide this method, well, for unittesting
     # pylint: disable=E0202
@@ -368,8 +366,8 @@ class job_create_or_clone(action_common.atest_create, job):
         return [self.jobname]
 
 
-
 class job_create(job_create_or_clone):
+
     """
     atest job create [--priority <Low|Medium|High|Urgent>]
     [--synch_count] [--control-file </path/to/cfile>]
@@ -487,7 +485,7 @@ class job_create(job_create_or_clone):
 
         if (len(configs) != len(versions)):
             self.invalid_syntax('Must specify same number of entries in'
-                                ' --kernel and --kernel-config options');
+                                ' --kernel and --kernel-config options')
 
         kernels = []
         for version, config in zip(versions, configs):
@@ -500,27 +498,26 @@ class job_create(job_create_or_clone):
 
         return kernels
 
-
     def parse(self):
         deps_info = topic_common.item_parse_info(attribute_name='dependencies',
                                                  inline_option='dependencies')
         options, leftover = super(job_create, self).parse(
-                parse_info=[deps_info])
+            parse_info=[deps_info])
 
         if options.hostless:
             if (self.hosts or self.one_time_hosts
                 or options.labels or options.atomic_group
-                or options.synch_count):
+                    or options.synch_count):
                 self.invalid_syntax('If hostless is specified cannot specify'
                                     ' machine, atomic group or synch count'
                                     ' (-m, -M, -b, -G, --synch_count')
         else:
             if (len(self.hosts) == 0 and not self.one_time_hosts
-                and not options.labels and not options.atomic_group):
+                    and not options.labels and not options.atomic_group):
                 self.invalid_syntax('Must specify at least one machine, '
-                                'atomic group or hostless'
-                                '(-m, -M, -b, -G, --one-time-hosts '
-                                'or hostless).')
+                                    'atomic group or hostless'
+                                    '(-m, -M, -b, -G, --one-time-hosts '
+                                    'or hostless).')
         if not options.control_file and not options.test:
             self.invalid_syntax('Must specify either --test or --control-file'
                                 ' to create a job.')
@@ -529,9 +526,9 @@ class job_create(job_create_or_clone):
                                 '--test, not both.')
         if options.kernel:
             self.ctrl_file_data['kernel'] = self._get_kernel_data(
-                    options.kernel,
-                    options.kernel_cmdline,
-                    config_list=options.kernel_config)
+                options.kernel,
+                options.kernel_cmdline,
+                config_list=options.kernel_config)
         if options.control_file:
             try:
                 control_file_f = open(options.control_file)
@@ -555,7 +552,6 @@ class job_create(job_create_or_clone):
                                     'cannot be overriden.')
             tests = [t.strip() for t in options.test.split(',') if t.strip()]
             self.ctrl_file_data['tests'] = tests
-
 
         if options.reboot_before:
             self.data['reboot_before'] = options.reboot_before.capitalize()
@@ -590,7 +586,6 @@ class job_create(job_create_or_clone):
             self.data['reserve_hosts'] = True
 
         return options, leftover
-
 
     def execute(self):
         if self.ctrl_file_data:
@@ -630,6 +625,7 @@ class job_create(job_create_or_clone):
 
 
 class job_clone(job_create_or_clone):
+
     """atest job clone [--priority <Low|Medium|High|Urgent>]
     [--mlist </path/to/machinelist>] [--machine <host1 host2 host3>]
     [--labels <list of labels of machines to run on>]
@@ -652,7 +648,6 @@ class job_clone(job_create_or_clone):
                                'cloned job.',
                                action='store_true', default=False)
 
-
     def parse(self):
         options, leftover = super(job_clone, self).parse()
 
@@ -670,7 +665,6 @@ class job_clone(job_create_or_clone):
                                 '--one-time-hosts).')
 
         return options, leftover
-
 
     def execute(self):
         clone_info = self.execute_rpc(op='get_info_for_clone',
@@ -694,7 +688,7 @@ class job_clone(job_create_or_clone):
         if self.reuse_hosts:
             # Convert host list from clone info that can be used for job_create
             for label, qty in clone_info['meta_host_counts'].iteritems():
-                self.data['meta_hosts'].extend([label]*qty)
+                self.data['meta_hosts'].extend([label] * qty)
 
             self.data['hosts'].extend(host['hostname']
                                       for host in clone_info['hosts'])
@@ -703,6 +697,7 @@ class job_clone(job_create_or_clone):
 
 
 class job_abort(job, action_common.atest_delete):
+
     """atest job abort <job(s)>"""
     usage_action = op_action = 'abort'
     msg_done = 'Aborted'
@@ -713,12 +708,10 @@ class job_abort(job, action_common.atest_delete):
         options, leftover = super(job_abort, self).parse([job_info],
                                                          req_items='jobids')
 
-
     def execute(self):
         data = {'job__id__in': self.jobids}
         self.execute_rpc(op='abort_host_queue_entries', **data)
         print 'Aborting jobs: %s' % ', '.join(self.jobids)
-
 
     # The unittests will hide this method, well, for unittesting
     # pylint: disable=E0202

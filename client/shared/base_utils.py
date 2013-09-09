@@ -1,14 +1,35 @@
 #
 # Copyright 2008 Google Inc. Released under the GPL v2
 
-import os, pickle, random, re, resource, select, shutil, signal, StringIO, glob
-import socket, struct, subprocess, sys, time, textwrap, traceback, urlparse
-import warnings, smtplib, logging, urllib2, string
+import os
+import pickle
+import random
+import re
+import resource
+import select
+import shutil
+import signal
+import StringIO
+import glob
+import socket
+import struct
+import subprocess
+import sys
+import time
+import textwrap
+import traceback
+import urlparse
+import warnings
+import smtplib
+import logging
+import urllib2
+import string
 from threading import Thread, Event, Lock
 try:
     import hashlib
 except ImportError:
-    import md5, sha
+    import md5
+    import sha
 from autotest.client.shared import error, logging_manager
 from autotest.client.shared import progressbar
 from autotest.client.shared.settings import settings
@@ -28,9 +49,9 @@ def deprecated(func):
 
 
 class _NullStream(object):
+
     def write(self, data):
         pass
-
 
     def flush(self):
         pass
@@ -56,6 +77,7 @@ def get_stream_tee_file(stream, level, prefix=''):
 
 
 class BgJob(object):
+
     def __init__(self, command, stdout_tee=None, stderr_tee=None, verbose=True,
                  stdin=None, stderr_level=DEFAULT_STDERR_LEVEL):
         self.command = command
@@ -86,11 +108,9 @@ class BgJob(object):
                                    executable=shell,
                                    stdin=stdin)
 
-
     def output_prepare(self, stdout_file=None, stderr_file=None):
         self.stdout_file = stdout_file
         self.stderr_file = stderr_file
-
 
     def process_output(self, stdout=True, final_read=False):
         """output_prepare must be called prior to calling this"""
@@ -113,7 +133,6 @@ class BgJob(object):
         buf.write(data)
         tee.write(data)
 
-
     def cleanup(self):
         self.stdout_tee.flush()
         self.stderr_tee.flush()
@@ -122,18 +141,19 @@ class BgJob(object):
         self.result.stdout = self.stdout_file.getvalue()
         self.result.stderr = self.stderr_file.getvalue()
 
-
     def _reset_sigpipe(self):
         signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
+
 class AsyncJob(BgJob):
+
     def __init__(self, command, stdout_tee=None, stderr_tee=None, verbose=True,
                  stdin=None, stderr_level=DEFAULT_STDERR_LEVEL, kill_func=None):
         super(AsyncJob, self).__init__(command, stdout_tee=stdout_tee,
-            stderr_tee=stderr_tee, verbose=verbose, stdin=stdin,
-            stderr_level=stderr_level)
+                                       stderr_tee=stderr_tee, verbose=verbose, stdin=stdin,
+                                       stderr_level=stderr_level)
 
-        #start time for CmdResult
+        # start time for CmdResult
         self.start_time = time.time()
 
         if kill_func is None:
@@ -147,22 +167,22 @@ class AsyncJob(BgJob):
             # replace with None so that _wait_for_commands will not try to re-write it
             self.string_stdin = None
             self.stdin_thread = Thread(target=AsyncJob._stdin_string_drainer, name=("%s-stdin" % command),
-                                    args=(string_stdin, self.sp.stdin))
+                                       args=(string_stdin, self.sp.stdin))
             self.stdin_thread.daemon = True
             self.stdin_thread.start()
 
         self.stdout_lock = Lock()
         self.stdout_file = StringIO.StringIO()
         self.stdout_thread = Thread(target=AsyncJob._fd_drainer, name=("%s-stdout" % command),
-                 args=(self.sp.stdout, [self.stdout_file, self.stdout_tee],
-                       self.stdout_lock))
+                                    args=(self.sp.stdout, [self.stdout_file, self.stdout_tee],
+                                          self.stdout_lock))
         self.stdout_thread.daemon = True
 
         self.stderr_lock = Lock()
         self.stderr_file = StringIO.StringIO()
         self.stderr_thread = Thread(target=AsyncJob._fd_drainer, name=("%s-stderr" % command),
-                 args=(self.sp.stderr, [self.stderr_file, self.stderr_tee],
-                       self.stderr_lock))
+                                    args=(self.sp.stderr, [self.stderr_file, self.stderr_tee],
+                                          self.stderr_lock))
         self.stderr_thread.daemon = True
 
         self.stdout_thread.start()
@@ -214,11 +234,11 @@ class AsyncJob(BgJob):
 
     def output_prepare(self, stdout_file=None, stderr_file=None):
         raise NotImplementedError("This object automatically prepares its own "
-            "output")
+                                  "output")
 
     def process_output(self, stdout=True, final_read=False):
         raise NotImplementedError("This object has background threads "
-            "automatically polling the process. Use the locked accessors")
+                                  "automatically polling the process. Use the locked accessors")
 
     def get_stdout(self):
         self.stdout_lock.acquire()
@@ -239,7 +259,7 @@ class AsyncJob(BgJob):
         try:
             os.kill(self.sp.pid, signal.SIGTERM)
         except OSError:
-            pass #don't care if the process is already gone, since that was the goal
+            pass  # don't care if the process is already gone, since that was the goal
 
     def wait_for(self, timeout=None):
         if timeout is None:
@@ -251,11 +271,11 @@ class AsyncJob(BgJob):
                 self.result.exit_status = self.sp.poll()
                 if self.result.exit_status is not None:
                     break
-        #first need to kill the threads and process, then no more locking
-        #issues for superclass's cleanup function
+        # first need to kill the threads and process, then no more locking
+        # issues for superclass's cleanup function
         self.kill_func()
 
-        #we need to fill in parts of the result that aren't done automatically
+        # we need to fill in parts of the result that aren't done automatically
         try:
             pid, self.result.exit_status = os.waitpid(self.sp.pid, 0)
         except OSError:
@@ -263,7 +283,7 @@ class AsyncJob(BgJob):
         self.result.duration = time.time() - self.start_time
         assert self.result.exit_status is not None
 
-        #make sure we've got stdout and stderr
+        # make sure we've got stdout and stderr
         self.stdout_thread.join(1)
         self.stderr_thread.join(1)
         assert not self.stdout_thread.isAlive()
@@ -272,6 +292,7 @@ class AsyncJob(BgJob):
         super(AsyncJob, self).cleanup()
 
         return self.result
+
 
 def ip_to_long(ip):
     # !L is a long in network byte order
@@ -284,7 +305,7 @@ def long_to_ip(number):
 
 
 def create_subnet_mask(bits):
-    return (1 << 32) - (1 << 32-bits)
+    return (1 << 32) - (1 << 32 - bits)
 
 
 def format_ip_with_mask(ip, mask_bits):
@@ -337,7 +358,7 @@ def get_field(data, param, linestart="", sep=" "):
     """
     search = re.compile(r"(?<=^%s)\s*(.*)" % linestart, re.MULTILINE)
     find = search.search(data)
-    if find != None:
+    if find is not None:
         return re.split("%s" % sep, find.group(1))[param]
     else:
         print "There is no line which starts with %s in data." % linestart
@@ -400,10 +421,12 @@ def matrix_to_string(matrix, header=None):
 
 
 class Statistic(object):
+
     """
     Class to display and collect average,
     max and min values of a given data set.
     """
+
     def __init__(self):
         self._sum = 0
         self._count = 0
@@ -495,7 +518,9 @@ def write_keyval(path, dictionary, type_tag=None, tap_report=None):
     if tap_report is not None and tap_report.do_tap_report:
         tap_report.record_keyval(path, dictionary, type_tag=type_tag)
 
+
 class FileFieldMonitor(object):
+
     """
     Monitors the information from the file and reports it's values.
 
@@ -503,9 +528,11 @@ class FileFieldMonitor(object):
     continuously during the measurement.
     """
     class Monitor(Thread):
+
         """
         Internal monitor class to ensure continuous monitor of monitored file.
         """
+
         def __init__(self, master):
             """
             @param master: Master class which control Monitor
@@ -520,7 +547,6 @@ class FileFieldMonitor(object):
             while not self.master.end_event.isSet():
                 self.master._get_value(self.master.logging)
                 time.sleep(self.master.time_step)
-
 
     def __init__(self, status_file, data_to_read, mode_diff, continuously=False,
                  contlogging=False, separator=" +", time_step=0.1):
@@ -567,7 +593,6 @@ class FileFieldMonitor(object):
         self.num_of_get_value = 0
         self.monitor = None
 
-
     def _get_value(self, logging=True):
         """
         Return current values.
@@ -591,7 +616,6 @@ class FileFieldMonitor(object):
         self.num_of_get_value += 1
         return value
 
-
     def start(self):
         """
         Start value monitor.
@@ -608,7 +632,6 @@ class FileFieldMonitor(object):
         if (self.continuously):
             self.monitor = FileFieldMonitor.Monitor(self)
             self.monitor.start()
-
 
     def stop(self):
         """
@@ -627,7 +650,6 @@ class FileFieldMonitor(object):
             else:
                 self.value = map(lambda x: x / self.num_of_get_value,
                                  self.value)
-
 
     def get_status(self):
         """
@@ -795,7 +817,7 @@ def update_version(srcdir, preserve_srcdir, new_version, install,
                 os.mkdir(srcdir)
 
         patch_file_list = glob.glob(os.path.join(
-                                 (os.path.dirname(source_code_dir)), "*.patch"))
+                                    (os.path.dirname(source_code_dir)), "*.patch"))
         for patch_src in patch_file_list:
             patch_dst = os.path.join(os.path.dirname(srcdir),
                                      os.path.basename(patch_src))
@@ -887,9 +909,11 @@ def run_parallel(commands, timeout=None, ignore_status=False,
 
 
 class InterruptedThread(Thread):
+
     """
     Run a function in a background thread.
     """
+
     def __init__(self, target, args=(), kwargs={}):
         """
         Initialize the instance.
@@ -902,7 +926,6 @@ class InterruptedThread(Thread):
         self._target = target
         self._args = args
         self._kwargs = kwargs
-
 
     def run(self):
         """
@@ -922,7 +945,6 @@ class InterruptedThread(Thread):
             # Avoid circular references (start() may be called only once so
             # it's OK to delete these)
             del self._target, self._args, self._kwargs
-
 
     def join(self, timeout=None, suppress_exception=False):
         """
@@ -975,8 +997,8 @@ def join_bg_jobs(bg_jobs, timeout=None):
 
         for bg_job in bg_jobs:
             # Process stdout and stderr
-            bg_job.process_output(stdout=True,final_read=True)
-            bg_job.process_output(stdout=False,final_read=True)
+            bg_job.process_output(stdout=True, final_read=True)
+            bg_job.process_output(stdout=False, final_read=True)
     finally:
         # close our ends of the pipes to the sp no matter what
         for bg_job in bg_jobs:
@@ -989,7 +1011,6 @@ def join_bg_jobs(bg_jobs, timeout=None):
         raise error.CmdError(bg_jobs[0].command, bg_jobs[0].result,
                              "Command(s) did not complete within %d seconds"
                              % timeout)
-
 
     return bg_jobs
 
@@ -1018,7 +1039,7 @@ def _wait_for_commands(bg_jobs, start_time, timeout):
         stop_time = start_time + timeout
         time_left = stop_time - time.time()
     else:
-        time_left = None # so that select never times out
+        time_left = None  # so that select never times out
 
     while not timeout or time_left > 0:
         # select will return when we may write to stdin or when there is
@@ -1222,13 +1243,15 @@ def system_output_parallel(commands, timeout=None, ignore_status=False,
                                stdout_tee=TEE_TO_LOGS, stderr_tee=TEE_TO_LOGS)]
     else:
         out = [bg_job.stdout for bg_job in run_parallel(commands,
-                                  timeout=timeout, ignore_status=ignore_status)]
+                                                        timeout=timeout, ignore_status=ignore_status)]
     for x in out:
-        if out[-1:] == '\n': out = out[:-1]
+        if out[-1:] == '\n':
+            out = out[:-1]
     return out
 
 
 class ForAll(list):
+
     def __getattr__(self, name):
         def wrapper(*args, **kargs):
             return map(lambda o: o.__getattribute__(name)(*args, **kargs), self)
@@ -1236,15 +1259,17 @@ class ForAll(list):
 
 
 class ForAllP(list):
+
     """
     Parallel version of ForAll
     """
+
     def __getattr__(self, name):
         def wrapper(*args, **kargs):
             threads = []
             for o in self:
                 threads.append(InterruptedThread(o.__getattribute__(name),
-                                        args=args, kwargs=kargs))
+                                                 args=args, kwargs=kargs))
             for t in threads:
                 t.start()
             return map(lambda t: t.join(), threads)
@@ -1252,15 +1277,17 @@ class ForAllP(list):
 
 
 class ForAllPSE(list):
+
     """
     Parallel version of and suppress exception.
     """
+
     def __getattr__(self, name):
         def wrapper(*args, **kargs):
             threads = []
             for o in self:
                 threads.append(InterruptedThread(o.__getattribute__(name),
-                                        args=args, kwargs=kargs))
+                                                 args=args, kwargs=kargs))
             for t in threads:
                 t.start()
 
@@ -1348,9 +1375,11 @@ def get_cpu_percentage(function, *args, **dargs):
 
 
 class SystemLoad(object):
+
     """
     Get system and/or process values and return average value of load.
     """
+
     def __init__(self, pids, advanced=False, time_step=0.1, cpu_cont=False,
                  use_log=False):
         """
@@ -1367,20 +1396,20 @@ class SystemLoad(object):
         for pid in pids:
             if pid == 0:
                 cpu = FileFieldMonitor("/proc/stat",
-                                       [("cpu", 0), # User Time
-                                        ("cpu", 2), # System Time
-                                        ("intr", 0), # IRQ Count
-                                        ("softirq", 0)], # Soft IRQ Count
+                                       [("cpu", 0),  # User Time
+                                        ("cpu", 2),  # System Time
+                                        ("intr", 0),  # IRQ Count
+                                        ("softirq", 0)],  # Soft IRQ Count
                                        True,
                                        cpu_cont,
                                        use_log,
                                        " +",
                                        time_step)
                 mem = FileFieldMonitor("/proc/meminfo",
-                                       [("MemTotal:", 0), # Mem Total
-                                        ("MemFree:", 0), # Mem Free
-                                        ("Buffers:", 0), # Buffers
-                                        ("Cached:", 0)], # Cached
+                                       [("MemTotal:", 0),  # Mem Total
+                                        ("MemFree:", 0),  # Mem Free
+                                        ("Buffers:", 0),  # Buffers
+                                        ("Cached:", 0)],  # Cached
                                        False,
                                        True,
                                        use_log,
@@ -1399,10 +1428,10 @@ class SystemLoad(object):
 
                 cpu = FileFieldMonitor("/proc/%d/stat" %
                                        self.pids[-1],
-                                       [("", 13), # User Time
-                                        ("", 14), # System Time
-                                        ("", 9), # Minority Page Fault
-                                        ("", 11)], # Majority Page Fault
+                                       [("", 13),  # User Time
+                                        ("", 14),  # System Time
+                                        ("", 9),  # Minority Page Fault
+                                        ("", 11)],  # Majority Page Fault
                                        True,
                                        cpu_cont,
                                        use_log,
@@ -1410,10 +1439,10 @@ class SystemLoad(object):
                                        time_step)
                 mem = FileFieldMonitor("/proc/%d/status" %
                                        self.pids[-1],
-                                       [("VmSize:", 0), # Virtual Memory Size
-                                        ("VmRSS:", 0), # Resident Set Size
-                                        ("VmPeak:", 0), # Peak VM Size
-                                        ("VmSwap:", 0)], # VM in Swap
+                                       [("VmSize:", 0),  # Virtual Memory Size
+                                        ("VmRSS:", 0),  # Resident Set Size
+                                        ("VmPeak:", 0),  # Peak VM Size
+                                        ("VmSwap:", 0)],  # VM in Swap
                                        False,
                                        True,
                                        use_log,
@@ -1422,7 +1451,6 @@ class SystemLoad(object):
                 self.stats[self.pids[-1]] = [name, cpu, mem]
 
         self.advanced = advanced
-
 
     def __str__(self):
         """
@@ -1433,7 +1461,6 @@ class SystemLoad(object):
             for stat in self.stats[pid][1:]:
                 out += str(stat.get_status()) + "\n"
         return out
-
 
     def start(self, pids=[]):
         """
@@ -1448,7 +1475,6 @@ class SystemLoad(object):
             for stat in self.stats[pid][1:]:
                 stat.start()
 
-
     def stop(self, pids=[]):
         """
         Stop monitoring of the process system usage.
@@ -1461,7 +1487,6 @@ class SystemLoad(object):
         for pid in pids:
             for stat in self.stats[pid][1:]:
                 stat.stop()
-
 
     def dump(self, pids=[]):
         """
@@ -1495,7 +1520,6 @@ class SystemLoad(object):
             memory.append(stat)
 
         return (cpus, memory)
-
 
     def get_cpu_status_string(self, pids=[]):
         """
@@ -1532,7 +1556,6 @@ class SystemLoad(object):
                 textstatus[-1].insert(-1, "%14d" % stat[3])
 
         return matrix_to_string(textstatus, tuple(headers))
-
 
     def get_mem_status_string(self, pids=[]):
         """
@@ -1611,12 +1634,12 @@ def merge_trees(src, dest):
     paths that cannot be merged (instead of failing).
     """
     if not os.path.exists(src):
-        return # exists only in dest
+        return  # exists only in dest
     elif not os.path.exists(dest):
         if os.path.isfile(src):
-            shutil.copy2(src, dest) # file only in src
+            shutil.copy2(src, dest)  # file only in src
         else:
-            shutil.copytree(src, dest, symlinks=True) # dir only in src
+            shutil.copytree(src, dest, symlinks=True)  # dir only in src
         return
     elif os.path.isfile(src) and os.path.isfile(dest):
         # src & dest are files in both trees, append src to dest
@@ -1639,6 +1662,7 @@ def merge_trees(src, dest):
 
 
 class CmdResult(object):
+
     """
     Command execution result.
 
@@ -1649,7 +1673,6 @@ class CmdResult(object):
     duration:    Elapsed wall clock time running the process
     """
 
-
     def __init__(self, command="", stdout="", stderr="",
                  exit_status=None, duration=0):
         self.command = command
@@ -1658,9 +1681,8 @@ class CmdResult(object):
         self.stderr = stderr
         self.duration = duration
 
-
     def __repr__(self):
-        wrapper = textwrap.TextWrapper(width = 78,
+        wrapper = textwrap.TextWrapper(width=78,
                                        initial_indent="\n    ",
                                        subsequent_indent="    ")
 
@@ -1678,24 +1700,23 @@ class CmdResult(object):
                 "%s"
                 "%s"
                 % (wrapper.fill(self.command), self.exit_status,
-                self.duration, stdout, stderr))
+                   self.duration, stdout, stderr))
 
 
 class run_randomly:
+
     def __init__(self, run_sequentially=False):
         # Run sequentially is for debugging control files
         self.test_list = []
         self.run_sequentially = run_sequentially
 
-
     def add(self, *args, **dargs):
         test = (args, dargs)
         self.test_list.append(test)
 
-
     def run(self, fn):
         while self.test_list:
-            test_index = random.randint(0, len(self.test_list)-1)
+            test_index = random.randint(0, len(self.test_list) - 1)
             if self.run_sequentially:
                 test_index = 0
             (args, dargs) = self.test_list.pop(test_index)
@@ -2121,10 +2142,9 @@ def cpu_affinity_by_task(pid, vcpu_pid):
     for each vcpu's through its task id for a pid(of a VM)
     """
 
-    cmd = "cat /proc/%s/task/%s/status|grep Cpus_allowed:| awk '{print $2}'" % (pid,vcpu_pid)
+    cmd = "cat /proc/%s/task/%s/status|grep Cpus_allowed:| awk '{print $2}'" % (pid, vcpu_pid)
     output = system_output(cmd, ignore_status=False)
     return output
-
 
 
 def convert_data_size(size, default_sufix='B'):
@@ -2150,7 +2170,7 @@ def convert_data_size(size, default_sufix='B'):
     return int(float(size[0:-1]) * orders[order[0].upper()])
 
 
-def interactive_download(url, output_file, title='', chunk_size=100*1024):
+def interactive_download(url, output_file, title='', chunk_size=100 * 1024):
     '''
     Interactively downloads a given file url to a given output file
 
@@ -2227,6 +2247,7 @@ def generate_random_string(length, ignore_str=string.punctuation,
 
 
 class VersionableClass(object):
+
     """
     VersionableClass provides class hierarchy which automatically select right
     version of class. Class manipulation is used for this reason.
@@ -2344,7 +2365,7 @@ class VersionableClass(object):
         cls.check_repair_versions()
         return super(VersionableClass, cls).__new__(cls, *args, **kargs)
 
-    #VersionableClass class management class.
+    # VersionableClass class management class.
 
     @classmethod
     def check_repair_versions(cls, master_classes=None):
@@ -2360,7 +2381,6 @@ class VersionableClass(object):
         for base in master_classes:
             cls._check_repair_version_class(base)
 
-
     @classmethod
     def set_priority_class(cls, prioritized_class, group_classes):
         """
@@ -2375,7 +2395,7 @@ class VersionableClass(object):
                 remove_variant = None
                 for i, item in enumerate(ccls.__bases__):
                     if (VersionableClass in item.__bases__ and
-                        item.master_class in group_classes):
+                            item.master_class in group_classes):
                         if index is None:
                             index = i
                         if item.master_class is prioritized_class:
@@ -2395,7 +2415,6 @@ class VersionableClass(object):
 
         find_cls(cls)
 
-
     @classmethod
     def _check_repair_version_class(cls, master_class):
         version = None
@@ -2410,7 +2429,6 @@ class VersionableClass(object):
         else:
             cls._switch_by_class(class_version)
 
-
     @classmethod
     def _find_versionable_baseclass(cls):
         """
@@ -2423,7 +2441,6 @@ class VersionableClass(object):
 
         return set(ver_class)
 
-
     @classmethod
     def _find_versionable_subclass(cls):
         """
@@ -2434,7 +2451,6 @@ class VersionableClass(object):
             if VersionableClass in list(sub.__bases__):
                 subclasses.extend(sub._find_versionable_subclass())
         return subclasses
-
 
     @classmethod
     def _switch_by_class(cls, new_class):
@@ -2447,7 +2463,7 @@ class VersionableClass(object):
         def find_replace_class(bases):
             for base in bases:
                 if (VersionableClass in base.__bases__ and
-                    base.master_class == new_class.master_class):
+                        base.master_class == new_class.master_class):
                     bnew = list(bases)
                     bnew[bnew.index(base)] = new_class
                     return tuple(bnew)
@@ -2460,10 +2476,8 @@ class VersionableClass(object):
         if bnew:
             cls.__bases__ = bnew
 
-
     # Method defined in part below must be defined in
     # verisonable class subclass.
-
     @classmethod
     def get_version(cls):
         """
@@ -2474,7 +2488,6 @@ class VersionableClass(object):
         """
         raise NotImplementedError("Method 'get_verison' must be"
                                   " implemented in child class")
-
 
     @classmethod
     def is_right_version(cls, version):

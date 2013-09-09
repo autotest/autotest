@@ -1,10 +1,13 @@
-import os, logging, ConfigParser
+import os
+import logging
+import ConfigParser
 from autotest.client.shared import autotemp, base_packages, error
 from autotest.client.shared.settings import settings
 from autotest.client import harness
 
 
 class harness_autoserv(harness.harness):
+
     """
     The server harness for running from autoserv
 
@@ -33,12 +36,10 @@ class harness_autoserv(harness.harness):
                           "global_config.ini missing. This probably means "
                           "a bug on the server code. Please verify.")
 
-
     def run_start(self):
         # set up the package fetcher for direct-from-autoserv fetches
         fetcher = AutoservFetcher(self.job.pkgmgr, self)
         self.job.pkgmgr.add_repository(fetcher)
-
 
     def _send_and_wait(self, title, *args):
         """Send a message to the autoserv and wait for it to signal
@@ -66,12 +67,10 @@ class harness_autoserv(harness.harness):
         finally:
             fifo_dir.clean()
 
-
     def run_test_complete(self):
         """A test run by this job is complete, signal it to autoserv and
         wait for it to signal to continue"""
         self._send_and_wait('AUTOTEST_TEST_COMPLETE')
-
 
     def test_status(self, status, tag):
         """A test within this job is completing"""
@@ -80,7 +79,6 @@ class harness_autoserv(harness.harness):
             msg = 'AUTOTEST_STATUS:%s:%s\n'
             msg %= (tag, line)
             self.status.write(msg)
-
 
     def fetch_package(self, pkg_name, dest_path):
         """Request a package from the remote autoserv.
@@ -93,11 +91,11 @@ class harness_autoserv(harness.harness):
 
 
 class AutoservFetcher(base_packages.RepositoryFetcher):
+
     def __init__(self, package_manager, job_harness):
         super(AutoservFetcher, self).__init__(package_manager=package_manager,
                                               repository_url="autoserv://")
         self.job_harness = job_harness
-
 
     def fetch_pkg_file(self, filename, dest_path):
         if os.path.exists(dest_path):

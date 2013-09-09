@@ -42,7 +42,11 @@ this will exit 0 whether pattern displays anything or not
 
 __author__ = 'jmeurin@google.com (Jean-Marc Eurin)'
 
-import os, sys, optparse, re, traceback
+import os
+import sys
+import optparse
+import re
+import traceback
 
 try:
     import autotest.common as common
@@ -73,7 +77,6 @@ def main():
         else:
             syntax_obj.invalid_syntax('No topic argument')
 
-
     if topic == '-h':
         sys.argv.insert(1, '-h')
         syntax_obj.parse()
@@ -86,7 +89,7 @@ def main():
     # Import the topic specific file
     cli_dir = os.path.abspath(os.path.dirname(__file__))
     if (not ignore_site and
-        os.path.exists(os.path.join(cli_dir, 'site_%s.py' % topic))):
+            os.path.exists(os.path.join(cli_dir, 'site_%s.py' % topic))):
         topic = 'site_%s' % topic
     elif not os.path.exists(os.path.join(cli_dir, '%s.py' % topic)):
         syntax_obj.invalid_syntax('Invalid topic %s' % topic)
@@ -138,8 +141,8 @@ def main():
         # set rtn = 1 if there were only errors
         # set rtn = 2 if there was both output and error
         rtn = action_obj.show_all_failures()
-        if ( results ):
-            if ( rtn ):
+        if (results):
+            if (rtn):
                 #  we had errors and output
                 rtn = 2
         return rtn

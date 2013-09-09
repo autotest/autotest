@@ -8,7 +8,9 @@ Suggested use: Run this as an occasional cron job to re-check if Repair Failed
 hosts have overcome whatever issue caused the failure and are useful again.
 """
 
-import optparse, os, sys
+import optparse
+import os
+import sys
 
 try:
     import autotest.common as common

@@ -12,8 +12,16 @@ Usage?  Just run it.
     utils/build_externals.py
 """
 
-import compileall, logging, os, shutil, sys, tempfile, time, urllib2
-import subprocess, re
+import compileall
+import logging
+import os
+import shutil
+import sys
+import tempfile
+import time
+import urllib2
+import subprocess
+import re
 try:
     import autotest.common as common
 except ImportError:
@@ -40,10 +48,11 @@ INSTALL_ALL = False
 
 
 class BuildExternalsLoggingConfig(logging_config.LoggingConfig):
+
     def configure_logging(self, results_dir=None, verbose=False):
         super(BuildExternalsLoggingConfig, self).configure_logging(
-                                                               use_console=True,
-                                                               verbose=verbose)
+            use_console=True,
+            verbose=verbose)
 
 
 def main():
@@ -66,7 +75,7 @@ def main():
         sys.path.insert(0, install_dir)
     env_python_path_varname = 'PYTHONPATH'
     env_python_path = os.environ.get(env_python_path_varname, '')
-    if install_dir+':' not in env_python_path:
+    if install_dir + ':' not in env_python_path:
         os.environ[env_python_path_varname] = ':'.join([
             install_dir, env_python_path])
 

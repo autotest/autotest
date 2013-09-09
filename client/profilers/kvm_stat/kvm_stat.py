@@ -6,17 +6,21 @@ will try to mount it so it's possible to proceed.
 @copyright: Red Hat 2010
 @author: Lucas Meneghel Rodrigues (lmr@redhat.com)
 """
-import os, subprocess, logging
+import os
+import subprocess
+import logging
 from autotest.client import utils, profiler, os_dep
 from autotest.client.shared import error
 
 
 class kvm_stat(profiler.profiler):
+
     """
     kvm_stat based profiler. Consists on executing kvm_stat -l during a given
     test execution, redirecting its output to a file on the profile dir.
     """
     version = 1
+
     def initialize(self, **dargs):
         """
         Gets path of kvm_stat and verifies if debugfs needs to be mounted.
@@ -43,7 +47,6 @@ class kvm_stat(profiler.profiler):
                 else:
                     logging.error('Failed to execute kvm_stat:\n%s', str(e))
 
-
     def start(self, test):
         """
         Starts kvm_stat subprocess.
@@ -60,7 +63,6 @@ class kvm_stat(profiler.profiler):
             logging.error('Asked for kvm_stat profiler, but kvm_stat not '
                           'present')
 
-
     def stop(self, test):
         """
         Stops profiler execution by sending a SIGTERM to kvm_stat process.
@@ -72,7 +74,6 @@ class kvm_stat(profiler.profiler):
                 os.kill(self.pid, 15)
             except OSError:
                 pass
-
 
     def report(self, test):
         """

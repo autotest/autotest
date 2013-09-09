@@ -22,7 +22,14 @@ _db: DatabaseConnection for this module.
 _drone_manager: reference to global DroneManager instance.
 """
 
-import datetime, itertools, logging, os, re, sys, time, weakref
+import datetime
+import itertools
+import logging
+import os
+import re
+import sys
+import time
+import weakref
 from autotest.client.shared import host_protections, mail
 from autotest.client.shared.settings import settings
 from autotest.frontend.afe import models, model_attributes
@@ -39,6 +46,7 @@ _base_url = None
 _db = None
 _drone_manager = None
 
+
 def initialize():
     global _db
     _db = database_connection.DatabaseConnection('AUTOTEST_WEB')
@@ -53,12 +61,12 @@ def initialize():
                               if status]
 
     notify_admin_email_statuses_list = settings.get_value("NOTIFICATION",
-                                                  "notify_admin_email_statuses",
-                                                  default='')
+                                                          "notify_admin_email_statuses",
+                                                          default='')
     global _notify_admin_email_statuses
     _notify_admin_email_statuses = [status for status in
                                     re.split(r'[\s,;:]',
-                                       notify_admin_email_statuses_list.lower())
+                                             notify_admin_email_statuses_list.lower())
                                     if status]
 
     global _grid_admin_email
@@ -91,6 +99,7 @@ def initialize_globals():
 
 
 class DelayedCallTask(object):
+
     """
     A task object like AgentTask for an Agent to run that waits for the
     specified amount of time to have elapsed before calling the supplied
@@ -102,6 +111,7 @@ class DelayedCallTask(object):
 
     Also has all attributes required by the Agent class.
     """
+
     def __init__(self, delay_seconds, callback, now_func=None):
         """
         @param delay_seconds: The delay in seconds from now that this task
@@ -128,26 +138,25 @@ class DelayedCallTask(object):
         self.queue_entry_ids = ()
         self.num_processes = 0
 
-
     def poll(self):
         if not self.is_done() and self._now_func() >= self.end_time:
             self._callback()
             self.success = True
 
-
     def is_done(self):
         return self.success or self.aborted
-
 
     def abort(self):
         self.aborted = True
 
 
 class DBError(Exception):
+
     """Raised by the DBObject constructor when its select fails."""
 
 
 class DBObject(object):
+
     """A miniature object relational model for the database."""
 
     # Subclasses MUST override these:
@@ -161,7 +170,6 @@ class DBObject(object):
     _instances_by_type_and_id = weakref.WeakValueDictionary()
     _initialized = False
 
-
     def __new__(cls, id=None, **kwargs):
         """
         Look to see if we already have an instance for this particular type
@@ -172,7 +180,6 @@ class DBObject(object):
             if instance:
                 return instance
         return super(DBObject, cls).__new__(cls, id=id, **kwargs)
-
 
     def __init__(self, id=None, row=None, new_record=False, always_query=True):
         assert bool(id) or bool(row)
@@ -205,12 +212,10 @@ class DBObject(object):
         self._update_fields_from_row(row)
         self._initialized = True
 
-
     @classmethod
     def _clear_instance_cache(cls):
         """Used for testing, clear the internal instance cache."""
         cls._instances_by_type_and_id.clear()
-
 
     def _fetch_row_from_db(self, row_id):
         """
@@ -230,12 +235,10 @@ class DBObject(object):
                           % (self.__table, row_id))
         return rows[0]
 
-
     def _assert_row_length(self, row):
         assert len(row) == len(self._fields), (
             "table = %s, row = %s/%d, fields = %s/%d" % (
-            self.__table, row, len(row), self._fields, len(self._fields)))
-
+                self.__table, row, len(row), self._fields, len(self._fields)))
 
     def _compare_fields_in_row(self, row):
         """
@@ -255,13 +258,12 @@ class DBObject(object):
         for field, row_value in itertools.izip(self._fields, row):
             current_value = getattr(self, field)
             if (isinstance(current_value, datetime.datetime)
-                and isinstance(row_value, datetime.datetime)):
+                    and isinstance(row_value, datetime.datetime)):
                 current_value = current_value.strftime(datetime_cmp_fmt)
                 row_value = row_value.strftime(datetime_cmp_fmt)
             if current_value != row_value:
                 differences[field] = (current_value, row_value)
         return differences
-
 
     def _update_fields_from_row(self, row):
         """
@@ -279,14 +281,12 @@ class DBObject(object):
 
         self._valid_fields.remove('id')
 
-
     def update_from_database(self):
         assert self.id is not None
         row = self._fetch_row_from_db(self.id)
         self._update_fields_from_row(row)
 
-
-    def count(self, where, table = None):
+    def count(self, where, table=None):
         if not table:
             table = self.__table
 
@@ -299,7 +299,6 @@ class DBObject(object):
 
         return int(rows[0][0])
 
-
     def update_field(self, field, value):
         assert field in self._valid_fields
 
@@ -311,10 +310,9 @@ class DBObject(object):
 
         setattr(self, field, value)
 
-
     def save(self):
         if self.__new_record:
-            keys = self._fields[1:] # avoid id
+            keys = self._fields[1:]  # avoid id
             columns = ','.join([str(key) for key in keys])
             values = []
             for key in keys:
@@ -330,7 +328,6 @@ class DBObject(object):
             # Update our id to the one the database just assigned to us.
             self.id = _db.execute('SELECT LAST_INSERT_ID()')[0][0]
 
-
     def delete(self):
         self._instances_by_type_and_id.pop((type(self), id), None)
         self._initialized = False
@@ -338,13 +335,11 @@ class DBObject(object):
         query = 'DELETE FROM %s WHERE id=%%s' % self.__table
         _db.execute(query, (self.id,))
 
-
     @staticmethod
     def _prefix_with(string, prefix):
         if string:
             string = prefix + string
         return string
-
 
     @classmethod
     def fetch(cls, where='', params=(), joins='', order_by=''):
@@ -383,10 +378,9 @@ class Label(DBObject):
     _fields = ('id', 'name', 'kernel_config', 'platform', 'invalid',
                'only_if_needed', 'atomic_group_id')
 
-
     def __repr__(self):
         return 'Label(name=%r, id=%d, atomic_group_id=%r)' % (
-                self.name, self.id, self.atomic_group_id)
+            self.name, self.id, self.atomic_group_id)
 
 
 class Host(DBObject):
@@ -394,11 +388,9 @@ class Host(DBObject):
     _fields = ('id', 'hostname', 'locked', 'synch_id', 'status',
                'invalid', 'protection', 'locked_by_id', 'lock_time', 'dirty')
 
-
-    def set_status(self,status):
+    def set_status(self, status):
         logging.info('%s -> %s', self.hostname, status)
-        self.update_field('status',status)
-
+        self.update_field('status', status)
 
     def platform_and_labels(self):
         """
@@ -420,9 +412,7 @@ class Host(DBObject):
             all_labels.append(label_name)
         return platform, all_labels
 
-
     _ALPHANUM_HOST_RE = re.compile(r'^([a-z-]+)(\d+)$', re.IGNORECASE)
-
 
     @classmethod
     def cmp_for_sort(cls, a, b):
@@ -467,7 +457,6 @@ class HostQueueEntry(DBObject):
                'active', 'complete', 'deleted', 'execution_subdir',
                'atomic_group_id', 'aborted', 'started_on')
 
-
     def __init__(self, id=None, row=None, **kwargs):
         assert id or row
         super(HostQueueEntry, self).__init__(id=id, row=row, **kwargs)
@@ -487,7 +476,6 @@ class HostQueueEntry(DBObject):
         self.queue_log_path = os.path.join(self.job.tag(),
                                            'queue.log.' + str(self.id))
 
-
     @classmethod
     def clone(cls, template):
         """
@@ -502,10 +490,8 @@ class HostQueueEntry(DBObject):
         clone.id = None
         return clone
 
-
     def _view_job_url(self):
         return "%s#tab_id=view_job&object_id=%s" % (_base_url, self.job.id)
-
 
     def get_labels(self):
         """
@@ -518,12 +504,11 @@ class HostQueueEntry(DBObject):
         if self.meta_host:
             yield Label(id=self.meta_host, always_query=False)
         labels = Label.fetch(
-                joins="JOIN afe_jobs_dependency_labels AS deps "
-                      "ON (afe_labels.id = deps.label_id)",
-                where="deps.job_id = %d" % self.job.id)
+            joins="JOIN afe_jobs_dependency_labels AS deps "
+            "ON (afe_labels.id = deps.label_id)",
+            where="deps.job_id = %d" % self.job.id)
         for label in labels:
             yield label
-
 
     def set_host(self, host):
         if host:
@@ -539,19 +524,16 @@ class HostQueueEntry(DBObject):
 
         self.host = host
 
-
     def queue_log_record(self, log_line):
         now = str(datetime.datetime.now())
         _drone_manager.write_lines_to_file(self.queue_log_path,
                                            [now + ' ' + log_line])
-
 
     def block_host(self, host_id):
         logging.info("creating block %s/%s", self.job.id, host_id)
         row = [0, self.job.id, host_id]
         block = IneligibleHostQueue(row=row, new_record=True)
         block.save()
-
 
     def unblock_host(self, host_id):
         logging.info("removing block %s/%s", self.job.id, host_id)
@@ -560,19 +542,16 @@ class HostQueueEntry(DBObject):
         for block in blocks:
             block.delete()
 
-
     def set_execution_subdir(self, subdir=None):
         if subdir is None:
             assert self.host
             subdir = self.host.hostname
         self.update_field('execution_subdir', subdir)
 
-
     def _get_hostname(self):
         if self.host:
             return self.host.hostname
         return 'no host'
-
 
     def __str__(self):
         flags = []
@@ -589,7 +568,6 @@ class HostQueueEntry(DBObject):
             flags_str = ' [%s]' % flags_str
         return "%s/%d (%d) %s%s" % (self._get_hostname(), self.job.id, self.id,
                                     self.status, flags_str)
-
 
     def set_status(self, status):
         logging.info("%s -> %s", self, status)
@@ -629,9 +607,8 @@ class HostQueueEntry(DBObject):
         # unregister any possible pidfiles associated with this queue entry
         for pidfile_name in drone_manager.ALL_PIDFILE_NAMES:
             pidfile_id = _drone_manager.get_pidfile_id_from(
-                    self.execution_path(), pidfile_name=pidfile_name)
+                self.execution_path(), pidfile_name=pidfile_name)
             _drone_manager.unregister_pidfile(pidfile_id)
-
 
     def _get_status_email_contents(self, status, summary=None, hostname=None):
         """
@@ -699,18 +676,15 @@ class HostQueueEntry(DBObject):
 
         return subject, body
 
-
     def _email_on_status(self, status):
         hostname = self._get_hostname()
         subject, body = self._get_status_email_contents(status, None, hostname)
         mail.manager.send(self.job.email_list, subject, body)
 
-
     def _email_admin_on_status(self, status):
         hostname = self._get_hostname()
         subject, body = self._get_status_email_contents(status, None, hostname)
         mail.manager.send(_grid_admin_email, subject, body)
-
 
     def _email_on_job_complete(self, email_admin=False):
         if not self.job.is_finished():
@@ -720,14 +694,14 @@ class HostQueueEntry(DBObject):
         hosts_queue = HostQueueEntry.fetch('job_id = %s' % self.job.id)
         for queue_entry in hosts_queue:
             summary.append("Host: %s Status: %s" %
-                                (queue_entry._get_hostname(),
-                                 queue_entry.status))
+                          (queue_entry._get_hostname(),
+                           queue_entry.status))
 
         summary = "\n".join(summary)
         status_counts = models.Job.objects.get_status_counts(
-                [self.job.id])[self.job.id]
+            [self.job.id])[self.job.id]
         status = ', '.join('%d %s' % (count, status) for status, count
-                    in status_counts.iteritems())
+                           in status_counts.iteritems())
 
         subject, body = self._get_status_email_contents(status, summary, None)
 
@@ -735,7 +709,6 @@ class HostQueueEntry(DBObject):
             mail.manager.send(_grid_admin_email, subject, body)
         else:
             mail.manager.send(self.job.email_list, subject, body)
-
 
     def schedule_pre_job_tasks(self):
         logging.info("%s/%s/%s (job %s, entry %s) scheduled on %s, status=%s",
@@ -748,13 +721,11 @@ class HostQueueEntry(DBObject):
             reservations.create([self.host.hostname], self.job.owner)
         self._do_schedule_pre_job_tasks()
 
-
     def _do_schedule_pre_job_tasks(self):
         # Every host goes thru the Verifying stage (which may or may not
         # actually do anything as determined by get_pre_job_tasks).
         self.set_status(models.HostQueueEntry.Status.VERIFYING)
         self.job.schedule_pre_job_tasks(queue_entry=self)
-
 
     def requeue(self):
         assert self.host
@@ -765,18 +736,15 @@ class HostQueueEntry(DBObject):
         if self.meta_host:
             self.set_host(None)
 
-
     @property
     def aborted_by(self):
         self._load_abort_info()
         return self._aborted_by
 
-
     @property
     def aborted_on(self):
         self._load_abort_info()
         return self._aborted_on
-
 
     def _load_abort_info(self):
         """ Fetch info about who aborted the job. """
@@ -794,7 +762,6 @@ class HostQueueEntry(DBObject):
             self._aborted_by, self._aborted_on = rows[0]
         else:
             self._aborted_by = self._aborted_on = None
-
 
     def on_pending(self):
         """
@@ -816,7 +783,6 @@ class HostQueueEntry(DBObject):
             message = 'Asynchronous job stuck in Pending'
             mail.manager.enqueue_admin(subject, message)
 
-
     def abort(self, dispatcher):
         assert self.aborted and not self.complete
 
@@ -832,13 +798,12 @@ class HostQueueEntry(DBObject):
             self.host.set_status(models.Host.Status.READY)
         elif self.status == Status.VERIFYING:
             models.SpecialTask.objects.create(
-                    task=models.SpecialTask.Task.CLEANUP,
-                    host=models.Host.objects.get(id=self.host.id),
-                    requested_by=self.job.owner_model())
+                task=models.SpecialTask.Task.CLEANUP,
+                host=models.Host.objects.get(id=self.host.id),
+                requested_by=self.job.owner_model())
 
         self.set_status(Status.ABORTED)
         self.job.abort_delay_ready_task()
-
 
     def get_group_name(self):
         atomic_group = self.atomic_group
@@ -854,19 +819,15 @@ class HostQueueEntry(DBObject):
                 return label.name
         return atomic_group.name
 
-
     def execution_tag(self):
         assert self.execution_subdir
         return "%s/%s" % (self.job.tag(), self.execution_subdir)
 
-
     def execution_path(self):
         return self.execution_tag()
 
-
     def set_started_on_now(self):
         self.update_field('started_on', datetime.datetime.now())
-
 
     def is_hostless(self):
         return (self.host_id is None
@@ -899,12 +860,10 @@ class Job(DBObject):
     def __init__(self, id=None, row=None, **kwargs):
         assert id or row
         super(Job, self).__init__(id=id, row=row, **kwargs)
-        self._owner_model = None # caches model instance of owner
-
+        self._owner_model = None  # caches model instance of owner
 
     def model(self):
         return models.Job.objects.get(id=self.id)
-
 
     def owner_model(self):
         # work around the fact that the Job owner field is a string, not a
@@ -913,14 +872,11 @@ class Job(DBObject):
             self._owner_model = models.User.objects.get(login=self.owner)
         return self._owner_model
 
-
     def is_server_job(self):
         return self.control_type != 2
 
-
     def tag(self):
         return "%s-%s" % (self.id, self.owner)
-
 
     def get_host_queue_entries(self):
         rows = _db.execute("""
@@ -929,10 +885,9 @@ class Job(DBObject):
         """, (self.id,))
         entries = [HostQueueEntry(row=i) for i in rows]
 
-        assert len(entries)>0
+        assert len(entries) > 0
 
         return entries
-
 
     def get_execution_details(self):
         """
@@ -1004,9 +959,9 @@ class Job(DBObject):
                 test_indexes = db.execute('SELECT test_idx FROM tko_tests WHERE '
                                           'job_idx=%s' % idx)
                 for i in test_indexes:
-                    rows =  db.execute('SELECT value FROM tko_test_attributes '
-                                        'WHERE test_idx=%s AND attribute="%s"' %
-                                        (i[0], keyname))
+                    rows = db.execute('SELECT value FROM tko_test_attributes '
+                                      'WHERE test_idx=%s AND attribute="%s"' %
+                                     (i[0], keyname))
                     if rows:
                         for row in rows:
                             line = []
@@ -1036,7 +991,7 @@ class Job(DBObject):
         explicitly_failed_rows = [r for r in rows if r[1] == 'FAIL']
         warn_rows = [r for r in rows if r[1] == 'WARN']
         skipped_rows = [(r[0], r[1], '') for r in rows if r[1] == 'TEST_NA']
-        passed_rows = [(r[0], r[1], '')  for r in rows if r[1] == 'GOOD' and r[0] not in framework_tests]
+        passed_rows = [(r[0], r[1], '') for r in rows if r[1] == 'GOOD' and r[0] not in framework_tests]
 
         total_executed = len(rows) - len(framework_tests)
         total_failed = len(failed_rows) - len(framework_tests_failed)
@@ -1090,7 +1045,6 @@ class Job(DBObject):
 
         return stats
 
-
     def get_keyval_list(self):
         raw = settings.get_value('SCHEDULER',
                                  'keyval_names_exibit_summary_mail',
@@ -1098,18 +1052,15 @@ class Job(DBObject):
         keyval_list = re.split(r'[\s,;:]', raw)
         return [element for element in keyval_list if element]
 
-
     def set_status(self, status, update_queues=False):
-        self.update_field('status',status)
+        self.update_field('status', status)
 
         if update_queues:
             for queue_entry in self.get_host_queue_entries():
                 queue_entry.set_status(status)
 
-
     def keyval_dict(self):
         return self.model().keyval_dict()
-
 
     def _atomic_and_has_started(self):
         """
@@ -1117,7 +1068,7 @@ class Job(DBObject):
         have entered the Status.STARTING state or beyond.
         """
         atomic_entries = models.HostQueueEntry.objects.filter(
-                job=self.id, atomic_group__isnull=False)
+            job=self.id, atomic_group__isnull=False)
         if atomic_entries.count() <= 0:
             return False
 
@@ -1129,20 +1080,17 @@ class Job(DBObject):
         started_entries = atomic_entries.filter(status__in=started_statuses)
         return started_entries.count() > 0
 
-
     def _hosts_assigned_count(self):
         """The number of HostQueueEntries assigned a Host for this job."""
         entries = models.HostQueueEntry.objects.filter(job=self.id,
                                                        host__isnull=False)
         return entries.count()
 
-
     def _pending_count(self):
         """The number of HostQueueEntries for this job in the Pending state."""
         pending_entries = models.HostQueueEntry.objects.filter(
-                job=self.id, status=models.HostQueueEntry.Status.PENDING)
+            job=self.id, status=models.HostQueueEntry.Status.PENDING)
         return pending_entries.count()
-
 
     def _max_hosts_needed_to_run(self, atomic_group):
         """
@@ -1154,11 +1102,9 @@ class Job(DBObject):
         return min(self._hosts_assigned_count(),
                    atomic_group.max_number_of_machines)
 
-
     def _min_hosts_needed_to_run(self):
         """Return the minimum number of hosts needed to run this job."""
         return self.synch_count
-
 
     def is_ready(self):
         # NOTE: Atomic group jobs stop reporting ready after they have been
@@ -1172,36 +1118,30 @@ class Job(DBObject):
 
         if not ready:
             logging.info(
-                    'Job %s not ready: %s pending, %s required '
-                    '(Atomic and started: %s)',
-                    self, pending_count, self.synch_count,
-                    atomic_and_has_started)
+                'Job %s not ready: %s pending, %s required '
+                '(Atomic and started: %s)',
+                self, pending_count, self.synch_count,
+                atomic_and_has_started)
 
         return ready
 
-
-    def num_machines(self, clause = None):
+    def num_machines(self, clause=None):
         sql = "job_id=%s" % self.id
         if clause:
             sql += " AND (%s)" % clause
         return self.count(sql, table='afe_host_queue_entries')
 
-
     def num_queued(self):
         return self.num_machines('not complete')
-
 
     def num_active(self):
         return self.num_machines('active')
 
-
     def num_complete(self):
         return self.num_machines('complete')
 
-
     def is_finished(self):
         return self.num_complete() == self.num_machines()
-
 
     def _not_yet_run_entries(self, include_verifying=True):
         statuses = [models.HostQueueEntry.Status.QUEUED,
@@ -1210,7 +1150,6 @@ class Job(DBObject):
             statuses.append(models.HostQueueEntry.Status.VERIFYING)
         return models.HostQueueEntry.objects.filter(job=self.id,
                                                     status__in=statuses)
-
 
     def _stop_all_entries(self):
         entries_to_stop = self._not_yet_run_entries(
@@ -1226,18 +1165,15 @@ class Job(DBObject):
             child_entry.status = models.HostQueueEntry.Status.STOPPED
             child_entry.save()
 
-
     def stop_if_necessary(self):
         not_yet_run = self._not_yet_run_entries()
         if not_yet_run.count() < self.synch_count:
             self._stop_all_entries()
 
-
     def write_to_machines_file(self, queue_entry):
         hostname = queue_entry.host.hostname
         file_path = os.path.join(self.tag(), '.machines')
         _drone_manager.write_lines_to_file(file_path, [hostname])
-
 
     def _next_group_name(self, group_name=''):
         """@returns a directory name to use for the next host group results."""
@@ -1260,7 +1196,6 @@ class Job(DBObject):
             next_id = 0
         return '%sgroup%d' % (group_name, next_id)
 
-
     def get_group_entries(self, queue_entry_from_group):
         """
         @param queue_entry_from_group: A HostQueueEntry instance to find other
@@ -1275,7 +1210,6 @@ class Job(DBObject):
             where='job_id=%s AND execution_subdir=%s',
             params=(self.id, execution_subdir)))
 
-
     def _should_run_cleanup(self, queue_entry):
         if self.reboot_before == model_attributes.RebootBefore.ALWAYS:
             return True
@@ -1283,14 +1217,12 @@ class Job(DBObject):
             return queue_entry.host.dirty
         return False
 
-
     def _should_run_verify(self, queue_entry):
         do_not_verify = (queue_entry.host.protection ==
                          host_protections.Protection.DO_NOT_VERIFY)
         if do_not_verify:
             return False
         return self.run_verify
-
 
     def schedule_pre_job_tasks(self, queue_entry):
         """
@@ -1312,9 +1244,8 @@ class Job(DBObject):
 
         queue_entry = models.HostQueueEntry.objects.get(id=queue_entry.id)
         models.SpecialTask.objects.create(
-                host=models.Host.objects.get(id=queue_entry.host_id),
-                queue_entry=queue_entry, task=task)
-
+            host=models.Host.objects.get(id=queue_entry.host_id),
+            queue_entry=queue_entry, task=task)
 
     def _assign_new_group(self, queue_entries, group_name=''):
         if len(queue_entries) == 1:
@@ -1322,12 +1253,11 @@ class Job(DBObject):
         else:
             group_subdir_name = self._next_group_name(group_name)
             logging.info('Running synchronous job %d hosts %s as %s',
-                self.id, [entry.host.hostname for entry in queue_entries],
-                group_subdir_name)
+                         self.id, [entry.host.hostname for entry in queue_entries],
+                         group_subdir_name)
 
         for queue_entry in queue_entries:
             queue_entry.set_execution_subdir(group_subdir_name)
-
 
     def _choose_group_to_run(self, include_queue_entry):
         """
@@ -1346,8 +1276,8 @@ class Job(DBObject):
         if num_entries_wanted > 0:
             where_clause = 'job_id = %s AND status = "Pending" AND id != %s'
             pending_entries = list(HostQueueEntry.fetch(
-                     where=where_clause,
-                     params=(self.id, include_queue_entry.id)))
+                                   where=where_clause,
+                                   params=(self.id, include_queue_entry.id)))
 
             # Sort the chosen hosts by hostname before slicing.
             def cmp_queue_entries_by_hostname(entry_a, entry_b):
@@ -1359,7 +1289,7 @@ class Job(DBObject):
         if len(chosen_entries) < self.synch_count:
             subject = 'Job not started, too few chosen entries'
             message = ('job %s got less than %s chosen entries: %s' % (
-                    self.id, self.synch_count, chosen_entries))
+                self.id, self.synch_count, chosen_entries))
             logging.error(message)
             mail.manager.enqueue_admin(subject, message)
             return []
@@ -1368,7 +1298,6 @@ class Job(DBObject):
 
         self._assign_new_group(chosen_entries, group_name=group_name)
         return chosen_entries
-
 
     def run_if_ready(self, queue_entry):
         """
@@ -1385,7 +1314,6 @@ class Job(DBObject):
         else:
             self.run(queue_entry)
 
-
     def run_with_ready_delay(self, queue_entry):
         """
         Start a delay to wait for more hosts to enter Pending state before
@@ -1401,7 +1329,7 @@ class Job(DBObject):
         assert queue_entry.atomic_group
         delay = scheduler_config.config.secs_to_wait_for_atomic_group_hosts
         over_max_threshold = (self._pending_count() >=
-                self._max_hosts_needed_to_run(queue_entry.atomic_group))
+                              self._max_hosts_needed_to_run(queue_entry.atomic_group))
         delay_expired = (self._delay_ready_task and
                          time.time() >= self._delay_ready_task.end_time)
 
@@ -1411,11 +1339,9 @@ class Job(DBObject):
         else:
             queue_entry.set_status(models.HostQueueEntry.Status.WAITING)
 
-
     def request_abort(self):
         """Request that this Job be aborted on the next scheduler cycle."""
         self.model().abort()
-
 
     def schedule_delayed_callback_task(self, queue_entry):
         queue_entry.set_status(models.HostQueueEntry.Status.PENDING)
@@ -1442,7 +1368,6 @@ class Job(DBObject):
                                                  callback=run_job_after_delay)
         return self._delay_ready_task
 
-
     def run(self, queue_entry):
         """
         @param queue_entry: The HostQueueEntry instance calling this method.
@@ -1455,12 +1380,10 @@ class Job(DBObject):
         if queue_entries:
             self._finish_run(queue_entries)
 
-
     def _finish_run(self, queue_entries):
         for queue_entry in queue_entries:
             queue_entry.set_status(models.HostQueueEntry.Status.STARTING)
         self.abort_delay_ready_task()
-
 
     def abort_delay_ready_task(self):
         """Abort the delayed task associated with this job, if any."""
@@ -1468,7 +1391,6 @@ class Job(DBObject):
             # Cancel any pending callback that would try to run again
             # as we are already running.
             self._delay_ready_task.abort()
-
 
     def __str__(self):
         return '%s-%s' % (self.id, self.owner)

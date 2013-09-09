@@ -2,7 +2,11 @@
 
 __author__ = """Jiri Zupka (jzupka@redhat.com)"""
 
-import socket, threading, time, pickle, os
+import socket
+import threading
+import time
+import pickle
+import os
 try:
     import autotest.common as common
 except ImportError:
@@ -69,7 +73,7 @@ class SyncDataTest(unittest.TestCase):
         self.assertRaisesRegexp(error.NetCommunicationError,
                                 "Failed to receive python"
                                 " object over the network.",
-                                 self._client, "127.0.0.1", 2)
+                                self._client, "127.0.0.1", 2)
         server.join()
         ls.close()
 
@@ -143,9 +147,10 @@ class SyncDataTest(unittest.TestCase):
         data_check = {}
         threads = []
         sync_ls = syncdata.SyncListenServer()
+
         def _client_session_thread(sync_ls, data_check, id):
             sync = syncdata.SyncData("127.0.0.1", "127.0.0.1", ["127.0.0.1"],
-                                 "127.0.0.1#%d" % id, sync_ls)
+                                     "127.0.0.1#%d" % id, sync_ls)
             data_check[id] = sync.sync("test%d" % (id))
             sync.close()
 

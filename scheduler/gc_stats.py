@@ -1,7 +1,9 @@
 # Compute and gather statistics about garbage collection in this process.
 # This module depends on the CPython gc module and garbage collection behavior.
 
-import gc, logging, pprint
+import gc
+import logging
+import pprint
 
 
 verbose = False
@@ -56,7 +58,6 @@ def _log_garbage_collector_stats(minimum_count=10):
         del obj
         del new_objects
 
-
     delta = {}
     for obj_type, count in obj_type_map.iteritems():
         if obj_type not in _previous_obj_type_map:
@@ -65,9 +66,9 @@ def _log_garbage_collector_stats(minimum_count=10):
             delta[obj_type] = count - _previous_obj_type_map[obj_type]
 
     sorted_stats = reversed(sorted(
-            (count, obj_type) for obj_type, count in obj_type_map.iteritems()))
+        (count, obj_type) for obj_type, count in obj_type_map.iteritems()))
     sorted_delta = reversed(sorted(
-            (count, obj_type) for obj_type, count in delta.iteritems()))
+        (count, obj_type) for obj_type, count in delta.iteritems()))
 
     logging.debug('Garbage collector object type counts:')
     for count, obj_type in sorted_stats:

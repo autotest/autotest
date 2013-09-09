@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
-import os, sys
+import os
+import sys
 import unittest_suite
 from autotest.client.shared import utils
 

@@ -23,6 +23,7 @@ import traceback
 
 from simplejson import decoder, encoder
 
+
 def customConvertJson(value):
     """\
     Recursively process JSON values and do type conversions.
@@ -53,14 +54,18 @@ def ServiceMethod(fn):
     fn.IsServiceMethod = True
     return fn
 
+
 class ServiceException(Exception):
     pass
+
 
 class ServiceRequestNotTranslatable(ServiceException):
     pass
 
+
 class BadServiceRequest(ServiceException):
     pass
+
 
 class ServiceMethodNotFound(ServiceException):
     pass
@@ -69,8 +74,7 @@ class ServiceMethodNotFound(ServiceException):
 class ServiceHandler(object):
 
     def __init__(self, service):
-        self.service=service
-
+        self.service = service
 
     @classmethod
     def blank_result_dict(cls):
@@ -100,19 +104,16 @@ class ServiceHandler(object):
 
         return results
 
-
     def _getRequestId(self, request):
         try:
             return request['id']
         except KeyError:
             raise BadServiceRequest(request)
 
-
     def handleRequest(self, jsonRequest):
         request = self.translateRequest(jsonRequest)
         results = self.dispatchRequest(request)
         return self.translateResult(results)
-
 
     @staticmethod
     def translateRequest(data):
@@ -150,15 +151,15 @@ class ServiceHandler(object):
         try:
             json_dict = {'result': result_dict['result'],
                          'id': result_dict['id'],
-                         'error': result_dict['err'] }
+                         'error': result_dict['err']}
             data = json_encoder.encode(json_dict)
         except TypeError, e:
             err_traceback = traceback.format_exc()
             print err_traceback
-            err = {"name" : "JSONEncodeException",
-                   "message" : "Result Object Not Serializable",
-                   "traceback" : err_traceback}
-            data = json_encoder.encode({"result":None, "id":result_dict['id'],
-                                        "error":err})
+            err = {"name": "JSONEncodeException",
+                   "message": "Result Object Not Serializable",
+                   "traceback": err_traceback}
+            data = json_encoder.encode({"result": None, "id": result_dict['id'],
+                                        "error": err})
 
         return data

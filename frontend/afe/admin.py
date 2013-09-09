@@ -9,24 +9,26 @@ from autotest.frontend.afe import model_logic, models
 
 
 class SiteAdmin(admin.ModelAdmin):
+
     def formfield_for_dbfield(self, db_field, **kwargs):
         field = super(SiteAdmin, self).formfield_for_dbfield(db_field, **kwargs)
         if (db_field.rel and
                 issubclass(db_field.rel.to, model_logic.ModelWithInvalid)):
             model = db_field.rel.to
             field.choices = model.valid_objects.all().values_list(
-                    'id', model.name_field)
+                'id', model.name_field)
         return field
 
 
 class ModelWithInvalidForm(forms.ModelForm):
+
     def validate_unique(self):
         # Don't validate name uniqueness if the duplicate model is invalid
         model = self.Meta.model
         filter_data = {
-                model.name_field : self.cleaned_data[model.name_field],
-                'invalid' : True
-                }
+            model.name_field: self.cleaned_data[model.name_field],
+            'invalid': True
+        }
         needs_remove = bool(self.Meta.model.objects.filter(**filter_data))
         if needs_remove:
             name_field = self.fields.pop(model.name_field)
@@ -36,6 +38,7 @@ class ModelWithInvalidForm(forms.ModelForm):
 
 
 class AtomicGroupForm(ModelWithInvalidForm):
+
     class Meta:
         model = models.AtomicGroup
 
@@ -52,6 +55,7 @@ admin.site.register(models.AtomicGroup, AtomicGroupAdmin)
 
 
 class LabelForm(ModelWithInvalidForm):
+
     class Meta:
         model = models.Label
 
@@ -79,6 +83,7 @@ admin.site.register(models.User, UserAdmin)
 
 
 class HostForm(ModelWithInvalidForm):
+
     class Meta:
         model = models.Host
 
@@ -141,6 +146,7 @@ admin.site.register(models.AclGroup, AclGroupAdmin)
 
 
 class DroneSetForm(forms.ModelForm):
+
     def __init__(self, *args, **kwargs):
         super(DroneSetForm, self).__init__(*args, **kwargs)
         drone_ids_used = set()
@@ -168,12 +174,10 @@ if settings.FULL_ADMIN:
 
     admin.site.register(models.Job, JobAdmin)
 
-
     class IneligibleHostQueueAdmin(SiteAdmin):
         list_display = ('id', 'job', 'host')
 
     admin.site.register(models.IneligibleHostQueue, IneligibleHostQueueAdmin)
-
 
     class HostQueueEntryAdmin(SiteAdmin):
         list_display = ('id', 'job', 'host', 'status',

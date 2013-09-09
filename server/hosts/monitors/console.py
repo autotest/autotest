@@ -3,7 +3,12 @@
 # Script for translating console output (from STDIN) into Autotest
 # warning messages.
 
-import gzip, optparse, os, signal, sys, time
+import gzip
+import optparse
+import os
+import signal
+import sys
+import time
 import common
 from autotest.server.hosts.monitors import monitors_util
 
@@ -73,7 +78,7 @@ def main():
     alert_hooks = []
     for patterns_path in options.pattern_paths.split(','):
         alert_hooks.extend(monitors_util.build_alert_hooks_from_path(
-                patterns_path, warnfile))
+            patterns_path, warnfile))
 
     _set_logfile_close_signal_handler(logfile)
     try:

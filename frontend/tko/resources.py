@@ -1,9 +1,9 @@
 from autotest.frontend.shared import query_lib, resource_lib
 from autotest.frontend.tko import models
 
+
 class TestResult(resource_lib.InstanceEntry):
     model = models.Test
-
 
     @classmethod
     def add_query_selectors(cls, query_processor):
@@ -12,15 +12,12 @@ class TestResult(resource_lib.InstanceEntry):
         query_processor.add_keyval_selector('has_keyval', models.TestAttribute,
                                             'attribute', 'value')
 
-
     @classmethod
     def from_uri_args(cls, request, test_id, **kwargs):
         return cls(request, models.Test.objects.get(pk=test_id))
 
-
     def _uri_args(self):
         return {'test_id': self.instance.pk}
-
 
     def short_representation(self):
         rep = super(TestResult, self).short_representation()
@@ -31,7 +28,6 @@ class TestResult(resource_lib.InstanceEntry):
                    afe_job_id=self.instance.job.afe_job_id,
                    )
         return rep
-
 
     def full_representation(self):
         rep = super(TestResult, self).full_representation()
@@ -52,6 +48,6 @@ class ResourceDirectory(resource_lib.Resource):
     def handle_request(self):
         result = self.link()
         result.update({
-                'test_results': TestResultCollection(self._request).link(),
-                })
+            'test_results': TestResultCollection(self._request).link(),
+        })
         return self._basic_response(result)

@@ -15,9 +15,9 @@
 """
 Program that parses the autotest results and generates JUnit test results in XML format.
 """
-from sys                             import argv, stdout, stderr, exit
+from sys import argv, stdout, stderr, exit
 import os
-from datetime                        import date
+from datetime import date
 #from traceback                       import format_exc
 #from string                          import maketrans
 #import uuid
@@ -26,10 +26,12 @@ import JUnit_api as api
 
 import json
 
+
 def dbg(ostr):
     stderr.write('dbg: %s' % ostr)
     stderr.flush()
     return
+
 
 def dump(obj):
     stderr.write(json.dumps(obj, sort_keys=True, indent=4))
@@ -37,6 +39,8 @@ def dump(obj):
 
 # text_clean
 #
+
+
 def text_clean(text):
     '''
     This always seems like such a hack, however, there are some characters that we can't
@@ -50,6 +54,8 @@ def text_clean(text):
 
 # file_load
 #
+
+
 def file_load(file_name):
     """
     Load the indicated file into a string and return the string.
@@ -64,6 +70,7 @@ def file_load(file_name):
         stderr.write("  ** Warning: The requested file (%s) does not exist.\n" % file_name)
 
     return retval
+
 
 def parse_results(text):
     """
@@ -82,7 +89,7 @@ def parse_results(text):
 
         # Found a START line -- get start time
         if (line.startswith("START") and len(parts) >= 5 and
-            parts[3].startswith("timestamp")):
+                parts[3].startswith("timestamp")):
             start_time = float(parts[3].split("=")[1])
             start_time_list.append(start_time)
             info_list.append("")
@@ -118,7 +125,6 @@ def main(basedir, resfiles):
     except:
         hn = "localhost"
 
-
     testsuites = api.testsuites()
     ts = api.testsuite(name="Autotest tests")
     properties = api.propertiesType()
@@ -126,15 +132,15 @@ def main(basedir, resfiles):
     ts.timestamp = date.isoformat(date.today())
 
     # collect some existing report file contents as properties
-    if False: # Not sure, the properties don't seem to do anything for us right now.
+    if False:  # Not sure, the properties don't seem to do anything for us right now.
         to_collect = [
-            "cmdline","cpuinfo","df","gcc_--version",
-            "installed_packages","interrupts",
-            "ld_--version","lspci_-vvn","meminfo",
-            "modules","mount","partitions",
-            "proc_mounts","slabinfo","uname",
-            "uptime","version"
-            ]
+            "cmdline", "cpuinfo", "df", "gcc_--version",
+            "installed_packages", "interrupts",
+            "ld_--version", "lspci_-vvn", "meminfo",
+            "modules", "mount", "partitions",
+            "proc_mounts", "slabinfo", "uname",
+            "uptime", "version"
+        ]
 
         for propitem in to_collect:
             try:
@@ -187,21 +193,21 @@ def main(basedir, resfiles):
                 pass
             # Count NA as fails, disable them if you don't want them
             elif r[1] == 'TEST_NA':
-                failures = failures+1
+                failures = failures + 1
                 fid = os.path.join(basedir, tname, 'debug', '%s.DEBUG' % tname)
                 contents = text_clean(file_load(fid))
-                tcfailure = api.failureType(message='Test %s is Not Applicable: %s' % (tname, r[3]), type_ = 'Failure', valueOf_ = "\n<![CDATA[\n%s\n]]>\n" % contents)
+                tcfailure = api.failureType(message='Test %s is Not Applicable: %s' % (tname, r[3]), type_='Failure', valueOf_="\n<![CDATA[\n%s\n]]>\n" % contents)
                 tc.failure = tcfailure
             elif r[1] == 'ERROR':
-                failures = failures+1
+                failures = failures + 1
                 fid = os.path.join(basedir, tname, 'debug', '%s.DEBUG' % tname)
                 contents = text_clean(file_load(fid))
-                tcfailure = api.failureType(message='Test %s has failed' % tname, type_ = 'Failure', valueOf_ = "\n<![CDATA[\n%s\n]]>\n" % contents)
+                tcfailure = api.failureType(message='Test %s has failed' % tname, type_='Failure', valueOf_="\n<![CDATA[\n%s\n]]>\n" % contents)
                 tc.failure = tcfailure
             else:
                 # we don't know what this is
-                errors = errors+1
-                tcerror = api.errorType(message='Unexpected value for result in test result for test %s' % tname, type_ = 'Logparse', valueOf_ = "result=%s" % r[1])
+                errors = errors + 1
+                tcerror = api.errorType(message='Unexpected value for result in test result for test %s' % tname, type_='Logparse', valueOf_="result=%s" % r[1])
                 tc.error = tcerror
             testcases.append(tc)
     else:
@@ -210,11 +216,11 @@ def main(basedir, resfiles):
         tc.name = 'Logfilter'
         tc.classname = 'logfilter'
         tc.time = 0
-        tcerror = api.errorType(message='LOGFILTER: No test cases found while parsing log', type_ = 'Logparse', valueOf_ = 'nothing to show')
+        tcerror = api.errorType(message='LOGFILTER: No test cases found while parsing log', type_='Logparse', valueOf_='nothing to show')
         tc.error = tcerror
         testcases.append(tc)
 
-    #if testsuite_result == "GOOD":
+    # if testsuite_result == "GOOD":
     #    if failures or error:
     #        raise RuntimeError("LOGFILTER internal error - Overall test results parsed as good, but test errors found")
     for tc in testcases:

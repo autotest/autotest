@@ -2,9 +2,12 @@
 # Copyright 2008 Google Inc.
 # Released under the GPLv2
 
-import threading, Queue
+import threading
+import Queue
+
 
 class ThreadPool:
+
     """ A generic threading class for use in the CLI
     ThreadPool class takes the function to be executed as an argument and
     optionally number of threads.  It then creates multiple threads for
@@ -17,7 +20,6 @@ class ThreadPool:
         self.numthreads = 0
         self.queue = Queue.Queue(0)
         self._start_threads(numthreads)
-
 
     def wait(self):
         """ Checks to see if any threads are still working and
@@ -39,19 +41,16 @@ class ThreadPool:
                 assert(dead == self.numthreads)
                 return
 
-
     def queue_work(self, data):
         """ Takes a list of items and appends them to the
             work queue. """
         [self.queue.put(item) for item in data]
-
 
     def add_one_thread_post_wait(self):
         # Only a spawned thread (not the main one)
         # should call this (see wait() for details)
         self._start_threads(1)
         self.queue.put('die')
-
 
     def _start_threads(self, nthreads):
         """ Start up threads to spawn workers. """
@@ -61,7 +60,6 @@ class ThreadPool:
             thread.setDaemon(True)
             self.threads.put(thread)
             thread.start()
-
 
     def _new_worker(self):
         """ Spawned worker threads. These threads loop until queue is empty."""

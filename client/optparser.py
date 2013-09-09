@@ -2,7 +2,8 @@
 Autotest client/local option parser
 '''
 
-import sys, optparse
+import sys
+import optparse
 
 from autotest.client.cmdparser import CommandParser
 
@@ -11,9 +12,11 @@ __all__ = ['AutotestLocalOptionParser']
 
 
 class AutotestLocalOptionParser(optparse.OptionParser):
+
     '''
     Default autotest option parser
     '''
+
     def __init__(self):
 
         command_info = ('[command]\t\tOne of: %s' %
@@ -22,16 +25,15 @@ class AutotestLocalOptionParser(optparse.OptionParser):
         if sys.version_info[0:2] < (2, 6):
             optparse.OptionParser.__init__(
                 self,
-                usage = 'Usage: %prog [options] [command] <control-file>',
-                description = command_info
-                )
+                usage='Usage: %prog [options] [command] <control-file>',
+                description=command_info
+            )
         else:
             optparse.OptionParser.__init__(
                 self,
-                usage = 'Usage: %prog [options] [command] <control-file>',
-                epilog = command_info
-                )
-
+                usage='Usage: %prog [options] [command] <control-file>',
+                epilog=command_info
+            )
 
         general = optparse.OptionGroup(self, 'GENERAL JOB CONTROL')
         general.add_option("-a", "--args", dest='args',
@@ -57,7 +59,7 @@ class AutotestLocalOptionParser(optparse.OptionParser):
 
         job_id = optparse.OptionGroup(self, 'JOB IDENTIFICATION')
         job_id.add_option("-t", "--tag", dest="tag", type="string",
-                          default="default",  help="set the job tag")
+                          default="default", help="set the job tag")
 
         job_id.add_option('--hostname', dest='hostname', type='string',
                           default=None, action='store',
@@ -84,9 +86,9 @@ class AutotestLocalOptionParser(optparse.OptionParser):
                           "implements the custom logging functionality ")
 
         output.add_option('--output_dir', dest='output_dir',
-                        type='string', default="", action='store',
-                        help=('Specify an alternate path to store test result '
-                              'logs'))
+                          type='string', default="", action='store',
+                          help=('Specify an alternate path to store test result '
+                                'logs'))
 
         output.add_option('--tap', dest='tap_report', action='store_true',
                           default=None, help='Output TAP (Test anything '

@@ -13,6 +13,7 @@ from autotest.server.hosts import base_classes, bootloader
 
 
 class test_host_class(unittest.TestCase):
+
     def setUp(self):
         self.god = mock.mock_god()
         # stub out get_server_dir, settings.get_value
@@ -24,18 +25,16 @@ class test_host_class(unittest.TestCase):
         self.real_bootloader = bootloader.Bootloader
         bootloader.Bootloader = lambda arg: object()
 
-
     def tearDown(self):
         self.god.unstub_all()
         bootloader.Bootloader = self.real_bootloader
-
 
     def test_init(self):
         self.god.stub_function(utils, "get_server_dir")
         host = base_classes.Host.__new__(base_classes.Host)
         bootloader.Bootloader = \
-                self.god.create_mock_class_obj(self.real_bootloader,
-                                               "Bootloader")
+            self.god.create_mock_class_obj(self.real_bootloader,
+                                           "Bootloader")
         # overwrite this attribute as it's irrelevant for these tests
         # and may cause problems with construction of the mock
         bootloader.Bootloader.boottool_path = None
@@ -46,11 +45,12 @@ class test_host_class(unittest.TestCase):
         host.__init__()
         self.god.check_playback()
 
-
     def test_install(self):
         host = base_classes.Host()
         # create a dummy installable class
+
         class installable(object):
+
             def install(self, host):
                 pass
         installableObj = self.god.create_mock_class(installable,
@@ -60,7 +60,6 @@ class test_host_class(unittest.TestCase):
         host.install(installableObj)
         self.god.check_playback()
 
-
     def test_get_wait_up_empty(self):
         settings.settings.get_value.expect_call(
             "HOSTS", "wait_up_processes", default="").and_return("")
@@ -69,7 +68,6 @@ class test_host_class(unittest.TestCase):
         self.assertEquals(host.get_wait_up_processes(), set())
         self.god.check_playback()
 
-
     def test_get_wait_up_ignores_whitespace(self):
         settings.settings.get_value.expect_call(
             "HOSTS", "wait_up_processes", default="").and_return("  ")
@@ -77,7 +75,6 @@ class test_host_class(unittest.TestCase):
         host = base_classes.Host()
         self.assertEquals(host.get_wait_up_processes(), set())
         self.god.check_playback()
-
 
     def test_get_wait_up_single_process(self):
         settings.settings.get_value.expect_call(
@@ -88,7 +85,6 @@ class test_host_class(unittest.TestCase):
                           set(["proc1"]))
         self.god.check_playback()
 
-
     def test_get_wait_up_multiple_process(self):
         settings.settings.get_value.expect_call(
             "HOSTS", "wait_up_processes", default="").and_return(
@@ -98,7 +94,6 @@ class test_host_class(unittest.TestCase):
         self.assertEquals(host.get_wait_up_processes(),
                           set(["proc1", "proc2", "proc3"]))
         self.god.check_playback()
-
 
     def test_get_wait_up_drops_duplicates(self):
         settings.settings.get_value.expect_call(

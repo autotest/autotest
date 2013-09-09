@@ -19,9 +19,11 @@ def get_config_db_value(key):
 
 # pylint: disable=I0011,R0904
 class OptionParser(optparse.OptionParser):
+
     '''
     Command line option parser for app that wrap frontend functionality
     '''
+
     def __init__(self, usage=""):
         optparse.OptionParser.__init__(self, usage=usage)
 
@@ -39,7 +41,6 @@ class OptionParser(optparse.OptionParser):
                             default=get_config_db_value('database'),
                             help="Database name")
         self.add_option_group(database)
-
 
     def parse_args(self):
         opts, args = optparse.OptionParser.parse_args(self)

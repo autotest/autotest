@@ -24,7 +24,7 @@ def get_packages():
 
 
 def get_data_files():
-    return [('share/autotest/mirror', [ mirror_dir + '/mirror' ])]
+    return [('share/autotest/mirror', [mirror_dir + '/mirror'])]
 
 
 def run():

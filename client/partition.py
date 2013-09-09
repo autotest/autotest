@@ -6,12 +6,18 @@ and formatting.
 @author: Martin Bligh (mbligh@google.com)
 """
 
-import os, re, string, sys, fcntl, logging
+import os
+import re
+import string
+import sys
+import fcntl
+import logging
 from autotest.client import os_dep, utils
 from autotest.client.shared import error
 
 
 class FsOptions(object):
+
     """
     A class encapsulating a filesystem test's parameters.
     """
@@ -39,7 +45,6 @@ class FsOptions(object):
         self.fs_tag = fs_tag
         self.mkfs_flags = mkfs_flags or ""
         self.mount_options = mount_options or ""
-
 
     def __str__(self):
         val = ('FsOptions(fstype=%r, mkfs_flags=%r, '
@@ -76,7 +81,7 @@ def list_mount_points():
 def get_iosched_path(device_name, component):
     # queue refers to an entire disk, not a single partition
     if device_name[-1].isdigit():
-        device_name=re.sub("\d", "", device_name)
+        device_name = re.sub("\d", "", device_name)
     return '/sys/block/%s/queue/%s' % (device_name, component)
 
 
@@ -240,12 +245,12 @@ def get_unmounted_partition_list(root_part, job=None, min_blocks=0,
     @return List of L{partition} objects that are not mounted.
     """
     partitions = get_partition_list(job=job, min_blocks=min_blocks,
-        filter_func=filter_func, exclude_swap=exclude_swap, open_func=open_func)
+                                    filter_func=filter_func, exclude_swap=exclude_swap, open_func=open_func)
 
     unmounted = []
     for part in partitions:
         if (part.device != partname_to_device(root_part) and
-            not part.get_mountpoint(open_func=open_func)):
+                not part.get_mountpoint(open_func=open_func)):
             unmounted.append(part)
 
     return unmounted
@@ -261,7 +266,7 @@ def parallel(partitions, method_name, *args, **dargs):
     job = partitions[0].job
     flist = []
     if (not hasattr(partition, method_name) or
-                               not callable(getattr(partition, method_name))):
+       not callable(getattr(partition, method_name))):
         err = "partition.parallel got invalid method %s" % method_name
         raise RuntimeError(err)
 
@@ -271,6 +276,7 @@ def parallel(partitions, method_name, *args, **dargs):
         logging.debug('%s.%s(%s)' % (str(p), method_name,
                                      ', '.join(print_args)))
         sys.stdout.flush()
+
         def _run_named_method(function, part=p):
             getattr(part, method_name)(*args, **dargs)
         flist.append((_run_named_method, ()))
@@ -301,7 +307,7 @@ def is_valid_partition(device):
     @param device: e.g. /dev/sda1, /dev/hda1
     """
     parts = get_partition_list(job=None)
-    p_list = [ p.device for p in parts ]
+    p_list = [p.device for p in parts]
     if device in p_list:
         return True
 
@@ -371,6 +377,7 @@ def run_test_on_partitions(job, test, partitions, mountpoint_func,
 
 
 class partition(object):
+
     """
     Class for handling partitions and filesystems
     """
@@ -412,10 +419,8 @@ class partition(object):
             cmd = 'dd if=/dev/zero of=%s bs=1M count=%d' % (device, loop_size)
             utils.system(cmd)
 
-
     def __repr__(self):
         return '<Partition: %s>' % self.device
-
 
     def set_fs_options(self, fs_options):
         """
@@ -429,10 +434,8 @@ class partition(object):
         self.mount_options = fs_options.mount_options
         self.fs_tag = fs_options.fs_tag
 
-
     def run_test(self, test, **dargs):
         self.job.run_test(test, dir=self.get_mountpoint(), **dargs)
-
 
     def setup_before_test(self, mountpoint_func):
         """
@@ -452,7 +455,6 @@ class partition(object):
         if not os.path.isdir(mountpoint):
             os.makedirs(mountpoint)
         self.mount(mountpoint)
-
 
     def run_test_on_partition(self, test, mountpoint_func, **dargs):
         """
@@ -488,14 +490,12 @@ class partition(object):
                 self.unmount()
                 self.fsck()
 
-
         mountpoint = mountpoint_func(self)
 
         # The tag is the tag for the group (get stripped off by run_group)
         # The test_tag is the tag for the test itself
         self.job.run_group(_make_partition_and_run_test,
                            test_tag=tag, dir=mountpoint, **dargs)
-
 
     def get_mountpoint(self, open_func=open, filename=None):
         """
@@ -514,7 +514,7 @@ class partition(object):
             for line in open_func(filename).readlines():
                 parts = line.split()
                 if parts[0] == self.device or parts[1] == self.mountpoint:
-                    return parts[1] # The mountpoint where it's mounted
+                    return parts[1]  # The mountpoint where it's mounted
             return None
 
         # no specific file given, look in /proc/mounts
@@ -529,7 +529,6 @@ class partition(object):
                 res = None
 
         return res
-
 
     def mkfs_exec(self, fstype):
         """
@@ -549,7 +548,6 @@ class partition(object):
         raise NameError('Error creating partition for filesystem type %s' %
                         fstype)
 
-
     def mkfs(self, fstype=None, args='', record=True):
         """
         Format a partition to filesystem type
@@ -562,7 +560,7 @@ class partition(object):
 
         if list_mount_devices().count(self.device):
             raise NameError('Attempted to format mounted device %s' %
-                             self.device)
+                            self.device)
 
         if not fstype:
             if self.fstype:
@@ -609,7 +607,6 @@ class partition(object):
                 self.job.record('GOOD', None, mkfs_cmd)
             self.fstype = fstype
 
-
     def get_fsck_exec(self):
         """
         Return the proper mkfs executable based on self.fstype
@@ -627,7 +624,6 @@ class partition(object):
 
         raise NameError('Error creating partition for filesystem type %s' %
                         self.fstype)
-
 
     def fsck(self, args='-fy', record=True):
         """
@@ -654,7 +650,6 @@ class partition(object):
             if record:
                 self.job.record('GOOD', None, fsck_cmd)
 
-
     def mount(self, mountpoint=None, fstype=None, args='', record=True):
         """
         Mount this partition to a mount point
@@ -671,7 +666,7 @@ class partition(object):
         if fstype is None:
             fstype = self.fstype
         else:
-            assert(self.fstype is None or self.fstype == fstype);
+            assert(self.fstype is None or self.fstype == fstype)
 
         if self.mount_options:
             args += ' -o  ' + self.mount_options
@@ -717,7 +712,6 @@ class partition(object):
                 self.job.record('GOOD', None, mount_cmd)
             self.fstype = fstype
 
-
     def unmount_force(self):
         """
         Kill all other jobs accessing this partition. Use fuser and ps to find
@@ -748,8 +742,6 @@ class partition(object):
         except error.CmdError:
             logging.debug('Umount_force failed for %s' % self.device)
             return False
-
-
 
     def unmount(self, ignore_status=False, record=True):
         """
@@ -798,23 +790,19 @@ class partition(object):
                 self.job.record('FAIL', None, umount_cmd, error.format_error())
             raise
 
-
     def wipe(self):
         """
         Delete all files of a given partition filesystem.
         """
         wipe_filesystem(self.job, self.get_mountpoint())
 
-
     def get_io_scheduler_list(self, device_name):
         names = open(self.__sched_path(device_name)).read()
         return names.translate(string.maketrans('[]', '  ')).split()
 
-
     def get_io_scheduler(self, device_name):
         return re.split('[\[\]]',
                         open(self.__sched_path(device_name)).read())[1]
-
 
     def set_io_scheduler(self, device_name, name):
         if name not in self.get_io_scheduler_list(device_name):
@@ -823,12 +811,12 @@ class partition(object):
         f.write(name)
         f.close()
 
-
     def __sched_path(self, device_name):
         return '/sys/block/%s/queue/scheduler' % device_name
 
 
 class virtual_partition:
+
     """
     Handles block device emulation using file images of disks.
     It's important to note that this API can be used only if
@@ -838,6 +826,7 @@ class virtual_partition:
      * losetup
      * kpartx
     """
+
     def __init__(self, file_img, file_size):
         """
         Creates a virtual partition, keeping record of the device created
@@ -865,7 +854,6 @@ class virtual_partition:
         logging.debug('Loopback device: %s', self.loop)
         logging.debug('Device path: %s', self.device)
 
-
     def destroy(self):
         """
         Removes the virtual partition from /dev/mapper, detaches the image file
@@ -875,7 +863,6 @@ class virtual_partition:
         self._remove_entries_partition()
         self._detach_img_loop()
         self._remove_disk_img()
-
 
     def _create_disk_img(self, img_path, size):
         """
@@ -893,7 +880,6 @@ class virtual_partition:
             e_msg = 'Error creating disk image %s: %s' % (img_path, e)
             raise error.AutotestError(e_msg)
         return img_path
-
 
     def _attach_img_loop(self, img_path):
         """
@@ -915,7 +901,6 @@ class virtual_partition:
             raise error.AutotestError(e_msg)
         return loop_path
 
-
     def _create_single_partition(self, loop_path):
         """
         Creates a single partition encompassing the whole 'disk' using cfdisk.
@@ -933,7 +918,6 @@ class virtual_partition:
         except error.CmdError, e:
             e_msg = 'Error partitioning device %s: %s' % (loop_path, e)
             raise error.AutotestError(e_msg)
-
 
     def _create_entries_partition(self, loop_path):
         """
@@ -956,7 +940,6 @@ class virtual_partition:
             raise error.AutotestError(e_msg)
         return os.path.join('/dev/mapper', device)
 
-
     def _remove_entries_partition(self):
         """
         Removes the entries under /dev/mapper for the partition associated
@@ -971,7 +954,6 @@ class virtual_partition:
             e_msg = 'Error removing entries for loop %s: %s' % (self.loop, e)
             raise error.AutotestError(e_msg)
 
-
     def _detach_img_loop(self):
         """
         Detaches the image file from the loopback device.
@@ -985,7 +967,6 @@ class virtual_partition:
             e_msg = ('Error detaching image %s from loop device %s: %s' %
                     (self.img, self.loop, e))
             raise error.AutotestError(e_msg)
-
 
     def _remove_disk_img(self):
         """

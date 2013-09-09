@@ -8,7 +8,10 @@ a <jobdir>/.tko_published flag file to determine if a jobdir results directory
 has been published yet).
 """
 
-import sys, os, re, optparse
+import sys
+import os
+import re
+import optparse
 
 try:
     import autotest.common as common
@@ -19,7 +22,7 @@ from autotest.server import frontend
 
 options = optparse.Values()
 
-USAGE="""tko-publish [options] <resultsdir> <rsync-destination-path>
+USAGE = """tko-publish [options] <resultsdir> <rsync-destination-path>
 
 Where:
 <resultsdir>              A path to the directory having the job results

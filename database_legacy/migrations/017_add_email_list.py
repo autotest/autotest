@@ -1,6 +1,7 @@
 def migrate_up(manager):
     manager.execute(ADD_COLUMN)
 
+
 def migrate_down(manager):
     manager.execute(DROP_COLUMN)
 

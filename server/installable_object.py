@@ -2,6 +2,7 @@ from autotest.server import utils
 
 
 class InstallableObject(object):
+
     """
     This class represents a software package that can be installed on
     a Host.
@@ -12,11 +13,10 @@ class InstallableObject(object):
     instantiate one of those leaf subclasses.
     """
 
-    source_material= None
+    source_material = None
 
     def __init__(self):
         super(InstallableObject, self).__init__()
-
 
     def get(self, location):
         """
@@ -31,8 +31,7 @@ class InstallableObject(object):
                         may be of any type that the utils.get()
                         function will accept.
         """
-        self.source_material= utils.get(location)
-
+        self.source_material = utils.get(location)
 
     def install(self, host):
         pass

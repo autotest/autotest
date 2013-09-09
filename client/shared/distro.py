@@ -22,9 +22,11 @@ __all__ = ['LinuxDistro',
 
 # pylint: disable=R0903
 class LinuxDistro(object):
+
     '''
     Simple collection of information for a Linux Distribution
     '''
+
     def __init__(self, name, version, release, arch):
         '''
         Initializes a new Linux Distro
@@ -56,7 +58,6 @@ class LinuxDistro(object):
         self.release = release
         self.arch = arch
 
-
     def __repr__(self):
         return '<LinuxDistro: name=%s, version=%s, release=%s, arch=%s>' % (
             self.name, self.version, self.release, self.arch)
@@ -76,6 +77,7 @@ UNKNOWN_DISTRO = LinuxDistro(UNKNOWN_DISTRO_NAME,
 
 
 class Probe(object):
+
     '''
     Probes the machine and does it best to confirm it's the right distro
     '''
@@ -97,10 +99,8 @@ class Probe(object):
     #: :attr:`CHECK_FILE_EXISTS`
     CHECK_VERSION_REGEX = None
 
-
     def __init__(self):
         self.score = 0
-
 
     def check_name_for_file(self):
         '''
@@ -118,7 +118,6 @@ class Probe(object):
 
         return True
 
-
     def name_for_file(self):
         '''
         Get the distro name if the :attr:`CHECK_FILE` is set and exists
@@ -126,7 +125,6 @@ class Probe(object):
         if self.check_name_for_file():
             if os.path.exists(self.CHECK_FILE):
                 return self.CHECK_FILE_DISTRO_NAME
-
 
     def check_name_for_file_contains(self):
         '''
@@ -148,7 +146,6 @@ class Probe(object):
 
         return True
 
-
     def name_for_file_contains(self):
         '''
         Get the distro if the :attr:`CHECK_FILE` is set and has content
@@ -158,7 +155,6 @@ class Probe(object):
                 for line in open(self.CHECK_FILE).readlines():
                     if self.CHECK_FILE_CONTAINS in line:
                         return self.CHECK_FILE_DISTRO_NAME
-
 
     def check_version(self):
         '''
@@ -172,7 +168,6 @@ class Probe(object):
 
         return True
 
-
     def _get_version_match(self):
         '''
         Returns the match result for the version regex on the file content
@@ -185,7 +180,6 @@ class Probe(object):
 
             return self.CHECK_VERSION_REGEX.match(version_file_content)
 
-
     def version(self):
         '''
         Returns the version of the distro
@@ -197,14 +191,12 @@ class Probe(object):
                 version = match.groups()[0]
         return version
 
-
     def check_release(self):
         '''
         Checks if this has the conditions met to look for the release number
         '''
         return (self.check_version() and
                 self.CHECK_VERSION_REGEX.groups > 1)
-
 
     def release(self):
         '''
@@ -216,7 +208,6 @@ class Probe(object):
             if match.groups() > 1:
                 release = match.groups()[1]
         return release
-
 
     def get_distro(self):
         '''
@@ -259,12 +250,14 @@ class Probe(object):
 
 
 class StdLibProbe(Probe):
+
     '''
     Probe that uses the Python standard library builtin detection
 
     This Probe has a lower score on purporse, serving as a fallback
     if no explicit (and hopefully more accurate) probe exists.
     '''
+
     def get_distro(self):
         name = None
         version = UNKNOWN_DISTRO_VERSION
@@ -293,6 +286,7 @@ class StdLibProbe(Probe):
 
 
 class RedHatProbe(Probe):
+
     '''
     Probe with version checks for Red Hat Enterprise Linux systems
     '''
@@ -304,6 +298,7 @@ class RedHatProbe(Probe):
 
 
 class CentosProbe(RedHatProbe):
+
     '''
     Probe with version checks for CentOS systems
     '''
@@ -314,6 +309,7 @@ class CentosProbe(RedHatProbe):
 
 
 class FedoraProbe(RedHatProbe):
+
     '''
     Probe with version checks for Fedora systems
     '''
@@ -324,6 +320,7 @@ class FedoraProbe(RedHatProbe):
 
 
 class DebianProbe(Probe):
+
     '''
     Simple probe with file checks for Debian systems
     '''
@@ -375,9 +372,11 @@ def detect():
 
 
 class Spec(object):
+
     '''
     Describes a distro, usually for setting minimum distro requirements
     '''
+
     def __init__(self, name, min_version=None, min_release=None, arch=None):
         self.name = name
         self.min_version = min_version

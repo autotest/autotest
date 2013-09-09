@@ -21,6 +21,7 @@ ADMINS = (
 
 MANAGERS = ADMINS
 
+
 def _get_config(config_key, default=None):
     return settings.get_value(_section, config_key, default=default)
 
@@ -94,7 +95,7 @@ SECRET_KEY = 'pn-t15u(epetamdflb%dqaaxw+5u&2#0u-jah70w1l*_9*)=n7'
 TEMPLATE_LOADERS = (
     'django.template.loaders.filesystem.Loader',
     'django.template.loaders.app_directories.Loader',
-#     'django.template.loaders.eggs.Loader',
+    #     'django.template.loaders.eggs.Loader',
 )
 
 MIDDLEWARE_CLASSES = (

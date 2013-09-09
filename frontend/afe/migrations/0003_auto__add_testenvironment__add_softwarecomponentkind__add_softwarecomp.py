@@ -75,7 +75,6 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal('afe', ['SoftwareComponentArch'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'LinuxDistro', fields ['name', 'version', 'release', 'arch']
         db.delete_unique('linux_distro', ['name', 'version', 'release', 'arch'])
@@ -103,7 +102,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'SoftwareComponentArch'
         db.delete_table('software_component_arch')
-
 
     models = {
         'afe.abortedhostqueueentry': {

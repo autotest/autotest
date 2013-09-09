@@ -4,7 +4,13 @@ Module used to parse the autotest job status file and generate a JSON file.
 
 Optionally, we can also generate reports (HTML)
 """
-import os, datetime, time, optparse, logging, sys, re
+import os
+import datetime
+import time
+import optparse
+import logging
+import sys
+import re
 
 try:
     import autotest.common as common
@@ -27,6 +33,7 @@ from autotest.client.shared import logging_config
 
 
 class InvalidAutotestResultDirError(Exception):
+
     def __init__(self, directory):
         self.directory = directory
 
@@ -36,6 +43,7 @@ class InvalidAutotestResultDirError(Exception):
 
 
 class InvalidOutputDirError(Exception):
+
     def __init__(self, directory):
         self.directory = directory
 
@@ -96,15 +104,15 @@ def parse_results_dir(results_dir, relative_links=True):
     sysinfo_dir = os.path.join(results_dir, 'sysinfo')
 
     job_data['sysinfo'] = {
-       'hostname': get_info_file(os.path.join(sysinfo_dir, 'hostname').strip()),
-       'uname': get_info_file(os.path.join(sysinfo_dir, 'uname')),
-       'cpuinfo':get_info_file(os.path.join(sysinfo_dir, 'cpuinfo')),
-       'meminfo':get_info_file(os.path.join(sysinfo_dir, 'meminfo')),
-       'df':get_info_file(os.path.join(sysinfo_dir, 'df')),
-       'modules':get_info_file(os.path.join(sysinfo_dir, 'modules')),
-       'gcc':get_info_file(os.path.join(sysinfo_dir, 'gcc_--version')),
-       'dmidecode':get_info_file(os.path.join(sysinfo_dir, 'dmidecode')),
-       'dmesg':get_info_file(os.path.join(sysinfo_dir, 'dmesg'))}
+        'hostname': get_info_file(os.path.join(sysinfo_dir, 'hostname').strip()),
+        'uname': get_info_file(os.path.join(sysinfo_dir, 'uname')),
+        'cpuinfo': get_info_file(os.path.join(sysinfo_dir, 'cpuinfo')),
+        'meminfo': get_info_file(os.path.join(sysinfo_dir, 'meminfo')),
+        'df': get_info_file(os.path.join(sysinfo_dir, 'df')),
+        'modules': get_info_file(os.path.join(sysinfo_dir, 'modules')),
+        'gcc': get_info_file(os.path.join(sysinfo_dir, 'gcc_--version')),
+        'dmidecode': get_info_file(os.path.join(sysinfo_dir, 'dmidecode')),
+        'dmesg': get_info_file(os.path.join(sysinfo_dir, 'dmesg'))}
 
     job_data['results_dir'] = res_dir
     if relative_links:
@@ -122,7 +130,6 @@ def parse_results_dir(results_dir, relative_links=True):
     epoch_sec = time.mktime(t.timetuple())
     now = datetime.datetime.fromtimestamp(epoch_sec)
     job_data['report_generation_time'] = now.ctime()
-
 
     for line in status_lines:
         results_data = {}
@@ -162,7 +169,7 @@ def parse_results_dir(results_dir, relative_links=True):
                                                 update_dict[key]['start'])
                 update_dict[key]['message'] = results_data['message']
                 update_dict[key]['status_code'] = (
-                                        results_data['status_code'].split()[-1])
+                    results_data['status_code'].split()[-1])
 
         # Otherwise, it is a test, or kernel configure/build, or reboot
         else:
@@ -186,7 +193,7 @@ def parse_results_dir(results_dir, relative_links=True):
                                            update_dict['start'])
                 update_dict['message'] = results_data['message']
                 update_dict['status_code'] = (
-                                        results_data['status_code'].split()[-1])
+                    results_data['status_code'].split()[-1])
                 job_data['operations'].append(update_dict)
                 op_data = {}
 
@@ -194,7 +201,7 @@ def parse_results_dir(results_dir, relative_links=True):
     job_data['operations_executed'] = (job_data['operations_passed'] +
                                        job_data['operations_failed'])
     job_data['operations_pass_rate'] = float(100 *
-                job_data['operations_passed'] / job_data['operations_executed'])
+                                             job_data['operations_passed'] / job_data['operations_executed'])
 
     return job_data
 
@@ -285,9 +292,10 @@ DEFAULT_REPORT_PATH = os.path.join(DEFAULT_RESULTS_DIR, "job_report.html")
 
 
 class ReportOptionParser(optparse.OptionParser):
+
     def __init__(self):
         optparse.OptionParser.__init__(self,
-                      usage="%prog [-r result_directory] [-f output_file]")
+                                       usage="%prog [-r result_directory] [-f output_file]")
         self.add_option("-r", action="store", type="string",
                         dest="results_dir",
                         default=DEFAULT_RESULTS_DIR,
@@ -303,10 +311,12 @@ class ReportOptionParser(optparse.OptionParser):
 
 
 class ReportLoggingConfig(logging_config.LoggingConfig):
+
     """
     Used with the sole purpose of providing convenient logging setup
     for this program.
     """
+
     def configure_logging(self, results_dir=None, verbose=False):
         super(ReportLoggingConfig, self).configure_logging(use_console=True,
                                                            verbose=verbose)

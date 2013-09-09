@@ -10,6 +10,7 @@ from autotest.server import source_kernel, hosts
 
 
 class TestSourceKernel(unittest.TestCase):
+
     def setUp(self):
         self.god = mock.mock_god()
         self.host = self.god.create_mock_class(hosts.RemoteHost, "host")
@@ -22,16 +23,14 @@ class TestSourceKernel(unittest.TestCase):
         self.config = "config_file"
         self.source_kernel.configure(self.config)
 
-
     def tearDown(self):
         self.god.unstub_all()
-
 
     def test_install(self):
         # setup
         ctlfile = ("testkernel = job.kernel('%s')\n"
                    "testkernel.install()\n"
-                   "testkernel.add_to_bootloader()\n" %(self.k))
+                   "testkernel.add_to_bootloader()\n" % (self.k))
 
         # record
         self.kernel_autotest.install.expect_call(self.host)
@@ -41,7 +40,6 @@ class TestSourceKernel(unittest.TestCase):
         # run and check
         self.source_kernel.install(self.host)
         self.god.check_playback()
-
 
     def test_build(self):
         # setup

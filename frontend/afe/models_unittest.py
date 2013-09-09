@@ -12,21 +12,20 @@ from autotest.client.shared.settings import settings
 
 from django.db import models as dbmodels
 
+
 class AclGroupTest(unittest.TestCase,
                    test_utils.FrontendTestMixin):
+
     def setUp(self):
         self._frontend_common_setup()
 
-
     def tearDown(self):
         self._frontend_common_teardown()
-
 
     def _check_acls(self, host, acl_name_list):
         actual_acl_names = [acl_group.name for acl_group
                             in host.aclgroup_set.all()]
         self.assertEquals(set(actual_acl_names), set(acl_name_list))
-
 
     def test_on_host_membership_change(self):
         host1, host2 = self.hosts[1:3]
@@ -45,13 +44,12 @@ class AclGroupTest(unittest.TestCase,
 
 class HostTest(unittest.TestCase,
                test_utils.FrontendTestMixin):
+
     def setUp(self):
         self._frontend_common_setup()
 
-
     def tearDown(self):
         self._frontend_common_teardown()
-
 
     def test_add_host_previous_one_time_host(self):
         # ensure that when adding a host which was previously used as a one-time
@@ -71,24 +69,21 @@ class HostTest(unittest.TestCase,
 
 class SpecialTaskUnittest(unittest.TestCase,
                           test_utils.FrontendTestMixin):
+
     def setUp(self):
         self._frontend_common_setup()
-
 
     def tearDown(self):
         self._frontend_common_teardown()
 
-
     def _create_task(self):
         return models.SpecialTask.objects.create(
-                host=self.hosts[0], task=models.SpecialTask.Task.VERIFY,
-                requested_by=models.User.current_user())
-
+            host=self.hosts[0], task=models.SpecialTask.Task.VERIFY,
+            requested_by=models.User.current_user())
 
     def test_execution_path(self):
         task = self._create_task()
         self.assertEquals(task.execution_path(), 'hosts/host1/1-verify')
-
 
     def test_status(self):
         task = self._create_task()
@@ -103,13 +98,11 @@ class SpecialTaskUnittest(unittest.TestCase,
         task.update_object(success=False)
         self.assertEquals(task.status, 'Failed')
 
-
     def test_activate(self):
         task = self._create_task()
         task.activate()
         self.assertTrue(task.is_active)
         self.assertFalse(task.is_complete)
-
 
     def test_finish(self):
         task = self._create_task()
@@ -119,24 +112,22 @@ class SpecialTaskUnittest(unittest.TestCase,
         self.assertTrue(task.is_complete)
         self.assertTrue(task.success)
 
-
     def test_requested_by_from_queue_entry(self):
         job = self._create_job(hosts=[0])
         task = models.SpecialTask.objects.create(
-                host=self.hosts[0], task=models.SpecialTask.Task.VERIFY,
-                queue_entry=job.hostqueueentry_set.all()[0])
+            host=self.hosts[0], task=models.SpecialTask.Task.VERIFY,
+            queue_entry=job.hostqueueentry_set.all()[0])
         self.assertEquals(task.requested_by.login, 'autotest_system')
 
 
 class HostQueueEntryUnittest(unittest.TestCase,
                              test_utils.FrontendTestMixin):
+
     def setUp(self):
         self._frontend_common_setup()
 
-
     def tearDown(self):
         self._frontend_common_teardown()
-
 
     def test_execution_path(self):
         entry = self._create_job(hosts=[1]).hostqueueentry_set.all()[0]
@@ -148,20 +139,18 @@ class HostQueueEntryUnittest(unittest.TestCase,
 
 class ModelWithInvalidTest(unittest.TestCase,
                            test_utils.FrontendTestMixin):
+
     def setUp(self):
         self._frontend_common_setup()
 
-
     def tearDown(self):
         self._frontend_common_teardown()
-
 
     def test_model_with_invalid_delete(self):
         self.assertFalse(self.hosts[0].invalid)
         self.hosts[0].delete()
         self.assertTrue(self.hosts[0].invalid)
         self.assertTrue(models.Host.objects.get(id=self.hosts[0].id))
-
 
     def test_model_with_invalid_delete_queryset(self):
         for host in self.hosts:
@@ -173,7 +162,6 @@ class ModelWithInvalidTest(unittest.TestCase,
 
         for host in hosts:
             self.assertTrue(host.invalid)
-
 
     def test_cloned_queryset_delete(self):
         """
@@ -192,13 +180,12 @@ class ModelWithInvalidTest(unittest.TestCase,
         for host in all_hosts:
             if host.hostname in to_delete:
                 self.assertTrue(
-                        host.invalid,
-                        '%s.invalid expected to be True' % host.hostname)
+                    host.invalid,
+                    '%s.invalid expected to be True' % host.hostname)
             else:
                 self.assertFalse(
-                        host.invalid,
-                        '%s.invalid expected to be False' % host.hostname)
-
+                    host.invalid,
+                    '%s.invalid expected to be False' % host.hostname)
 
     def test_normal_delete(self):
         job = self._create_job(hosts=[1])
@@ -206,7 +193,6 @@ class ModelWithInvalidTest(unittest.TestCase,
 
         job.delete()
         self.assertEqual(0, models.Job.objects.all().count())
-
 
     def test_normal_delete_queryset(self):
         self._create_job(hosts=[1])
@@ -219,17 +205,15 @@ class ModelWithInvalidTest(unittest.TestCase,
 
 
 class KernelTest(unittest.TestCase, test_utils.FrontendTestMixin):
+
     def setUp(self):
         self._frontend_common_setup()
-
 
     def tearDown(self):
         self._frontend_common_teardown()
 
-
     def test_create_kernels_none(self):
         self.assertEqual(None, models.Kernel.create_kernels(None))
-
 
     def test_create_kernels(self):
         self.god.stub_function(models.Kernel, '_create')
@@ -243,7 +227,6 @@ class KernelTest(unittest.TestCase, test_utils.FrontendTestMixin):
         self.assertEqual(result, models.Kernel.create_kernels(kernel_list))
         self.god.check_playback()
 
-
     def test_create(self):
         kernel = models.Kernel._create({'version': 'version'})
         self.assertEqual(kernel.version, 'version')
@@ -253,21 +236,20 @@ class KernelTest(unittest.TestCase, test_utils.FrontendTestMixin):
 
 class ParameterizedJobTest(unittest.TestCase,
                            test_utils.FrontendTestMixin):
+
     def setUp(self):
         self._frontend_common_setup()
 
-
     def tearDown(self):
         self._frontend_common_teardown()
-
 
     def test_job(self):
         settings.override_value('AUTOTEST_WEB', 'parameterized_jobs', 'True')
 
         test = models.Test.objects.create(
-                name='name', author='author', test_class='class',
-                test_category='category',
-                test_type=model_attributes.TestTypes.SERVER, path='path')
+            name='name', author='author', test_class='class',
+            test_category='category',
+            test_type=model_attributes.TestTypes.SERVER, path='path')
         parameterized_job = models.ParameterizedJob.objects.create(test=test)
         job = self._create_job(hosts=[1], control_file=None,
                                parameterized_job=parameterized_job)
@@ -276,28 +258,24 @@ class ParameterizedJobTest(unittest.TestCase,
 
 
 class JobTest(unittest.TestCase, test_utils.FrontendTestMixin):
+
     def setUp(self):
         self._frontend_common_setup()
 
-
     def tearDown(self):
         self._frontend_common_teardown()
-
 
     def test_check_parameterized_jobs_no_args(self):
         self.assertRaises(Exception, models.Job.check_parameterized_job,
                           control_file=None, parameterized_job=None)
 
-
     def test_check_parameterized_jobs_both_args(self):
         self.assertRaises(Exception, models.Job.check_parameterized_job,
                           control_file=object(), parameterized_job=object())
 
-
     def test_check_parameterized_jobs_disabled(self):
         self.assertRaises(Exception, models.Job.check_parameterized_job,
                           control_file=None, parameterized_job=object())
-
 
     def test_check_parameterized_jobs_enabled(self):
         settings.override_value('AUTOTEST_WEB', 'parameterized_jobs', 'True')
@@ -307,13 +285,12 @@ class JobTest(unittest.TestCase, test_utils.FrontendTestMixin):
 
 class SoftwareComponentKindTest(unittest.TestCase,
                                 test_utils.FrontendTestMixin):
+
     def setUp(self):
         self._frontend_common_setup()
 
-
     def tearDown(self):
         self._frontend_common_teardown()
-
 
     def test_create_delete(self):
         models.SoftwareComponentKind.objects.create(name='rpm')
@@ -321,7 +298,6 @@ class SoftwareComponentKindTest(unittest.TestCase,
 
         models.SoftwareComponentKind.objects.all().delete()
         self.assertEqual(0, models.SoftwareComponentKind.objects.all().count())
-
 
     def test_create_duplicate_distro(self):
         def create_kind():
@@ -334,13 +310,12 @@ class SoftwareComponentKindTest(unittest.TestCase,
 
 class SoftwareComponentArchTest(unittest.TestCase,
                                 test_utils.FrontendTestMixin):
+
     def setUp(self):
         self._frontend_common_setup()
 
-
     def tearDown(self):
         self._frontend_common_teardown()
-
 
     def test_create_delete(self):
         models.SoftwareComponentArch.objects.create(name='x86_64')
@@ -348,7 +323,6 @@ class SoftwareComponentArchTest(unittest.TestCase,
 
         models.SoftwareComponentArch.objects.all().delete()
         self.assertEqual(0, models.SoftwareComponentArch.objects.all().count())
-
 
     def test_create_duplicate_distro(self):
         def create_arch():
@@ -361,13 +335,12 @@ class SoftwareComponentArchTest(unittest.TestCase,
 
 class SoftwareComponentTest(unittest.TestCase,
                             test_utils.FrontendTestMixin):
+
     def setUp(self):
         self._frontend_common_setup()
 
-
     def tearDown(self):
         self._frontend_common_teardown()
-
 
     def test_delete_reference(self):
         '''
@@ -403,13 +376,12 @@ class SoftwareComponentTest(unittest.TestCase,
 
 class LinuxDistroTest(unittest.TestCase,
                       test_utils.FrontendTestMixin):
+
     def setUp(self):
         self._frontend_common_setup()
 
-
     def tearDown(self):
         self._frontend_common_teardown()
-
 
     def test_create_delete(self):
         # The builtin 'unknown distro' accounts for the first count
@@ -422,7 +394,6 @@ class LinuxDistroTest(unittest.TestCase,
 
         models.LinuxDistro.objects.all().delete()
         self.assertEqual(0, models.LinuxDistro.objects.all().count())
-
 
     def test_create_query_arch_delete(self):
         models.LinuxDistro.objects.create(name='distro', version='1',
@@ -444,7 +415,6 @@ class LinuxDistroTest(unittest.TestCase,
         models.LinuxDistro.objects.get(name='distro', version='1',
                                        release='1', arch='i386').delete()
         self.assertEqual(3, models.LinuxDistro.objects.all().count())
-
 
     def test_create_duplicate_distro(self):
         def create_distro():

@@ -9,10 +9,12 @@ and several post-profiling tools for turning data into information.
 More Info: http://oprofile.sourceforge.net/
 Will need some libaries to compile. Do 'apt-get build-dep oprofile'
 """
-import os, time
+import os
+import time
 from autotest.client import utils, profiler
 from autotest.client.shared import error
 import logging
+
 
 class oprofile(profiler.profiler):
     version = 7
@@ -29,19 +31,19 @@ class oprofile(profiler.profiler):
 # http://prdownloads.sourceforge.net/oprofile/oprofile-0.9.4.tar.gz
     def setup(self, tarball='oprofile-0.9.4.tar.bz2', local=None,
               *args, **dargs):
-        if local == True:
+        if local is True:
             return
 
         try:
             self.tarball = utils.unmap_url(self.bindir, tarball,
-                                                    self.tmpdir)
+                                           self.tmpdir)
             utils.extract_tarball_to_dir(self.tarball, self.srcdir)
             os.chdir(self.srcdir)
 
-            patch = os.path.join(self.bindir,"oprofile-69455.patch")
+            patch = os.path.join(self.bindir, "oprofile-69455.patch")
             utils.system('patch -p1 < %s' % patch)
-            utils.configure('--with-kernel-support --prefix=' + \
-                                                    self.srcdir)
+            utils.configure('--with-kernel-support --prefix=' +
+                            self.srcdir)
             utils.make('-j %d' % utils.count_cpus())
             utils.make('install')
         except Exception:
@@ -49,12 +51,11 @@ class oprofile(profiler.profiler):
             # But maybe can still use the local copy
             local_opcontrol = os.path.exists('/usr/bin/opcontrol')
             local_opreport = os.path.exists('/usr/bin/opreport')
-            if local == False or not local_opcontrol or not local_opreport:
+            if local is False or not local_opcontrol or not local_opreport:
                 raise error.AutotestError('No oprofile available')
         else:
             # if we managed to build, try again to pick binaries
             self._pick_binaries(True)
-
 
     def _setup_oprofile(self):
         setup = ' --setup'
@@ -67,16 +68,14 @@ class oprofile(profiler.profiler):
         if self.others:
             setup += ' ' + self.others
 
-
         utils.system(self.opcontrol + setup)
         self.setup_done = True
 
-
     def _pick_binaries(self, after_setup):
-        src_opreport  = os.path.join(self.srcdir, 'bin/opreport')
+        src_opreport = os.path.join(self.srcdir, 'bin/opreport')
         src_opcontrol = os.path.join(self.srcdir, 'bin/opcontrol')
 
-        if (self.local == False and after_setup) or (
+        if (self.local is False and after_setup) or (
                 (self.local in (None, False) and os.path.exists(src_opreport)
                  and os.path.exists(src_opcontrol))):
             print "Using source-built copy of oprofile"
@@ -93,7 +92,6 @@ class oprofile(profiler.profiler):
             self.opcontrol = '/usr/bin/opcontrol'
 
         self._setup_oprofile()
-
 
     def initialize(self, vmlinux=None, events=[], others=None, local=None, **dargs):
         self.job.require_gcc()
@@ -115,7 +113,6 @@ class oprofile(profiler.profiler):
 
         self._pick_binaries(False)
 
-
     def start(self, test):
         if not self.setup_done:
             self._pick_binaries(True)
@@ -125,12 +122,10 @@ class oprofile(profiler.profiler):
         utils.system(self.opcontrol + ' --reset')
         utils.system(self.opcontrol + ' --start')
 
-
     def stop(self, test):
         self.stop_time = time.ctime()
         utils.system(self.opcontrol + ' --stop')
         utils.system(self.opcontrol + ' --dump')
-
 
     def report(self, test):
         # Output kernel per-symbol profile report

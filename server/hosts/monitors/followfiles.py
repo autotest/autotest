@@ -2,7 +2,10 @@
 #
 # Script for tailing one to many logfiles and merging their output.
 
-import optparse, os, signal, sys
+import optparse
+import os
+import signal
+import sys
 
 import monitors_util
 

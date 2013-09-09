@@ -4,7 +4,11 @@ __author__ = "duanes (Duane Sand), pdahl (Peter Dahl)"
 # A basic cpuset/cgroup container manager for limiting memory use during tests
 #   for use on kernels not running some site-specific container manager
 
-import os, re, glob, fcntl, logging
+import os
+import re
+import glob
+import fcntl
+import logging
 from autotest.client import utils
 from autotest.client.shared import error, utils_memory
 
@@ -17,8 +21,8 @@ PROPIO_NORMAL = 2
 PROPIO_IDLE = 3
 
 super_root_path = ''    # usually '/dev/cgroup'; '/dev/cpuset' on 2.6.18
-cpuset_prefix   = None  # usually 'cpuset.'; '' on 2.6.18
-fake_numa_containers = False # container mem via numa=fake mem nodes, else pages
+cpuset_prefix = None  # usually 'cpuset.'; '' on 2.6.18
+fake_numa_containers = False  # container mem via numa=fake mem nodes, else pages
 mem_isolation_on = False
 node_mbytes = 0         # mbytes in one typical mem node
 root_container_bytes = 0  # squishy limit on effective size of root container
@@ -39,7 +43,7 @@ def discover_container_style():
         else:  # memcg containers IFF compiled-in & mounted & non-fakenuma boot
             fake_numa_containers = False
             mem_isolation_on = os.path.exists(
-                    '/dev/cgroup/memory.limit_in_bytes')
+                '/dev/cgroup/memory.limit_in_bytes')
             # TODO: handle possibility of where memcg is mounted as its own
             #       cgroup hierarchy, separate from cpuset??
     elif os.path.exists('/dev/cpuset/tasks'):
@@ -74,6 +78,7 @@ def need_mem_containers():
         raise error.AutotestError('Mem-isolation containers not enabled '
                                   'by latest reboot')
 
+
 def need_fake_numa():
     discover_container_style()
     if not fake_numa_containers:
@@ -86,18 +91,18 @@ def full_path(container_name):
 
 
 def unpath(container_path):
-    return container_path[len(super_root_path)+1:]
+    return container_path[len(super_root_path) + 1:]
 
 
 def cpuset_attr(container_name, attr):
     discover_container_style()
-    return os.path.join(super_root_path, container_name, cpuset_prefix+attr)
+    return os.path.join(super_root_path, container_name, cpuset_prefix + attr)
 
 
 def io_attr(container_name, attr):
     discover_container_style()
     # current version assumes shared cgroup hierarchy
-    return os.path.join(super_root_path, container_name, 'io.'+attr)
+    return os.path.join(super_root_path, container_name, 'io.' + attr)
 
 
 def tasks_path(container_name):
@@ -144,7 +149,7 @@ def _avail_mbytes_via_nodes(parent):
     mbytes = nodes_avail_mbytes(free_nodes)
     # don't have exact model for how container mgr measures mem space
     # better here to underestimate than overestimate
-    mbytes = max(mbytes - node_mbytes//2, 0)
+    mbytes = max(mbytes - node_mbytes // 2, 0)
     return mbytes
 
 
@@ -178,7 +183,7 @@ def delete_leftover_test_containers():
 def my_lock(lockname):
     # lockname is 'inner'
     lockdir = os.environ['AUTODIR']
-    lockname = os.path.join(lockdir, '.cpuset.lock.'+lockname)
+    lockname = os.path.join(lockdir, '.cpuset.lock.' + lockname)
     lockfile = open(lockname, 'w')
     fcntl.flock(lockfile, fcntl.LOCK_EX)
     return lockfile
@@ -202,7 +207,7 @@ def rangelist_to_set(rangelist):
         if m:
             start = int(m.group(1))
             end = int(m.group(2))
-            result.update(set(range(start, end+1)))
+            result.update(set(range(start, end + 1)))
             continue
         msg = 'Cannot understand data input: %s %s' % (x, rangelist)
         raise ValueError(msg)
@@ -230,7 +235,7 @@ def _busy_mem_nodes(parent_container):
     #   by existing children of parent container
     busy = set()
     mem_files_pattern = os.path.join(full_path(parent_container),
-                                     '*', cpuset_prefix+'mems')
+                                     '*', cpuset_prefix + 'mems')
     for mem_file in glob.glob(mem_files_pattern):
         child_container = os.path.dirname(mem_file)
         busy |= get_mem_nodes(child_container)
@@ -397,11 +402,11 @@ def set_io_controls(container_name, disks=[], ioprio_classes=[PROPIO_NORMAL],
     # io_limit defaults to no limit, use slack time
     if not disks:  # defaults to all drives
         disks = all_drive_names()
-        io_shares      = [io_shares     [0]] * len(disks)
+        io_shares = [io_shares[0]] * len(disks)
         ioprio_classes = [ioprio_classes[0]] * len(disks)
-        io_limits      = [io_limits     [0]] * len(disks)
+        io_limits = [io_limits[0]] * len(disks)
     if not (len(disks) == len(ioprio_classes) and len(disks) == len(io_shares)
-                                              and len(disks) == len(io_limits)):
+            and len(disks) == len(io_limits)):
         raise error.AutotestError('Unequal number of values for io controls')
     service_level = io_attr(container_name, 'io_service_level')
     if not os.path.exists(service_level):
@@ -423,8 +428,8 @@ def abbrev_list(vals):
     ranges = []
     lower = 0
     upper = -2
-    for val in sorted(vals)+[-1]:
-        if val != upper+1:
+    for val in sorted(vals) + [-1]:
+        if val != upper + 1:
             if lower == upper:
                 ranges.append(str(lower))
             elif lower <= upper:
@@ -442,7 +447,7 @@ def create_container_with_specific_mems_cpus(name, mems, cpus):
     utils.write_one_line(cpus_path(name), ','.join(map(str, cpus)))
     logging.debug('container %s has %d cpus and %d nodes totalling %s bytes',
                   name, len(cpus), len(get_mem_nodes(name)),
-                  utils.human_format(container_bytes(name)) )
+                  utils.human_format(container_bytes(name)))
 
 
 def create_container_via_memcg(name, parent, bytes, cpus):
@@ -450,7 +455,7 @@ def create_container_via_memcg(name, parent, bytes, cpus):
     os.mkdir(full_path(name))
     nodes = utils.read_one_line(mems_path(parent))
     utils.write_one_line(mems_path(name), nodes)  # inherit parent's nodes
-    utils.write_one_line(memory_path(name)+'.limit_in_bytes', str(bytes))
+    utils.write_one_line(memory_path(name) + '.limit_in_bytes', str(bytes))
     utils.write_one_line(cpus_path(name), ','.join(map(str, cpus)))
     logging.debug('Created container %s directly via memcg,'
                   ' has %d cpus and %s bytes',
@@ -474,14 +479,14 @@ def _create_fake_numa_container_directly(name, parent, mbytes, cpus):
             parent_mbytes = container_mbytes(parent)
             if mbytes > parent_mbytes:
                 raise error.AutotestError(
-                      "New container's %d Mbytes exceeds "
-                      "parent container's %d Mbyte size"
-                      % (mbytes, parent_mbytes) )
+                    "New container's %d Mbytes exceeds "
+                    "parent container's %d Mbyte size"
+                    % (mbytes, parent_mbytes))
             else:
                 raise error.AutotestError(
-                      "Existing sibling containers hold "
-                      "%d Mbytes needed by new container"
-                      % ((needed_kbytes - kbytes)//1024) )
+                    "Existing sibling containers hold "
+                    "%d Mbytes needed by new container"
+                    % ((needed_kbytes - kbytes) // 1024))
         mems = nodes[-nodecnt:]
 
         create_container_with_specific_mems_cpus(name, mems, cpus)
@@ -494,11 +499,11 @@ def create_container_directly(name, mbytes, cpus):
     if fake_numa_containers:
         _create_fake_numa_container_directly(name, parent, mbytes, cpus)
     else:
-        create_container_via_memcg(name, parent, mbytes<<20, cpus)
+        create_container_via_memcg(name, parent, mbytes << 20, cpus)
 
 
 def create_container_with_mbytes_and_specific_cpus(name, mbytes,
-                cpus=None, root=SUPER_ROOT, io={}, move_in=True, timeout=0):
+                                                   cpus=None, root=SUPER_ROOT, io={}, move_in=True, timeout=0):
     """\
     Create a cpuset container and move job's current pid into it
     Allocate the list "cpus" of cpus to that container
@@ -516,7 +521,7 @@ def create_container_with_mbytes_and_specific_cpus(name, mbytes,
     need_mem_containers()
     if not container_exists(root):
         raise error.AutotestError('Parent container "%s" does not exist'
-                                   % root)
+                                  % root)
     if cpus is None:
         # default to biggest container we can make under root
         cpus = get_cpus(root)

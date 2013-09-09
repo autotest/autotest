@@ -1,4 +1,8 @@
-import cgi, datetime, re, time, urllib
+import cgi
+import datetime
+import re
+import time
+import urllib
 from django import http
 import django.core.exceptions
 from django.core import urlresolvers
@@ -19,10 +23,11 @@ def _resolve_class_path(class_path):
 
 _NO_VALUE_SPECIFIED = object()
 
+
 class _InputDict(dict):
+
     def get(self, key, default=_NO_VALUE_SPECIFIED):
         return super(_InputDict, self).get(key, default)
-
 
     @classmethod
     def remove_unspecified_fields(cls, field_dict):
@@ -31,8 +36,7 @@ class _InputDict(dict):
 
 
 class Resource(object):
-    _permitted_methods = None # subclasses must override this
-
+    _permitted_methods = None  # subclasses must override this
 
     def __init__(self, request):
         assert self._permitted_methods
@@ -43,7 +47,6 @@ class Resource(object):
         self._request = request
         # this dict will contain the applicable query parameters
         self._query_params = datastructures.MultiValueDict()
-
 
     @classmethod
     def dispatch_request(cls, request, *args, **kwargs):
@@ -59,7 +62,6 @@ class Resource(object):
         except exceptions.RequestError, exc:
             return exc.response
 
-
     def handle_request(self):
         if self._request.method.upper() not in self._permitted_methods:
             return http.HttpResponseNotAllowed(self._permitted_methods)
@@ -67,17 +69,14 @@ class Resource(object):
         handler = getattr(self, self._request.method.lower())
         return handler()
 
-
     # the handler methods below only need to be overridden if the resource
     # supports the method
-
     def get(self):
         """Handle a GET request.
 
         @returns an HttpResponse
         """
         raise NotImplementedError
-
 
     def post(self):
         """Handle a POST request.
@@ -86,7 +85,6 @@ class Resource(object):
         """
         raise NotImplementedError
 
-
     def put(self):
         """Handle a PUT request.
 
@@ -94,14 +92,12 @@ class Resource(object):
         """
         raise NotImplementedError
 
-
     def delete(self):
         """Handle a DELETE request.
 
         @returns an HttpResponse
         """
         raise NotImplementedError
-
 
     @classmethod
     def from_uri_args(cls, request, **kwargs):
@@ -111,14 +107,12 @@ class Resource(object):
         """
         return cls(request)
 
-
     def _uri_args(self):
         """Return kwargs for a URI reference to this resource.
 
         Default implementation for resources with no URI args.
         """
         return {}
-
 
     def _query_parameters_accepted(self):
         """Return sequence of tuples (name, description) for query parameters.
@@ -127,7 +121,6 @@ class Resource(object):
         Default implementation for resources with no parameters.
         """
         return ()
-
 
     def read_query_parameters(self, parameters):
         """Read relevant query parameters from a Django MultiValueDict."""
@@ -138,11 +131,9 @@ class Resource(object):
             if base_name in params_acccepted:
                 self._query_params.setlist(name, values)
 
-
     def set_query_parameters(self, **parameters):
         """Set query parameters programmatically."""
         self._query_params.update(parameters)
-
 
     def href(self, query_params=None):
         """Return URI to this resource."""
@@ -155,7 +146,6 @@ class Resource(object):
             path += '?' + urllib.urlencode(full_query_params.lists(),
                                            doseq=True)
         return self._request.build_absolute_uri(path)
-
 
     def resolve_uri(self, uri):
         # check for absolute URIs
@@ -174,9 +164,8 @@ class Resource(object):
             view_method, args, kwargs = urlresolvers.resolve(uri)
         except http.Http404:
             raise exceptions.BadRequest('Unable to resolve URI %s' % uri)
-        resource_class = view_method.im_self # class owning this classmethod
+        resource_class = view_method.im_self  # class owning this classmethod
         return resource_class.from_uri_args(self._request, **kwargs)
-
 
     def resolve_link(self, link):
         if isinstance(link, dict):
@@ -187,15 +176,12 @@ class Resource(object):
             raise exceptions.BadRequest('Unable to understand link %s' % link)
         return self.resolve_uri(uri)
 
-
     def link(self, query_params=None):
         return {'href': self.href(query_params=query_params)}
-
 
     def _query_parameters_response(self):
         return dict((name, description)
                     for name, description in self._query_parameters_accepted())
-
 
     def _basic_response(self, content):
         """Construct and return a simple 200 response."""
@@ -206,7 +192,6 @@ class Resource(object):
         encoded_content = simplejson.dumps(content)
         return http.HttpResponse(encoded_content,
                                  content_type=_JSON_CONTENT_TYPE)
-
 
     def _decoded_input(self):
         content_type = self._request.META.get('CONTENT_TYPE',
@@ -222,10 +207,10 @@ class Resource(object):
                 raise exceptions.BadRequest('Expected dict input, got %s: %r' %
                                             (type(raw_dict), raw_dict))
         elif content_type == 'application/x-www-form-urlencoded':
-            cgi_dict = cgi.parse_qs(raw_data) # django won't do this for PUT
+            cgi_dict = cgi.parse_qs(raw_data)  # django won't do this for PUT
             raw_dict = {}
             for key, values in cgi_dict.items():
-                value = values[-1] # take last value if multiple were given
+                value = values[-1]  # take last value if multiple were given
                 try:
                     # attempt to parse numbers, booleans and nulls
                     raw_dict[key] = simplejson.loads(value)
@@ -238,7 +223,6 @@ class Resource(object):
 
         return _InputDict(raw_dict)
 
-
     def _format_datetime(self, date_time):
         """Return ISO 8601 string for the given datetime"""
         if date_time is None:
@@ -247,10 +231,9 @@ class Resource(object):
         if timezone_hrs >= 0:
             timezone_join = '+'
         else:
-            timezone_join = '' # minus sign comes from number itself
+            timezone_join = ''  # minus sign comes from number itself
         timezone_spec = '%s%s:00' % (timezone_join, timezone_hrs)
         return date_time.strftime('%Y-%m-%dT%H:%M:%S') + timezone_spec
-
 
     @classmethod
     def _check_for_required_fields(cls, input_dict, fields):
@@ -262,23 +245,20 @@ class Resource(object):
 
 
 class Entry(Resource):
+
     @classmethod
     def add_query_selectors(cls, query_processor):
         """Sbuclasses may override this to support querying."""
         pass
 
-
     def short_representation(self):
         return self.link()
-
 
     def full_representation(self):
         return self.short_representation()
 
-
     def get(self):
         return self._basic_response(self.full_representation())
-
 
     def put(self):
         try:
@@ -287,38 +267,33 @@ class Entry(Resource):
             raise exceptions.BadRequest('Invalid input: %s' % exc)
         return self._basic_response(self.full_representation())
 
-
     def _delete_entry(self):
         raise NotImplementedError
 
-
     def delete(self):
         self._delete_entry()
-        return http.HttpResponse(status=204) # No content
-
+        return http.HttpResponse(status=204)  # No content
 
     def create_instance(self, input_dict, containing_collection):
         raise NotImplementedError
-
 
     def update(self, input_dict):
         raise NotImplementedError
 
 
 class InstanceEntry(Entry):
+
     class NullEntry(object):
+
         def link(self):
             return None
-
 
         def short_representation(self):
             return None
 
-
     _null_entry = NullEntry()
     _permitted_methods = ('GET', 'PUT', 'DELETE')
-    model = None # subclasses must override this with a Django model class
-
+    model = None  # subclasses must override this with a Django model class
 
     def __init__(self, request, instance):
         assert self.model is not None
@@ -326,22 +301,18 @@ class InstanceEntry(Entry):
         self.instance = instance
         self._is_prepared_for_full_representation = False
 
-
     @classmethod
     def from_optional_instance(cls, request, instance):
         if instance is None:
             return cls._null_entry
         return cls(request, instance)
 
-
     def _delete_entry(self):
         self.instance.delete()
-
 
     def full_representation(self):
         self.prepare_for_full_representation([self])
         return super(InstanceEntry, self).full_representation()
-
 
     @classmethod
     def prepare_for_full_representation(cls, entries):
@@ -360,7 +331,6 @@ class InstanceEntry(Entry):
         for entry in not_prepared:
             entry._is_prepared_for_full_representation = True
 
-
     @classmethod
     def _do_prepare_for_full_representation(cls, instances):
         """
@@ -376,12 +346,11 @@ class InstanceEntry(Entry):
 class Collection(Resource):
     _DEFAULT_ITEMS_PER_PAGE = 50
 
-    _permitted_methods=('GET', 'POST')
+    _permitted_methods = ('GET', 'POST')
 
     # subclasses must override these
-    queryset = None # or override _fresh_queryset() directly
+    queryset = None  # or override _fresh_queryset() directly
     entry_class = None
-
 
     def __init__(self, request):
         super(Collection, self).__init__(request)
@@ -392,7 +361,6 @@ class Collection(Resource):
         self._query_processor = query_lib.QueryProcessor()
         self.entry_class.add_query_selectors(self._query_processor)
 
-
     def _query_parameters_accepted(self):
         params = [('start_index', 'Index of first member to include'),
                   ('items_per_page', 'Number of members to include'),
@@ -402,25 +370,22 @@ class Collection(Resource):
             params.append((selector.name, selector.doc))
         return params
 
-
     def _fresh_queryset(self):
         assert self.queryset is not None
         # always copy the queryset before using it to avoid caching
         return self.queryset.all()
-
 
     def _entry_from_instance(self, instance):
         # entry_class is actually turned into a callable, so this is OK
         # pylint: disable=E1102
         return self.entry_class(self._request, instance)
 
-
     def _representation(self, entry_instances):
         entries = [self._entry_from_instance(instance)
                    for instance in entry_instances]
 
         want_full_representation = self._read_bool_parameter(
-                'full_representations')
+            'full_representations')
         if want_full_representation:
             self.entry_class.prepare_for_full_representation(entries)
 
@@ -436,12 +401,10 @@ class Collection(Resource):
         rep.update({'members': members})
         return rep
 
-
     def _read_bool_parameter(self, name):
         if name not in self._query_params:
             return False
         return (self._query_params[name].lower() == 'true')
-
 
     def _read_int_parameter(self, name, default):
         if name not in self._query_params:
@@ -453,7 +416,6 @@ class Collection(Resource):
             raise exceptions.BadRequest('Invalid non-numeric value for %s: %r'
                                         % (name, input_value))
 
-
     def _apply_form_query(self, queryset):
         """Apply any query selectors passed as form variables."""
         for parameter, values in self._query_params.lists():
@@ -464,16 +426,14 @@ class Collection(Resource):
 
             if not self._query_processor.has_selector(parameter):
                 continue
-            for value in values: # forms keys can have multiple values
+            for value in values:  # forms keys can have multiple values
                 queryset = self._query_processor.apply_selector(
-                        queryset, parameter, value,
-                        comparison_type=comparison_type)
+                    queryset, parameter, value,
+                    comparison_type=comparison_type)
         return queryset
-
 
     def _filtered_queryset(self):
         return self._apply_form_query(self._fresh_queryset())
-
 
     def get(self):
         queryset = self._filtered_queryset()
@@ -489,11 +449,9 @@ class Collection(Resource):
                     'items_per_page': items_per_page})
         return self._basic_response(rep)
 
-
     def full_representation(self):
         # careful, this rep can be huge for large collections
         return self._representation(self._fresh_queryset())
-
 
     def post(self):
         input_dict = self._decoded_input()
@@ -505,7 +463,7 @@ class Collection(Resource):
             raise exceptions.BadRequest('Invalid input: %s' % exc)
         # RFC 2616 specifies that we provide the new URI in both the Location
         # header and the body
-        response = http.HttpResponse(status=201, # Created
+        response = http.HttpResponse(status=201,  # Created
                                      content=entry.href())
         response['Location'] = entry.href()
         return response
@@ -517,18 +475,16 @@ class Relationship(Entry):
     # subclasses must override this with a dict mapping name to entry class
     related_classes = None
 
-
     def __init__(self, **kwargs):
         assert len(self.related_classes) == 2
         self.entries = dict((name, kwargs[name])
                             for name in self.related_classes)
-        for name in self.related_classes: # sanity check
+        for name in self.related_classes:  # sanity check
             assert isinstance(self.entries[name], self.related_classes[name])
 
         # just grab the request from one of the entries
         some_entry = self.entries.itervalues().next()
         super(Relationship, self).__init__(some_entry._request)
-
 
     @classmethod
     def from_uri_args(cls, request, **kwargs):
@@ -538,20 +494,17 @@ class Relationship(Entry):
             entries[name] = entry_class.from_uri_args(request, **kwargs)
         return cls(**entries)
 
-
     def _uri_args(self):
         kwargs = {}
         for name, entry in self.entries.iteritems():
             kwargs.update(entry._uri_args())
         return kwargs
 
-
     def short_representation(self):
         rep = self.link()
         for name, entry in self.entries.iteritems():
             rep[name] = entry.short_representation()
         return rep
-
 
     @classmethod
     def _get_related_manager(cls, instance):
@@ -581,13 +534,11 @@ class Relationship(Entry):
 
         return getattr(instance, manager_name)
 
-
     def _delete_entry(self):
         # choose order arbitrarily
         entry, other_entry = self.entries.itervalues()
         related_manager = self._get_related_manager(entry.instance)
         related_manager.remove(other_entry.instance)
-
 
     @classmethod
     def create_instance(cls, input_dict, containing_collection):
@@ -599,12 +550,12 @@ class Relationship(Entry):
         related_manager.add(other_entry.instance)
         return other_entry.instance
 
-
     def update(self, input_dict):
         pass
 
 
 class RelationshipCollection(Collection):
+
     def __init__(self, request=None, fixed_entry=None):
         if request is None:
             request = fixed_entry._request
@@ -621,7 +572,6 @@ class RelationshipCollection(Collection):
             self._set_fixed_entry(fixed_entry)
             entry_uri_arg = self.fixed_entry._uri_args().values()[0]
             self._query_params[self.fixed_name] = entry_uri_arg
-
 
     def _set_fixed_entry(self, entry):
         """Set the fixed entry for this collection.
@@ -641,26 +591,23 @@ class RelationshipCollection(Collection):
         self.fixed_entry = entry
         self.unfixed_class = self.related_classes[self.unfixed_name]
         self.related_manager = self.entry_class._get_related_manager(
-                entry.instance)
-
+            entry.instance)
 
     def _query_parameters_accepted(self):
         return [(name, 'Show relationships for this %s' % entry_class.__name__)
                 for name, entry_class
                 in self.related_classes.iteritems()]
 
-
     def _resolve_query_param(self, name, uri_arg):
         entry_class = self.related_classes[name]
         return entry_class.from_uri_args(self._request, uri_arg)
-
 
     def read_query_parameters(self, query_params):
         super(RelationshipCollection, self).read_query_parameters(query_params)
         if not self._query_params:
             raise exceptions.BadRequest(
-                    'You must specify one of the parameters %s and %s'
-                    % tuple(self.related_classes.keys()))
+                'You must specify one of the parameters %s and %s'
+                % tuple(self.related_classes.keys()))
         query_items = self._query_params.items()
         fixed_entry = self._resolve_query_param(*query_items[0])
         self._set_fixed_entry(fixed_entry)
@@ -668,8 +615,7 @@ class RelationshipCollection(Collection):
         if len(query_items) > 1:
             other_fixed_entry = self._resolve_query_param(*query_items[1])
             self.related_manager = self.related_manager.filter(
-                    pk=other_fixed_entry.instance.id)
-
+                pk=other_fixed_entry.instance.id)
 
     def _entry_from_instance(self, instance):
         unfixed_entry = self.unfixed_class(self._request, instance)
@@ -678,7 +624,6 @@ class RelationshipCollection(Collection):
         # entry_class is actually turned into a callable, so this is OK
         # pylint: disable=E1102
         return self.entry_class(**entries)
-
 
     def _fresh_queryset(self):
         return self.related_manager.all()

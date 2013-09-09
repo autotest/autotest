@@ -337,7 +337,6 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal('afe', ['MigrateInfo'])
 
-
     def backwards(self, orm):
         # Removing unique constraint on 'ParameterizedJobParameter', fields ['parameterized_job', 'test_parameter']
         db.delete_unique('afe_parameterized_job_parameters', ['parameterized_job_id', 'test_parameter_id'])
@@ -446,7 +445,6 @@ class Migration(SchemaMigration):
 
         # Deleting model 'MigrateInfo'
         db.delete_table('migrate_info')
-
 
     models = {
         'afe.abortedhostqueueentry': {

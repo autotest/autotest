@@ -9,12 +9,14 @@ from autotest.frontend.afe import models, model_attributes
 from autotest.client.shared.settings import settings
 from autotest.client.shared.test_utils import mock
 
+
 class FrontendTestMixin(object):
+
     def _fill_in_test_data(self):
         """Populate the test database with some hosts and labels."""
         if models.DroneSet.drone_sets_enabled():
             models.DroneSet.objects.create(
-                    name=models.DroneSet.default_drone_set_name())
+                name=models.DroneSet.default_drone_set_name())
 
         acl_group = models.AclGroup.objects.create(name='my_acl')
         acl_group.users.add(models.User.current_user())
@@ -36,9 +38,9 @@ class FrontendTestMixin(object):
             host.labels.add(platform)
 
         atomic_group1 = models.AtomicGroup.objects.create(
-                name='atomic1', max_number_of_machines=2)
+            name='atomic1', max_number_of_machines=2)
         atomic_group2 = models.AtomicGroup.objects.create(
-                name='atomic2', max_number_of_machines=2)
+            name='atomic2', max_number_of_machines=2)
 
         self.label3 = self.labels[2]
         self.label3.only_if_needed = True
@@ -56,15 +58,14 @@ class FrontendTestMixin(object):
         self.label8 = self.labels[7]
         self.label8.atomic_group = atomic_group2
         self.label8.save()
-        for hostnum in xrange(4,7):  # host5..host7
+        for hostnum in xrange(4, 7):  # host5..host7
             self.hosts[hostnum].labels.add(self.label4)  # an atomic group lavel
             self.hosts[hostnum].labels.add(self.label6)  # a normal label
         self.hosts[6].labels.add(self.label7)
-        for hostnum in xrange(7,9):  # host8..host9
+        for hostnum in xrange(7, 9):  # host8..host9
             self.hosts[hostnum].labels.add(self.label5)  # an atomic group lavel
             self.hosts[hostnum].labels.add(self.label6)  # a normal label
             self.hosts[hostnum].labels.add(self.label7)
-
 
     def _frontend_common_setup(self, fill_data=True):
         self.god = mock.mock_god(ut=self)
@@ -75,12 +76,10 @@ class FrontendTestMixin(object):
         if fill_data:
             self._fill_in_test_data()
 
-
     def _frontend_common_teardown(self):
         setup_test_environment.tear_down()
         thread_local.set_user(None)
         self.god.unstub_all()
-
 
     def _create_job(self, hosts=[], metahosts=[], priority=0, active=False,
                     synchronous=False, atomic_group=None, hostless=False,
@@ -143,11 +142,10 @@ class FrontendTestMixin(object):
             models.HostQueueEntry.objects.create(job=job, status=status)
         return job
 
-
     def _create_job_simple(self, hosts, use_metahost=False,
-                          priority=0, active=False, drone_set=None):
+                           priority=0, active=False, drone_set=None):
         """An alternative interface to _create_job"""
-        args = {'hosts' : [], 'metahosts' : []}
+        args = {'hosts': [], 'metahosts': []}
         if use_metahost:
             args['metahosts'] = hosts
         else:

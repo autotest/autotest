@@ -4,11 +4,14 @@ Sets up a subprocess to run sar from the sysstat suite
 Default options:
 sar -A -f
 """
-import os, subprocess, time
+import os
+import subprocess
+import time
 from autotest.client import utils, profiler, os_dep
 
 
 class sar(profiler.profiler):
+
     """
     The sar command writes to standard output the contents of selected
     cumulative activity counters in the operating system. This profiler
@@ -44,7 +47,6 @@ class sar(profiler.profiler):
             self.cmd = self.sar_path + " -o %s %d 0"
             os.kill(t_process.pid, 15)
 
-
     def start(self, test):
         """
         Starts sar subprocess.
@@ -57,7 +59,6 @@ class sar(profiler.profiler):
         cmd = self.cmd % (raw, self.interval)
         self.sar_process = subprocess.Popen(cmd, shell=True, stdout=logfile,
                                             stderr=subprocess.STDOUT)
-
 
     def stop(self, test):
         """

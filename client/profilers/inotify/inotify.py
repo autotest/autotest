@@ -8,11 +8,14 @@ Heavily inspired / shamelessly copied from the kvm_stat profiler.
 @copyright: Red Hat 2013
 @author: Cleber Rosa <cleber@redhat.com>
 """
-import os, subprocess, logging
+import os
+import subprocess
+import logging
 from autotest.client import profiler, os_dep
 
 
 class inotify(profiler.profiler):
+
     """
     Profiler based on inotifywait from inotify-tools
     """
@@ -29,7 +32,6 @@ class inotify(profiler.profiler):
 
         return '%s %s %s' % (self.inotifywait, options, paths_str)
 
-
     def initialize(self, paths=[]):
         try:
             self.inotifywait = os_dep.command('inotifywait')
@@ -38,7 +40,6 @@ class inotify(profiler.profiler):
             self.inotifywait = None
 
         self.paths = paths
-
 
     def start(self, test):
         if self.inotifywait is None:
@@ -60,7 +61,6 @@ class inotify(profiler.profiler):
                              stderr=subprocess.PIPE)
         self.pid = p.pid
 
-
     def stop(self, test):
         if self.inotifywait is None:
             return
@@ -69,7 +69,6 @@ class inotify(profiler.profiler):
             os.kill(self.pid, 15)
         except OSError:
             pass
-
 
     def report(self, test):
         return None

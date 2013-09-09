@@ -3,7 +3,9 @@
 # Define the server-side test class
 #
 
-import os, tempfile, logging
+import os
+import tempfile
+import logging
 
 from autotest.client.shared import log, utils, test as common_test
 
@@ -69,6 +71,7 @@ def install_autotest_and_run(func):
 
 
 class _sysinfo_logger(object):
+
     def __init__(self, job):
         self.job = job
         self.pickle = None
@@ -82,7 +85,6 @@ class _sysinfo_logger(object):
         if len(job.machines) != 1:
             # disable logging on multi-machine tests
             self.disable_hooks = True
-
 
     def _install(self):
         if not self.host:
@@ -119,7 +121,6 @@ class _sysinfo_logger(object):
 
         return self.host, self.autotest, self.outputdir
 
-
     def _pull_pickle(self, host, outputdir):
         """Pulls from the client the pickle file with the saved sysinfo state.
         """
@@ -127,7 +128,6 @@ class _sysinfo_logger(object):
         os.close(fd)
         host.get_file(os.path.join(outputdir, "sysinfo.pickle"), path)
         self.pickle = path
-
 
     def _push_pickle(self, host, outputdir):
         """Pushes the server saved sysinfo pickle file to the client.
@@ -137,7 +137,6 @@ class _sysinfo_logger(object):
                            os.path.join(outputdir, "sysinfo.pickle"))
             os.remove(self.pickle)
             self.pickle = None
-
 
     def _pull_sysinfo_keyval(self, host, outputdir, mytest):
         """Pulls sysinfo and keyval data from the client.
@@ -153,7 +152,6 @@ class _sysinfo_logger(object):
         os.remove(path)
         mytest.write_test_keyval(keyval)
 
-
     @log.log_and_ignore_errors("pre-test server sysinfo error:")
     @install_autotest_and_run
     def before_hook(self, mytest, host, at, outputdir):
@@ -164,14 +162,13 @@ class _sysinfo_logger(object):
 
             self._pull_pickle(host, outputdir)
 
-
     @log.log_and_ignore_errors("pre-test iteration server sysinfo error:")
     @install_autotest_and_run
     def before_iteration_hook(self, mytest, host, at, outputdir):
         if not self.disable_hooks:
             # this function is called after before_hook() se we have sysinfo state
             # to push to the server
-            self._push_pickle(host, outputdir);
+            self._push_pickle(host, outputdir)
             # run the pre-test iteration sysinfo script
             at.run(_sysinfo_iteration_script %
                    (outputdir, 'log_before_each_iteration', mytest.iteration,
@@ -181,13 +178,12 @@ class _sysinfo_logger(object):
             # get the new sysinfo state from the client
             self._pull_pickle(host, outputdir)
 
-
     @log.log_and_ignore_errors("post-test iteration server sysinfo error:")
     @install_autotest_and_run
     def after_iteration_hook(self, mytest, host, at, outputdir):
         if not self.disable_hooks:
             # push latest sysinfo state to the client
-            self._push_pickle(host, outputdir);
+            self._push_pickle(host, outputdir)
             # run the post-test iteration sysinfo script
             at.run(_sysinfo_iteration_script %
                    (outputdir, 'log_after_each_iteration', mytest.iteration,
@@ -197,18 +193,16 @@ class _sysinfo_logger(object):
             # get the new sysinfo state from the client
             self._pull_pickle(host, outputdir)
 
-
     @log.log_and_ignore_errors("post-test server sysinfo error:")
     @install_autotest_and_run
     def after_hook(self, mytest, host, at, outputdir):
         if not self.disable_hooks:
-            self._push_pickle(host, outputdir);
+            self._push_pickle(host, outputdir)
             # run the post-test sysinfo script
             at.run(_sysinfo_after_test_script % outputdir,
                    results_dir=self.job.resultdir)
 
             self._pull_sysinfo_keyval(host, outputdir, mytest)
-
 
     def cleanup(self, host_close=True):
         if self.host and self.autotest:

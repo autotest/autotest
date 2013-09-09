@@ -3,11 +3,16 @@
 # This file contains the classes used for the known kernel versions persistent
 # storage
 
-import cPickle, fcntl, os, tempfile
+import cPickle
+import fcntl
+import os
+import tempfile
 
 
 class item(object):
+
     """Wrap a file item stored in a database."""
+
     def __init__(self, name, size, timestamp):
         assert type(size) == int
         assert type(timestamp) == int
@@ -16,11 +21,9 @@ class item(object):
         self.size = size
         self.timestamp = timestamp
 
-
     def __repr__(self):
         return ("database.item('%s', %d, %d)" %
                 (self.name, self.size, self.timestamp))
-
 
     def __eq__(self, other):
         if not isinstance(other, item):
@@ -29,12 +32,12 @@ class item(object):
         return (self.name == other.name and self.size == other.size and
                 self.timestamp == other.timestamp)
 
-
     def __ne__(self, other):
         return not self.__eq__(other)
 
 
 class database(object):
+
     """
     This is an Abstract Base Class for the file items database, not strictly
     needed in Python because of the dynamic nature of the language but useful
@@ -48,7 +51,6 @@ class database(object):
         """
         raise NotImplementedError('get_dictionary not implemented')
 
-
     def merge_dictionary(self, values):
         """
         Should be implemented to merge the "values" dictionary into the
@@ -59,13 +61,14 @@ class database(object):
 
 
 class dict_database(database):
+
     """
     A simple key->value database that uses standard python pickle dump of
     a dictionary object for persistent storage.
     """
+
     def __init__(self, path):
         self.path = path
-
 
     def get_dictionary(self, _open_func=open):
         """
@@ -84,7 +87,6 @@ class dict_database(database):
 
         return res
 
-
     def _aquire_lock(self):
         fd = os.open(self.path + '.lock', os.O_RDONLY | os.O_CREAT)
         try:
@@ -95,7 +97,6 @@ class dict_database(database):
             raise err
 
         return fd
-
 
     def merge_dictionary(self, values):
         """

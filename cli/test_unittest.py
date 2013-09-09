@@ -4,7 +4,9 @@
 
 """Tests for test."""
 
-import unittest, sys, os
+import unittest
+import sys
+import os
 
 try:
     import autotest.common as common
@@ -55,7 +57,6 @@ class test_list_unittest(cli_mock.cli_unittest):
                u'name': u'test4',
                u'experimental': True}]
 
-
     def test_test_list_tests_default(self):
         self.run_cmd(argv=['atest', 'test', 'list'],
                      rpcs=[('get_tests', {'experimental': False},
@@ -64,7 +65,6 @@ class test_list_unittest(cli_mock.cli_unittest):
                                    'test3', 'test4'],
                      out_words_no=['Random', 'control.export'])
 
-
     def test_test_list_tests_all(self):
         self.run_cmd(argv=['atest', 'test', 'list', '--all'],
                      rpcs=[('get_tests', {},
@@ -72,7 +72,6 @@ class test_list_unittest(cli_mock.cli_unittest):
                      out_words_ok=['test0', 'test1', 'test2',
                                    'test3', 'test4'],
                      out_words_no=['Random', 'control.export'])
-
 
     def test_test_list_tests_exp(self):
         self.run_cmd(argv=['atest', 'test', 'list', '--experimental'],
@@ -89,7 +88,6 @@ class test_list_unittest(cli_mock.cli_unittest):
                      out_words_ok=['test4'],
                      out_words_no=['Random', 'control.export'])
 
-
     def test_test_list_tests_select_one(self):
         filtered = [val for val in self.values if val['name'] in ['test3']]
         self.run_cmd(argv=['atest', 'test', 'list', 'test3'],
@@ -99,7 +97,6 @@ class test_list_unittest(cli_mock.cli_unittest):
                      out_words_ok=['test3'],
                      out_words_no=['test0', 'test1', 'test2', 'test4',
                                    'unknown'])
-
 
     def test_test_list_tests_select_two(self):
         filtered = [val for val in self.values
@@ -112,7 +109,6 @@ class test_list_unittest(cli_mock.cli_unittest):
                      out_words_no=['test0', 'test2', 'test4',
                                    'unknown', 'Client'])
 
-
     def test_test_list_tests_select_two_space(self):
         filtered = [val for val in self.values
                     if val['name'] in ['test3', 'test1']]
@@ -124,7 +120,6 @@ class test_list_unittest(cli_mock.cli_unittest):
                      out_words_no=['test0', 'test2', 'test4',
                                    'unknown', 'Client'])
 
-
     def test_test_list_tests_all_verbose(self):
         self.run_cmd(argv=['atest', 'test', 'list', '-v'],
                      rpcs=[('get_tests', {'experimental': False},
@@ -134,7 +129,6 @@ class test_list_unittest(cli_mock.cli_unittest):
                                    'server/tests'],
                      out_words_no=['Random'])
 
-
     def test_test_list_tests_all_desc(self):
         self.run_cmd(argv=['atest', 'test', 'list', '-d'],
                      rpcs=[('get_tests', {'experimental': False},
@@ -143,14 +137,13 @@ class test_list_unittest(cli_mock.cli_unittest):
                                    'test3', 'test4', 'unknown', 'Random'],
                      out_words_no=['client/tests', 'server/tests'])
 
-
     def test_test_list_tests_all_desc_verbose(self):
         self.run_cmd(argv=['atest', 'test', 'list', '-d', '-v'],
                      rpcs=[('get_tests', {'experimental': False},
                             True, self.values)],
                      out_words_ok=['test0', 'test1', 'test2',
                                    'test3', 'test4', 'client/tests',
-                                   'server/tests', 'unknown', 'Random' ])
+                                   'server/tests', 'unknown', 'Random'])
 
 
 if __name__ == '__main__':

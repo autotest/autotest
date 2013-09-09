@@ -1,12 +1,14 @@
-import operator, unittest
+import operator
+import unittest
 import simplejson
 from django.test import client
 from autotest.frontend import test_utils
 from autotest.frontend.afe import models as afe_models
 
+
 class ResourceTestCase(unittest.TestCase,
                        test_utils.FrontendTestMixin):
-    URI_PREFIX = None # subclasses may override this to use partial URIs
+    URI_PREFIX = None  # subclasses may override this to use partial URIs
 
     def setUp(self):
         super(ResourceTestCase, self).setUp()
@@ -14,17 +16,14 @@ class ResourceTestCase(unittest.TestCase,
         self._setup_debug_user()
         self.client = client.Client()
 
-
     def tearDown(self):
         super(ResourceTestCase, self).tearDown()
         self._frontend_common_teardown()
-
 
     def _setup_debug_user(self):
         user = afe_models.User.objects.create(login='debug_user')
         acl = afe_models.AclGroup.objects.get(name='my_acl')
         user.aclgroup_set.add(acl)
-
 
     def _expected_status(self, method):
         if method == 'post':
@@ -32,7 +31,6 @@ class ResourceTestCase(unittest.TestCase,
         if method == 'delete':
             return 204
         return 200
-
 
     def raw_request(self, method, uri, **kwargs):
         method = method.lower()
@@ -46,7 +44,6 @@ class ResourceTestCase(unittest.TestCase,
 
         client_method = getattr(self.client, method)
         return client_method(uri, **kwargs)
-
 
     def request(self, method, uri, encode_body=True, **kwargs):
         expected_status = self._expected_status(method)
@@ -64,10 +61,10 @@ class ResourceTestCase(unittest.TestCase,
 
         response = self.raw_request(method, full_uri, **kwargs)
         self.assertEquals(
-                response.status_code, expected_status,
-                'Requesting %s\nExpected %s, got %s: %s (headers: %s)'
-                % (full_uri, expected_status, response.status_code,
-                   response.content, response._headers))
+            response.status_code, expected_status,
+            'Requesting %s\nExpected %s, got %s: %s (headers: %s)'
+            % (full_uri, expected_status, response.status_code,
+               response.content, response._headers))
 
         if response['content-type'] != 'application/json':
             return response.content
@@ -77,10 +74,8 @@ class ResourceTestCase(unittest.TestCase,
         except ValueError:
             self.fail('Invalid response body: %s' % response.content)
 
-
     def sorted_by(self, collection, attribute):
         return sorted(collection, key=operator.itemgetter(attribute))
-
 
     def _read_attribute(self, item, attribute_or_list):
         if isinstance(attribute_or_list, basestring):
@@ -88,7 +83,6 @@ class ResourceTestCase(unittest.TestCase,
         for attribute in attribute_or_list:
             item = item[attribute]
         return item
-
 
     def check_collection(self, collection, attribute_or_list, expected_list,
                          length=None, check_number=None):
@@ -116,7 +110,6 @@ class ResourceTestCase(unittest.TestCase,
         if check_number:
             actual_list = actual_list[:check_number]
         self.assertEquals(actual_list, expected_list)
-
 
     def check_relationship(self, resource_uri, relationship_name,
                            other_entry_name, field, expected_values,

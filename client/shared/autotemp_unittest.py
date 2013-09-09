@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
-import unittest, os
+import unittest
+import os
 try:
     import autotest.common as common
 except ImportError:
@@ -14,7 +15,6 @@ class tempfile_test(unittest.TestCase):
         temp = autotemp.tempfile(unique_id='file')
         self.assertTrue(os.path.exists(temp.name))
 
-
     def test_clean(self):
         temp = autotemp.tempfile(unique_id='clean')
         # clean up sets name to None so we preserve it this way
@@ -22,7 +22,6 @@ class tempfile_test(unittest.TestCase):
         self.assertTrue(os.path.exists(name))
         temp.clean()
         self.assertFalse(os.path.exists(name))
-
 
     def test_del(self):
         tmp_file = autotemp.tempfile(unique_id='del')
@@ -39,14 +38,12 @@ class tempdir(unittest.TestCase):
         self.assertTrue(os.path.exists(temp_dir.name))
         self.assertTrue(os.path.isdir(temp_dir.name))
 
-
     def test_clean(self):
         temp_dir = autotemp.tempdir(unique_id='clean')
         name = temp_dir.name
         self.assertTrue(os.path.exists(name))
         temp_dir.clean()
         self.assertFalse(os.path.exists(name))
-
 
     def test_del(self):
         temp_dir = autotemp.tempdir(unique_id='del')

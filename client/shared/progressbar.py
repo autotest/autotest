@@ -7,6 +7,7 @@ __all__ = ['ProgressBar']
 
 
 class ProgressBar:
+
     '''
     Displays interactively the progress of a given task
 
@@ -37,25 +38,24 @@ class ProgressBar:
         self.current_amount = minimum
         self.update(minimum)
 
-
     def increment(self, increment, update_screen=True):
         '''
         Increments the current amount value
         '''
         self.update(self.current_amount + increment, update_screen)
 
-
     def update(self, amount, update_screen=True):
         '''
         Performs sanity checks and update the current amount
         '''
-        if amount < self.minimum: amount = self.minimum
-        if amount > self.maximum: amount = self.maximum
+        if amount < self.minimum:
+            amount = self.minimum
+        if amount > self.maximum:
+            amount = self.maximum
         self.current_amount = amount
 
         if update_screen:
             self.update_screen()
-
 
     def get_screen_text(self):
         '''
@@ -84,7 +84,6 @@ class ProgressBar:
             screen_text = '%s: %s' % (self.title,
                                       screen_text)
         return screen_text
-
 
     def update_screen(self):
         '''

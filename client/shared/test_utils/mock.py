@@ -1,20 +1,27 @@
 __author__ = "raphtee@google.com (Travis Miller)"
 
 
-import re, collections, StringIO, sys, unittest
+import re
+import collections
+import StringIO
+import sys
+import unittest
 
 
 class StubNotFoundError(Exception):
+
     'Raised when god is asked to unstub an attribute that was not stubbed'
     pass
 
 
 class CheckPlaybackError(Exception):
+
     'Raised when mock playback does not match recorded calls.'
     pass
 
 
 class SaveDataAfterCloseStringIO(StringIO.StringIO):
+
     """Saves the contents in a final_data property when close() is called.
 
     Useful as a mock output file object to test both that the file was
@@ -31,23 +38,22 @@ class SaveDataAfterCloseStringIO(StringIO.StringIO):
         StringIO.StringIO.close(self)
 
 
-
 class argument_comparator(object):
+
     def is_satisfied_by(self, parameter):
         raise NotImplementedError
 
 
 class equality_comparator(argument_comparator):
+
     def __init__(self, value):
         self.value = value
-
 
     @staticmethod
     def _types_match(arg1, arg2):
         if isinstance(arg1, basestring) and isinstance(arg2, basestring):
             return True
         return type(arg1) == type(arg2)
-
 
     @classmethod
     def _compare(cls, actual_arg, expected_arg):
@@ -76,10 +82,8 @@ class equality_comparator(argument_comparator):
 
         return True
 
-
     def is_satisfied_by(self, parameter):
         return self._compare(parameter, self.value)
-
 
     def __str__(self):
         if isinstance(self.value, argument_comparator):
@@ -88,50 +92,49 @@ class equality_comparator(argument_comparator):
 
 
 class regex_comparator(argument_comparator):
+
     def __init__(self, pattern, flags=0):
         self.regex = re.compile(pattern, flags)
 
-
     def is_satisfied_by(self, parameter):
         return self.regex.search(parameter) is not None
-
 
     def __str__(self):
         return self.regex.pattern
 
 
 class is_string_comparator(argument_comparator):
+
     def is_satisfied_by(self, parameter):
         return isinstance(parameter, basestring)
-
 
     def __str__(self):
         return "a string"
 
 
 class is_instance_comparator(argument_comparator):
+
     def __init__(self, cls):
         self.cls = cls
 
-
     def is_satisfied_by(self, parameter):
         return isinstance(parameter, self.cls)
-
 
     def __str__(self):
         return "is a %s" % self.cls
 
 
 class anything_comparator(argument_comparator):
+
     def is_satisfied_by(self, parameter):
         return True
-
 
     def __str__(self):
         return 'anything'
 
 
 class base_mapping(object):
+
     def __init__(self, symbol, return_obj, *args, **dargs):
         self.return_obj = return_obj
         self.symbol = symbol
@@ -139,7 +142,6 @@ class base_mapping(object):
         self.dargs = dict((key, equality_comparator(value))
                           for key, value in dargs.iteritems())
         self.error = None
-
 
     def match(self, *args, **dargs):
         if len(args) != len(self.args) or len(dargs) != len(self.dargs):
@@ -163,32 +165,33 @@ class base_mapping(object):
 
         return True
 
-
     def __str__(self):
         return _dump_function_call(self.symbol, self.args, self.dargs)
 
 
 class function_mapping(base_mapping):
+
     def __init__(self, symbol, return_val, *args, **dargs):
         super(function_mapping, self).__init__(symbol, return_val, *args,
                                                **dargs)
 
-
     def and_return(self, return_obj):
         self.return_obj = return_obj
-
 
     def and_raises(self, error):
         self.error = error
 
 
 class function_any_args_mapping(function_mapping):
+
     """A mock function mapping that doesn't verify its arguments."""
+
     def match(self, *args, **dargs):
         return True
 
 
 class mock_function(object):
+
     def __init__(self, symbol, default_return_val=None,
                  record=None, playback=None):
         self.default_return_val = default_return_val
@@ -200,7 +203,6 @@ class mock_function(object):
         self.playback = playback
         self.__name__ = symbol
 
-
     def __call__(self, *args, **dargs):
         self.num_calls += 1
         self.args.append(args)
@@ -210,14 +212,12 @@ class mock_function(object):
         else:
             return self.default_return_val
 
-
     def expect_call(self, *args, **dargs):
         mapping = function_mapping(self.symbol, None, *args, **dargs)
         if self.record:
             self.record(mapping)
 
         return mapping
-
 
     def expect_any_call(self):
         """Like expect_call but don't give a hoot what arguments are passed."""
@@ -229,6 +229,7 @@ class mock_function(object):
 
 
 class mask_function(mock_function):
+
     def __init__(self, symbol, original_function, default_return_val=None,
                  record=None, playback=None):
         super(mask_function, self).__init__(symbol,
@@ -236,12 +237,12 @@ class mask_function(mock_function):
                                             record, playback)
         self.original_function = original_function
 
-
     def run_original_function(self, *args, **dargs):
         return self.original_function(*args, **dargs)
 
 
 class mock_class(object):
+
     def __init__(self, cls, name, default_ret_val=None,
                  record=None, playback=None):
         self.__name = name
@@ -260,7 +261,6 @@ class mock_class(object):
                 setattr(self, symbol, func)
             else:
                 setattr(self, symbol, orig_symbol)
-
 
     def __repr__(self):
         return '<mock_class: %s>' % self.__name
@@ -284,10 +284,8 @@ class mock_god(object):
         self._fail_fast = fail_fast
         self._ut = ut
 
-
     def set_fail_fast(self, fail_fast):
         self._fail_fast = fail_fast
-
 
     def create_mock_class_obj(self, cls, name, default_ret_val=None):
         record = self.__record_call
@@ -301,7 +299,6 @@ class mock_god(object):
             def __init__(self, *args, **dargs):
                 pass
 
-
             @classmethod
             def expect_new(typ, *args, **dargs):
                 obj = typ.make_new(*args, **dargs)
@@ -309,10 +306,8 @@ class mock_god(object):
                 record(mapping)
                 return obj
 
-
             def __new__(typ, *args, **dargs):
                 return playback(name, *args, **dargs)
-
 
             @classmethod
             def make_new(typ, *args, **dargs):
@@ -323,7 +318,7 @@ class mock_god(object):
                 obj_name = "%s_%s" % (name, typ.cls_count)
                 for symbol in dir(obj):
                     if (symbol.startswith("__") and
-                        symbol.endswith("__")):
+                            symbol.endswith("__")):
                         continue
 
                     if isinstance(getattr(typ, symbol, None), property):
@@ -334,9 +329,9 @@ class mock_god(object):
                         f_name = ("%s.%s" %
                                   (obj_name, symbol))
                         func = mock_function(f_name,
-                                        default_ret_val,
-                                        record,
-                                        playback)
+                                             default_ret_val,
+                                             record,
+                                             playback)
                         setattr(obj, symbol, func)
                     else:
                         setattr(obj, symbol,
@@ -345,7 +340,6 @@ class mock_god(object):
                 return obj
 
         return cls_sub
-
 
     def create_mock_class(self, cls, name, default_ret_val=None):
         """
@@ -358,7 +352,6 @@ class mock_god(object):
         return mock_class(cls, name, default_ret_val,
                           self.__record_call, self.__method_playback)
 
-
     def create_mock_function(self, symbol, default_return_val=None):
         """
         create a mock_function with name symbol and default return
@@ -366,7 +359,6 @@ class mock_god(object):
         """
         return mock_function(symbol, default_return_val,
                              self.__record_call, self.__method_playback)
-
 
     def mock_up(self, obj, name, default_ret_val=None):
         """
@@ -387,7 +379,6 @@ class mock_god(object):
                                      self.__method_playback)
                 setattr(obj, symbol, func)
 
-
     def stub_with(self, namespace, symbol, new_attribute):
         original_attribute = getattr(namespace, symbol,
                                      self.NONEXISTENT_ATTRIBUTE)
@@ -405,22 +396,18 @@ class mock_god(object):
         self._stubs.append(newstub)
         setattr(namespace, symbol, new_attribute)
 
-
     def stub_function(self, namespace, symbol):
         mock_attribute = self.create_mock_function(symbol)
         self.stub_with(namespace, symbol, mock_attribute)
-
 
     def stub_class_method(self, cls, symbol):
         mock_attribute = self.create_mock_function(symbol)
         self.stub_with(cls, symbol, staticmethod(mock_attribute))
 
-
     def stub_class(self, namespace, symbol):
         attr = getattr(namespace, symbol)
         mock_class = self.create_mock_class_obj(attr, symbol)
         self.stub_with(namespace, symbol, mock_class)
-
 
     def stub_function_to_return(self, namespace, symbol, object_to_return):
         """Stub out a function with one that always returns a fixed value.
@@ -433,14 +420,12 @@ class mock_god(object):
         self.stub_with(namespace, symbol,
                        lambda *args, **dargs: object_to_return)
 
-
     def _perform_unstub(self, stub):
         namespace, symbol, orig_attr, new_attr = stub
         if orig_attr == self.NONEXISTENT_ATTRIBUTE:
             delattr(namespace, symbol)
         else:
             setattr(namespace, symbol, orig_attr)
-
 
     def unstub(self, namespace, symbol):
         for stub in reversed(self._stubs):
@@ -451,13 +436,11 @@ class mock_god(object):
 
         raise StubNotFoundError()
 
-
     def unstub_all(self):
         self._stubs.reverse()
         for stub in self._stubs:
             self._perform_unstub(stub)
         self._stubs = []
-
 
     def __method_playback(self, symbol, *args, **dargs):
         if self._debug:
@@ -468,15 +451,15 @@ class mock_god(object):
             func_call = self.recording[0]
             if func_call.symbol != symbol:
                 msg = ("Unexpected call: %s\nExpected: %s"
-                    % (_dump_function_call(symbol, args, dargs),
-                       func_call))
+                       % (_dump_function_call(symbol, args, dargs),
+                          func_call))
                 self._append_error(msg)
                 return None
 
             if not func_call.match(*args, **dargs):
                 msg = ("Incorrect call: %s\nExpected: %s"
-                    % (_dump_function_call(symbol, args, dargs),
-                      func_call))
+                       % (_dump_function_call(symbol, args, dargs),
+                          func_call))
                 self._append_error(msg)
                 return None
 
@@ -492,10 +475,8 @@ class mock_god(object):
             self._append_error(msg)
             return None
 
-
     def __record_call(self, mapping):
         self.recording.append(mapping)
-
 
     def _append_error(self, error):
         if self._debug:
@@ -503,7 +484,6 @@ class mock_god(object):
         if self._fail_fast:
             raise CheckPlaybackError(error)
         self.errors.append(error)
-
 
     def check_playback(self):
         """
@@ -533,7 +513,6 @@ class mock_god(object):
             raise CheckPlaybackError
         self.recording.clear()
 
-
     def mock_io(self):
         """Mocks and saves the stdout & stderr output"""
         self.orig_stdout = sys.stdout
@@ -544,7 +523,6 @@ class mock_god(object):
 
         sys.stdout = self.mock_streams_stdout
         sys.stderr = self.mock_streams_stderr
-
 
     def unmock_io(self):
         """Restores the stdout & stderr, and returns both

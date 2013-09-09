@@ -1,4 +1,7 @@
-import os, sys, datetime, re
+import os
+import sys
+import datetime
+import re
 
 
 def get_timestamp(mapping, field):

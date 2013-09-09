@@ -1,4 +1,6 @@
-import re, time, traceback
+import re
+import time
+import traceback
 try:
     import autotest.common as common
 except ImportError:
@@ -9,9 +11,10 @@ RECONNECT_FOREVER = object()
 
 _DB_EXCEPTIONS = ('DatabaseError', 'OperationalError', 'ProgrammingError')
 _GLOBAL_CONFIG_NAMES = {
-    'username' : 'user',
-    'db_name' : 'database',
+    'username': 'user',
+    'db_name': 'database',
 }
+
 
 def _copy_exceptions(source, destination):
     for exception_name in _DB_EXCEPTIONS:
@@ -27,6 +30,7 @@ def _copy_exceptions(source, destination):
 
 
 class _GenericBackend(object):
+
     def __init__(self, database_module):
         self._database_module = database_module
         self._connection = None
@@ -34,20 +38,17 @@ class _GenericBackend(object):
         self.rowcount = None
         _copy_exceptions(database_module, self)
 
-
     def connect(self, host=None, username=None, password=None, db_name=None):
         """
         This is assumed to enable autocommit.
         """
         raise NotImplementedError
 
-
     def disconnect(self):
         if self._connection:
             self._connection.close()
         self._connection = None
         self._cursor = None
-
 
     def execute(self, query, parameters=None):
         if parameters is None:
@@ -58,16 +59,15 @@ class _GenericBackend(object):
 
 
 class _MySqlBackend(_GenericBackend):
+
     def __init__(self):
         import MySQLdb
         super(_MySqlBackend, self).__init__(MySQLdb)
-
 
     @staticmethod
     def convert_boolean(boolean, conversion_dict):
         'Convert booleans to integer strings'
         return str(int(boolean))
-
 
     def connect(self, host=None, username=None, password=None, db_name=None):
         import MySQLdb.converters
@@ -82,6 +82,7 @@ class _MySqlBackend(_GenericBackend):
 
 
 class _SqliteBackend(_GenericBackend):
+
     def __init__(self):
         try:
             from pysqlite2 import dbapi2
@@ -92,12 +93,10 @@ class _SqliteBackend(_GenericBackend):
         self._last_insert_id_re = re.compile(r'\sLAST_INSERT_ID\(\)',
                                              re.IGNORECASE)
 
-
     def connect(self, host=None, username=None, password=None, db_name=None):
         self._connection = self._database_module.connect(db_name)
-        self._connection.isolation_level = None # enable autocommit
+        self._connection.isolation_level = None  # enable autocommit
         self._cursor = self._connection.cursor()
-
 
     def execute(self, query, parameters=None):
         # pysqlite2 uses paramstyle=qmark
@@ -115,6 +114,7 @@ class _SqliteBackend(_GenericBackend):
 
 
 class _DjangoBackend(_GenericBackend):
+
     def __init__(self):
         from django.db import connection, transaction
         import django.db as django_db
@@ -122,11 +122,9 @@ class _DjangoBackend(_GenericBackend):
         self._django_connection = connection
         self._django_transaction = transaction
 
-
     def connect(self, host=None, username=None, password=None, db_name=None):
         self._connection = self._django_connection
         self._cursor = self._connection.cursor()
-
 
     def execute(self, query, parameters=None):
         try:
@@ -144,6 +142,7 @@ _BACKEND_MAP = {
 
 
 class DatabaseConnection(object):
+
     """
     Generic wrapper for a database connection.  Supports both mysql and sqlite
     backends.
@@ -176,7 +175,6 @@ class DatabaseConnection(object):
 
         self._read_options()
 
-
     def _get_option(self, name, provided_value):
         if provided_value is not None:
             return provided_value
@@ -184,7 +182,6 @@ class DatabaseConnection(object):
             settings_name = _GLOBAL_CONFIG_NAMES.get(name, name)
             return settings.get_value(self.settings_section, settings_name)
         return getattr(self, name, None)
-
 
     def _read_options(self, db_type=None, host=None, username=None,
                       password=None, db_name=None):
@@ -194,7 +191,6 @@ class DatabaseConnection(object):
         self.password = self._get_option('password', password)
         self.db_name = self._get_option('db_name', db_name)
 
-
     def _get_backend(self, db_type):
         if db_type not in _BACKEND_MAP:
             raise ValueError('Invalid database type: %s, should be one of %s' %
@@ -202,17 +198,14 @@ class DatabaseConnection(object):
         backend_class = _BACKEND_MAP[db_type]
         return backend_class()
 
-
     def _reached_max_attempts(self, num_attempts):
         return (self.max_reconnect_attempts is not RECONNECT_FOREVER and
                 num_attempts > self.max_reconnect_attempts)
-
 
     def _is_reconnect_enabled(self, supplied_param):
         if supplied_param is not None:
             return supplied_param
         return self.reconnect_enabled
-
 
     def _connect_backend(self, try_reconnecting=None):
         num_attempts = 0
@@ -234,7 +227,6 @@ class DatabaseConnection(object):
                 time.sleep(self.reconnect_delay_sec)
                 self.disconnect()
 
-
     def connect(self, db_type=None, host=None, username=None, password=None,
                 db_name=None, try_reconnecting=None):
         """
@@ -249,11 +241,9 @@ class DatabaseConnection(object):
         _copy_exceptions(self._backend, self)
         self._connect_backend(try_reconnecting)
 
-
     def disconnect(self):
         if self._backend:
             self._backend.disconnect()
-
 
     def execute(self, query, parameters=None, try_reconnecting=None):
         """
@@ -277,11 +267,9 @@ class DatabaseConnection(object):
         self.rowcount = self._backend.rowcount
         return results
 
-
     def get_database_info(self):
         return dict((attribute, getattr(self, attribute))
                     for attribute in self._DATABASE_ATTRIBUTES)
-
 
     @classmethod
     def get_test_database(cls, file_path=':memory:', **constructor_kwargs):
@@ -296,10 +284,12 @@ class DatabaseConnection(object):
 
 
 class TranslatingDatabase(DatabaseConnection):
+
     """
     Database wrapper than applies arbitrary substitution regexps to each query
     string.  Useful for SQLite testing.
     """
+
     def __init__(self, translators):
         """
         @param translation_regexps: list of callables to apply to each query
@@ -309,13 +299,11 @@ class TranslatingDatabase(DatabaseConnection):
         super(TranslatingDatabase, self).__init__()
         self._translators = translators
 
-
     def execute(self, query, parameters=None, try_reconnecting=None):
         for translator in self._translators:
             query = translator(query)
         return super(TranslatingDatabase, self).execute(
-                query, parameters=parameters, try_reconnecting=try_reconnecting)
-
+            query, parameters=parameters, try_reconnecting=try_reconnecting)
 
     @classmethod
     def make_regexp_translator(cls, search_re, replace_str):

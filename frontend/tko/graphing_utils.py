@@ -1,5 +1,10 @@
-import base64, tempfile, pickle, datetime, django
-import os.path, getpass
+import base64
+import tempfile
+import pickle
+import datetime
+import django
+import os.path
+import getpass
 from math import sqrt
 
 # When you import matplotlib, it tries to write some temp files for better
@@ -18,8 +23,12 @@ os.environ['MPLCONFIGDIR'] = temp_dir
 import matplotlib
 matplotlib.use('Agg')
 
-import matplotlib.figure, matplotlib.backends.backend_agg
-import StringIO, colorsys, PIL.Image, PIL.ImageChops
+import matplotlib.figure
+import matplotlib.backends.backend_agg
+import StringIO
+import colorsys
+import PIL.Image
+import PIL.ImageChops
 from autotest.frontend.afe import readonly_connection
 from autotest.frontend.afe.model_logic import ValidationError
 from simplejson import encoder
@@ -28,14 +37,14 @@ from autotest.frontend.tko import models, tko_rpc_utils
 
 _FIGURE_DPI = 100
 _FIGURE_WIDTH_IN = 10
-_FIGURE_BOTTOM_PADDING_IN = 2 # for x-axis labels
+_FIGURE_BOTTOM_PADDING_IN = 2  # for x-axis labels
 
 _SINGLE_PLOT_HEIGHT = 6
 _MULTIPLE_PLOT_HEIGHT_PER_PLOT = 4
 
 _MULTIPLE_PLOT_MARKER_TYPE = 'o'
 _MULTIPLE_PLOT_MARKER_SIZE = 4
-_SINGLE_PLOT_STYLE = 'bs-' # blue squares with lines connecting
+_SINGLE_PLOT_STYLE = 'bs-'  # blue squares with lines connecting
 _SINGLE_PLOT_ERROR_BAR_COLOR = 'r'
 
 _LEGEND_FONT_SIZE = 'xx-small'
@@ -48,7 +57,9 @@ _BAR_XTICK_LABELS_SIZE = 8
 
 _json_encoder = encoder.JSONEncoder()
 
+
 class NoDataError(Exception):
+
     """\
     Exception to raise if the graphing query returned an empty resultset.
     """
@@ -95,6 +106,7 @@ onclick="%s(%s); return false;">"""
 
 
 class MetricsPlot(object):
+
     def __init__(self, query_dict, plot_type, inverted_series, normalize_to,
                  drilldown_callback):
         """
@@ -123,7 +135,7 @@ class MetricsPlot(object):
         elif plot_type == 'Bar':
             self.is_line = False
         else:
-            raise ValidationError({'plot' : 'Plot must be either Line or Bar'})
+            raise ValidationError({'plot': 'Plot must be either Line or Bar'})
         self.plot_type = plot_type
         self.inverted_series = inverted_series
         self.normalize_to = normalize_to
@@ -133,6 +145,7 @@ class MetricsPlot(object):
 
 
 class QualificationHistogram(object):
+
     def __init__(self, query, filter_string, interval, drilldown_callback):
         """
         query: the main query to retrieve the pass rate information.  The first
@@ -240,7 +253,7 @@ def _create_line(plots, labels, plot_info):
         x = line.get_xdata()
         y = line.get_ydata()
         label = line.get_label()
-        icoords = line.get_transform().transform(zip(x,y))
+        icoords = line.get_transform().transform(zip(x, y))
 
         # Get the appropriate drilldown query
         drill = plot_info.query_dict['__' + label + '__']
@@ -256,7 +269,7 @@ def _create_line(plots, labels, plot_info):
 
         area_data += [dict(left=ix - 5, top=height - iy - 5,
                            right=ix + 5, bottom=height - iy + 5,
-                           title= title,
+                           title=title,
                            callback=plot_info.drilldown_callback,
                            callback_arguments=param_dict)
                       for (ix, iy), title, param_dict
@@ -409,9 +422,9 @@ def _normalize(data_values, data_errors, base_values, base_errors):
         for data, error, base_value, base_error in zip(
                 data_values, data_errors, base_values, base_errors):
             try:
-                errors.append(sqrt(error**2 * (100 / base_value)**2
-                        + base_error**2 * (100 * data / base_value**2)**2
-                        + error * base_error * (100 / base_value**2)**2))
+                errors.append(sqrt(error ** 2 * (100 / base_value) ** 2
+                                   + base_error ** 2 * (100 * data / base_value ** 2) ** 2
+                                   + error * base_error * (100 / base_value ** 2) ** 2))
             except ZeroDivisionError:
                 # Again, base is 0.0 so do the simple thing.
                 errors.append(100 * abs(error))
@@ -466,7 +479,7 @@ def _create_image_html(figure, area_data, plot_info):
               data['right'] - bbox[0], data['bottom'] - bbox[1],
               data['title'], data['callback'],
               _json_encoder.encode(data['callback_arguments'])
-                  .replace('"', '&quot;'))
+              .replace('"', '&quot;'))
              for data in area_data]
 
     map_name = plot_info.drilldown_callback + '_map'
@@ -551,7 +564,7 @@ def _create_metrics_plot_helper(plot_info, extra_text=None):
         label = cursor.description[col][0]
         col += 1
         if (col < len(cursor.description) and
-            'errors-' + label == cursor.description[col][0]):
+                'errors-' + label == cursor.description[col][0]):
             errors = columns[col]
             col += 1
         else:
@@ -586,8 +599,8 @@ def _create_metrics_plot_helper(plot_info, extra_text=None):
                 baseline_index = labels.index(baseline)
             except ValueError:
                 raise ValidationError({
-                    'Normalize' : 'Invalid baseline %s' % baseline
-                    })
+                    'Normalize': 'Invalid baseline %s' % baseline
+                })
         for plot in plots:
             if normalize_to == 'first':
                 plot_index = 0
@@ -597,9 +610,9 @@ def _create_metrics_plot_helper(plot_info, extra_text=None):
                 # if the value is not found, then we cannot normalize
                 except ValueError:
                     raise ValidationError({
-                        'Normalize' : ('%s does not have a value for %s'
-                                       % (plot['label'], normalize_to[3:]))
-                        })
+                        'Normalize': ('%s does not have a value for %s'
+                                      % (plot['label'], normalize_to[3:]))
+                    })
             base_values = [plot['y'][plot_index]] * len(plot['y'])
             if plot['errors']:
                 base_errors = [plot['errors'][plot_index]] * len(plot['errors'])
@@ -695,14 +708,14 @@ def _create_qual_histogram_helper(plot_info, extra_text=None):
     subplot = figure.add_subplot(1, 1, 1)
 
     # Plot the data and get all the bars plotted
-    _,_, bars = subplot.hist([data[1] for data in hist_data],
-                         bins=bins, align='left')
+    _, _, bars = subplot.hist([data[1] for data in hist_data],
+                              bins=bins, align='left')
     bars += subplot.bar([-interval], len(no_pass),
-                    width=interval, align='center')
+                        width=interval, align='center')
     bars += subplot.bar([bins[-1]], len(perfect),
-                    width=interval, align='center')
+                        width=interval, align='center')
     bars += subplot.bar([-3 * interval], len(no_tests),
-                    width=interval, align='center')
+                        width=interval, align='center')
 
     buckets = [(bin, min(bin + interval, 100)) for bin in bins[:-1]]
     # set the x-axis range to cover all the normal bins plus the three "special"
@@ -710,8 +723,8 @@ def _create_qual_histogram_helper(plot_info, extra_text=None):
     subplot.set_xlim(-4 * interval, bins[-1] + interval)
     subplot.set_xticks([-3 * interval, -interval] + bins + [100 + interval])
     subplot.set_xticklabels(['N/A', '0%'] +
-                        ['%d%% - <%d%%' % bucket for bucket in buckets] +
-                        ['100%'], rotation=90, size='small')
+                            ['%d%% - <%d%%' % bucket for bucket in buckets] +
+                            ['100%'], rotation=90, size='small')
 
     # Find the coordinates on the image for each bar
     x = []
@@ -810,7 +823,7 @@ def create_embedded_plot(model, update_time):
 
 
 _cache_timeout = settings.settings.get_value('AUTOTEST_WEB',
-                                         'graph_cache_creation_timeout_minutes')
+                                             'graph_cache_creation_timeout_minutes')
 
 
 def handle_plot_request(id, max_age):

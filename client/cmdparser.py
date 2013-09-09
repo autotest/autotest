@@ -4,7 +4,10 @@ Autotest command parser
 @copyright: Don Zickus <dzickus@redhat.com> 2011
 """
 
-import os, re, sys, logging
+import os
+import re
+import sys
+import logging
 from autotest.client import os_dep, utils
 from autotest.client.shared import logging_config, logging_manager
 from autotest.client.shared.settings import settings
@@ -29,16 +32,21 @@ if not os.path.isdir(FETCHDIRTEST):
 
 DEBUG = False
 
+
 class CmdParserLoggingConfig(logging_config.LoggingConfig):
+
     """
     Used with the sole purpose of providing convenient logging setup
     for the KVM test auxiliary programs.
     """
+
     def configure_logging(self, results_dir=None, verbose=False):
         super(CmdParserLoggingConfig, self).configure_logging(use_console=True,
                                                               verbose=verbose)
 
+
 class CommandParser(object):
+
     """
     A client-side command wrapper for the autotest client.
     """
@@ -85,7 +93,6 @@ class CommandParser(object):
                             break
                     pipe.write(' %-50s %s\n' % (text, desc))
 
-
     def fetch(self, args, options):
         """
         fetch a remote control file or packages
@@ -109,12 +116,11 @@ class CommandParser(object):
         install_dir = os.path.join(FETCHDIRTEST, name)
 
         pkgmgr = packages.PackageManager(output_dir,
-            run_function_dargs={'timeout':3600})
+                                         run_function_dargs={'timeout': 3600})
         pkgmgr.install_pkg(name, 'test', pkg_dir, install_dir,
-            repo_url=url)
+                           repo_url=url)
 
         raise SystemExit(0)
-
 
     @classmethod
     def help(cls):
@@ -133,7 +139,6 @@ class CommandParser(object):
         logging.info("list\t\t\tOutput a list of available tests")
         logging.info("run <test> [<args>]\tFind given <test> in path and run with args")
         raise SystemExit(0)
-
 
     @classmethod
     def list_tests(cls):
@@ -182,7 +187,6 @@ class CommandParser(object):
         pipe.close()
         raise SystemExit(0)
 
-
     def parse_args(self, args, options):
         """
         Process a client side command.
@@ -216,7 +220,6 @@ class CommandParser(object):
 
         # Args are cleaned up, return to process the traditional way
         return args
-
 
     def run(self, args, options):
         """
@@ -264,6 +267,7 @@ class CommandParser(object):
                 return None
 
         class stub_job(object):
+
             def config_set(self, name, value):
                 return
 
@@ -282,7 +286,7 @@ class CommandParser(object):
             harness_args = harness_args_env()
             options.harness_args = harness_args
 
-        myjob=stub_job()
+        myjob = stub_job()
 
         # let harness initialize itself
         try:
@@ -305,8 +309,8 @@ class CommandParser(object):
         logging.debug("bootstrap passing control file %s to run" % control)
 
         if not control:
-            #nothing to do politely abort
-            #trick to work around various harness quirks
+            # nothing to do politely abort
+            # trick to work around various harness quirks
             raise SystemExit(0)
 
         args.append(control)

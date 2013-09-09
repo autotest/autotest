@@ -1,5 +1,6 @@
 import os
 
+
 class PreconfigManager(object):
     _preconfigs = {}
     _is_init = False
@@ -15,7 +16,6 @@ class PreconfigManager(object):
         rel_path = os.path.join(os.path.dirname(__file__), 'preconfigs',
                                 *suffix)
         return os.path.abspath(rel_path)
-
 
     def _init_preconfigs(self):
         """\
@@ -52,12 +52,10 @@ class PreconfigManager(object):
         finally:
             config.close()
 
-
     def get_preconfig(self, name, type):
         self._init_preconfigs()
         self._read_preconfig(name, type)
         return self._preconfigs[type][name]
-
 
     def all_preconfigs(self):
         self._init_preconfigs()

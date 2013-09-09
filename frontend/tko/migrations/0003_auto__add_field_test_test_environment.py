@@ -13,11 +13,9 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.related.ForeignKey')(to=orm['afe.TestEnvironment'], null=True),
                       keep_default=False)
 
-
     def backwards(self, orm):
         # Deleting field 'Test.test_environment'
         db.delete_column('tko_tests', 'test_environment_id')
-
 
     models = {
         'afe.linuxdistro': {

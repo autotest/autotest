@@ -2,8 +2,15 @@
 """
 
 from os import path
-import ConfigParser, os, shelve, shutil, sys, tarfile, time
-import difflib, itertools
+import ConfigParser
+import os
+import shelve
+import shutil
+import sys
+import tarfile
+import time
+import difflib
+import itertools
 try:
     import autotest.common as common
 except ImportError:
@@ -43,8 +50,8 @@ class UnsupportedTemplateTypeError(Error):
     pass
 
 
-
 class ParserException(object):
+
     """Abstract representation of exception raised from parser execution.
 
     We will want to persist exceptions raised from the parser but also change
@@ -62,16 +69,13 @@ class ParserException(object):
         for key, val in orig.__dict__.iteritems():
             setattr(self, key, val)
 
-
     def __eq__(self, other):
         """Test if equal to another ParserException."""
         return self.__dict__ == other.__dict__
 
-
     def __ne__(self, other):
         """Test if not equal to another ParserException."""
         return self.__dict__ != other.__dict__
-
 
     def __str__(self):
         sd = self.__dict__
@@ -80,6 +84,7 @@ class ParserException(object):
 
 
 class ParserTestResult(object):
+
     """Abstract representation of test result parser state.
 
     We will want to persist test results but also change the
@@ -104,16 +109,13 @@ class ParserTestResult(object):
             else:
                 setattr(self, key, val)
 
-
     def __eq__(self, other):
         """Test if equal to another ParserTestResult."""
         return self.__dict__ == other.__dict__
 
-
     def __ne__(self, other):
         """Test if not equal to another ParserTestResult."""
         return self.__dict__ != other.__dict__
-
 
     def __str__(self):
         sd = self.__dict__
@@ -168,13 +170,14 @@ def compare_parser_results(left, right):
 
 
 class ParserHarness(object):
+
     """Harness for objects related to the parser.
 
     This can exercise a parser on specific result data in various ways.
     """
 
     def __init__(
-        self, parser, job, job_keyval, status_version, status_log_filepath):
+            self, parser, job, job_keyval, status_version, status_log_filepath):
         """
         Args:
           parser: tko.parsers.base.parser; Subclass instance of base parser.
@@ -189,7 +192,6 @@ class ParserHarness(object):
         self.status_version = status_version
         self.status_log_filepath = status_log_filepath
 
-
     def execute(self):
         """Basic exercise, pass entire log data into .end()
 
@@ -201,12 +203,14 @@ class ParserHarness(object):
 
 
 class BaseScenarioTestCase(unittest_hotfix.TestCase):
+
     """Base class for all Scenario TestCase implementations.
 
     This will load up all resources from scenario package directory upon
     instantiation, and initialize a new ParserHarness before each test
     method execution.
     """
+
     def __init__(self, methodName='runTest'):
         unittest_hotfix.TestCase.__init__(self, methodName)
         self.package_dirpath = path.dirname(
@@ -222,16 +226,13 @@ class BaseScenarioTestCase(unittest_hotfix.TestCase):
             TEST, STATUS_VERSION)
         self.harness = None
 
-
     def setUp(self):
         if self.results_dirpath:
             self.harness = new_parser_harness(self.results_dirpath)
 
-
     def tearDown(self):
         if self.tmp_dirpath:
             self.tmp_dirpath.clean()
-
 
     def test_status_version(self):
         """Ensure basic sanity."""

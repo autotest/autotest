@@ -14,7 +14,11 @@ For docs, see:
     http://docs.djangoproject.com/en/dev/ref/models/querysets/#queryset-api
 """
 
-import getpass, os, time, traceback, re
+import getpass
+import os
+import time
+import traceback
+import re
 try:
     import autotest.common as common
 except ImportError:
@@ -33,6 +37,7 @@ form_ntuples_from_machines = server_utils.form_ntuples_from_machines
 
 DEFAULT_SERVER = 'autotest'
 
+
 def dump_object(header, obj):
     """
     Standard way to print out the frontend objects (eg job, host, acl, label)
@@ -47,6 +52,7 @@ def dump_object(header, obj):
 
 
 class RpcClient(object):
+
     """
     Abstract RPC class for communicating with the autotest frontend
     Inherited for both TKO and AFE uses.
@@ -54,6 +60,7 @@ class RpcClient(object):
     All the constructors go in the afe / tko class.
     Manipulating methods go in the object classes themselves
     """
+
     def __init__(self, path, user, server, print_log, debug, reply_debug):
         """
         Create a cached instance of a connection to the frontend
@@ -84,7 +91,6 @@ class RpcClient(object):
             print 'HEADERS: %s' % headers
         self.proxy = rpc_client_lib.get_proxy(rpc_server, headers=headers)
 
-
     def run(self, call, **dargs):
         """
         Make a RPC call to the AFE server
@@ -101,13 +107,13 @@ class RpcClient(object):
             print 'FAILED RPC CALL: %s %s' % (call, dargs)
             raise
 
-
     def log(self, message):
         if self.print_log:
             print message
 
 
 class Planner(RpcClient):
+
     def __init__(self, user=None, server=None, print_log=True, debug=False,
                  reply_debug=False):
         super(Planner, self).__init__(path='/planner/server/rpc/',
@@ -119,6 +125,7 @@ class Planner(RpcClient):
 
 
 class TKO(RpcClient):
+
     def __init__(self, user=None, server=None, print_log=True, debug=False,
                  reply_debug=False):
         super(TKO, self).__init__(path='/new_tko/server/rpc/',
@@ -128,7 +135,6 @@ class TKO(RpcClient):
                                   debug=debug,
                                   reply_debug=reply_debug)
 
-
     def get_status_counts(self, job, **data):
         entries = self.run('get_status_counts',
                            group_by=['hostname', 'test_name', 'reason'],
@@ -137,6 +143,7 @@ class TKO(RpcClient):
 
 
 class AFE(RpcClient):
+
     def __init__(self, user=None, server=None, print_log=True, debug=False,
                  reply_debug=False, job=None):
         self.job = job
@@ -147,17 +154,15 @@ class AFE(RpcClient):
                                   debug=debug,
                                   reply_debug=reply_debug)
 
-
     def host_statuses(self, live=None):
         dead_statuses = ['Repair Failed', 'Repairing']
         statuses = self.run('get_static_data')['host_statuses']
-        if live == True:
+        if live is True:
             return list(set(statuses) - set(dead_statuses))
-        if live == False:
+        if live is False:
             return dead_statuses
         else:
             return statuses
-
 
     @staticmethod
     def _dict_for_host_query(hostnames=(), status=None, label=None):
@@ -170,7 +175,6 @@ class AFE(RpcClient):
             query_args['labels__name'] = label
         return query_args
 
-
     def get_hosts(self, hostnames=(), status=None, label=None, **dargs):
         query_args = dict(dargs)
         query_args.update(self._dict_for_host_query(hostnames=hostnames,
@@ -179,10 +183,8 @@ class AFE(RpcClient):
         hosts = self.run('get_hosts', **query_args)
         return [Host(self, h) for h in hosts]
 
-
     def get_profiles(self):
         return self.run('get_profiles')
-
 
     def get_hostnames(self, status=None, label=None, **dargs):
         """Like get_hosts() but returns hostnames instead of Host objects."""
@@ -190,7 +192,6 @@ class AFE(RpcClient):
         # that does not query for entire host objects in the future.
         return [host_obj.hostname for host_obj in
                 self.get_hosts(status=status, label=label, **dargs)]
-
 
     def reverify_hosts(self, hostnames=(), status=None, label=None):
         query_args = dict(locked=False,
@@ -200,41 +201,33 @@ class AFE(RpcClient):
                                                     label=label))
         return self.run('reverify_hosts', **query_args)
 
-
     def create_host(self, hostname, **dargs):
         id = self.run('add_host', hostname=hostname, **dargs)
         return self.get_hosts(id=id)[0]
-
 
     def get_labels(self, **dargs):
         labels = self.run('get_labels', **dargs)
         return [Label(self, l) for l in labels]
 
-
     def create_label(self, name, **dargs):
         id = self.run('add_label', name=name, **dargs)
         return self.get_labels(id=id)[0]
-
 
     def get_acls(self, **dargs):
         acls = self.run('get_acl_groups', **dargs)
         return [Acl(self, a) for a in acls]
 
-
     def create_acl(self, name, **dargs):
         id = self.run('add_acl_group', name=name, **dargs)
         return self.get_acls(id=id)[0]
-
 
     def get_users(self, **dargs):
         users = self.run('get_users', **dargs)
         return [User(self, u) for u in users]
 
-
     def generate_control_file(self, tests, **dargs):
         ret = self.run('generate_control_file', tests=tests, **dargs)
         return ControlFile(self, ret)
-
 
     def get_jobs(self, summary=False, **dargs):
         if summary:
@@ -245,12 +238,11 @@ class AFE(RpcClient):
         for j in jobs_data:
             job = Job(self, j)
             # Set up some extra information defaults
-            job.testname = re.sub('\s.*', '', job.name) # arbitrary default
+            job.testname = re.sub('\s.*', '', job.name)  # arbitrary default
             job.platform_results = {}
             job.platform_reasons = {}
             jobs.append(job)
         return jobs
-
 
     def get_host_queue_entries(self, **data):
         entries = self.run('get_host_queue_entries', **data)
@@ -270,7 +262,6 @@ class AFE(RpcClient):
         return [status for status in job_statuses if (status.host or
                                                       status.meta_host)]
 
-
     def create_job_by_test(self, tests, kernel=None, use_container=False,
                            kernel_cmdline=None, **dargs):
         """
@@ -286,7 +277,7 @@ class AFE(RpcClient):
         assert ('hosts' in dargs or
                 'atomic_group_name' in dargs and 'synch_count' in dargs)
         if kernel:
-            kernel_list =  re.split('[\s,]+', kernel.strip())
+            kernel_list = re.split('[\s,]+', kernel.strip())
             kernel_info = []
             for version in kernel_list:
                 kernel_dict = {'version': version}
@@ -296,13 +287,13 @@ class AFE(RpcClient):
         else:
             kernel_info = None
         control_file = self.generate_control_file(
-                tests=tests, kernel=kernel_info, use_container=use_container)
+            tests=tests, kernel=kernel_info, use_container=use_container)
         if control_file.is_server:
             dargs['control_type'] = 'Server'
         else:
             dargs['control_type'] = 'Client'
         dargs['dependencies'] = dargs.get('dependencies', []) + \
-                                control_file.dependencies
+            control_file.dependencies
         dargs['control_file'] = control_file.control_file
         if not dargs.get('synch_count', None):
             dargs['synch_count'] = control_file.synch_count
@@ -311,13 +302,11 @@ class AFE(RpcClient):
             return None
         return self.create_job(**dargs)
 
-
     def create_job(self, control_file, name=' ', priority='Medium',
-                control_type='Client', **dargs):
+                   control_type='Client', **dargs):
         id = self.run('create_job', name=name, priority=priority,
-                 control_file=control_file, control_type=control_type, **dargs)
+                      control_file=control_file, control_type=control_type, **dargs)
         return self.get_jobs(id=id)[0]
-
 
     def run_test_suites(self, pairings, kernel, kernel_label=None,
                         priority='Medium', wait=True, poll_interval=10,
@@ -361,7 +350,6 @@ class AFE(RpcClient):
             if result is not None:
                 return result
 
-
     def result_notify(self, job, email_from, email_to):
         """
         Notify about the result of a job. Will always print, if email data
@@ -371,7 +359,7 @@ class AFE(RpcClient):
             email_from: send notification email upon completion from here
             email_from: send notification email upon completion to here
         """
-        if job.result == True:
+        if job.result is True:
             subject = 'Testing PASSED: '
         else:
             subject = 'Testing FAILED: '
@@ -385,7 +373,7 @@ class AFE(RpcClient):
                     text.append('%20s %10s %10s' % (platform, status, host))
                     if status == 'Failed':
                         for test_status in job.test_status[host].fail:
-                            text.append('(%s, %s) : %s' % \
+                            text.append('(%s, %s) : %s' %
                                         (host, test_status.test_name,
                                          test_status.reason))
                         text.append('')
@@ -404,7 +392,7 @@ class AFE(RpcClient):
 
         smtp_info = {}
         smtp_info['server'] = settings.get_value('SERVER', 'smtp_server',
-                                                default='localhost')
+                                                 default='localhost')
         smtp_info['port'] = settings.get_value('SERVER', 'smtp_port',
                                                default='')
         smtp_info['user'] = settings.get_value('SERVER', 'smtp_user',
@@ -426,7 +414,6 @@ class AFE(RpcClient):
                       smtp_info=smtp_info)
         print
 
-
     def print_job_result(self, job):
         """
         Print the result of a single job.
@@ -434,14 +421,13 @@ class AFE(RpcClient):
         """
         if job.result is None:
             print 'PENDING',
-        elif job.result == True:
+        elif job.result is True:
             print 'PASSED',
-        elif job.result == False:
+        elif job.result is False:
             print 'FAILED',
         elif job.result == "Abort":
             print 'ABORT',
         print ' %s : %s' % (job.id, job.name)
-
 
     def poll_all_jobs(self, tko, jobs, email_from=None, email_to=None):
         """
@@ -472,7 +458,6 @@ class AFE(RpcClient):
         else:
             return True
 
-
     def _included_platform(self, host, platforms):
         """
         See if host's platforms matches any of the patterns in the included
@@ -484,7 +469,6 @@ class AFE(RpcClient):
             if re.search(platform, host.platform):
                 return True
         return False
-
 
     def invoke_test(self, pairing, kernel, kernel_label, priority='Medium',
                     kernel_cmdline=None, **dargs):
@@ -528,7 +512,6 @@ class AFE(RpcClient):
             print 'Invoked test %s : %s' % (new_job.id, job_name)
         return new_job
 
-
     def _job_test_results(self, tko, job, debug, tests=[]):
         """
         Retrieve test results for a job
@@ -554,7 +537,6 @@ class AFE(RpcClient):
             if hostname not in job.test_status:
                 job.test_status[hostname] = TestResults()
             job.test_status[hostname].add(test_status)
-
 
     def _job_results_platform_map(self, job, debug):
         # Figure out which hosts passed / failed / aborted in a job
@@ -606,13 +588,12 @@ class AFE(RpcClient):
             else:              # This is a metahost
                 platform = job_status.meta_host
             if platform not in platform_map:
-                platform_map[platform] = {'Total' : [hostname]}
+                platform_map[platform] = {'Total': [hostname]}
             else:
                 platform_map[platform]['Total'].append(hostname)
             new_host_list = platform_map[platform].get(status, []) + [hostname]
             platform_map[platform][status] = new_host_list
         job.results_platform_map = platform_map
-
 
     def set_platform_results(self, test_job, platform, result):
         """
@@ -627,7 +608,6 @@ class AFE(RpcClient):
         testname = '%s.%s' % (test_job.testname, platform)
         if self.job:
             self.job.record(result, None, testname, status='')
-
 
     def poll_job_results(self, tko, job, debug=False):
         """
@@ -681,7 +661,7 @@ class AFE(RpcClient):
             for status in platform_map[platform]:
                 if status == 'Total':
                     continue
-                detail.append('%s=%s' % (status,platform_map[platform][status]))
+                detail.append('%s=%s' % (status, platform_map[platform][status]))
             if debug:
                 print '%20s %d/%d %s' % (platform, completed, total,
                                          ' '.join(detail))
@@ -708,14 +688,15 @@ class AFE(RpcClient):
 
 
 class TestResults(object):
+
     """
     Container class used to hold the results of the tests for a job
     """
+
     def __init__(self):
         self.good = []
         self.fail = []
         self.pending = []
-
 
     def add(self, result):
         if result.complete_count > result.pass_count:
@@ -727,68 +708,70 @@ class TestResults(object):
 
 
 class RpcObject(object):
+
     """
     Generic object used to construct python objects from rpc calls
     """
+
     def __init__(self, afe, hash):
         self.afe = afe
         self.hash = hash
         self.__dict__.update(hash)
-
 
     def __str__(self):
         return dump_object(self.__repr__(), self)
 
 
 class ControlFile(RpcObject):
+
     """
     AFE control file object
 
     Fields: synch_count, dependencies, control_file, is_server
     """
+
     def __repr__(self):
         return 'CONTROL FILE: %s' % self.control_file
 
 
 class Label(RpcObject):
+
     """
     AFE label object
 
     Fields:
         name, invalid, platform, kernel_config, id, only_if_needed
     """
+
     def __repr__(self):
         return 'LABEL: %s' % self.name
 
-
     def add_hosts(self, hosts):
         return self.afe.run('label_add_hosts', self.id, hosts)
-
 
     def remove_hosts(self, hosts):
         return self.afe.run('label_remove_hosts', self.id, hosts)
 
 
 class Acl(RpcObject):
+
     """
     AFE acl object
 
     Fields:
         users, hosts, description, name, id
     """
+
     def __repr__(self):
         return 'ACL: %s' % self.name
-
 
     def add_hosts(self, hosts):
         self.afe.log('Adding hosts %s to ACL %s' % (hosts, self.name))
         return self.afe.run('acl_group_add_hosts', self.id, hosts)
 
-
     def remove_hosts(self, hosts):
         self.afe.log('Removing hosts %s from ACL %s' % (hosts, self.name))
         return self.afe.run('acl_group_remove_hosts', self.id, hosts)
-
 
     def add_users(self, users):
         self.afe.log('Adding users %s to ACL %s' % (users, self.name))
@@ -796,6 +779,7 @@ class Acl(RpcObject):
 
 
 class Job(RpcObject):
+
     """
     AFE job object
 
@@ -804,17 +788,20 @@ class Job(RpcObject):
         run_verify, priority, email_list, created_on, dependencies,
         timeout, owner, reboot_after, id
     """
+
     def __repr__(self):
         return 'JOB: %s' % self.id
 
 
 class JobStatus(RpcObject):
+
     """
     AFE job_status object
 
     Fields:
         status, complete, deleted, meta_host, host, active, execution_subdir, id
     """
+
     def __init__(self, afe, hash):
         # This should call super
         self.afe = afe
@@ -823,7 +810,6 @@ class JobStatus(RpcObject):
         self.job = Job(afe, self.job)
         if getattr(self, 'host'):
             self.host = Host(afe, self.host)
-
 
     def __repr__(self):
         if self.host and self.host.hostname:
@@ -834,6 +820,7 @@ class JobStatus(RpcObject):
 
 
 class Host(RpcObject):
+
     """
     AFE host object
 
@@ -841,9 +828,9 @@ class Host(RpcObject):
         status, lock_time, locked_by, locked, hostname, invalid,
         synch_id, labels, platform, protection, dirty, id
     """
+
     def __repr__(self):
         return 'HOST OBJECT: %s' % self.hostname
-
 
     def show(self):
         labels = list(set(self.labels) - set([self.platform]))
@@ -851,51 +838,45 @@ class Host(RpcObject):
                                            self.locked, self.platform,
                                            ', '.join(labels))
 
-
     def delete(self):
         return self.afe.run('delete_host', id=self.id)
-
 
     def modify(self, **dargs):
         return self.afe.run('modify_host', id=self.id, **dargs)
 
-
     def get_acls(self):
         return self.afe.get_acls(hosts__hostname=self.hostname)
-
 
     def add_acl(self, acl_name):
         self.afe.log('Adding ACL %s to host %s' % (acl_name, self.hostname))
         return self.afe.run('acl_group_add_hosts', id=acl_name,
                             hosts=[self.hostname])
 
-
     def remove_acl(self, acl_name):
         self.afe.log('Removing ACL %s from host %s' % (acl_name, self.hostname))
         return self.afe.run('acl_group_remove_hosts', id=acl_name,
                             hosts=[self.hostname])
 
-
     def get_labels(self):
         return self.afe.get_labels(host__hostname__in=[self.hostname])
-
 
     def add_labels(self, labels):
         self.afe.log('Adding labels %s to host %s' % (labels, self.hostname))
         return self.afe.run('host_add_labels', id=self.id, labels=labels)
 
-
     def remove_labels(self, labels):
-        self.afe.log('Removing labels %s from host %s' % (labels,self.hostname))
+        self.afe.log('Removing labels %s from host %s' % (labels, self.hostname))
         return self.afe.run('host_remove_labels', id=self.id, labels=labels)
 
 
 class User(RpcObject):
+
     def __repr__(self):
         return 'USER: %s' % self.login
 
 
 class TestStatus(RpcObject):
+
     """
     TKO test status object
 
@@ -903,11 +884,13 @@ class TestStatus(RpcObject):
         test_idx, hostname, testname, id
         complete_count, incomplete_count, group_count, pass_count
     """
+
     def __repr__(self):
         return 'TEST STATUS: %s' % self.id
 
 
 class MachineTestPairing(object):
+
     """
     Object representing the pairing of a machine label with a control file
 
@@ -917,6 +900,7 @@ class MachineTestPairing(object):
     job_label: The label (name) to give to the autotest job launched
             to run this pairing.  '<kernel-version> : <config> : <date>'
     """
+
     def __init__(self, machine_label, control_file, platforms=[],
                  container=False, atomic_group_sched=False, synch_count=0,
                  testname=None, job_label=None):
@@ -928,7 +912,6 @@ class MachineTestPairing(object):
         self.synch_count = synch_count
         self.testname = testname
         self.job_label = job_label
-
 
     def __repr__(self):
         return '%s %s %s %s' % (self.machine_label, self.control_file,

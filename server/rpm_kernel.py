@@ -19,6 +19,7 @@ from autotest.server import kernel, utils
 
 
 class RPMKernel(kernel.Kernel):
+
     """
     This class represents a .rpm pre-built kernel.
 
@@ -28,11 +29,12 @@ class RPMKernel(kernel.Kernel):
     This is a leaf class in an abstract class hierarchy, it must
     implement the unimplemented methods in parent classes.
     """
+
     def __init__(self):
         super(RPMKernel, self).__init__()
 
     def install(self, host, label='autotest',
-                default=False, kernel_args = '', install_vmlinux=True):
+                default=False, kernel_args='', install_vmlinux=True):
         """
         Install a kernel on the remote host.
 
@@ -61,15 +63,15 @@ class RPMKernel(kernel.Kernel):
         rpm_package = utils.run('/usr/bin/rpm -q -p %s' % rpm).stdout
         vmlinuz = self.get_image_name()
         host.send_file(rpm, remote_rpm)
-        host.run('rpm -e ' + rpm_package, ignore_status = True)
+        host.run('rpm -e ' + rpm_package, ignore_status=True)
         host.run('rpm --force -i ' + remote_rpm)
 
         # Copy over the uncompressed image if there is one
         if install_vmlinux:
             vmlinux = self.get_vmlinux_name()
             host.run('cd /;rpm2cpio %s | cpio -imuv .%s'
-                    % (remote_rpm, vmlinux))
-            host.run('ls ' + vmlinux) # Verify
+                     % (remote_rpm, vmlinux))
+            host.run('ls ' + vmlinux)  # Verify
 
         host.bootloader.remove_kernel(label)
         host.bootloader.add_kernel(vmlinuz, label,
@@ -78,7 +80,6 @@ class RPMKernel(kernel.Kernel):
             host.bootloader.add_args(label, kernel_args)
         if not default:
             host.bootloader.boot_once(label)
-
 
     def get_version(self):
         """Get the version of the kernel to be installed.
@@ -96,9 +97,8 @@ class RPMKernel(kernel.Kernel):
             specified via get()")
 
         retval = utils.run('rpm -qpi %s | grep Version | awk \'{print($3);}\''
-            % utils.sh_escape(self.source_material))
+                           % utils.sh_escape(self.source_material))
         return retval.stdout.strip()
-
 
     def get_image_name(self):
         """Get the name of the kernel image to be installed.
@@ -116,9 +116,8 @@ class RPMKernel(kernel.Kernel):
             specified via get()")
 
         vmlinuz = utils.run('rpm -q -l -p %s | grep /boot/vmlinuz'
-            % self.source_material).stdout.strip()
+                            % self.source_material).stdout.strip()
         return vmlinuz
-
 
     def get_vmlinux_name(self):
         """Get the name of the kernel image to be installed.
@@ -138,9 +137,8 @@ class RPMKernel(kernel.Kernel):
             specified via get()")
 
         vmlinux = utils.run('rpm -q -l -p %s | grep /boot/vmlinux'
-            % self.source_material).stdout.strip()
+                            % self.source_material).stdout.strip()
         return vmlinux
-
 
     def get_initrd_name(self):
         """Get the name of the initrd file to be installed.
@@ -159,7 +157,7 @@ class RPMKernel(kernel.Kernel):
             specified via get()")
 
         res = utils.run('rpm -q -l -p %s | grep /boot/initrd'
-            % self.source_material, ignore_status=True)
+                        % self.source_material, ignore_status=True)
         if res.exit_status:
             return None
         return res.stdout.strip()

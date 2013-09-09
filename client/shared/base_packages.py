@@ -5,7 +5,11 @@ upload and remove packages. Site specific extensions to any of these methods
 should inherit this class.
 """
 
-import fcntl, logging, os, re, shutil
+import fcntl
+import logging
+import os
+import re
+import shutil
 from autotest.client import os_dep
 from autotest.client.shared import error, utils
 from autotest.client.shared.settings import settings, SettingsError
@@ -174,13 +178,12 @@ def trim_custom_directories(repo, older_than_days=None):
 
 
 class RepositoryFetcher(object):
+
     '''
     Base class with common functionality for repository fetchers
     '''
 
-
     url = None
-
 
     def __init__(self, package_manager, repository_url):
         """
@@ -194,7 +197,6 @@ class RepositoryFetcher(object):
         self.run_command = package_manager._run_command
         self.url = repository_url
         self.pkgmgr = package_manager
-
 
     def install_pkg_setup(self, name, fetch_dir, install):
         """
@@ -213,7 +215,6 @@ class RepositoryFetcher(object):
 
         return (name, fetch_dir)
 
-
     def fetch_pkg_file(self, filename, dest_path):
         """
         Fetch a package file from a package repository.
@@ -225,7 +226,6 @@ class RepositoryFetcher(object):
         @raises PackageFetchError: if the fetch failed
         """
         raise NotImplementedError()
-
 
     def install_pkg_post(self, filename, fetch_dir,
                          install_dir, preserve_install_dir=False):
@@ -250,9 +250,9 @@ class RepositoryFetcher(object):
         except (error.CmdError, error.AutoservRunError):
             pass
 
-        fetch_path = os.path.join(fetch_dir, re.sub("/","_",filename))
+        fetch_path = os.path.join(fetch_dir, re.sub("/", "_", filename))
         if (install_dir_exists and
-            not self.pkgmgr.untar_required(fetch_path, install_dir)):
+                not self.pkgmgr.untar_required(fetch_path, install_dir)):
             return
 
         # untar the package into install_dir and
@@ -266,16 +266,15 @@ class RepositoryFetcher(object):
 
 
 class HttpFetcher(RepositoryFetcher):
+
     '''
     Repository Fetcher using HTTP
     '''
-
 
     #
     # parameters: url, destination file path
     #
     wget_cmd_pattern = 'wget --connect-timeout=15 -nv %s -O %s'
-
 
     def _quick_http_test(self):
         """
@@ -298,7 +297,6 @@ class HttpFetcher(RepositoryFetcher):
                 raise error.PackageFetchError(msg % (self.url, e))
         finally:
             self.run_command('rm -rf %s' % dest_file_path)
-
 
     def fetch_pkg_file(self, filename, dest_path):
         """
@@ -340,16 +338,15 @@ class HttpFetcher(RepositoryFetcher):
 
 
 class GitFetcher(RepositoryFetcher):
+
     """
     A git based repository fetcher
     """
-
 
     #
     # parameters: url, destination file path, <branch>:<file name>
     #
     git_archive_cmd_pattern = 'git archive --remote=%s -o %s %s'
-
 
     def __init__(self, package_manager, repository_url):
         """
@@ -365,7 +362,6 @@ class GitFetcher(RepositoryFetcher):
         logging.debug('GitFetcher initialized with repo=%s and branch=%s',
                       self.url, self.branch)
 
-
     def _set_repo_url_branch(self, repository_url):
         '''
         Parse the url, look for a branch and set it accordingly
@@ -373,15 +369,14 @@ class GitFetcher(RepositoryFetcher):
         @type repository_url: string
         @param repository_url: The base URL of the git repository
         '''
-        #do we have branch info in the repoistory_url?
+        # do we have branch info in the repoistory_url?
         branch = "master"
         match = repository_url.split(":")
         if len(match) > 2:
-            #we have a branch
+            # we have a branch
             branch = match[2]
             repository_url = re.sub(":" + branch, "", repository_url)
         self.branch = branch
-
 
     def fetch_pkg_file(self, filename, dest_path):
         """
@@ -417,14 +412,13 @@ class GitFetcher(RepositoryFetcher):
             raise error.PackageFetchError('%s not found in %s' % (name,
                                                                   package_path))
 
-
     def install_pkg_post(self, filename, fetch_dir, install_dir,
                          preserve_install_dir=False):
         os_dep.command("tar")
         filename, _ = self.pkgmgr.parse_tarball_name(filename)
         install_path = re.sub(filename, "", install_dir)
         for suffix in ['', '.tar', '.tar.bz2']:
-            pkg_name = "%s%s" % (suffix, re.sub("/","_", filename))
+            pkg_name = "%s%s" % (suffix, re.sub("/", "_", filename))
             fetch_path = os.path.join(fetch_dir, pkg_name)
             if os.path.exists(fetch_path):
                 self.pkgmgr._run_command('tar -xf %s -C %s' % (fetch_path,
@@ -432,6 +426,7 @@ class GitFetcher(RepositoryFetcher):
 
 
 class LocalFilesystemFetcher(RepositoryFetcher):
+
     def fetch_pkg_file(self, filename, dest_path):
         logging.info('Fetching %s from %s to %s', filename, self.url,
                      dest_path)
@@ -447,6 +442,7 @@ class LocalFilesystemFetcher(RepositoryFetcher):
 
 
 class BasePackageManager(object):
+
     def __init__(self, pkgmgr_dir, hostname=None, repo_urls=None,
                  upload_paths=None, do_locking=True, run_function=utils.run,
                  run_function_args=[], run_function_dargs={}):
@@ -505,7 +501,7 @@ class BasePackageManager(object):
             new_dargs = dict(run_function_dargs)
             new_dargs.update(_run_command_dargs)
             # avoid polluting logs with extremely verbose packaging output
-            new_dargs.update({'stdout_tee' : None})
+            new_dargs.update({'stdout_tee': None})
 
             return run_function(command, *_run_command_args,
                                 **new_dargs)
@@ -526,7 +522,6 @@ class BasePackageManager(object):
         else:
             self.upload_paths = list(upload_paths)
 
-
     def add_repository(self, repo):
         if isinstance(repo, basestring):
             self.repositories.append(self.get_fetcher(repo))
@@ -535,7 +530,6 @@ class BasePackageManager(object):
         else:
             raise TypeError("repo must be RepositoryFetcher or url string")
 
-
     def get_fetcher(self, url):
         if url.startswith('http://'):
             return HttpFetcher(self, url)
@@ -543,7 +537,6 @@ class BasePackageManager(object):
             return GitFetcher(self, url)
         else:
             return LocalFilesystemFetcher(self, url)
-
 
     def repo_check(self, repo):
         '''
@@ -561,7 +554,6 @@ class BasePackageManager(object):
                 error.RepoDiskFullError), e:
             raise error.RepoError("ERROR: Repo %s: %s" % (repo, e))
 
-
     def upkeep(self, custom_repos=None):
         '''
         Clean up custom upload/download areas
@@ -571,7 +563,7 @@ class BasePackageManager(object):
             # Not all package types necessarily require or allow custom repos
             try:
                 custom_repos = settings.get_value('PACKAGES',
-                                            'custom_upload_location').split(',')
+                                                  'custom_upload_location').split(',')
             except SettingsError:
                 custom_repos = []
             try:
@@ -586,7 +578,6 @@ class BasePackageManager(object):
 
         subcommand.parallel_simple(trim_custom_directories, custom_repos,
                                    log=False)
-
 
     def install_pkg(self, name, pkg_type, fetch_dir, install_dir,
                     preserve_install_dir=False, repo_url=None):
@@ -609,7 +600,7 @@ class BasePackageManager(object):
         # onto the client in which case fcntl stuff wont work as the code
         # will run on the server in that case..
         if self.do_locking:
-            lockfile_name = '.%s-%s-lock' % (re.sub("/","_",name), pkg_type)
+            lockfile_name = '.%s-%s-lock' % (re.sub("/", "_", name), pkg_type)
             lockfile = open(os.path.join(self.pkgmgr_dir, lockfile_name), 'w')
 
         try:
@@ -632,7 +623,6 @@ class BasePackageManager(object):
             if self.do_locking:
                 fcntl.flock(lockfile, fcntl.LOCK_UN)
                 lockfile.close()
-
 
     def fetch_pkg(self, pkg_name, dest_path, repo_url=None, use_checksum=False, install=False):
         '''
@@ -683,15 +673,15 @@ class BasePackageManager(object):
         for fetcher in reversed(repositories):
             try:
                 if isinstance(fetcher, GitFetcher):
-                    use_checksum  = False
+                    use_checksum = False
                 # different fetchers have different install requirements
                 dest = fetcher.install_pkg_setup(pkg_name, dest_path, install)[1]
 
                 # Fetch the package if it is not there, the checksum does
                 # not match, or checksums are disabled entirely
                 need_to_fetch = (
-                        not use_checksum or not pkg_exists
-                        or not self.compare_checksum(dest, fetcher.url))
+                    not use_checksum or not pkg_exists
+                    or not self.compare_checksum(dest, fetcher.url))
                 if need_to_fetch:
                     fetcher.fetch_pkg_file(pkg_name, dest)
                     # update checksum so we won't refetch next time.
@@ -710,7 +700,6 @@ class BasePackageManager(object):
         # if we got here then that means the package is not found
         # in any of the repositories.
         raise error.PackageFetchError(message)
-
 
     def upload_pkg(self, pkg_path, upload_path=None, update_checksum=False,
                    timeout=300):
@@ -740,7 +729,6 @@ class BasePackageManager(object):
             if result:
                 print str(result)
 
-
     # TODO(aganti): Fix the bug with the current checksum logic where
     # packages' checksums that are not present consistently in all the
     # repositories are not handled properly. This is a corner case though
@@ -769,7 +757,6 @@ class BasePackageManager(object):
             if update_checksum:
                 self.upload_pkg_file(self._get_checksum_file_path(),
                                      upload_path)
-
 
     def upload_pkg_file(self, file_path, upload_path):
         '''
@@ -801,7 +788,6 @@ class BasePackageManager(object):
             logging.error("Upload of %s to %s failed: %s", file_path,
                           upload_path, why)
 
-
     def upload_pkg_dir(self, dir_path, upload_path):
         '''
         Upload a full directory. Depending on the upload path, the appropriate
@@ -831,7 +817,6 @@ class BasePackageManager(object):
             raise error.PackageUploadError("Upload of %s to %s failed: %s"
                                            % (dir_path, upload_path, why))
 
-
     def remove_pkg(self, pkg_name, remove_path=None, remove_checksum=False):
         '''
         Remove the package from the specified remove_path
@@ -858,7 +843,6 @@ class BasePackageManager(object):
             self.remove_pkg_file(pkg_name, path)
             self.upload_pkg_file(checksum_path, path)
 
-
     def remove_pkg_file(self, filename, pkg_dir):
         '''
         Remove the file named filename from pkg_dir
@@ -876,7 +860,6 @@ class BasePackageManager(object):
             raise error.PackageRemoveError("Could not remove %s from %s: %s "
                                            % (filename, pkg_dir, why))
 
-
     def get_mirror_list(self, repo_urls):
         '''
             Stub function for site specific mirrors.
@@ -886,14 +869,12 @@ class BasePackageManager(object):
         '''
         return repo_urls
 
-
     def _get_checksum_file_path(self):
         '''
         Return the complete path of the checksum file (assumed to be stored
         in self.pkgmgr_dir
         '''
         return os.path.join(self.pkgmgr_dir, CHECKSUM_FILE)
-
 
     def _get_checksum_dict(self):
         '''
@@ -939,7 +920,6 @@ class BasePackageManager(object):
 
         return self._checksum_dict
 
-
     def _save_checksum_dict(self, checksum_dict):
         '''
         Save the checksum dictionary onto the checksum file. Update the
@@ -957,7 +937,6 @@ class BasePackageManager(object):
                                               checksum_path),
                           _run_command_dargs={'verbose': False})
 
-
     def compute_checksum(self, pkg_path):
         '''
         Compute the MD5 checksum for the package file and return it.
@@ -966,7 +945,6 @@ class BasePackageManager(object):
         os_dep.command("md5sum")
         md5sum_output = self._run_command("md5sum %s " % pkg_path).stdout
         return md5sum_output.split()[0]
-
 
     def update_checksum(self, pkg_path):
         '''
@@ -981,7 +959,6 @@ class BasePackageManager(object):
         checksum_dict[os.path.basename(pkg_path)] = new_checksum
         self._save_checksum_dict(checksum_dict)
 
-
     def remove_checksum(self, pkg_name):
         '''
         Remove the checksum of the package from the packages checksum file.
@@ -993,7 +970,6 @@ class BasePackageManager(object):
         if pkg_name in checksum_dict:
             del checksum_dict[pkg_name]
         self._save_checksum_dict(checksum_dict)
-
 
     def compare_checksum(self, pkg_path, repo_url):
         '''
@@ -1012,7 +988,6 @@ class BasePackageManager(object):
         repository_checksum = checksum_dict[package_name]
         local_checksum = self.compute_checksum(pkg_path)
         return (local_checksum == repository_checksum)
-
 
     def tar_package(self, pkg_name, src_dir, dest_dir, include_string=None,
                     exclude_string=None):
@@ -1059,7 +1034,6 @@ class BasePackageManager(object):
         os.rename(temp_path, tarball_path)
         return tarball_path
 
-
     def untar_required(self, tarball_path, dest_dir):
         '''
         Compare the checksum of the tarball_path with the .checksum file
@@ -1076,7 +1050,6 @@ class BasePackageManager(object):
 
         new_checksum = self.compute_checksum(tarball_path)
         return (new_checksum.strip() != existing_checksum.strip())
-
 
     def untar_pkg(self, tarball_path, dest_dir):
         '''
@@ -1096,7 +1069,6 @@ class BasePackageManager(object):
         self._run_command('echo "%s" > %s '
                           % (pkg_checksum, pkg_checksum_path))
 
-
     @staticmethod
     def get_tarball_name(name, pkg_type):
         """
@@ -1109,7 +1081,6 @@ class BasePackageManager(object):
         """
         assert '-' not in pkg_type
         return '%s-%s.tar.bz2' % (pkg_type, name)
-
 
     @staticmethod
     def parse_tarball_name(tarball_name):
@@ -1124,7 +1095,6 @@ class BasePackageManager(object):
         pkg_type, name = match.groups()
         return name, pkg_type
 
-
     def get_package_name(self, url, pkg_type):
         '''
         Extract the group and test name for the url. This method is currently
@@ -1135,7 +1105,6 @@ class BasePackageManager(object):
             return self._get_package_name(url, regex)
         else:
             return ('', url)
-
 
     def _get_package_name(self, url, regex):
         if not utils.is_url(url):

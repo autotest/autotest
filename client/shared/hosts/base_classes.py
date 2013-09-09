@@ -15,7 +15,11 @@ poirier@google.com (Benjamin Poirier),
 stutsman@google.com (Ryan Stutsman)
 """
 
-import cPickle, cStringIO, logging, os, re
+import cPickle
+import cStringIO
+import logging
+import os
+import re
 
 from autotest.client.shared import error, utils
 from autotest.client.shared import host_protections
@@ -24,6 +28,7 @@ from autotest.client.shared.settings import settings
 
 
 class Host(object):
+
     """
     This class represents a machine on which you can run programs.
 
@@ -67,23 +72,18 @@ class Host(object):
     # actually send machines to hardware repair
     HARDWARE_REPAIR_REQUEST_THRESHOLD = 4
 
-
     def __init__(self, *args, **dargs):
         self._initialize(*args, **dargs)
-
 
     def _initialize(self, *args, **dargs):
         self._already_repaired = []
         self._removed_files = False
 
-
     def close(self):
         pass
 
-
     def setup(self):
         pass
-
 
     def run(self, command, timeout=3600, ignore_status=False,
             stdout_tee=utils.TEE_TO_LOGS, stderr_tee=utils.TEE_TO_LOGS,
@@ -110,42 +110,32 @@ class Host(object):
         """
         raise NotImplementedError('Run not implemented!')
 
-
     def run_output(self, command, *args, **dargs):
         return self.run(command, *args, **dargs).stdout.rstrip()
-
 
     def reboot(self):
         raise NotImplementedError('Reboot not implemented!')
 
-
     def sysrq_reboot(self):
         raise NotImplementedError('Sysrq reboot not implemented!')
-
 
     def reboot_setup(self, *args, **dargs):
         pass
 
-
     def reboot_followup(self, *args, **dargs):
         pass
-
 
     def get_file(self, source, dest, delete_dest=False):
         raise NotImplementedError('Get file not implemented!')
 
-
     def send_file(self, source, dest, delete_dest=False):
         raise NotImplementedError('Send file not implemented!')
-
 
     def get_tmp_dir(self):
         raise NotImplementedError('Get temp dir not implemented!')
 
-
     def is_up(self):
         raise NotImplementedError('Is up not implemented!')
-
 
     def is_shutting_down(self):
         """ Indicates is a machine is currently shutting down. """
@@ -156,7 +146,6 @@ class Host(object):
         except Exception:
             return False
 
-
     def get_wait_up_processes(self):
         """ Gets the list of local processes to wait for in wait_up. """
         proc_list = settings.get_value("HOSTS", "wait_up_processes",
@@ -164,7 +153,6 @@ class Host(object):
         processes = set(p.strip() for p in proc_list.split(","))
         processes.discard("")
         return processes
-
 
     def get_boot_id(self, timeout=60):
         """ Get a unique ID associated with the current boot.
@@ -180,20 +168,17 @@ class Host(object):
         BOOT_ID_FILE = '/proc/sys/kernel/random/boot_id'
         NO_ID_MSG = 'no boot_id available'
         cmd = 'if [ -f %r ]; then cat %r; else echo %r; fi' % (
-                BOOT_ID_FILE, BOOT_ID_FILE, NO_ID_MSG)
+            BOOT_ID_FILE, BOOT_ID_FILE, NO_ID_MSG)
         boot_id = self.run(cmd, timeout=timeout).stdout.strip()
         if boot_id == NO_ID_MSG:
             return None
         return boot_id
 
-
     def wait_up(self, timeout=None):
         raise NotImplementedError('Wait up not implemented!')
 
-
     def wait_down(self, timeout=None, warning_timer=None, old_boot_id=None):
         raise NotImplementedError('Wait down not implemented!')
-
 
     def wait_for_restart(self, timeout=DEFAULT_REBOOT_TIMEOUT,
                          down_timeout=WAIT_DOWN_REBOOT_TIMEOUT,
@@ -216,24 +201,19 @@ class Host(object):
                         "Host did not return from reboot")
             raise error.AutoservRebootError("Host did not return from reboot")
 
-
     def verify(self):
         self.verify_hardware()
         self.verify_connectivity()
         self.verify_software()
 
-
     def verify_hardware(self):
         pass
-
 
     def verify_connectivity(self):
         pass
 
-
     def verify_software(self):
         pass
-
 
     def check_diskspace(self, path, gb):
         """Raises an error if path does not have at least gb GB free.
@@ -256,8 +236,7 @@ class Host(object):
             raise error.AutoservDiskFullHostError(path, gb, free_space_gb)
         else:
             logging.info('Found %s GB >= %s GB of space under %s on machine %s',
-                free_space_gb, gb, path, self.hostname)
-
+                         free_space_gb, gb, path, self.hostname)
 
     def get_open_func(self, use_cache=True):
         """
@@ -290,7 +269,6 @@ class Host(object):
 
         return open_func
 
-
     def check_partitions(self, root_part, filter_func=None):
         """ Compare the contents of /proc/partitions with those of
         /proc/mounts and raise exception in case unmounted partitions are found
@@ -309,12 +287,11 @@ class Host(object):
         print 'Checking if non-swap partitions are mounted...'
 
         unmounted = partition.get_unmounted_partition_list(root_part,
-            filter_func=filter_func, open_func=self.get_open_func())
+                                                           filter_func=filter_func, open_func=self.get_open_func())
         if unmounted:
             raise error.AutoservNotMountedHostError(
                 'Found unmounted partitions: %s' %
                 [part.device for part in unmounted])
-
 
     def _repair_wait_for_reboot(self):
         TIMEOUT = int(self.HOURS_TO_WAIT_FOR_RECOVERY * 3600)
@@ -323,7 +300,6 @@ class Host(object):
             self.wait_for_restart(TIMEOUT)
         else:
             self.wait_up(TIMEOUT)
-
 
     def _get_mountpoint(self, path):
         """Given a "path" get the mount point of the filesystem containing
@@ -337,13 +313,11 @@ class Host(object):
         return self.run('python -c "%s"' % code,
                         stdout_tee=open(os.devnull, 'w')).stdout.rstrip()
 
-
     def erase_dir_contents(self, path, ignore_status=True, timeout=3600):
         """Empty a given directory path contents."""
         rm_cmd = 'find "%s" -mindepth 1 -maxdepth 1 -print0 | xargs -0 rm -rf'
         self.run(rm_cmd % path, ignore_status=ignore_status, timeout=timeout)
         self._removed_files = True
-
 
     def repair_full_disk(self, mountpoint):
         # it's safe to remove /tmp and /var/tmp, site specific overrides may
@@ -353,7 +327,6 @@ class Host(object):
 
         if mountpoint == self._get_mountpoint('/var/tmp'):
             self.erase_dir_contents('/var/tmp')
-
 
     def _call_repair_func(self, err, func, *args, **dargs):
         for old_call in self._already_repaired:
@@ -376,7 +349,6 @@ class Host(object):
 
         self._already_repaired.append((func, args, dargs))
 
-
     def repair_filesystem_only(self):
         """perform file system repairs only"""
         while True:
@@ -388,7 +360,7 @@ class Host(object):
                     logging.info('Removed files, rebooting to release the'
                                  ' inodes')
                     self.reboot()
-                return # verify succeeded, then repair succeeded
+                return  # verify succeeded, then repair succeeded
             except error.AutoservHostIsShuttingDownError, err:
                 logging.exception('verify failed')
                 self._call_repair_func(err, self._repair_wait_for_reboot)
@@ -396,7 +368,6 @@ class Host(object):
                 logging.exception('verify failed')
                 self._call_repair_func(err, self.repair_full_disk,
                                        self._get_mountpoint(err.path))
-
 
     def repair_software_only(self):
         """perform software repairs only"""
@@ -410,7 +381,6 @@ class Host(object):
                 logging.exception('verify failed')
                 logging.info('Trying to reinstall the machine')
                 self._call_repair_func(err, self.machine_install)
-
 
     def repair_full(self):
         hardware_repair_requests = 0
@@ -440,7 +410,6 @@ class Host(object):
                              'requesting hardware repairs')
                 self._call_repair_func(err, self.request_hardware_repair)
 
-
     def repair_with_protection(self, protection_level):
         """Perform the maximal amount of repair within the specified
         protection level.
@@ -465,7 +434,6 @@ class Host(object):
             raise NotImplementedError('Unknown host protection level %s'
                                       % protection_level)
 
-
     def disable_ipfilters(self):
         """Allow all network packets in and out of the host."""
         self.run('iptables-save > /tmp/iptable-rules')
@@ -473,48 +441,38 @@ class Host(object):
         self.run('iptables -P FORWARD ACCEPT')
         self.run('iptables -P OUTPUT ACCEPT')
 
-
     def enable_ipfilters(self):
         """Re-enable the IP filters disabled from disable_ipfilters()"""
         if self.path_exists('/tmp/iptable-rules'):
             self.run('iptables-restore < /tmp/iptable-rules')
 
-
     def cleanup(self):
         pass
-
 
     def machine_install(self):
         raise NotImplementedError('Machine install not implemented!')
 
-
     def install(self, installableObject):
         installableObject.install(self)
-
 
     def get_autodir(self):
         raise NotImplementedError('Get autodir not implemented!')
 
-
     def set_autodir(self):
         raise NotImplementedError('Set autodir not implemented!')
-
 
     def start_loggers(self):
         """ Called to start continuous host logging. """
         pass
 
-
     def stop_loggers(self):
         """ Called to stop continuous host logging. """
         pass
-
 
     # some extra methods simplify the retrieval of information about the
     # Host machine, with generic implementations based on run(). subclasses
     # should feel free to override these if they can provide better
     # implementations for their specific Host types
-
     def get_num_cpu(self):
         """ Get the number of CPUs in the host according to /proc/cpuinfo. """
         proc_cpuinfo = self.run('cat /proc/cpuinfo',
@@ -525,7 +483,6 @@ class Host(object):
                 cpus += 1
         return cpus
 
-
     def get_arch(self):
         """ Get the hardware architecture of the remote machine. """
         arch = self.run('/bin/uname -m').stdout.rstrip()
@@ -533,16 +490,13 @@ class Host(object):
             arch = 'i386'
         return arch
 
-
     def get_kernel_ver(self):
         """ Get the kernel version of the remote machine. """
         return self.run('/bin/uname -r').stdout.rstrip()
 
-
     def get_cmdline(self):
         """ Get the kernel command line of the remote machine. """
         return self.run('cat /proc/cmdline').stdout.rstrip()
-
 
     def get_meminfo(self):
         """ Get the kernel memory info (/proc/meminfo) of the remote machine
@@ -553,23 +507,19 @@ class Host(object):
             meminfo_dict[key.strip()] = val.strip()
         return meminfo_dict
 
-
     def path_exists(self, path):
         """ Determine if path exists on the remote machine. """
         result = self.run('ls "%s" > /dev/null' % utils.sh_escape(path),
                           ignore_status=True)
         return result.exit_status == 0
 
-
     # some extra helpers for doing job-related operations
-
     def record(self, *args, **dargs):
         """ Helper method for recording status logs against Host.job that
         silently becomes a NOP if Host.job is not available. The args and
         dargs are passed on to Host.job.record unchanged. """
         if self.job:
             self.job.record(*args, **dargs)
-
 
     def log_kernel(self):
         """ Helper method for logging kernel information into the status logs.
@@ -580,7 +530,6 @@ class Host(object):
             kernel = self.get_kernel_ver()
             self.job.record("INFO", None, None,
                             optional_fields={"kernel": kernel})
-
 
     def log_reboot(self, reboot_func):
         """ Decorator for wrapping a reboot in a group for status
@@ -596,7 +545,6 @@ class Host(object):
         else:
             reboot_func()
 
-
     def request_hardware_repair(self):
         """ Should somehow request (send a mail?) for hardware repairs on
         this machine. The implementation can either return by raising the
@@ -604,7 +552,6 @@ class Host(object):
         try to wait until the machine is repaired and then return normally.
         """
         raise NotImplementedError("request_hardware_repair not implemented")
-
 
     def list_files_glob(self, glob):
         """
@@ -615,7 +562,6 @@ class Host(object):
         output = self.run(SCRIPT, args=(glob,), stdout_tee=None,
                           timeout=60).stdout
         return cPickle.loads(output)
-
 
     def symlink_closure(self, paths):
         """
@@ -645,7 +591,6 @@ class Host(object):
         output = self.run(SCRIPT, stdout_tee=None, stdin=input_data,
                           timeout=60).stdout
         return cPickle.loads(output)
-
 
     def cleanup_kernels(self, boot_dir='/boot'):
         """

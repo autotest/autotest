@@ -1,12 +1,16 @@
 """
 Autotest systemtap profiler.
 """
-import logging, os, re, subprocess
+import logging
+import os
+import re
+import subprocess
 from autotest.client import profiler, os_dep
 from autotest.client.shared import utils, error
 
 
 class systemtap(profiler.profiler):
+
     """
     Tracing test process using systemtap tools.
     """
@@ -33,7 +37,6 @@ class systemtap(profiler.profiler):
                 logging.warning("You should assign a script file")
                 self.is_enabled = False
 
-
     def _get_stap_script_name(self, test):
         try:
             if os.path.isabs(self.script_name):
@@ -43,12 +46,11 @@ class systemtap(profiler.profiler):
         except AttributeError:
             return self.script_name
 
-
     def start(self, test):
         if self.is_enabled:
             stap_script = self._get_stap_script_name(test)
             if os.path.isfile(stap_script):
-                cmd = "stap %s"  % (stap_script)
+                cmd = "stap %s" % (stap_script)
                 logfile = open(os.path.join(test.profdir, "systemtap.log"), 'w')
                 p = subprocess.Popen(cmd, shell=True, stdout=logfile,
                                      stderr=subprocess.STDOUT)
@@ -61,14 +63,13 @@ class systemtap(profiler.profiler):
             logging.warning("Asked for systemtap profiling, but it couldn't "
                             "be initialized")
 
-
     def stop(self, test):
         if self.is_enabled:
             try:
                 term_profiler = "kill -15 %d" % self.pid
                 # send SIGTERM to iostat and give it a 5-sec timeout
                 utils.system(term_profiler, timeout=5)
-            except error.CmdError: # probably times out
+            except error.CmdError:  # probably times out
                 pass
             # do a ps again to see if iostat is still there
             ps_cmd = "ps -p %d | grep stap" % self.pid
@@ -76,7 +77,6 @@ class systemtap(profiler.profiler):
             if out != '':
                 kill_profiler = 'kill -9 %d' % self.pid
                 utils.system(kill_profiler, ignore_status=True)
-
 
     def report(self, test):
         return None

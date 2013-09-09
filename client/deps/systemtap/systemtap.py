@@ -5,6 +5,7 @@ from autotest.client import utils
 
 version = 1
 
+
 def setup(topdir):
     srcdir = os.path.join(topdir, 'src')
 

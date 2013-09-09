@@ -14,11 +14,12 @@ _author_ = 'Scott Zawalski (scottz@google.com)'
    access to the etc directory of the conmux server
 """
 
-import sys, commands, os
+import sys
+import commands
+import os
 from optparse import OptionParser
 from autotest.client.shared.settings import settings
 from autotest.client.shared import pexpect
-
 
 
 def main(argv):
@@ -28,30 +29,30 @@ def main(argv):
     consoles['unknown'] = []
     # 0, 1, 2 status
     TOP_DIR = settings.get_value('COMMON', 'autotest_top_path')
-    STATUS = [ 'good', 'bad', 'unknown']
+    STATUS = ['good', 'bad', 'unknown']
     parser = OptionParser()
     parser.add_option('--conmux-server', dest="conmux_server",
-                     default='localhost',
-                     help="Conmux server to connect to")
+                      default='localhost',
+                      help="Conmux server to connect to")
     parser.add_option('--conmux-dir', dest="conmux_dir",
-                     default='/usr/local/conmux',
-                     help="Conmux server to connect to")
+                      default='/usr/local/conmux',
+                      help="Conmux server to connect to")
     parser.add_option('--console-binary', dest="console_binary",
-                     default='/usr/local/conmux/bin/console',
-                     help="Conmux console binary location")
+                      default='/usr/local/conmux/bin/console',
+                      help="Conmux console binary location")
     parser.add_option('--autotest-cli-dir', dest="autotest_cli_dir",
-                     default=os.path.join(TOP_DIR, 'cli'),
-                     help="Autotest CLI dir")
+                      default=os.path.join(TOP_DIR, 'cli'),
+                      help="Autotest CLI dir")
     parser.add_option('--add-hosts',
                       action="store_true", dest="add_hosts",
                       default=False,
                       help="If host not on autotest server try to add it")
     parser.add_option('--power-label', dest="power_label",
-                     default='remote-power',
-                     help="Label to add to hosts that support hard reset")
+                      default='remote-power',
+                      help="Label to add to hosts that support hard reset")
     parser.add_option('--console-label', dest="console_label",
-                     default='console',
-                     help="Label to add to hosts that support console")
+                      default='console',
+                      help="Label to add to hosts that support console")
     parser.add_option('--update-console-label',
                       action="store_true", dest="update_console_label",
                       default=False,
@@ -59,8 +60,8 @@ def main(argv):
     parser.add_option('--update-power-label',
                       action="store_true", dest="update_power_label",
                       default=False,
-                      help="Update power label on autotest server" +\
-                            "*Note this runs then exists no consoles are checked")
+                      help="Update power label on autotest server" +
+                      "*Note this runs then exists no consoles are checked")
     parser.add_option('--verbose',
                       action="store_true", dest="verbose",
                       default=False,
@@ -266,13 +267,13 @@ def check_host(host, console_binary):
             int, 1: Machine state is bad
             int, 2: Machine state is unknown
     """
-    RESPONSES = [ host + ' login:',
-                  'ENOENT entry not found',
-                  'login:',
-                  'Connection refused',
-                  '<<<NOT CONNECTED>>>',
-                  'Authentication failure',
-                  'Give root password for maintenance', ]
+    RESPONSES = [host + ' login:',
+                 'ENOENT entry not found',
+                 'login:',
+                 'Connection refused',
+                 '<<<NOT CONNECTED>>>',
+                 'Authentication failure',
+                 'Give root password for maintenance', ]
 
     cmd = '%s %s' % (console_binary, host)
     shell = pexpect.spawn(cmd)

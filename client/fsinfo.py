@@ -3,7 +3,9 @@
 tune2fs or xfs_growfs is called according to the filesystem. The results,
 filesystem tunables, are parsed and mapped to corresponding mkfs options.
 """
-import os, re, tempfile
+import os
+import re
+import tempfile
 try:
     import autotest.common as common
 except ImportError:
@@ -144,11 +146,11 @@ def ext_mkfs_options(tune2fs_dict, mkfs_option):
     """Map the tune2fs options to mkfs options."""
 
     def __inode_count(tune_dict, k):
-        return (tune_dict['Block count']/tune_dict[k] + 1) * (
+        return (tune_dict['Block count'] / tune_dict[k] + 1) * (
             tune_dict['Block size'])
 
     def __block_count(tune_dict, k):
-        return int(100*tune_dict[k]/tune_dict['Block count'] + 1)
+        return int(100 * tune_dict[k] / tune_dict['Block count'] + 1)
 
     def __volume_name(tune_dict, k):
         if tune_dict[k] != '<none>':
@@ -203,7 +205,7 @@ def xfs_tunables(dev):
         utils.system_output(cmd, ignore_status=True)
         os.rmdir(tmp_mount_dir)
 
-    ## The output format is given in report_info (xfs_growfs.c)
+    # The output format is given in report_info (xfs_growfs.c)
     ## "meta-data=%-22s isize=%-6u agcount=%u, agsize=%u blks\n"
     ## "                 =%-22s sectsz=%-5u attr=%u\n"
     ## "data         =%-22s bsize=%-6u blocks=%llu, imaxpct=%u\n"
@@ -318,7 +320,7 @@ def match_ext_options(fs_type, dev, needed_options):
         needed_opt['-O'].remove('extents')
     # large_file is a byproduct of resize_inode.
     if 'large_file' not in needed_opt['-O'] and (
-        'resize_inode' in needed_opt['-O']):
+            'resize_inode' in needed_opt['-O']):
         needed_opt['-O'].append('large_file')
 
     current_opt = {}

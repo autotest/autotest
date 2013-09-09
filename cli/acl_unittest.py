@@ -4,7 +4,8 @@
 
 """Test for acl."""
 
-import unittest, sys
+import unittest
+import sys
 
 try:
     import autotest.common as common
@@ -14,6 +15,7 @@ from autotest.cli import topic_common, action_common, acl, cli_mock
 
 
 class acl_list_unittest(cli_mock.cli_unittest):
+
     def test_parse_list_acl(self):
         acl_list = acl.acl_list()
         afile = cli_mock.create_file('acl0\nacl3\nacl4\n')
@@ -24,20 +26,17 @@ class acl_list_unittest(cli_mock.cli_unittest):
                                 acl_list.acls)
         afile.clean()
 
-
     def test_parse_list_user(self):
         acl_list = acl.acl_list()
         sys.argv = ['atest', '--user', 'user0']
         acl_list.parse()
         self.assertEqual('user0', acl_list.users)
 
-
     def test_parse_list_host(self):
         acl_list = acl.acl_list()
         sys.argv = ['atest', '--mach', 'host0']
         acl_list.parse()
         self.assertEqual('host0', acl_list.hosts)
-
 
     def _test_parse_bad_options(self):
         acl_list = acl.acl_list()
@@ -48,36 +47,29 @@ class acl_list_unittest(cli_mock.cli_unittest):
         self.god.check_playback()
         self.assert_(err.find('usage'))
 
-
     def test_parse_list_acl_user(self):
         sys.argv = ['atest', 'acl0', '-u', 'user']
         self._test_parse_bad_options()
-
 
     def test_parse_list_acl_2users(self):
         sys.argv = ['atest', '-u', 'user0,user1']
         self._test_parse_bad_options()
 
-
     def test_parse_list_acl_host(self):
         sys.argv = ['atest', 'acl0', '--mach', 'mach']
         self._test_parse_bad_options()
-
 
     def test_parse_list_acl_2hosts(self):
         sys.argv = ['atest', '--mach', 'mach0,mach1']
         self._test_parse_bad_options()
 
-
     def test_parse_list_user_host(self):
         sys.argv = ['atest', '-u', 'user', '--mach', 'mach']
         self._test_parse_bad_options()
 
-
     def test_parse_list_all(self):
         sys.argv = ['atest', '-u', 'user', '--mach', 'mach', 'acl0']
         self._test_parse_bad_options()
-
 
     def test_execute_list_all_acls(self):
         self.run_cmd(argv=['atest', 'acl', 'list', '-v'],
@@ -89,7 +81,6 @@ class acl_list_unittest(cli_mock.cli_unittest):
                              'hosts': []}])],
                      out_words_ok=['debug_user'])
 
-
     def test_execute_list_acls_for_acl(self):
         self.run_cmd(argv=['atest', 'acl', 'list', 'acl0'],
                      rpcs=[('get_acl_groups', {'name__in': ['acl0']}, True,
@@ -100,7 +91,6 @@ class acl_list_unittest(cli_mock.cli_unittest):
                              'hosts': []}])],
                      out_words_ok=['Everyone'])
 
-
     def test_execute_list_acls_for_user(self):
         self.run_cmd(argv=['atest', 'acl', 'list', '-v', '--user', 'user0'],
                      rpcs=[('get_acl_groups', {'users__login': 'user0'}, True,
@@ -110,7 +100,6 @@ class acl_list_unittest(cli_mock.cli_unittest):
                              'users': ['user0'],
                              'hosts': []}])],
                      out_words_ok=['user0'])
-
 
     def test_execute_list_acls_for_host(self):
         self.run_cmd(argv=['atest', 'acl', 'list', '-m', 'host0'],
@@ -124,7 +113,6 @@ class acl_list_unittest(cli_mock.cli_unittest):
                      out_words_ok=['Everyone'],
                      out_words_no=['host0'])
 
-
     def test_execute_list_acls_for_host_verb(self):
         self.run_cmd(argv=['atest', 'acl', 'list', '-m', 'host0', '-v'],
                      rpcs=[('get_acl_groups', {'hosts__hostname': 'host0'},
@@ -137,15 +125,14 @@ class acl_list_unittest(cli_mock.cli_unittest):
                      out_words_ok=['Everyone', 'host0'])
 
 
-
 class acl_create_unittest(cli_mock.cli_unittest):
+
     def test_acl_create_parse_ok(self):
         acls = acl.acl_create()
         sys.argv = ['atest', 'acl0',
                     '--desc', 'my_favorite_acl']
         acls.parse()
         self.assertEqual('my_favorite_acl', acls.data['description'])
-
 
     def test_acl_create_parse_no_desc(self):
         self.god.mock_io()
@@ -155,7 +142,6 @@ class acl_create_unittest(cli_mock.cli_unittest):
         self.assertRaises(cli_mock.ExitException, acls.parse)
         self.god.check_playback()
         self.god.unmock_io()
-
 
     def test_acl_create_parse_2_acls(self):
         self.god.mock_io()
@@ -167,7 +153,6 @@ class acl_create_unittest(cli_mock.cli_unittest):
         self.god.check_playback()
         self.god.unmock_io()
 
-
     def test_acl_create_parse_no_option(self):
         self.god.mock_io()
         acls = acl.acl_create()
@@ -176,7 +161,6 @@ class acl_create_unittest(cli_mock.cli_unittest):
         self.assertRaises(cli_mock.ExitException, acls.parse)
         self.god.check_playback()
         self.god.unmock_io()
-
 
     def test_acl_create_acl_ok(self):
         self.run_cmd(argv=['atest', 'acl', 'create', 'acl0',
@@ -187,7 +171,6 @@ class acl_create_unittest(cli_mock.cli_unittest):
                            True,
                             3L)],
                      out_words_ok=['acl0'])
-
 
     def test_acl_create_duplicate_acl(self):
         self.run_cmd(argv=['atest', 'acl', 'create', 'acl0',
@@ -204,11 +187,11 @@ class acl_create_unittest(cli_mock.cli_unittest):
 
 
 class acl_delete_unittest(cli_mock.cli_unittest):
+
     def test_acl_delete_acl_ok(self):
         self.run_cmd(argv=['atest', 'acl', 'delete', 'acl0'],
                      rpcs=[('delete_acl_group', {'id': 'acl0'}, True, None)],
                      out_words_ok=['acl0'])
-
 
     def test_acl_delete_acl_does_not_exist(self):
         self.run_cmd(argv=['atest', 'acl', 'delete', 'acl0'],
@@ -218,7 +201,6 @@ class acl_delete_unittest(cli_mock.cli_unittest):
                             'query does not exist.')],
                      err_words_ok=['acl0', 'DoesNotExist'])
 
-
     def test_acl_delete_multiple_acl_ok(self):
         alist = cli_mock.create_file('acl2\nacl1')
         self.run_cmd(argv=['atest', 'acl', 'delete',
@@ -227,17 +209,16 @@ class acl_delete_unittest(cli_mock.cli_unittest):
                            {'id': 'acl0'},
                            True,
                            None),
-                          ('delete_acl_group',
-                           {'id': 'acl1'},
-                           True,
-                           None),
-                          ('delete_acl_group',
-                           {'id': 'acl2'},
-                           True,
-                           None)],
+                           ('delete_acl_group',
+                            {'id': 'acl1'},
+                            True,
+                            None),
+                           ('delete_acl_group',
+                            {'id': 'acl2'},
+                            True,
+                            None)],
                      out_words_ok=['acl0', 'acl1', 'acl2', 'Deleted'])
         alist.clean()
-
 
     def test_acl_delete_multiple_acl_bad(self):
         alist = cli_mock.create_file('acl2\nacl1')
@@ -247,15 +228,15 @@ class acl_delete_unittest(cli_mock.cli_unittest):
                            {'id': 'acl0'},
                            True,
                            None),
-                          ('delete_acl_group',
-                           {'id': 'acl1'},
-                           False,
-                           'DoesNotExist: acl_group '
-                           'matching query does not exist.'),
-                          ('delete_acl_group',
-                           {'id': 'acl2'},
-                           True,
-                           None)],
+                           ('delete_acl_group',
+                            {'id': 'acl1'},
+                            False,
+                            'DoesNotExist: acl_group '
+                            'matching query does not exist.'),
+                           ('delete_acl_group',
+                            {'id': 'acl2'},
+                            True,
+                            None)],
                      out_words_ok=['acl0', 'acl2', 'Deleted'],
                      err_words_ok=['acl1', 'delete_acl_group',
                                    'DoesNotExist', 'acl_group',
@@ -264,6 +245,7 @@ class acl_delete_unittest(cli_mock.cli_unittest):
 
 
 class acl_add_unittest(cli_mock.cli_unittest):
+
     def test_acl_add_parse_no_option(self):
         self.god.mock_io()
         acls = acl.acl_add()
@@ -273,7 +255,6 @@ class acl_add_unittest(cli_mock.cli_unittest):
         self.god.unmock_io()
         self.god.check_playback()
 
-
     def test_acl_add_users_hosts(self):
         self.run_cmd(argv=['atest', 'acl', 'add', 'acl0',
                            '-u', 'user0,user1', '-m', 'host0'],
@@ -282,14 +263,13 @@ class acl_add_unittest(cli_mock.cli_unittest):
                             'users': ['user0', 'user1']},
                            True,
                            None),
-                          ('acl_group_add_hosts',
-                           {'id': 'acl0',
-                            'hosts': ['host0']},
-                           True,
-                           None)],
+                           ('acl_group_add_hosts',
+                            {'id': 'acl0',
+                             'hosts': ['host0']},
+                            True,
+                            None)],
                      out_words_ok=['acl0', 'user0',
                                    'user1', 'host0'])
-
 
     def test_acl_add_bad_users(self):
         self.run_cmd(argv=['atest', 'acl', 'add', 'acl0',
@@ -302,7 +282,6 @@ class acl_add_unittest(cli_mock.cli_unittest):
                             'user0, user1')],
                      err_words_ok=['user0', 'user1'])
 
-
     def test_acl_add_bad_users_hosts(self):
         self.run_cmd(argv=['atest', 'acl', 'add', 'acl0',
                            '-u', 'user0,user1', '-m', 'host0,host1'],
@@ -313,8 +292,8 @@ class acl_add_unittest(cli_mock.cli_unittest):
                             'DoesNotExist: The following Users do not exist: '
                             'user0'),
                            ('acl_group_add_users',
-                           {'id': 'acl0',
-                            'users': ['user1']},
+                            {'id': 'acl0',
+                             'users': ['user1']},
                             True,
                             None),
                            ('acl_group_add_hosts',
@@ -335,6 +314,7 @@ class acl_add_unittest(cli_mock.cli_unittest):
 
 
 class acl_remove_unittest(cli_mock.cli_unittest):
+
     def test_acl_remove_remove_users(self):
         self.run_cmd(argv=['atest', 'acl', 'remove',
                            'acl0', '-u', 'user0,user1'],
@@ -345,7 +325,6 @@ class acl_remove_unittest(cli_mock.cli_unittest):
                            None)],
                      out_words_ok=['acl0', 'user0', 'user1'],
                      out_words_no=['host'])
-
 
     def test_acl_remove_remove_hosts(self):
         self.run_cmd(argv=['atest', 'acl', 'remove',
@@ -358,7 +337,6 @@ class acl_remove_unittest(cli_mock.cli_unittest):
                      out_words_ok=['acl0', 'host0', 'host1'],
                      out_words_no=['user'])
 
-
     def test_acl_remove_remove_both(self):
         self.run_cmd(argv=['atest', 'acl', 'remove',
                            'acl0', '--user', 'user0,user1',
@@ -368,11 +346,11 @@ class acl_remove_unittest(cli_mock.cli_unittest):
                             'users': ['user0', 'user1']},
                            True,
                            None),
-                          ('acl_group_remove_hosts',
-                           {'id': 'acl0',
-                            'hosts': ['host1', 'host0']},
-                           True,
-                           None)],
+                           ('acl_group_remove_hosts',
+                            {'id': 'acl0',
+                             'hosts': ['host1', 'host0']},
+                            True,
+                            None)],
                      out_words_ok=['acl0', 'user0', 'user1',
                                    'host0', 'host1'])
 

@@ -1,4 +1,8 @@
-import os, time, logging, shutil, gzip
+import os
+import time
+import logging
+import shutil
+import gzip
 
 from autotest.client.shared import settings
 from autotest.server import utils
@@ -103,7 +107,6 @@ def collect_log_file(host, log_path, dest_path):
         logging.warning("Collection of %s failed", log_path)
 
 
-
 def collect_command(host, command, dest_path):
     """Collects the result of a command on the remote machine.
 
@@ -183,7 +186,7 @@ def collect_messages(host):
         else:
             size_at_start = 0
         raw_messages_file = open(messages_raw)
-        messages_file = gzip.GzipFile(messages+".gz", "w")
+        messages_file = gzip.GzipFile(messages + ".gz", "w")
         try:
             raw_messages_file.seek(size_at_start)
             shutil.copyfileobj(raw_messages_file, messages_file)

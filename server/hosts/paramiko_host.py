@@ -1,4 +1,11 @@
-import os, time, signal, socket, re, fnmatch, logging, threading
+import os
+import time
+import signal
+import socket
+import re
+import fnmatch
+import logging
+import threading
 import paramiko
 
 from autotest.client.shared import utils, error
@@ -11,7 +18,7 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
     KEEPALIVE_TIMEOUT_SECONDS = 30
     CONNECT_TIMEOUT_SECONDS = 30
     CONNECT_TIMEOUT_RETRIES = 3
-    BUFFSIZE = 2**16
+    BUFFSIZE = 2 ** 16
 
     def _initialize(self, hostname, *args, **dargs):
         super(ParamikoHost, self)._initialize(hostname=hostname, *args, **dargs)
@@ -21,7 +28,6 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
 
         self.keys = self.get_user_keys(hostname)
         self.pid = None
-
 
     @staticmethod
     def _load_key(path):
@@ -37,7 +43,6 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
             except paramiko.SSHException:
                 return None
 
-
     @staticmethod
     def _parse_config_line(line):
         """Given an ssh config line, return a (key, value) tuple for the
@@ -47,7 +52,6 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
             return match.groups()
         else:
             return None, None
-
 
     @staticmethod
     def get_user_keys(hostname):
@@ -99,20 +103,17 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
 
         return user_keys
 
-
     def _check_transport_error(self, transport):
         error = transport.get_exception()
         if error:
             transport.close()
             raise error
 
-
     def _connect_socket(self):
         """Return a socket for use in instantiating a paramiko transport. Does
         not have to be a literal socket, it can be anything that the
         paramiko.Transport constructor accepts."""
         return self.hostname, self.port
-
 
     def _connect_transport(self, pkey):
         for _ in xrange(self.CONNECT_TIMEOUT_RETRIES):
@@ -141,7 +142,6 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
                       self.CONNECT_TIMEOUT_RETRIES)
         raise error.AutoservSSHTimeout("SSH negotiation timed out")
 
-
     def _init_transport(self):
         for path, key in self.keys.iteritems():
             try:
@@ -157,7 +157,6 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
             raise error.AutoservSshPermissionDeniedError(
                 "Permission denied using all keys available to ParamikoHost",
                 utils.CmdResult())
-
 
     def _open_channel(self, timeout):
         start_time = time.time()
@@ -191,16 +190,13 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         else:
             return channel
 
-
     def _close_transport(self):
         if os.getpid() == self.pid:
             self.transport.close()
 
-
     def close(self):
         super(ParamikoHost, self).close()
         self._close_transport()
-
 
     @classmethod
     def _exhaust_stream(cls, tee, output_list, recvfunc):
@@ -212,7 +208,6 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
             tee.write(output_list[-1])
             if not output_list[-1]:
                 return
-
 
     @classmethod
     def __send_stdin(cls, channel, stdin):
@@ -230,7 +225,6 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
                 channel.shutdown_write()
         return stdin
 
-
     def run(self, command, timeout=3600, ignore_status=False,
             stdout_tee=utils.TEE_TO_LOGS, stderr_tee=utils.TEE_TO_LOGS,
             connect_timeout=30, stdin=None, verbose=True, args=()):
@@ -247,11 +241,11 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         """
 
         stdout = utils.get_stream_tee_file(
-                stdout_tee, utils.DEFAULT_STDOUT_LEVEL,
-                prefix=utils.STDOUT_PREFIX)
+            stdout_tee, utils.DEFAULT_STDOUT_LEVEL,
+            prefix=utils.STDOUT_PREFIX)
         stderr = utils.get_stream_tee_file(
-                stderr_tee, utils.get_stderr_level(ignore_status),
-                prefix=utils.STDERR_PREFIX)
+            stderr_tee, utils.get_stderr_level(ignore_status),
+            prefix=utils.STDERR_PREFIX)
 
         for arg in args:
             command += ' "%s"' % utils.sh_escape(arg)

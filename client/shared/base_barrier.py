@@ -1,9 +1,12 @@
-import socket, errno, logging
+import socket
+import errno
+import logging
 from time import time, sleep
 from autotest.client.shared import error
 
 # default barrier port
 _DEFAULT_PORT = 11922
+
 
 def get_host_from_id(hostid):
     # Remove any trailing local identifier following a #.
@@ -17,10 +20,12 @@ def get_host_from_id(hostid):
 
 
 class BarrierAbortError(error.BarrierError):
+
     """Special BarrierError raised when an explicit abort is requested."""
 
 
 class listen_server(object):
+
     """
     Manages a listening socket for barrier.
 
@@ -33,6 +38,7 @@ class listen_server(object):
     @attr port: Port to bind to.
     @attr socket: Listening socket object.
     """
+
     def __init__(self, address='', port=_DEFAULT_PORT):
         """
         Create a listen_server instance for the given address/port.
@@ -44,7 +50,6 @@ class listen_server(object):
         self.port = port
         self.socket = self._setup()
 
-
     def _setup(self):
         """Create, bind and listen on the listening socket."""
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -54,13 +59,13 @@ class listen_server(object):
 
         return sock
 
-
     def close(self):
         """Close the listening socket."""
         self.socket.close()
 
 
 class barrier(object):
+
     """Multi-machine barrier support.
 
     Provides multi-machine barrier mechanism.
@@ -150,7 +155,7 @@ class barrier(object):
         if listen_server:
             if port:
                 raise error.BarrierError(
-                        '"port" and "listen_server" are mutually exclusive.')
+                    '"port" and "listen_server" are mutually exclusive.')
             self._port = listen_server.port
         else:
             self._port = port or _DEFAULT_PORT
@@ -168,13 +173,11 @@ class barrier(object):
         # Clients who have checked in and are waiting (if we are a master).
         self._waiting = {}  # Maps from hostname -> (client, addr) tuples.
 
-
     def _update_timeout(self, timeout):
         if timeout is not None and self._start_time is not None:
             self._timeout_secs = (time() - self._start_time) + timeout
         else:
             self._timeout_secs = timeout
-
 
     def _remaining(self):
         if self._timeout_secs is not None and self._start_time is not None:
@@ -188,7 +191,6 @@ class barrier(object):
         if self._timeout_secs is not None:
             logging.info("seconds remaining: %d", timeout)
         return timeout
-
 
     def _master_welcome(self, connection):
         client, addr = connection
@@ -249,7 +251,6 @@ class barrier(object):
         self._waiting[name] = connection
         self._seen += 1
 
-
     def _slave_hello(self, connection):
         (client, addr) = connection
         name = None
@@ -283,7 +284,6 @@ class barrier(object):
         # They seem to be valid record them.
         self._waiting[self._hostid] = connection
         self._seen = 1
-
 
     def _master_release(self):
         # Check everyone is still there, that they have not
@@ -334,7 +334,6 @@ class barrier(object):
         if abort:
             raise BarrierAbortError("Client requested abort")
 
-
     def _waiting_close(self):
         # Either way, close out all the clients.  If we have
         # not released them then they know to abort.
@@ -347,7 +346,6 @@ class barrier(object):
                 client.close()
             except Exception:
                 pass
-
 
     def _run_server(self, is_master):
         server = self._server or listen_server(port=self._port)
@@ -386,12 +384,11 @@ class barrier(object):
             if not self._server:
                 server.close()
 
-
     def _run_client(self, is_master):
         while self._remaining() is None or self._remaining() > 0:
             try:
                 remote = socket.socket(socket.AF_INET,
-                        socket.SOCK_STREAM)
+                                       socket.SOCK_STREAM)
                 remote.settimeout(30)
                 if is_master:
                     # Connect to all slaves.
@@ -432,7 +429,6 @@ class barrier(object):
                     break
 
         self._waiting_close()
-
 
     def _slave_wait(self):
         remote = self._waiting[self._hostid][0]
@@ -484,7 +480,6 @@ class barrier(object):
         else:
             raise error.BarrierError("master handshake failure: " + mode)
 
-
     def rendezvous(self, *hosts, **dargs):
         # if called with abort=True, this will raise an exception
         # on all the clients.
@@ -512,7 +507,6 @@ class barrier(object):
         else:
             logging.info("selected as slave")
             self._run_client(is_master=False)
-
 
     def rendezvous_servers(self, masterid, *hosts, **dargs):
         # if called with abort=True, this will raise an exception

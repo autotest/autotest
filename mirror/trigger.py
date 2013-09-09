@@ -1,31 +1,37 @@
-import email, os, re, smtplib
+import email
+import os
+import re
+import smtplib
 
 from autotest.server import frontend
 
+
 class trigger(object):
+
     """
     Base trigger class. You are allowed to derive from it and
     override functions to suit your needs in the configuration file.
     """
+
     def __init__(self):
         self.__actions = []
-
 
     def run(self, files):
         # Call each of the actions and pass in the kernel list
         for action in self.__actions:
             action(files)
 
-
     def add_action(self, func):
         self.__actions.append(func)
 
 
 class base_action(object):
+
     """
     Base class for functor actions. Since actions can also be simple functions
     all action classes need to override __call__ to be callable.
     """
+
     def __call__(self, kernel_list):
         """
         Perform the action for that given kernel filenames list.
@@ -36,6 +42,7 @@ class base_action(object):
 
 
 class map_action(base_action):
+
     """
     Action that uses a map between machines and their associated control
     files and kernel configuration files and it schedules them using
@@ -45,9 +52,11 @@ class map_action(base_action):
     _encode_sep = re.compile('(\D+)')
 
     class machine_info(object):
+
         """
         Class to organize the machine associated information for this action.
         """
+
         def __init__(self, tests, kernel_configs):
             """
             Instantiate a machine_info object.
@@ -61,7 +70,6 @@ class map_action(base_action):
             """
             self.tests = tests
             self.kernel_configs = kernel_configs
-
 
     def __init__(self, tests_map, jobname_pattern, job_owner='autotest',
                  upload_kernel_config=False):
@@ -83,7 +91,6 @@ class map_action(base_action):
         self._afe = frontend.AFE(user=job_owner)
         self._upload_kernel_config = upload_kernel_config
 
-
     def __call__(self, kernel_list):
         """
         Schedule jobs to run on the given list of kernel versions using
@@ -104,7 +111,7 @@ class map_action(base_action):
 
                 if config_paths:
                     kvers = config_paths.keys()
-                    close =  self._closest_kver_leq(kvers, kernel)
+                    close = self._closest_kver_leq(kvers, kernel)
                     kernel_config = config_paths[close]
 
                 for test in info.tests:
@@ -114,7 +121,6 @@ class map_action(base_action):
             for (test, kernel_config), hosts in jobs.iteritems():
                 c = self._generate_control(test, kernel, kernel_config)
                 self._schedule_job(self._jobname_pattern % kernel, c, hosts)
-
 
     @classmethod
     def _kver_encode(cls, version):
@@ -146,7 +152,6 @@ class map_action(base_action):
                 bits[n] = '0' + bits[n]
         return ''.join(bits)
 
-
     @classmethod
     def _kver_cmp(cls, a, b):
         """
@@ -158,7 +163,6 @@ class map_action(base_action):
         """
         a, b = cls._kver_encode(a), cls._kver_encode(b)
         return cmp(a, b)
-
 
     @classmethod
     def _closest_kver_leq(cls, klist, kver):
@@ -175,7 +179,6 @@ class map_action(base_action):
         if i == 0:
             return l[1]
         return l[i - 1]
-
 
     def _generate_control(self, test, kernel, kernel_config):
         """
@@ -194,9 +197,8 @@ class map_action(base_action):
         kernel_info = dict(version=kernel,
                            config_file=os.path.expanduser(kernel_config))
         return self._afe.generate_control_file(
-                tests=[test], kernel=[kernel_info],
-                upload_kernel_config=self._upload_kernel_config)
-
+            tests=[test], kernel=[kernel_info],
+            upload_kernel_config=self._upload_kernel_config)
 
     def _schedule_job(self, jobname, control, hosts):
         control_type = ('Client', 'Server')[control.is_server]
@@ -206,6 +208,7 @@ class map_action(base_action):
 
 
 class email_action(base_action):
+
     """
     An action object to send emails about found new kernel versions.
     """
@@ -228,7 +231,6 @@ class email_action(base_action):
 
         self._from_addr = from_addr
 
-
     def __call__(self, kernel_list):
         if not kernel_list:
             return
@@ -237,7 +239,6 @@ class email_action(base_action):
         message = 'Testing new kernel releases:\n%s' % message
 
         self._mail('autotest new kernel notification', message)
-
 
     def _mail(self, subject, message_text):
         message = email.Message.Message()
@@ -253,7 +254,6 @@ class email_action(base_action):
                                 message.as_string())
             finally:
                 server.quit()
-
 
     @classmethod
     def _sendmail(cls, message):

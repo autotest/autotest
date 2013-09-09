@@ -5,8 +5,18 @@ This is the core infrastructure.
 Copyright Andy Whitcroft, Martin J. Bligh 2006
 """
 
-import copy, os, re, shutil, sys, time, traceback, types, glob
-import logging, getpass, weakref
+import copy
+import os
+import re
+import shutil
+import sys
+import time
+import traceback
+import types
+import glob
+import logging
+import getpass
+import weakref
 from autotest.client import client_logging_config
 from autotest.client import utils, parallel, kernel, xen
 from autotest.client import profilers, harness
@@ -28,14 +38,15 @@ from autotest.client.utils import *
 class StepError(error.AutotestError):
     pass
 
+
 class NotAvailableError(error.AutotestError):
     pass
-
 
 
 def _run_test_complete_on_exit(f):
     """Decorator for job methods that automatically calls
     self.harness.run_test_complete when the method exits, if appropriate."""
+
     def wrapped(self, *args, **dargs):
         try:
             return f(self, *args, **dargs)
@@ -51,25 +62,25 @@ def _run_test_complete_on_exit(f):
 
 
 class status_indenter(base_job.status_indenter):
+
     """Provide a status indenter that is backed by job._record_prefix."""
+
     def __init__(self, job):
         self.job = weakref.proxy(job)  # avoid a circular reference
-
 
     @property
     def indent(self):
         return self.job._record_indent
 
-
     def increment(self):
         self.job._record_indent += 1
-
 
     def decrement(self):
         self.job._record_indent -= 1
 
 
 class base_client_job(base_job.base_job):
+
     """The client-side concrete implementation of base_job.
 
     Optional properties provided by this implementation:
@@ -86,7 +97,6 @@ class base_client_job(base_job.base_job):
         '_state', '_record_indent', 0, namespace='client')
     _max_disk_usage_rate = _job_state.property_factory(
         '_state', '_max_disk_usage_rate', 0.0, namespace='client')
-
 
     def __init__(self, control, options, drop_caches=True,
                  extra_copy_cmdline=None):
@@ -113,15 +123,13 @@ class base_client_job(base_job.base_job):
                                    extra_copy_cmdline)
         except Exception, err:
             self.record(
-                    'ABORT', None, None,'client.job.__init__ failed: %s' %
-                    str(err))
+                'ABORT', None, None, 'client.job.__init__ failed: %s' %
+                str(err))
             raise
-
 
     @classmethod
     def _get_environ_autodir(cls):
         return os.environ['AUTODIR']
-
 
     @classmethod
     # The unittests will hide this method, well, for unittesting
@@ -134,11 +142,9 @@ class base_client_job(base_job.base_job):
         autodir = clientdir = cls._get_environ_autodir()
         return autodir, clientdir, None
 
-
     @classmethod
     def _parse_args(cls, args):
         return re.findall("[^\s]*?['|\"].*?['|\"]|[^\s]+", args)
-
 
     # The unittests will hide this method, well, for unittesting
     # pylint: disable=E0202
@@ -159,11 +165,9 @@ class base_client_job(base_job.base_job):
 
         return os.path.join(basedir, 'results', options.tag)
 
-
     def _get_status_logger(self):
         """Return a reference to the status logger."""
         return self._logger
-
 
     def _pre_record_init(self, control, options):
         """
@@ -232,7 +236,7 @@ class base_client_job(base_job.base_job):
         self.control = control
 
         self.logging = logging_manager.get_logging_manager(
-                manage_stdout_and_stderr=True, redirect_fds=True)
+            manage_stdout_and_stderr=True, redirect_fds=True)
         self.logging.start_logging()
 
         self._config = config.config(self)
@@ -271,7 +275,6 @@ class base_client_job(base_job.base_job):
         self.warning_loggers = None
         self.warning_manager = None
 
-
     def _init_drop_caches(self, drop_caches):
         """
         Perform the drop caches initialization.
@@ -283,14 +286,12 @@ class base_client_job(base_job.base_job):
         if self.drop_caches:
             utils_memory.drop_caches()
 
-
     def _init_bootloader(self):
         """
         Perform boottool initialization.
         """
         tool = self.config_get('boottool.executable')
         self.bootloader = boottool.boottool(tool)
-
 
     def _init_packages(self):
         """
@@ -299,8 +300,7 @@ class base_client_job(base_job.base_job):
         tmpdir = settings.get_value('COMMON', 'test_output_dir',
                                     default=self.autodir)
         self.pkgmgr = packages.PackageManager(
-            tmpdir, run_function_dargs={'timeout':3600})
-
+            tmpdir, run_function_dargs={'timeout': 3600})
 
     def _init_cmdline(self, extra_copy_cmdline):
         """
@@ -317,10 +317,9 @@ class base_client_job(base_job.base_job):
         for karg in cmdline.split():
             for param in copy_cmdline:
                 if karg.startswith(param) and \
-                    (len(param) == len(karg) or karg[len(param)] == '='):
+                        (len(param) == len(karg) or karg[len(param)] == '='):
                     kernel_args.append(karg)
         self.config_set('boot.default_args', ' '.join(kernel_args))
-
 
     def _cleanup_results_dir(self):
         """Delete everything in resultsdir"""
@@ -332,7 +331,6 @@ class base_client_job(base_job.base_job):
             elif os.path.isfile(f):
                 os.remove(f)
 
-
     def _cleanup_debugdir_files(self):
         """
         Delete any leftover debugdir files
@@ -341,20 +339,17 @@ class base_client_job(base_job.base_job):
         for f in list_files:
             os.remove(f)
 
-
     def disable_warnings(self, warning_type):
         self.record("INFO", None, None,
                     "disabling %s warnings" % warning_type,
                     {"warnings.disable": warning_type})
         time.sleep(self._WARNING_DISABLE_DELAY)
 
-
     def enable_warnings(self, warning_type):
         time.sleep(self._WARNING_DISABLE_DELAY)
         self.record("INFO", None, None,
                     "enabling %s warnings" % warning_type,
                     {"warnings.enable": warning_type})
-
 
     def monitor_disk_usage(self, max_rate):
         """\
@@ -369,7 +364,6 @@ class base_client_job(base_job.base_job):
         """
         self._max_disk_usage_rate = max_rate
 
-
     def relative_path(self, path):
         """\
         Return a patch relative to the job results directory
@@ -377,26 +371,20 @@ class base_client_job(base_job.base_job):
         head = len(self.resultdir) + 1     # remove the / between
         return path[head:]
 
-
     def control_get(self):
         return self.control
-
 
     def control_set(self, control):
         self.control = os.path.abspath(control)
 
-
     def harness_select(self, which, harness_args):
         self.harness = harness.select(which, self, harness_args)
-
 
     def config_set(self, name, value):
         self._config.set(name, value)
 
-
     def config_get(self, name):
         return self._config.get(name)
-
 
     def setup_dirs(self, results_dir, tmp_dir):
         if not tmp_dir:
@@ -423,28 +411,24 @@ class base_client_job(base_job.base_job):
 
         return (results_dir, tmp_dir)
 
-
-    def xen(self, base_tree, results_dir = '', tmp_dir = '', leave = False, \
-                            kjob = None ):
+    def xen(self, base_tree, results_dir='', tmp_dir='', leave=False,
+            kjob=None):
         """Summon a xen object"""
         (results_dir, tmp_dir) = self.setup_dirs(results_dir, tmp_dir)
         build_dir = 'xen'
         return xen.xen(self, base_tree, results_dir, tmp_dir, build_dir,
                        leave, kjob)
 
-
-    def kernel(self, base_tree, results_dir = '', tmp_dir = '', leave = False):
+    def kernel(self, base_tree, results_dir='', tmp_dir='', leave=False):
         """Summon a kernel object"""
         (results_dir, tmp_dir) = self.setup_dirs(results_dir, tmp_dir)
         build_dir = 'linux'
         return kernel.auto_kernel(self, base_tree, results_dir, tmp_dir,
                                   build_dir, leave)
 
-
     def barrier(self, *args, **kwds):
         """Create a barrier object"""
         return barrier.barrier(*args, **kwds)
-
 
     def install_pkg(self, name, pkg_type, install_dir):
         '''
@@ -458,7 +442,6 @@ class base_client_job(base_job.base_job):
         '''
         if self.pkgmgr.repositories:
             self.pkgmgr.install_pkg(name, pkg_type, self.pkgdir, install_dir)
-
 
     def add_repository(self, repo_urls):
         '''
@@ -486,7 +469,6 @@ class base_client_job(base_job.base_job):
             # Silently fall back to the normal case
             pass
 
-
     def require_gcc(self):
         """
         Test whether gcc is installed on the machine.
@@ -497,7 +479,6 @@ class base_client_job(base_job.base_job):
         except error.CmdError:
             raise NotAvailableError('gcc is required by this job and is '
                                     'not available on the system')
-
 
     def setup_dep(self, deps):
         """Set up the dependencies for this test.
@@ -522,10 +503,9 @@ class base_client_job(base_job.base_job):
             if execfile('%s.py' % dep, {}) is None:
                 logging.info('Dependency %s successfully built', dep)
 
-
     def _runtest(self, url, tag, timeout, args, dargs):
         try:
-            l = lambda : test.runtest(self, url, tag, args, dargs)
+            l = lambda: test.runtest(self, url, tag, args, dargs)
             pid = parallel.fork_start(self.resultdir, l)
 
             if timeout:
@@ -544,7 +524,6 @@ class base_client_job(base_job.base_job):
             # of phase into a TestError(TestBaseException) subclass that
             # reports them with their full stack trace.
             raise error.UnhandledTestError(e)
-
 
     def _run_test_base(self, url, *args, **dargs):
         """
@@ -572,6 +551,7 @@ class base_client_job(base_job.base_job):
 
         def log_warning(reason):
             self.record("WARN", subdir, testname, reason)
+
         @disk_usage_monitor.watch(log_warning, "/", self._max_disk_usage_rate)
         def group_func():
             try:
@@ -584,7 +564,6 @@ class base_client_job(base_job.base_job):
                 self.record('GOOD', subdir, testname, 'completed successfully')
 
         return (subdir, testname, group_func, timeout)
-
 
     @_run_test_complete_on_exit
     def run_test(self, url, *args, **dargs):
@@ -613,7 +592,6 @@ class base_client_job(base_job.base_job):
         # is error.JobError as _runtest() turns all others into an
         # UnhandledTestError that is caught above.
 
-
     @_run_test_complete_on_exit
     def run_test_detail(self, url, *args, **dargs):
         """
@@ -636,7 +614,6 @@ class base_client_job(base_job.base_job):
             return 'GOOD'
         except error.TestBaseException, detail:
             return detail.exit_status
-
 
     def _rungroup(self, subdir, testname, function, timeout, *args, **dargs):
         """\
@@ -682,7 +659,6 @@ class base_client_job(base_job.base_job):
         finally:
             self._state.discard('client', 'unexpected_reboot')
 
-
     def run_group(self, function, tag=None, **dargs):
         """
         Run a function nested within a group level.
@@ -710,15 +686,12 @@ class base_client_job(base_job.base_job):
         except Exception, e:
             raise error.UnhandledTestError(e)
 
-
     def cpu_count(self):
         return utils.count_cpus()  # use total system count
-
 
     def start_reboot(self):
         self.record('START', None, 'reboot')
         self.record('GOOD', None, 'reboot.start')
-
 
     def _record_reboot_failure(self, subdir, operation, status,
                                running_id=None):
@@ -727,7 +700,6 @@ class base_client_job(base_job.base_job):
             running_id = utils.running_os_ident()
         kernel = {"kernel": running_id.split("::")[0]}
         self.record("END ABORT", subdir, 'reboot', optional_fields=kernel)
-
 
     def _check_post_reboot(self, subdir, running_id=None):
         """
@@ -775,7 +747,6 @@ class base_client_job(base_job.base_job):
             else:
                 logging.warning(description)
 
-
     def end_reboot(self, subdir, kernel, patches, running_id=None):
         self._check_post_reboot(subdir, running_id=running_id)
 
@@ -785,7 +756,6 @@ class base_client_job(base_job.base_job):
         for i, patch in enumerate(patches):
             kernel_info["patch%d" % i] = patch
         self.record("END GOOD", subdir, "reboot", optional_fields=kernel_info)
-
 
     def end_reboot_and_verify(self, expected_when, expected_id, subdir,
                               type='src', patches=[]):
@@ -811,7 +781,7 @@ class base_client_job(base_job.base_job):
         bad = False
         if (type == 'src' and expected_id != running_id or
             type == 'rpm' and
-            not running_id.startswith(expected_id + '::')):
+                not running_id.startswith(expected_id + '::')):
             logging.error("Kernel identifier mismatch")
             bad = True
         if expected_when != cmdline_when:
@@ -832,7 +802,6 @@ class base_client_job(base_job.base_job):
         self.record('GOOD', subdir, 'reboot.verify',
                     utils.running_os_full_version())
         self.end_reboot(subdir, expected_id, patches, running_id=running_id)
-
 
     def partition(self, device, loop_size=0, mountpoint=None):
         """
@@ -858,14 +827,11 @@ class base_client_job(base_job.base_job):
         """
         return self.partition(device, loop_size, mountpoint)
 
-
     def enable_external_logging(self):
         pass
 
-
     def disable_external_logging(self):
         pass
-
 
     def reboot_setup(self):
         # save the partition list and mount points, as well as the cpu count
@@ -874,7 +840,6 @@ class base_client_job(base_job.base_job):
         mount_info = partition_lib.get_mount_info(partition_list)
         self._state.set('client', 'mount_info', mount_info)
         self._state.set('client', 'cpu_count', utils.count_cpus())
-
 
     def reboot(self, tag=LAST_BOOT_TAG):
         if tag == LAST_BOOT_TAG:
@@ -898,17 +863,15 @@ class base_client_job(base_job.base_job):
         utils.system("sync; sync", ignore_status=True)
 
         sleep_before_reboot = settings.get_value('CLIENT', 'sleep_before_reboot',
-                                                  default="5")
+                                                 default="5")
 
         sleep_cmd = "(sleep %s; reboot) </dev/null >/dev/null 2>&1 &" % sleep_before_reboot
         utils.system(sleep_cmd)
 
         self.quit()
 
-
     def noop(self, text):
         logging.info("job: noop: " + text)
-
 
     @_run_test_complete_on_exit
     def parallel(self, *tasklist):
@@ -919,6 +882,7 @@ class base_client_job(base_job.base_job):
         for i, task in enumerate(tasklist):
             assert isinstance(task, (tuple, list))
             self._logger.global_filename = old_log_filename + (".%d" % i)
+
             def task_func():
                 # stub out _record_indent with a process-local one
                 base_record_indent = self._record_indent
@@ -955,12 +919,10 @@ class base_client_job(base_job.base_job):
             msg = "%d task(s) failed in job.parallel" % len(exceptions)
             raise error.JobError(msg)
 
-
     def quit(self):
         # XXX: should have a better name.
         self.harness.run_pause()
         raise error.JobContinue("more to come")
-
 
     def complete(self, status):
         """Write pending TAP reports, clean up, and exit"""
@@ -983,7 +945,6 @@ class base_client_job(base_job.base_job):
         self.disable_external_logging()
         sys.exit(status)
 
-
     def _load_state(self):
         autodir = os.path.abspath(os.environ['AUTODIR'])
         tmpdir = os.path.join(autodir, 'tmp')
@@ -991,9 +952,9 @@ class base_client_job(base_job.base_job):
                                           default=tmpdir)
         if not os.path.isdir(state_config):
             os.makedirs(state_config)
-        init_state_file =  os.path.join(state_config,
-                                        ("%s.init.state" %
-                                         os.path.basename(self.control)))
+        init_state_file = os.path.join(state_config,
+                                      ("%s.init.state" %
+                                       os.path.basename(self.control)))
         self._state_file = os.path.join(state_config,
                                         ("%s.state" %
                                          os.path.basename(self.control)))
@@ -1012,7 +973,6 @@ class base_client_job(base_job.base_job):
             logging.debug('Initializing the state engine')
             self._state.set('client', 'steps', [])
 
-
     def handle_persistent_option(self, options, option_name):
         """
         Select option from command line or persistent state.
@@ -1021,7 +981,7 @@ class base_client_job(base_job.base_job):
         Priority:
         1. explicitly specified via command line
         2. stored in state file (if continuing job '-c')
-        3. default == None
+        3. default is None
         """
         option = None
         cmd_line_option = getattr(options, option_name)
@@ -1034,7 +994,6 @@ class base_client_job(base_job.base_job):
                 option = stored_option
         logging.debug('Persistent option %s now set to %s', option_name, option)
         return option
-
 
     def __create_step_tuple(self, fn, args, dargs):
         # Legacy code passes in an array where the first arg is
@@ -1055,13 +1014,11 @@ class base_client_job(base_job.base_job):
         ancestry = copy.copy(self._current_step_ancestry)
         return (ancestry, fn, args, dargs)
 
-
     def next_step_append(self, fn, *args, **dargs):
         """Define the next step and place it at the end"""
         steps = self._state.get('client', 'steps')
         steps.append(self.__create_step_tuple(fn, args, dargs))
         self._state.set('client', 'steps', steps)
-
 
     def next_step(self, fn, *args, **dargs):
         """Create a new step and place it after any steps added
@@ -1073,15 +1030,12 @@ class base_client_job(base_job.base_job):
         self._next_step_index += 1
         self._state.set('client', 'steps', steps)
 
-
     def next_step_prepend(self, fn, *args, **dargs):
         """Insert a new step, executing first"""
         steps = self._state.get('client', 'steps')
         steps.insert(0, self.__create_step_tuple(fn, args, dargs))
         self._next_step_index += 1
         self._state.set('client', 'steps', steps)
-
-
 
     def _run_step_fn(self, local_vars, fn, args, dargs):
         """Run a (step) function within the given context"""
@@ -1097,7 +1051,6 @@ class base_client_job(base_job.base_job):
             self.record(detail.exit_status, None, fn, str(detail))
         except Exception, detail:
             raise error.UnhandledJobError(detail)
-
 
     def _create_frame(self, global_vars, ancestry, fn_name):
         """Set up the environment like it would have been when this
@@ -1135,7 +1088,6 @@ class base_client_job(base_job.base_job):
 
         return (frames[-1], ancestry)
 
-
     def _add_step_init(self, local_vars, current_function):
         """If the function returned a dictionary that includes a
         function named 'step_init', prepend it to our list of steps.
@@ -1144,12 +1096,11 @@ class base_client_job(base_job.base_job):
 
         if (isinstance(local_vars, dict) and
             'step_init' in local_vars and
-            callable(local_vars['step_init'])):
+                callable(local_vars['step_init'])):
             # The init step is a child of the function
             # we were just running.
             self._current_step_ancestry.append(current_function)
             self.next_step_prepend('step_init')
-
 
     def step_engine(self):
         """The multi-run engine used when the control file defines step_init.
@@ -1202,15 +1153,12 @@ class base_client_job(base_job.base_job):
             local_vars = self._run_step_fn(local_vars, fn_name, args, dargs)
             self._add_step_init(local_vars, fn_name)
 
-
     def add_sysinfo_command(self, command, logfile=None, on_every_test=False):
         self._add_sysinfo_loggable(sysinfo.command(command, logf=logfile),
                                    on_every_test)
 
-
     def add_sysinfo_logfile(self, file, on_every_test=False):
         self._add_sysinfo_loggable(sysinfo.logfile(file), on_every_test)
-
 
     def _add_sysinfo_loggable(self, loggable, on_every_test):
         if on_every_test:
@@ -1219,12 +1167,10 @@ class base_client_job(base_job.base_job):
             self.sysinfo.boot_loggables.add(loggable)
         self._save_sysinfo_state()
 
-
     def _load_sysinfo_state(self):
         state = self._state.get('client', 'sysinfo', None)
         if state:
             self.sysinfo.deserialize(state)
-
 
     def _save_sysinfo_state(self):
         state = self.sysinfo.serialize()
@@ -1232,16 +1178,15 @@ class base_client_job(base_job.base_job):
 
 
 class disk_usage_monitor:
+
     def __init__(self, logging_func, device, max_mb_per_hour):
         self.func = logging_func
         self.device = device
         self.max_mb_per_hour = max_mb_per_hour
 
-
     def start(self):
         self.initial_space = utils.freespace(self.device)
         self.start_time = time.time()
-
 
     def stop(self):
         # if no maximum usage rate was set, we don't need to
@@ -1260,14 +1205,13 @@ class disk_usage_monitor:
 
         # determine the usage rate
         bytes_per_sec = used_space / total_time
-        mb_per_sec = bytes_per_sec / 1024**2
+        mb_per_sec = bytes_per_sec / 1024 ** 2
         mb_per_hour = mb_per_sec * 60 * 60
 
         if mb_per_hour > self.max_mb_per_hour:
             msg = ("disk space on %s was consumed at a rate of %.2f MB/hour")
             msg %= (self.device, mb_per_hour)
             self.func(msg)
-
 
     @classmethod
     def watch(cls, *monitor_args, **monitor_dargs):
@@ -1369,6 +1313,7 @@ def runjob(control, drop_caches, options):
 
 site_job = utils.import_site_class(
     __file__, "autotest.client.site_job", "site_job", base_client_job)
+
 
 class job(site_job):
     pass

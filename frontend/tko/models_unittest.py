@@ -12,13 +12,12 @@ from autotest.frontend.tko import models
 
 class IterationAttributeTest(unittest.TestCase,
                              test_utils.FrontendTestMixin):
+
     def setUp(self):
         self._frontend_common_setup()
 
-
     def tearDown(self):
         self._frontend_common_teardown()
-
 
     def _create_test(self):
         machine = models.Machine.objects.create(hostname='foo.bar')
@@ -36,7 +35,6 @@ class IterationAttributeTest(unittest.TestCase,
                                           status=status,
                                           machine=machine)
         return test
-
 
     def test_single_attributes_for_one_test(self):
         """

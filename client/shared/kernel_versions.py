@@ -20,6 +20,7 @@ import re
 #
 encode_sep = re.compile(r'(\D+)')
 
+
 def version_encode(version):
     bits = encode_sep.split(version)
     n = 9
@@ -28,13 +29,13 @@ def version_encode(version):
     if len(bits) == n or (len(bits) > n and bits[n] != '_rc'):
         # Insert missing _rc99 after 2 . 6 . 18 -smp- 220 . 0
         bits.insert(n, '_rc')
-        bits.insert(n+1, '99')
+        bits.insert(n + 1, '99')
     n = 5
     if len(bits[0]) == 0:
         n += 2
     if len(bits) <= n or bits[n] != '-rc':
         bits.insert(n, '-rc')
-        bits.insert(n+1, '99')
+        bits.insert(n + 1, '99')
     for n in range(0, len(bits), 2):
         if len(bits[n]) == 1:
             bits[n] = '0' + bits[n]
@@ -65,16 +66,18 @@ def version_len(version):
 #
 # Note that a 2.6.1-mm1 is not a predecessor of 2.6.2-rc1-mm1.
 #
+
+
 def version_choose_config(version, candidates):
     # Check if we have an exact match ... if so magic
     if version in candidates:
         return version
 
     # Sort the search key into the list ordered by 'age'
-    deco = [ (version_encode(v), i, v) for i, v in
-                                    enumerate(candidates + [ version ]) ]
+    deco = [(version_encode(v), i, v) for i, v in
+            enumerate(candidates + [version])]
     deco.sort()
-    versions = [ v for _, _, v in deco ]
+    versions = [v for _, _, v in deco]
 
     # Everything sorted below us is of interst.
     for n in range(len(versions) - 1, -1, -1):
@@ -89,7 +92,7 @@ def version_choose_config(version, candidates):
     while length > 1:
         for o in range(n, -1, -1):
             if version_len(versions[o]) == (length + 1) and \
-                                version_limit(versions[o], length) == version:
+                    version_limit(versions[o], length) == version:
                 return versions[o]
         length -= 2
         version = version_limit(version, length)

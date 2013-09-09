@@ -1,4 +1,6 @@
-import sys, os, re
+import sys
+import os
+import re
 from autotest.client import utils, fsinfo, fsdev_mgr, partition
 from autotest.client.shared import error
 
@@ -52,11 +54,11 @@ def get_disk_list(std_mounts_only=True, get_all_disks=False):
 
     # Grab all the interesting disk partition names from /proc/partitions,
     # and build up the table of drives present in the system.
-    hd_list   = []
+    hd_list = []
     # h for IDE drives, s for SATA/SCSI drives, v for Virtio drives
     hd_regexp = re.compile("([hsv]d[a-z]+3)$")
 
-    partfile  = open(_DISKPART_FILE)
+    partfile = open(_DISKPART_FILE)
     for partline in partfile:
         parts = partline.strip().split()
         if len(parts) != 4 or partline.startswith('major'):
@@ -79,12 +81,12 @@ def get_disk_list(std_mounts_only=True, get_all_disks=False):
         tunepath = fd_mgr.map_drive_name(partname)
 
         # Check whether the device is mounted (and how)
-        mstat  = 0
+        mstat = 0
         fstype = ''
         fsopts = ''
         fsmkfs = '?'
         # Prepare the full device path for matching
-        chkdev  = '/dev/' + partname
+        chkdev = '/dev/' + partname
 
         mountpt = None
         for mln in mounts:
@@ -128,13 +130,13 @@ def get_disk_list(std_mounts_only=True, get_all_disks=False):
                     continue
 
         # Looks like we have a valid disk drive, add it to the list
-        hd_list.append({ 'device' : partname,
-                         'mountpt': mountpt,
-                         'tunable': tunepath,
-                         'fs_type': fstype,
-                         'fs_opts': fsopts,
-                         'fs_mkfs': fsmkfs,
-                         'mounted': mstat })
+        hd_list.append({'device': partname,
+                        'mountpt': mountpt,
+                        'tunable': tunepath,
+                        'fs_type': fstype,
+                        'fs_opts': fsopts,
+                        'fs_mkfs': fsmkfs,
+                        'mounted': mstat})
 
     return hd_list
 
@@ -169,7 +171,7 @@ def mkfs_all_disks(job, disk_list, fs_type, fs_makeopt, fs_mnt_opt):
                 fs.unmount(mnt_path)
             except Exception, info:
                 raise Exception("umount failed: exception = %s, args = %s" %
-                                               (sys.exc_info()[0], info.args))
+                               (sys.exc_info()[0], info.args))
             except Exception:
                 raise Exception("Could not unmount device ", dev_path)
 
@@ -179,22 +181,22 @@ def mkfs_all_disks(job, disk_list, fs_type, fs_makeopt, fs_mnt_opt):
         # Next step is to create a fresh file system (if we need to)
         try:
             if not skip_mkfs:
-                fs.mkfs(fstype = fs_type, args = fs_makeopt)
+                fs.mkfs(fstype=fs_type, args=fs_makeopt)
         except Exception:
             raise Exception("Could not 'mkfs " + "-t " + fs_type + " " +
-                                       fs_makeopt + " " + dev_path + "'")
+                            fs_makeopt + " " + dev_path + "'")
 
         # Mount the drive with the appropriate FS options
         try:
             opts = ""
             if fs_mnt_opt != "":
                 opts += " -o " + fs_mnt_opt
-            fs.mount(mountpoint = mnt_path, fstype = fs_type, args = opts)
+            fs.mount(mountpoint=mnt_path, fstype=fs_type, args=opts)
         except NameError, info:
             raise Exception("mount name error: %s" % info)
         except Exception, info:
             raise Exception("mount failed: exception = %s, args = %s" %
-                                             (type(info), info.args))
+                           (type(info), info.args))
 
         # If we skipped mkfs we need to wipe the partition clean
         if skip_mkfs:
@@ -327,7 +329,7 @@ def match_fs(disk, dev_path, fs_type, fs_makeopt):
         return False
 
 
-##############################################################################
+#
 
 # The following variables/methods are used to invoke fsdev in 'library' mode
 
@@ -337,6 +339,7 @@ FSDEV_RESTORE = None
 FSDEV_PREP_CNT = 0
 FSDEV_DISK1_ONLY = None
 FSDEV_DISKLIST = None
+
 
 def use_fsdev_lib(fs_desc, disk1_only, reinit_disks):
     """
@@ -349,12 +352,12 @@ def use_fsdev_lib(fs_desc, disk1_only, reinit_disks):
     global FSDEV_PREP_CNT
 
     # This is a bit tacky - we simply save the arguments in global variables
-    FSDEV_FS_DESC    = fs_desc
+    FSDEV_FS_DESC = fs_desc
     FSDEV_DISK1_ONLY = disk1_only
-    FSDEV_RESTORE    = reinit_disks
+    FSDEV_RESTORE = reinit_disks
 
     # We need to keep track how many times 'prepare' is called
-    FSDEV_PREP_CNT   = 0
+    FSDEV_PREP_CNT = 0
 
 
 def prepare_fsdev(job):
@@ -379,9 +382,9 @@ def prepare_fsdev(job):
 
     FSDEV_JOB = job
 
-    (path, toss, disks) = prepare_disks(job, fs_desc    = FSDEV_FS_DESC,
-                                             disk1_only = FSDEV_DISK1_ONLY,
-                                             disk_list  = None)
+    (path, toss, disks) = prepare_disks(job, fs_desc=FSDEV_FS_DESC,
+                                        disk1_only=FSDEV_DISK1_ONLY,
+                                        disk_list=None)
     FSDEV_DISKLIST = disks
     return (path, disks)
 
@@ -396,14 +399,15 @@ def finish_fsdev(force_cleanup=False):
     """
 
     if FSDEV_PREP_CNT == 1 or force_cleanup:
-        restore_disks(job       = FSDEV_JOB,
-                      restore   = FSDEV_RESTORE,
-                      disk_list = FSDEV_DISKLIST)
+        restore_disks(job=FSDEV_JOB,
+                      restore=FSDEV_RESTORE,
+                      disk_list=FSDEV_DISKLIST)
 
 
-##############################################################################
+#
 
 class fsdev_disks:
+
     """
     Disk drive handling class used for file system development
     """
@@ -411,11 +415,9 @@ class fsdev_disks:
     def __init__(self, job):
         self.job = job
 
-
     # Some clients need to access the 'fsdev manager' instance directly
     def get_fsdev_mgr(self):
         return fd_mgr
-
 
     def config_sched_tunables(self, desc_file):
 
@@ -451,11 +453,10 @@ class fsdev_disks:
                 slash = tuner.find("/")
                 if slash < 0:
                     break
-                tuner = tuner[slash+1:]
+                tuner = tuner[slash + 1:]
 
             # Add mapping to the dictionary
             self.tune_loc[tuner] = tpath
-
 
     def load_sched_tunable_values(self, val_file):
 
@@ -474,18 +475,18 @@ class fsdev_disks:
             endKV = cfgline.find("]:")
             if endKV < 0:
                 raise Exception("Config entry missing closing bracket: "
-                                                                     + cfgline)
-            if cfgline[5:endKV] != self.kernel_ver[0:endKV-5]:
+                                + cfgline)
+            if cfgline[5:endKV] != self.kernel_ver[0:endKV - 5]:
                 continue
 
-            tune_parm = cfgline[endKV+2:].strip()
+            tune_parm = cfgline[endKV + 2:].strip()
             equal = tune_parm.find("=")
             if equal < 1 or equal == len(tune_parm) - 1:
                 raise Exception("Config entry doesn't have 'parameter=value' :"
-                                                                     + cfgline)
+                                + cfgline)
 
             tune_name = tune_parm[:equal]
-            tune_val  = tune_parm[equal+1:]
+            tune_val = tune_parm[equal + 1:]
 
             # See if we have a matching entry in the path dictionary
             try:
@@ -494,7 +495,6 @@ class fsdev_disks:
                 raise Exception("Unknown config entry: " + cfgline)
 
             self.tune_list.append((tune_name, tune_path, tune_val))
-
 
     def set_sched_tunables(self, disks):
         """
@@ -514,9 +514,8 @@ class fsdev_disks:
             # Now set all the tunable parameters we've been given
             for tune_desc in self.tune_list:
                 self.set_tunable(disk, tune_desc[0],
-                                       tune_desc[1],
-                                       tune_desc[2])
-
+                                 tune_desc[1],
+                                 tune_desc[2])
 
     def set_tunable(self, disk, name, path, val):
         """
@@ -552,7 +551,7 @@ class fsdev_disks:
             # with large values; try '128' if we haven't tried it already.
             if name == "max_sectors_kb" and info.errno == 22 and val != '128':
                 self.set_tunable(disk, name, path, '128')
-                return;
+                return
 
             # Something went wrong, probably a 'config' problem of some kind
             raise Exception("Unable to set tunable value '" + name +
@@ -565,6 +564,6 @@ class fsdev_disks:
         # Make sure the new value is what we expected
         if nval != val:
             raise Exception("Unable to correctly set tunable value for "
-                            + name +": desired " + val + ", but found " + nval)
+                            + name + ": desired " + val + ", but found " + nval)
 
         return

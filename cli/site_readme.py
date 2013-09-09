@@ -9,7 +9,9 @@ can create a site_<topic>.py file to subclass some of the classes from
 The following example would prevent the creation of platform labels.
 """
 
-import inspect, new, sys
+import inspect
+import new
+import sys
 
 from autotest.cli import topic_common, label
 
@@ -19,12 +21,13 @@ class site_label(label.label):
 
 
 class site_label_create(label.label_create):
+
     """Disable the platform option
     atest label create <labels>|--blist <file>"""
+
     def __init__(self):
         super(site_label_create, self).__init__()
         self.parser.remove_option("--platform")
-
 
     def parse(self):
         (options, leftover) = super(site_label_create, self).parse()

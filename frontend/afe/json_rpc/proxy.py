@@ -21,10 +21,13 @@
 
 import urllib2
 
+
 class JSONRPCException(Exception):
     pass
 
+
 class ServiceProxy(object):
+
     def __init__(self, serviceURL, serviceName=None, headers=None):
         self.__serviceURL = serviceURL
         self.__serviceName = serviceName
@@ -42,7 +45,7 @@ class ServiceProxy(object):
 
         postdata = encoder.JSONEncoder().encode({"method": self.__serviceName,
                                                 'params': args + (kwargs,),
-                                                'id':'jsonrpc'})
+                                                'id': 'jsonrpc'})
         request = urllib2.Request(self.__serviceURL, data=postdata,
                                   headers=self.__headers)
         respdata = urllib2.urlopen(request).read()

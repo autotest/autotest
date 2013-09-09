@@ -3,7 +3,14 @@ Notification email library.
 
 Aims to replace a bunch of different email module wrappers previously used.
 """
-import traceback, socket, os, time, smtplib, re, logging, email
+import traceback
+import socket
+import os
+import time
+import smtplib
+import re
+import logging
+import email
 try:
     import autotest.common as common
 except ImportError:
@@ -95,6 +102,7 @@ def send(from_address, to_addresses, cc_addresses, subject, body,
 
 
 class EmailNotificationManager(object):
+
     """
     Email notification facility, for use in things like the autotest scheduler.
 
@@ -102,6 +110,7 @@ class EmailNotificationManager(object):
     (global_config.ini) to conveniently send notification emails to the admin
     of an autotest module.
     """
+
     def __init__(self, module="scheduler"):
         """
         Initialize an email notification manager.
@@ -115,11 +124,11 @@ class EmailNotificationManager(object):
         self.html_email = settings.get_value("NOTIFICATION",
                                              "html_notify_email",
                                              type=bool,
-                                              default=False)
+                                             default=False)
 
         self.from_email = settings.get_value("NOTIFICATION",
                                              "notify_email_from",
-                                              default=DEFAULT_FROM_EMAIL)
+                                             default=DEFAULT_FROM_EMAIL)
 
         self.grid_admin_email = settings.get_value("NOTIFICATION",
                                                    "grid_admin_email",
@@ -135,13 +144,11 @@ class EmailNotificationManager(object):
                           'user': user,
                           'password': password}
 
-
     def set_module(self, module):
         """
         Change the name of the module we're notifying for.
         """
         self.module = module
-
 
     def send(self, to_string, subject, body):
         """
@@ -158,13 +165,11 @@ class EmailNotificationManager(object):
              subject=subject, body=body, smtp_info=self.smtp_info,
              html=self.html_email)
 
-
     def send_admin(self, subject, body):
         """
         Send an email to this grid admin.
         """
         self.send(self.grid_admin_email, subject, body)
-
 
     def enqueue_admin(self, subject, message):
         """
@@ -179,7 +184,6 @@ class EmailNotificationManager(object):
                                       time.strftime("%X %x"), message)
         self.email_queue.append(body)
 
-
     def enqueue_exception_admin(self, reason):
         """
         Enqueue an email containing an exception to the test grid admin.
@@ -188,7 +192,6 @@ class EmailNotificationManager(object):
         message = "EXCEPTION: %s\n%s" % (reason, traceback.format_exc())
         self.enqueue_admin("Exception on module %s" %
                            self.module, message)
-
 
     def send_queued_admin(self):
         """

@@ -7,6 +7,7 @@ INDEXES = (
     ('hosts_labels', 'label_id'),
 )
 
+
 def get_index_name(table, field):
     return table + '_' + field
 

@@ -20,8 +20,10 @@ or
     localmachine$ lttv-gui -t /home/tmp/lttng &
 """
 
-import os, time
+import os
+import time
 from autotest.client import utils, profiler
+
 
 class lttng(profiler.profiler):
     version = 1
@@ -34,7 +36,6 @@ class lttng(profiler.profiler):
 
         utils.configure()
         utils.make()
-
 
     # tracepoints: list of trace points to enable
     # outputsize: size limit for lttng output file. -1: no limit.
@@ -56,7 +57,7 @@ class lttng(profiler.profiler):
             os.mkdir(self.mountpoint)
 
         utils.system('mount -t debugfs debugfs ' + self.mountpoint,
-                                                            ignore_status=True)
+                     ignore_status=True)
         utils.system('modprobe ltt-control')
         utils.system('modprobe ltt-statedump')
         # clean up from any tracing we left running
@@ -92,8 +93,7 @@ class lttng(profiler.profiler):
     def start(self, test):
         self.output = os.path.join(test.profdir, 'lttng')
         utils.system('%s -n test -d -l %s/ltt -t %s' %
-                                  (self.lttctl, self.mountpoint, self.output))
-
+                    (self.lttctl, self.mountpoint, self.output))
 
     def stop(self, test):
         utils.system(self.lttctl + ' -n test -R')
@@ -104,7 +104,7 @@ class lttng(profiler.profiler):
                 file_path = os.path.join(self.output, filename)
                 if os.path.isdir(file_path):
                     continue
-                size = os.stat(file_path)[6] # grab file size
+                size = os.stat(file_path)[6]  # grab file size
                 if size > self.outputsize:
                     f = open(file_path, 'r+')
                     f.truncate(self.outputsize)

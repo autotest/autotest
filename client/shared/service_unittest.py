@@ -96,8 +96,8 @@ class TestSpecificServiceManager(unittest.TestCase):
         service_command_generator = patch_service_command_generator()
         service_result_parser = patch_service_result_parser()
         self.service_manager = service._SpecificServiceManager(
-                                       "boot.lldpad", service_command_generator,
-                                       service_result_parser,  self.run_mock)
+            "boot.lldpad", service_command_generator,
+            service_result_parser, self.run_mock)
 
     def test_start(self):
         service = "lldpad"
@@ -123,7 +123,7 @@ def get_service_manager_from_init_and_run(init_name, run_mock):
     result_parser = service._result_parsers[init_name]
     service_manager = service._service_managers[init_name]
     service_command_generator = service._ServiceCommandGenerator(
-                                                 command_generator)
+        command_generator)
     service_result_parser = service._ServiceResultParser(result_parser)
     return service_manager(service_command_generator, service_result_parser, run_mock)
 
@@ -134,7 +134,7 @@ class TestSystemdServiceManager(unittest.TestCase):
         self.run_mock = MagicMock()
         self.init_name = "systemd"
         self.service_manager = get_service_manager_from_init_and_run(
-                                  self.init_name, self.run_mock)
+            self.init_name, self.run_mock)
 
     def test_start(self):
         service = "lldpad"
@@ -192,7 +192,7 @@ class TestSysVInitServiceManager(unittest.TestCase):
         self.run_mock = MagicMock()
         self.init_name = "init"
         self.service_manager = get_service_manager_from_init_and_run(
-                                  self.init_name, self.run_mock)
+            self.init_name, self.run_mock)
 
     def test_list(self):
         list_result_mock = MagicMock(exit_status=0,

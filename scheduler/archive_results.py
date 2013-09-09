@@ -9,7 +9,9 @@ from autotest.client.shared import utils
 from autotest.client.shared.settings import settings
 from autotest.scheduler import drone_utility
 
+
 class BaseResultsArchiver(object):
+
     def archive_results(self, path):
         results_host = settings.get_value('SCHEDULER', 'results_host',
                                           default=None)
@@ -25,5 +27,5 @@ class BaseResultsArchiver(object):
 
 
 ResultsArchiver = utils.import_site_class(
-        __file__, 'autotest.scheduler.site_archive_results',
-        'SiteResultsArchiver', BaseResultsArchiver)
+    __file__, 'autotest.scheduler.site_archive_results',
+    'SiteResultsArchiver', BaseResultsArchiver)

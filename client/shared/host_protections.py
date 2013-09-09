@@ -14,7 +14,7 @@ Protection = enum.Enum('No protection',          # Repair can do anything to
                                                  # this host.
                        'Repair software only',   # repair should try to fix any
                                                  # software problem
-                       'Repair filesystem only', # Repair should only try to
+                       'Repair filesystem only',  # Repair should only try to
                                                  # recover the file system.
                        'Do not repair',          # Repair should not touch this
                                                  # host.
@@ -32,7 +32,7 @@ try:
     if default_protection == _bad_value:
         if not running_client:
             raise SettingsError('No HOSTS.default_protection defined in '
-                              'global_config.ini')
+                                'global_config.ini')
     else:
         default = Protection.get_value(default_protection)
 

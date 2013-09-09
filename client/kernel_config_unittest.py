@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
-import unittest, tempfile, os
+import unittest
+import tempfile
+import os
 
 try:
     import autotest.common as common
@@ -99,9 +101,10 @@ CONFIG_SFI=y
 
 
 class TestKernelConfig(unittest.TestCase):
+
     def setUp(self):
         self.config_modules_fd, self.config_modules_path = tempfile.mkstemp(
-                                       prefix="autotest_kernel_config_unittest")
+            prefix="autotest_kernel_config_unittest")
         self.config_modules = open(self.config_modules_path, "w")
         self.config_modules.write(CONFIG_SAMPLE)
         self.config_modules.close()
@@ -110,20 +113,20 @@ class TestKernelConfig(unittest.TestCase):
         for feature in ['CONFIG_SLABINFO', 'CONFIG_RT_MUTEXES',
                         'CONFIG_HIBERNATION']:
             self.assertEqual(kernel_config.feature_enabled(feature,
-                                                self.config_modules_path), True)
+                                                           self.config_modules_path), True)
 
     def testFeatureDisabled(self):
         for feature in ['CONFIG_MODULE_SIG_SHA512', 'CONFIG_PM_TEST_SUSPEND']:
             self.assertEqual(kernel_config.feature_enabled(feature,
-                                               self.config_modules_path), False)
+                                                           self.config_modules_path), False)
 
     def testFeatureDisabledByUser(self):
         self.assertEqual(kernel_config.feature_enabled("CONFIG_NASTY_USER",
-                                              self.config_modules_path), False)
+                                                       self.config_modules_path), False)
 
     def testModulesNeeded(self):
         self.assertEqual(kernel_config.modules_needed(
-                                                self.config_modules_path), True)
+            self.config_modules_path), True)
 
     def tearDown(self):
         os.unlink(self.config_modules_path)

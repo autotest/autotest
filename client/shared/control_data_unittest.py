@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
-import os, unittest
+import os
+import unittest
 try:
     import autotest.common as common
 except ImportError:
@@ -26,15 +27,14 @@ TEST_TYPE='client'
 
 
 class ParseControlTest(unittest.TestCase):
+
     def setUp(self):
         self.control_tmp = autotemp.tempfile(unique_id='control_unit',
                                              text=True)
         os.write(self.control_tmp.fd, CONTROL)
 
-
     def tearDown(self):
         self.control_tmp.clean()
-
 
     def test_parse_control(self):
         cd = control_data.parse_control(self.control_tmp.name, True)
@@ -52,14 +52,13 @@ class ParseControlTest(unittest.TestCase):
 
 
 class SetMethodTests(unittest.TestCase):
+
     def setUp(self):
         self.required_vars = control_data.REQUIRED_VARS
         control_data.REQUIRED_VARS = set()
 
-
     def tearDown(self):
         control_data.REQUIRED_VARS = self.required_vars
-
 
     def test_bool(self):
         cd = ControlData({}, 'filename')
@@ -76,7 +75,6 @@ class SetMethodTests(unittest.TestCase):
         self.assertRaises(ValueError, cd._set_bool, 'foo', [])
         self.assertRaises(ValueError, cd._set_bool, 'foo', None)
 
-
     def test_int(self):
         cd = ControlData({}, 'filename')
         cd._set_int('foo', 0)
@@ -91,7 +89,6 @@ class SetMethodTests(unittest.TestCase):
         self.assertRaises(ValueError, cd._set_int, 'foo', '')
         self.assertRaises(TypeError, cd._set_int, 'foo', None)
 
-
     def test_set(self):
         cd = ControlData({}, 'filename')
         cd._set_set('foo', 'a')
@@ -102,7 +99,6 @@ class SetMethodTests(unittest.TestCase):
         self.assertEquals(cd.foo, set(['a', 'b', 'c']))
         cd._set_set('foo', None)
         self.assertEquals(cd.foo, set(['None']))
-
 
     def test_string(self):
         cd = ControlData({}, 'filename')
@@ -118,7 +114,6 @@ class SetMethodTests(unittest.TestCase):
         self.assertEquals(cd.foo, 'None')
         cd._set_string('foo', [])
         self.assertEquals(cd.foo, '[]')
-
 
     def test_option(self):
         options = ['a', 'b']

@@ -7,7 +7,9 @@ a library while that pointing users to the job results, but it can also
 be used in the command line for debugging purposes.
 """
 
-import os, sys, urllib2
+import os
+import sys
+import urllib2
 import logging
 try:
     import autotest.common
@@ -25,10 +27,12 @@ ARCHIVE_HOST = settings.get_value('SCHEDULER', 'archive_host', default='')
 
 
 class LoggingConfig(logging_config.LoggingConfig):
+
     """
     Used with the sole purpose of providing convenient logging setup
     for this program.
     """
+
     def configure_logging(self, results_dir=None, verbose=False):
         super(LoggingConfig, self).configure_logging(use_console=True,
                                                      verbose=verbose)
@@ -42,13 +46,13 @@ def _retrieve_dummy(job_path):
 
 
 site_retrieve_logs = utils.import_site_function(__file__,
-    "autotest.tko.site_retrieve_logs", "site_retrieve_logs",
-    _retrieve_dummy)
+                                                "autotest.tko.site_retrieve_logs", "site_retrieve_logs",
+                                                _retrieve_dummy)
 
 
 site_find_repository_host = utils.import_site_function(__file__,
-    "autotest.tko.site_retrieve_logs", "site_find_repository_host",
-    _retrieve_dummy)
+                                                       "autotest.tko.site_retrieve_logs", "site_find_repository_host",
+                                                       _retrieve_dummy)
 
 
 def find_repository_host(job_path):

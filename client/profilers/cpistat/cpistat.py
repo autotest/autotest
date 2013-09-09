@@ -4,15 +4,16 @@ Uses perf_events to count cycles and instructions
 Defaults options:
 job.profilers.add('cpistat', interval=1)
 """
-import os, subprocess
+import os
+import subprocess
 from autotest.client import profiler
+
 
 class cpistat(profiler.profiler):
     version = 1
 
-    def initialize(self, interval = 1, **dargs):
+    def initialize(self, interval=1, **dargs):
         self.interval = interval
-
 
     def start(self, test):
         cmd = os.path.join(self.bindir, 'site_cpistat')
@@ -22,7 +23,6 @@ class cpistat(profiler.profiler):
         p = subprocess.Popen(cmd, stdout=logfile,
                              stderr=subprocess.STDOUT)
         self.pid = p.pid
-
 
     def stop(self, test):
         os.kill(self.pid, 15)

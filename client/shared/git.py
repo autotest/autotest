@@ -3,7 +3,8 @@ Code that helps to deal with content from git repositories
 """
 
 
-import os, logging
+import os
+import logging
 import error
 from autotest.client import utils, os_dep
 
@@ -12,9 +13,11 @@ __all__ = ["GitRepoHelper", "get_repo"]
 
 
 class GitRepoHelper(object):
+
     '''
     Helps to deal with git repos, mostly fetching content from a repo
     '''
+
     def __init__(self, uri, branch='master', lbranch='master', commit=None,
                  destination_dir=None, base_uri=None):
         '''
@@ -51,7 +54,6 @@ class GitRepoHelper(object):
 
         self.cmd = os_dep.command('git')
 
-
     def init(self):
         '''
         Initializes a directory for receiving a verbatim copy of git repo
@@ -76,7 +78,6 @@ class GitRepoHelper(object):
                           self.destination_dir, self.uri)
             self.git_cmd('init')
 
-
     def git_cmd(self, cmd, ignore_status=False):
         '''
         Wraps git commands.
@@ -88,8 +89,7 @@ class GitRepoHelper(object):
         '''
         os.chdir(self.destination_dir)
         return utils.run(r"%s %s" % (self.cmd, utils.sh_escape(cmd)),
-                                     ignore_status=ignore_status)
-
+                         ignore_status=ignore_status)
 
     def fetch(self, uri):
         '''
@@ -100,7 +100,6 @@ class GitRepoHelper(object):
         self.git_cmd("fetch -q -f -u -t %s %s:%s" %
                      (uri, self.branch, self.lbranch))
 
-
     def get_top_commit(self):
         '''
         Returns the topmost commit id for the current branch.
@@ -108,7 +107,6 @@ class GitRepoHelper(object):
         @return: Commit id.
         '''
         return self.git_cmd('log --pretty=format:%H -1').stdout.strip()
-
 
     def get_top_tag(self):
         '''
@@ -120,7 +118,6 @@ class GitRepoHelper(object):
             return self.git_cmd('describe').stdout.strip()
         except error.CmdError:
             return None
-
 
     def checkout(self, branch=None, commit=None):
         '''
@@ -151,7 +148,6 @@ class GitRepoHelper(object):
         else:
             top_tag_desc = 'tag %s' % top_tag
         logging.info("git commit ID is %s (%s)", top_commit, top_tag_desc)
-
 
     def execute(self):
         '''

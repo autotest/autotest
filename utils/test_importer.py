@@ -31,7 +31,12 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-import logging, re, os, sys, optparse, compiler
+import logging
+import re
+import os
+import sys
+import optparse
+import compiler
 from autotest.frontend import setup_django_environment
 from autotest.frontend.afe import models
 from autotest.client.shared import control_data, utils
@@ -39,10 +44,11 @@ from autotest.client.shared import logging_config, logging_manager
 
 
 class TestImporterLoggingConfig(logging_config.LoggingConfig):
+
     def configure_logging(self, results_dir=None, verbose=False):
         super(TestImporterLoggingConfig, self).configure_logging(
-                                                               use_console=True,
-                                                               verbose=verbose)
+            use_console=True,
+            verbose=verbose)
 
 
 # Global
@@ -67,15 +73,15 @@ def update_all(autotest_dir, add_noncompliant, add_experimental):
     @param add_noncompliant: attempt adding test with invalid control files.
     @param add_experimental: add tests with experimental attribute set.
     """
-    for path in [ 'server/tests', 'server/site_tests', 'client/tests',
-                  'client/site_tests', 'client/samples']:
+    for path in ['server/tests', 'server/site_tests', 'client/tests',
+                 'client/site_tests', 'client/samples']:
         test_path = os.path.join(autotest_dir, path)
         if not os.path.exists(test_path):
             continue
         logging.info("Scanning %s", test_path)
         tests = []
         tests = get_tests_from_fs(test_path, "^control.*",
-                                 add_noncompliant=add_noncompliant)
+                                  add_noncompliant=add_noncompliant)
         update_tests_in_db(tests, add_experimental=add_experimental,
                            add_noncompliant=add_noncompliant,
                            autotest_dir=autotest_dir)
@@ -83,7 +89,7 @@ def update_all(autotest_dir, add_noncompliant, add_experimental):
     if os.path.exists(test_suite_path):
         logging.info("Scanning %s", test_suite_path)
         tests = get_tests_from_fs(test_suite_path, '.*',
-                                 add_noncompliant=add_noncompliant)
+                                  add_noncompliant=add_noncompliant)
         update_tests_in_db(tests, add_experimental=add_experimental,
                            add_noncompliant=add_noncompliant,
                            autotest_dir=autotest_dir)
@@ -229,7 +235,7 @@ def update_tests_in_db(tests, dry_run=False, add_experimental=False,
                             (test, autotest_dir))
 
         new_test = models.Test.objects.get_or_create(
-                path=test.replace(autotest_dir, '').lstrip('/'))[0]
+            path=test.replace(autotest_dir, '').lstrip('/'))[0]
         logging.info("Processing %s", new_test.path)
 
         # Set the test's attributes
@@ -347,7 +353,7 @@ def get_tests_from_fs(parent_dir, control_pattern, add_noncompliant=False):
     profilers = False
     if 'client/profilers' in parent_dir:
         profilers = True
-    for dir in [ parent_dir ]:
+    for dir in [parent_dir]:
         files = recursive_walk(dir, control_pattern)
         for file in files:
             if '__init__.py' in file or '.svn' in file:
@@ -356,7 +362,7 @@ def get_tests_from_fs(parent_dir, control_pattern, add_noncompliant=False):
                 if not add_noncompliant:
                     try:
                         found_test = control_data.parse_control(file,
-                                                            raise_warnings=True)
+                                                                raise_warnings=True)
                         tests[file] = found_test
                     except control_data.ControlVariableException, e:
                         logging.warn("Skipping %s\n%s", file, e)
@@ -382,8 +388,8 @@ def recursive_walk(path, wildcard):
     @return A list of files that match wildcard
     """
     files = []
-    directories = [ path ]
-    while len(directories)>0:
+    directories = [path]
+    while len(directories) > 0:
         directory = directories.pop()
         for name in os.listdir(directory):
             fullpath = os.path.join(directory, name)
@@ -410,7 +416,7 @@ def _log_or_execute(content, func, *args, **kwargs):
     subject = kwargs.get('subject', func.__name__)
 
     if DRY_RUN:
-        logging.info("Would %s: %s",  subject, content)
+        logging.info("Would %s: %s", subject, content)
     else:
         func(*args)
 
@@ -472,11 +478,11 @@ def main(argv):
     parser.add_option('-c', '--db-clean-tests',
                       dest='clean_tests', action='store_true',
                       default=False,
-                help='Clean client and server tests with invalid control files')
+                      help='Clean client and server tests with invalid control files')
     parser.add_option('-C', '--db-clear-all-tests',
                       dest='clear_all_tests', action='store_true',
                       default=False,
-                help='Clear ALL client and server tests')
+                      help='Clear ALL client and server tests')
     parser.add_option('-d', '--dry-run',
                       dest='dry_run', action='store_true', default=False,
                       help='Dry run for operation')
@@ -503,7 +509,7 @@ def main(argv):
                       help='Directory to recursively check for control.*')
     parser.add_option('-r', '--control-pattern', dest='control_pattern',
                       default='^control.*',
-               help='The pattern to look for in directories for control files')
+                      help='The pattern to look for in directories for control files')
     parser.add_option('-v', '--verbose',
                       dest='verbose', action='store_true', default=False,
                       help='Run in verbose mode')
@@ -540,7 +546,7 @@ def main(argv):
 
     if options.clear_all_tests:
         if (options.clean_tests or options.add_all or options.add_samples or
-            options.add_noncompliant):
+                options.add_noncompliant):
             logging.error(
                 "Can only pass --autotest-dir, --dry-run and --verbose with "
                 "--db-clear-all-tests")
@@ -557,7 +563,7 @@ def main(argv):
             logging.error("--whitelist-file (%s) not found", whitelist_path)
             return 1
         logging.info("Using whitelist file %s", whitelist_path)
-        whitelist_set =  _create_whitelist_set(whitelist_path)
+        whitelist_set = _create_whitelist_set(whitelist_path)
         update_from_whitelist(whitelist_set,
                               add_experimental=options.add_experimental,
                               add_noncompliant=options.add_noncompliant,

@@ -6,20 +6,18 @@ to any of these methods should inherit this class.
 
 from autotest.client import utils
 
+
 class BaseFsdevManager(object):
 
     def __init__(self):
         pass
 
-
     def include_partition(self, part_name):
         # Client to fill in logic that will pick the right partitions
         return False
 
-
     def map_drive_name(self, part_name):
         return part_name
-
 
     def check_mount_point(self, part_name, mount_point):
         """
@@ -31,7 +29,6 @@ class BaseFsdevManager(object):
                 (None or '') if the client should not mount this partition.
         """
         return mount_point
-
 
     def use_partition(self, part_name):
         """
@@ -47,5 +44,7 @@ SiteFsdevManager = utils.import_site_class(
     BaseFsdevManager)
 
 # Wrap whatever SiteFsdevManager class we've found above in a class
+
+
 class FsdevManager(SiteFsdevManager):
     pass

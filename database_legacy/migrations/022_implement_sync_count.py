@@ -9,6 +9,7 @@ UPDATE jobs SET synch_type = 2 WHERE synch_count > 1;
 ALTER TABLE host_queue_entries DROP COLUMN `execution_subdir`;
 """
 
+
 def migrate_up(manager):
     # add execution_subdir field
     manager.execute("""ALTER TABLE host_queue_entries ADD COLUMN

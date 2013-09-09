@@ -5,19 +5,20 @@ Defaults options:
 job.profilers.add('catprofile', ['/proc/meminfo','/proc/uptime'],
                   outfile=monitor, interval=1)
 """
-import time, os
+import time
+import os
 from autotest.client import profiler
+
 
 class catprofile(profiler.profiler):
     version = 1
 
     # filenames: list of filenames to cat
-    def initialize(self, filenames = ['/proc/meminfo', '/proc/slabinfo'],
-                            outfile = 'monitor', interval = 1, **dargs):
+    def initialize(self, filenames=['/proc/meminfo', '/proc/slabinfo'],
+                   outfile='monitor', interval=1, **dargs):
         self.filenames = filenames
         self.outfile = outfile
         self.interval = interval
-
 
     def start(self, test):
         self.child_pid = os.fork()
@@ -39,10 +40,8 @@ class catprofile(profiler.profiler):
                 output.close()
                 time.sleep(self.interval)
 
-
     def stop(self, test):
         os.kill(self.child_pid, 15)
-
 
     def report(self, test):
         return None

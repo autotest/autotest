@@ -92,9 +92,11 @@ def load_from_tree(name, version, release, arch,
 
 # pylint: disable=I0011,R0903
 class SoftwarePackage(object):
+
     '''
     Definition of relevant information on a software package
     '''
+
     def __init__(self, name, version, release, checksum, arch):
         self.name = name
         self.version = version
@@ -105,9 +107,11 @@ class SoftwarePackage(object):
 
 # pylint: disable=I0011,R0903
 class DistroDef(distro.LinuxDistro):
+
     '''
     More complete information on a given Linux Distribution
     '''
+
     def __init__(self, name, version, release, arch):
         super(DistroDef, self).__init__(name, version, release, arch)
 
@@ -119,14 +123,15 @@ class DistroDef(distro.LinuxDistro):
 
 
 class DistroPkgInfoLoader(object):
+
     '''
     Loads information from the distro installation tree into a DistroDef
 
     It will go through all package files
     '''
+
     def __init__(self, path):
         self.path = path
-
 
     def get_packages_info(self):
         '''
@@ -147,7 +152,6 @@ class DistroPkgInfoLoader(object):
         # comprised of unique entries
         return list(packages_info)
 
-
     def is_software_package(self, path):
         '''
         Determines if the given file at :param:`path` is a software package
@@ -165,7 +169,6 @@ class DistroPkgInfoLoader(object):
         '''
         raise NotImplementedError
 
-
     def get_package_info(self, path):
         '''
         Returns information about a given software package
@@ -182,9 +185,11 @@ class DistroPkgInfoLoader(object):
 
 
 class DistroPkgInfoLoaderRpm(DistroPkgInfoLoader):
+
     '''
     Loads package information for RPM files
     '''
+
     def __init__(self, path):
         super(DistroPkgInfoLoaderRpm, self).__init__(path)
         try:
@@ -193,7 +198,6 @@ class DistroPkgInfoLoaderRpm(DistroPkgInfoLoader):
         except ValueError:
             self.capable = False
 
-
     def is_software_package(self, path):
         '''
         Systems needs to be able to run the rpm binary in order to fetch
@@ -201,7 +205,6 @@ class DistroPkgInfoLoaderRpm(DistroPkgInfoLoader):
         on this system, we simply ignore the rpm files found
         '''
         return self.capable and path.endswith('.rpm')
-
 
     def get_package_info(self, path):
         cmd = "rpm -qp --qf '%{NAME} %{VERSION} %{RELEASE} %{SIGMD5} %{ARCH}' "
@@ -212,9 +215,11 @@ class DistroPkgInfoLoaderRpm(DistroPkgInfoLoader):
 
 
 class DistroPkgInfoLoaderDeb(DistroPkgInfoLoader):
+
     '''
     Loads package information for DEB files
     '''
+
     def __init__(self, path):
         super(DistroPkgInfoLoaderDeb, self).__init__(path)
         try:
@@ -223,11 +228,9 @@ class DistroPkgInfoLoaderDeb(DistroPkgInfoLoader):
         except ValueError:
             self.capable = False
 
-
     def is_software_package(self, path):
         return self.capable and (path.endswith('.deb') or
                                  path.endswith('.udeb'))
-
 
     def get_package_info(self, path):
         cmd = ("dpkg-deb --showformat '${Package} ${Version} ${Architecture}' "
@@ -239,5 +242,5 @@ class DistroPkgInfoLoaderDeb(DistroPkgInfoLoader):
 
 
 #: the type of distro that will determine what loader will be used
-DISTRO_PKG_INFO_LOADERS = {'rpm' : DistroPkgInfoLoaderRpm,
-                           'deb' : DistroPkgInfoLoaderDeb}
+DISTRO_PKG_INFO_LOADERS = {'rpm': DistroPkgInfoLoaderRpm,
+                           'deb': DistroPkgInfoLoaderDeb}

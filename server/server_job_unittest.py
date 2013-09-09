@@ -19,7 +19,6 @@ class test_find_base_directories(
     def setUp(self):
         self.job = server_job.server_job.__new__(server_job.server_job)
 
-
     def test_relative_path_layout(self):
         existing_file = server_job.__file__
         server_job.__file__ = '/rootdir/atest/server/server_job.py'
@@ -45,15 +44,16 @@ class test_init(base_job_unittest.test_init.generic_tests, unittest.TestCase):
             server_job.base_server_job)
         self.job._job_directory = base_job_unittest.stub_job_directory
 
-
     def call_init(self):
         # TODO(jadmanski): refactor more of the __init__ code to not need to
         # stub out countless random APIs
         self.god.stub_with(server_job.os, 'mkdir', lambda p: None)
+
         class manager:
             pass
         self.god.stub_with(server_job.logging_manager, 'get_logging_manager',
-                           lambda *a,**k: manager())
+                           lambda *a, **k: manager())
+
         class sysi:
             log_per_reboot_data = lambda self: None
         self.god.stub_with(server_job.sysinfo, 'sysinfo', lambda r: sysi())
@@ -64,23 +64,21 @@ class test_init(base_job_unittest.test_init.generic_tests, unittest.TestCase):
 
 
 class WarningManagerTest(unittest.TestCase):
+
     def test_never_disabled(self):
         manager = server_job.warning_manager()
         self.assertEqual(manager.is_valid(10, "MSGTYPE"), True)
-
 
     def test_only_enabled(self):
         manager = server_job.warning_manager()
         manager.enable_warnings("MSGTYPE", lambda: 10)
         self.assertEqual(manager.is_valid(20, "MSGTYPE"), True)
 
-
     def test_disabled_once(self):
         manager = server_job.warning_manager()
         manager.disable_warnings("MSGTYPE", lambda: 10)
         self.assertEqual(manager.is_valid(5, "MSGTYPE"), True)
         self.assertEqual(manager.is_valid(15, "MSGTYPE"), False)
-
 
     def test_disable_and_enabled(self):
         manager = server_job.warning_manager()
@@ -89,13 +87,11 @@ class WarningManagerTest(unittest.TestCase):
         self.assertEqual(manager.is_valid(15, "MSGTYPE"), False)
         self.assertEqual(manager.is_valid(25, "MSGTYPE"), True)
 
-
     def test_disabled_changes_is_valid(self):
         manager = server_job.warning_manager()
         self.assertEqual(manager.is_valid(15, "MSGTYPE"), True)
         manager.disable_warnings("MSGTYPE", lambda: 10)
         self.assertEqual(manager.is_valid(15, "MSGTYPE"), False)
-
 
     def test_multiple_disabled_calls(self):
         manager = server_job.warning_manager()
@@ -105,7 +101,6 @@ class WarningManagerTest(unittest.TestCase):
         self.assertEqual(manager.is_valid(15, "MSGTYPE"), False)
         self.assertEqual(manager.is_valid(25, "MSGTYPE"), False)
         self.assertEqual(manager.is_valid(35, "MSGTYPE"), True)
-
 
     def test_multiple_types(self):
         manager = server_job.warning_manager()

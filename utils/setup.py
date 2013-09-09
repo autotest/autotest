@@ -22,7 +22,7 @@ def get_package_dir():
 
 
 def get_package_data():
-    return {'autotest.utils' : ['named_semaphore/*', 'modelviz/*']}
+    return {'autotest.utils': ['named_semaphore/*', 'modelviz/*']}
 
 
 def get_packages():
@@ -30,10 +30,10 @@ def get_packages():
 
 
 def get_data_files():
-    return [('share/autotest/utils', [ utils_dir + '/autotestd.service',
-                                       utils_dir + '/autotest.init',
-                                       utils_dir + '/autotest-rh.init',
-                                       utils_dir + '/release'])]
+    return [('share/autotest/utils', [utils_dir + '/autotestd.service',
+                                      utils_dir + '/autotest.init',
+                                      utils_dir + '/autotest-rh.init',
+                                      utils_dir + '/release'])]
 
 
 def run():

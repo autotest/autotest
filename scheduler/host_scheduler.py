@@ -11,15 +11,17 @@ from autotest.scheduler import scheduler_models
 
 
 get_site_metahost_schedulers = utils.import_site_function(
-        __file__, 'autotest.scheduler.site_metahost_scheduler',
-        'get_metahost_schedulers', lambda : ())
+    __file__, 'autotest.scheduler.site_metahost_scheduler',
+    'get_metahost_schedulers', lambda: ())
 
 
 class SchedulerError(Exception):
+
     """Raised by HostScheduler when an inconsistent state occurs."""
 
 
 class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
+
     """Handles the logic for choosing when to run jobs and on which hosts.
 
     This class makes several queries to the database on each tick, building up
@@ -31,41 +33,39 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
     queries.  It has proven much simpler and faster to build these auxiliary
     data structures and perform the logic in Python.
     """
+
     def __init__(self, db):
         self._db = db
         self._metahost_schedulers = metahost_scheduler.get_metahost_schedulers()
 
         # load site-specific scheduler selected in settings
         site_schedulers_str = settings.get_value(
-                scheduler_config.CONFIG_SECTION, 'site_metahost_schedulers',
-                default='')
+            scheduler_config.CONFIG_SECTION, 'site_metahost_schedulers',
+            default='')
         site_schedulers = set(site_schedulers_str.split(','))
         for scheduler in get_site_metahost_schedulers():
             if type(scheduler).__name__ in site_schedulers:
                 # always prepend, so site schedulers take precedence
                 self._metahost_schedulers = (
-                        [scheduler] + self._metahost_schedulers)
+                    [scheduler] + self._metahost_schedulers)
         logging.info('Metahost schedulers: %s',
                      ', '.join(type(scheduler).__name__ for scheduler
                                in self._metahost_schedulers))
-
 
     def _get_ready_hosts(self):
         # avoid any host with a currently active queue entry against it
         hosts = scheduler_models.Host.fetch(
             joins='LEFT JOIN afe_host_queue_entries AS active_hqe '
                   'ON (afe_hosts.id = active_hqe.host_id AND '
-                      'active_hqe.active)',
+            'active_hqe.active)',
             where="active_hqe.host_id IS NULL "
                   "AND NOT afe_hosts.locked "
                   "AND (afe_hosts.status IS NULL "
-                          "OR afe_hosts.status = 'Ready')")
+            "OR afe_hosts.status = 'Ready')")
         return dict((host.id, host) for host in hosts)
-
 
     def _get_sql_id_list(self, id_list):
         return ','.join(str(item_id) for item_id in id_list)
-
 
     def _get_many2many_dict(self, query, id_list, flip=False):
         if not id_list:
@@ -73,7 +73,6 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
         query %= self._get_sql_id_list(id_list)
         rows = self._db.execute(query)
         return self._process_many2many_dict(rows, flip)
-
 
     def _process_many2many_dict(self, rows, flip=False):
         result = {}
@@ -83,7 +82,6 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
                 left_id, right_id = right_id, left_id
             result.setdefault(left_id, set()).add(right_id)
         return result
-
 
     def _get_job_acl_groups(self, job_ids):
         query = """
@@ -96,7 +94,6 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
         """
         return self._get_many2many_dict(query, job_ids)
 
-
     def _get_job_ineligible_hosts(self, job_ids):
         query = """
         SELECT job_id, host_id
@@ -104,7 +101,6 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
         WHERE job_id IN (%s)
         """
         return self._get_many2many_dict(query, job_ids)
-
 
     def _get_job_dependencies(self, job_ids):
         query = """
@@ -114,7 +110,6 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
         """
         return self._get_many2many_dict(query, job_ids)
 
-
     def _get_host_acls(self, host_ids):
         query = """
         SELECT host_id, aclgroup_id
@@ -122,7 +117,6 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
         WHERE host_id IN (%s)
         """
         return self._get_many2many_dict(query, host_ids)
-
 
     def _get_label_hosts(self, host_ids):
         if not host_ids:
@@ -137,16 +131,13 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
         hosts_to_labels = self._process_many2many_dict(rows, flip=True)
         return labels_to_hosts, hosts_to_labels
 
-
     def _get_labels(self):
         return dict((label.id, label) for label
                     in scheduler_models.Label.fetch())
 
-
     def recovery_on_startup(self):
         for metahost_scheduler in self._metahost_schedulers:
             metahost_scheduler.recovery_on_startup()
-
 
     def refresh(self, pending_queue_entries):
         self._hosts_available = self._get_ready_hosts()
@@ -163,38 +154,30 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
 
         self._labels = self._get_labels()
 
-
     def tick(self):
         for metahost_scheduler in self._metahost_schedulers:
             metahost_scheduler.tick()
 
-
     def hosts_in_label(self, label_id):
         return set(self._label_hosts.get(label_id, ()))
-
 
     def remove_host_from_label(self, host_id, label_id):
         self._label_hosts[label_id].remove(host_id)
 
-
     def pop_host(self, host_id):
         return self._hosts_available.pop(host_id)
 
-
     def ineligible_hosts_for_entry(self, queue_entry):
         return set(self._ineligible_hosts.get(queue_entry.job_id, ()))
-
 
     def _is_acl_accessible(self, host_id, queue_entry):
         job_acls = self._job_acls.get(queue_entry.job_id, set())
         host_acls = self._host_acls.get(host_id, set())
         return len(host_acls.intersection(job_acls)) > 0
 
-
     def _check_job_dependencies(self, job_dependencies, host_labels):
         missing = job_dependencies - host_labels
         return len(missing) == 0
-
 
     def _check_only_if_needed_labels(self, job_dependencies, host_labels,
                                      queue_entry):
@@ -214,7 +197,6 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
                 return False
         return True
 
-
     def _check_atomic_group_labels(self, host_labels, queue_entry):
         """
         Determine if the given HostQueueEntry's atomic group settings are okay
@@ -227,7 +209,6 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
         """
         return (self._get_host_atomic_group_id(host_labels, queue_entry) ==
                 queue_entry.atomic_group_id)
-
 
     def _get_host_atomic_group_id(self, host_labels, queue_entry=None):
         """
@@ -252,7 +233,6 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
                           queue_entry, atomic_labels)
         return atomic_ids.pop()
 
-
     def _get_atomic_group_labels(self, atomic_group_id):
         """
         Lookup the label ids that an atomic_group is associated with.
@@ -264,7 +244,6 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
         return (id for id, label in self._labels.iteritems()
                 if label.atomic_group_id == atomic_group_id
                 and not label.invalid)
-
 
     def _get_eligible_host_ids_in_group(self, group_hosts, queue_entry):
         """
@@ -279,7 +258,6 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
         return set(host_id for host_id in group_hosts
                    if self.is_host_usable(host_id)
                    and self.is_host_eligible_for_job(host_id, queue_entry))
-
 
     def is_host_eligible_for_job(self, host_id, queue_entry):
         if self._is_host_invalid(host_id):
@@ -298,17 +276,14 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
                     job_dependencies, host_labels, queue_entry) and
                 self._check_atomic_group_labels(host_labels, queue_entry))
 
-
     def _is_host_invalid(self, host_id):
         host_object = self._hosts_available.get(host_id, None)
         return host_object and host_object.invalid
-
 
     def _schedule_non_metahost(self, queue_entry):
         if not self.is_host_eligible_for_job(queue_entry.host_id, queue_entry):
             return None
         return self._hosts_available.pop(queue_entry.host_id, None)
-
 
     def is_host_usable(self, host_id):
         if host_id not in self._hosts_available:
@@ -320,7 +295,6 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
             return False
         return True
 
-
     def schedule_entry(self, queue_entry):
         if queue_entry.host_id is not None:
             return self._schedule_non_metahost(queue_entry)
@@ -331,7 +305,6 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
                 return None
 
         raise SchedulerError('No metahost scheduler to handle %s' % queue_entry)
-
 
     def find_eligible_atomic_group(self, queue_entry):
         """
@@ -366,7 +339,7 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
                 'Error: job %d synch_count=%d > requested atomic_group %d '
                 'max_number_of_machines=%d.  Aborted host_queue_entry %d.',
                 job.id, job.synch_count, atomic_group.id,
-                 atomic_group.max_number_of_machines, queue_entry.id)
+                atomic_group.max_number_of_machines, queue_entry.id)
             return []
         hosts_in_label = self.hosts_in_label(queue_entry.meta_host)
         ineligible_host_ids = self.ineligible_hosts_for_entry(queue_entry)
@@ -380,7 +353,7 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
                 group_hosts.intersection_update(hosts_in_label)
             group_hosts -= ineligible_host_ids
             eligible_host_ids_in_group = self._get_eligible_host_ids_in_group(
-                    group_hosts, queue_entry)
+                group_hosts, queue_entry)
 
             # Job.synch_count is treated as "minimum synch count" when
             # scheduling for an atomic group of hosts.  The atomic group
@@ -415,8 +388,8 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
 
 
 site_host_scheduler = utils.import_site_class(
-        __file__, 'autotest.scheduler.site_host_scheduler',
-        'site_host_scheduler', BaseHostScheduler)
+    __file__, 'autotest.scheduler.site_host_scheduler',
+    'site_host_scheduler', BaseHostScheduler)
 
 
 class HostScheduler(site_host_scheduler):

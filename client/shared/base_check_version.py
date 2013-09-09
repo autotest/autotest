@@ -1,14 +1,18 @@
 # This file must use Python 1.5 syntax.
-import sys, os, glob, re
+import sys
+import os
+import glob
+import re
 
 
 class base_check_python_version:
+
     def __init__(self):
         version = None
         try:
             version = sys.version_info[0:2]
         except AttributeError:
-            pass # pre 2.0, no neat way to get the exact number
+            pass  # pre 2.0, no neat way to get the exact number
 
         # The change to prefer 2.4 really messes up any systems which have both
         # the new and old version of Python, but where the newer is default.
@@ -26,7 +30,6 @@ class base_check_python_version:
             except ImportError:
                 self.restart()
 
-
     def extract_version(self, path):
         match = re.search(r'/python(\d+)\.(\d+)$', path)
         if match:
@@ -34,9 +37,7 @@ class base_check_python_version:
         else:
             return None
 
-
     PYTHON_BIN_GLOB_STRINGS = ['/usr/bin/python2*', '/usr/local/bin/python2*']
-
 
     def find_desired_python(self):
         """Returns the path of the desired python interpreter."""
@@ -58,7 +59,6 @@ class base_check_python_version:
         # Return the lowest possible version so that we use 2.4 if available
         # rather than more recent versions.
         return possible_versions[0][1]
-
 
     def restart(self):
         python = self.find_desired_python()

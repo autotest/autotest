@@ -10,12 +10,12 @@ from autotest.client.shared import log
 
 
 class clean_raw_line_test(unittest.TestCase):
+
     def test_default(self):
         raw_line_temp = 'this \r is a %s line \x00 yeah\n'
         raw_line = raw_line_temp % status_lib.DEFAULT_BLACKLIST[0]
         cleaned = status_lib.clean_raw_line(raw_line)
         self.assertEquals(cleaned, raw_line_temp % '')
-
 
     def test_multi(self):
         blacklist = ('\r\x00', 'FOOBAR', 'BLAh')
@@ -27,17 +27,16 @@ class clean_raw_line_test(unittest.TestCase):
 
 
 class line_buffer_test(unittest.TestCase):
+
     def test_get_empty(self):
         buf = status_lib.line_buffer()
         self.assertRaises(IndexError, buf.get)
-
 
     def test_get_single(self):
         buf = status_lib.line_buffer()
         buf.put("single line")
         self.assertEquals(buf.get(), "single line")
         self.assertRaises(IndexError, buf.get)
-
 
     def test_is_fifo(self):
         buf = status_lib.line_buffer()
@@ -48,7 +47,6 @@ class line_buffer_test(unittest.TestCase):
         while buf.size():
             results.append(buf.get())
         self.assertEquals(lines, results)
-
 
     def test_put_multiple_same_as_multiple_puts(self):
         buf_put, buf_multi = [status_lib.line_buffer()
@@ -65,7 +63,6 @@ class line_buffer_test(unittest.TestCase):
             self.assertEquals(buf_multi.get(), line)
             counter += 1
 
-
     def test_put_back_is_lifo(self):
         buf = status_lib.line_buffer()
         lines = ["1", "2", "3"]
@@ -79,7 +76,6 @@ class line_buffer_test(unittest.TestCase):
             results.append(buf.get())
         self.assertEquals(results, ["1", "0", "1", "2", "3"])
 
-
     def test_size_increased_by_put(self):
         buf = status_lib.line_buffer()
         self.assertEquals(buf.size(), 0)
@@ -88,7 +84,6 @@ class line_buffer_test(unittest.TestCase):
         self.assertEquals(buf.size(), 2)
         buf.put("3")
         self.assertEquals(buf.size(), 3)
-
 
     def test_size_decreased_by_get(self):
         buf = status_lib.line_buffer()
@@ -110,13 +105,11 @@ class status_stack_test(unittest.TestCase):
         stack = status_lib.status_stack()
         self.assertEquals(stack.current_status(), "NOSTATUS")
 
-
     def test_default_on_start_to_nostatus(self):
         stack = status_lib.status_stack()
         stack.update("FAIL")
         stack.start()
         self.assertEquals(stack.current_status(), "NOSTATUS")
-
 
     def test_size_always_at_least_zero(self):
         stack = status_lib.status_stack()
@@ -127,13 +120,11 @@ class status_stack_test(unittest.TestCase):
         stack.end()
         self.assertEquals(stack.size(), 0)
 
-
     def test_anything_overrides_nostatus(self):
         for status in self.statuses:
             stack = status_lib.status_stack()
             stack.update(status)
             self.assertEquals(stack.current_status(), status)
-
 
     def test_worse_overrides_better(self):
         for i in xrange(len(self.statuses)):
@@ -146,7 +137,6 @@ class status_stack_test(unittest.TestCase):
                 self.assertEquals(stack.current_status(),
                                   worse_status)
 
-
     def test_better_never_overrides_better(self):
         for i in xrange(len(self.statuses)):
             better_status = self.statuses[i]
@@ -157,7 +147,6 @@ class status_stack_test(unittest.TestCase):
                 stack.update(better_status)
                 self.assertEquals(stack.current_status(),
                                   worse_status)
-
 
     def test_stack_is_lifo(self):
         stack = status_lib.status_stack()
@@ -174,6 +163,7 @@ class status_stack_test(unittest.TestCase):
 
 class parser_test(unittest.TestCase):
     available_versions = [0, 1]
+
     def test_can_import_available_versions(self):
         for version in self.available_versions:
             p = status_lib.parser(0)

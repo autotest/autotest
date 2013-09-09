@@ -1,10 +1,12 @@
-import os, logging
+import os
+import logging
 
 from autotest.client.shared import utils
 from autotest.tko import utils as tko_utils
 
 
 class job(object):
+
     def __init__(self, dir, user, label, machine, queued_time, started_time,
                  finished_time, machine_owner, machine_group, aborted_by,
                  aborted_on, keyval_dict):
@@ -21,7 +23,6 @@ class job(object):
         self.aborted_by = aborted_by
         self.aborted_on = aborted_on
         self.keyval_dict = keyval_dict
-
 
     @staticmethod
     def read_keyval(dir):
@@ -52,13 +53,12 @@ class job(object):
         return keyval
 
 
-
 class kernel(object):
+
     def __init__(self, base, patches, kernel_hash):
         self.base = base
         self.patches = patches
         self.kernel_hash = kernel_hash
-
 
     @staticmethod
     def compute_hash(base, hashes):
@@ -67,6 +67,7 @@ class kernel(object):
 
 
 class test(object):
+
     def __init__(self, subdir, testname, status, reason, test_kernel,
                  machine, started_time, finished_time, iterations,
                  attributes, labels):
@@ -82,13 +83,11 @@ class test(object):
         self.attributes = attributes
         self.labels = labels
 
-
     @staticmethod
     def load_iterations(keyval_path):
         """Abstract method to load a list of iterations from a keyval
         file."""
         raise NotImplementedError
-
 
     @classmethod
     def parse_test(cls, job, subdir, testname, status, reason, test_kernel,
@@ -127,7 +126,6 @@ class test(object):
                            job.machine, started_time, finished_time,
                            iterations, attributes, [])
 
-
     @classmethod
     def parse_partial_test(cls, job, subdir, testname, reason, test_kernel,
                            started_time):
@@ -140,7 +138,6 @@ class test(object):
         return cls(subdir, testname, "RUNNING", reason, test_kernel,
                    job.machine, started_time, None, [], {}, [])
 
-
     @staticmethod
     def load_attributes(keyval_path):
         """Load the test attributes into a dictionary from a test
@@ -149,13 +146,12 @@ class test(object):
             return {}
         return utils.read_keyval(keyval_path)
 
-
     @staticmethod
     def parse_host_keyval(job_dir, hostname):
         # the "real" job dir may be higher up in the directory tree
         job_dir = tko_utils.find_toplevel_job_dir(job_dir)
         if not job_dir:
-            return {} # we can't find a top-level job dir with host keyvals
+            return {}  # we can't find a top-level job dir with host keyvals
 
         # the keyval is <job_dir>/host_keyvals/<hostname> if it exists
         keyval_path = os.path.join(job_dir, "host_keyvals", hostname)
@@ -166,6 +162,7 @@ class test(object):
 
 
 class patch(object):
+
     def __init__(self, spec, reference, hash):
         self.spec = spec
         self.reference = reference
@@ -173,12 +170,11 @@ class patch(object):
 
 
 class iteration(object):
+
     def __init__(self, index, attr_keyval, perf_keyval):
         self.index = index
         self.attr_keyval = attr_keyval
         self.perf_keyval = perf_keyval
-
-
 
     @staticmethod
     def parse_line_into_dicts(line, attr_dict, perf_dict):
@@ -188,7 +184,6 @@ class iteration(object):
                 perf_dict: iteration performance results
         """
         raise NotImplementedError
-
 
     @classmethod
     def load_from_keyval(cls, keyval_path):

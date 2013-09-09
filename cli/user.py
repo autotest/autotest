@@ -14,11 +14,13 @@ The common options are:
 See topic_common.py for a High Level Design and Algorithm.
 """
 
-import os, sys
+import os
+import sys
 from autotest.cli import topic_common, action_common
 
 
 class user(topic_common.atest):
+
     """User class
     atest user list <options>"""
     usage_action = 'list'
@@ -41,20 +43,22 @@ class user(topic_common.atest):
             filename_option='ulist',
             use_leftover=True)
 
-
     def get_items(self):
         return self.users
 
 
 class user_help(user):
+
     """Just here to get the atest logic working.
     Usage is set by its parent"""
     pass
 
 
 class user_list(action_common.atest_list, user):
+
     """atest user list <user>|--ulist <file>
     [--acl <ACL>|--access_level <n>]"""
+
     def __init__(self):
         super(user_list, self).__init__()
 
@@ -64,13 +68,11 @@ class user_list(action_common.atest_list, user):
         self.parser.add_option('-l', '--access_level',
                                help='Only list users at this access level')
 
-
     def parse(self):
         (options, leftover) = super(user_list, self).parse()
         self.acl = options.acl
         self.access_level = options.access_level
         return (options, leftover)
-
 
     def execute(self):
         filters = {}
@@ -90,7 +92,6 @@ class user_list(action_common.atest_list, user):
         return super(user_list, self).execute(op='get_users',
                                               filters=filters,
                                               check_results=check_results)
-
 
     def output(self, results):
         if self.verbose:

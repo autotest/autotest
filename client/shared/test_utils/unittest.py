@@ -67,9 +67,9 @@ import traceback
 import types
 import warnings
 
-##############################################################################
+#
 # Exported classes and functions
-##############################################################################
+#
 __all__ = ['TestResult', 'TestCase', 'TestSuite', 'ClassTestSuite',
            'TextTestRunner', 'TestLoader', 'FunctionTestCase', 'main',
            'defaultTestLoader', 'SkipTest', 'skip', 'skipIf', 'skipUnless',
@@ -79,18 +79,21 @@ __all__ = ['TestResult', 'TestCase', 'TestSuite', 'ClassTestSuite',
 __all__.extend(['getTestCaseNames', 'makeSuite', 'findTestCases'])
 
 
-##############################################################################
+#
 # Backward compatibility
-##############################################################################
+#
 
 def _CmpToKey(mycmp):
     'Convert a cmp= function into a key= function'
     class K(object):
+
         def __init__(self, obj):
             self.obj = obj
+
         def __lt__(self, other):
             return mycmp(self.obj, other.obj) == -1
     return K
+
 
 def _EmulateWith(context, func):
     context.__enter__()
@@ -102,15 +105,17 @@ def _EmulateWith(context, func):
     else:
         context.__exit__(None, None, None)
 
-##############################################################################
+#
 # Test framework core
-##############################################################################
+#
+
 
 def _strclass(cls):
     return "%s.%s" % (cls.__module__, cls.__name__)
 
 
 class SkipTest(Exception):
+
     """
     Raise this exception in a test to skip it.
 
@@ -119,7 +124,9 @@ class SkipTest(Exception):
     """
     pass
 
+
 class _ExpectedFailure(Exception):
+
     """
     Raise this when a test is expected to fail.
 
@@ -130,14 +137,18 @@ class _ExpectedFailure(Exception):
         super(_ExpectedFailure, self).__init__()
         self.exc_info = exc_info
 
+
 class _UnexpectedSuccess(Exception):
+
     """
     The test was supposed to fail, but it didn't!
     """
     pass
 
+
 def _id(obj):
     return obj
+
 
 def skip(reason):
     """
@@ -148,11 +159,13 @@ def skip(reason):
             test_item.__unittest_skip__ = True
             test_item.__unittest_skip_why__ = reason
             return test_item
+
         @functools.wraps(test_item)
         def skip_wrapper(*args, **kwargs):
             raise SkipTest(reason)
         return skip_wrapper
     return decorator
+
 
 def skipIf(condition, reason):
     """
@@ -161,6 +174,7 @@ def skipIf(condition, reason):
     if condition:
         return skip(reason)
     return _id
+
 
 def skipUnless(condition, reason):
     """
@@ -183,7 +197,9 @@ def expectedFailure(func):
 
 __unittest = 1
 
+
 class TestResult(object):
+
     """Holder for test result information.
 
     Test results are automatically managed by the TestCase and TestSuite
@@ -194,6 +210,7 @@ class TestResult(object):
     contain tuples of (testcase, exceptioninfo), where exceptioninfo is the
     formatted traceback of the error that occurred.
     """
+
     def __init__(self):
         self.failures = []
         self.errors = []
@@ -276,6 +293,7 @@ class TestResult(object):
 
 
 class _AssertRaisesContext(object):
+
     """A context manager used to implement TestCase.assertRaises* methods."""
 
     def __init__(self, expected, test_case, expected_regexp=None):
@@ -305,11 +323,12 @@ class _AssertRaisesContext(object):
             expected_regexp = re.compile(expected_regexp)
         if not expected_regexp.search(str(exc_value)):
             raise self.failureException('"%s" does not match "%s"' %
-                     (expected_regexp.pattern, str(exc_value)))
+                                       (expected_regexp.pattern, str(exc_value)))
         return True
 
 
 class _AssertWrapper(object):
+
     """Wrap entries in the _type_equality_funcs registry to make them deep
     copyable."""
 
@@ -321,6 +340,7 @@ class _AssertWrapper(object):
 
 
 class TestCase(object):
+
     """A class whose instances are single test cases.
 
     By default, the test code itself should be placed in a method named
@@ -354,7 +374,6 @@ class TestCase(object):
 
     longMessage = False
 
-
     def __init__(self, methodName='runTest'):
         """Create an instance of the class that will use the named test
            method when executed. Raises a ValueError if the instance does
@@ -364,8 +383,8 @@ class TestCase(object):
         try:
             testMethod = getattr(self, methodName)
         except AttributeError:
-            raise ValueError("no such test method in %s: %s" % \
-                  (self.__class__, methodName))
+            raise ValueError("no such test method in %s: %s" %
+                            (self.__class__, methodName))
         self._testMethodDoc = testMethod.__doc__
 
         # Map types to custom assertEqual functions that will compare
@@ -533,7 +552,6 @@ class TestCase(object):
             return standardMsg
         return standardMsg + ' : ' + msg
 
-
     def assertRaises(self, excClass, callableObj=None, *args, **kwargs):
         """Fail unless an exception of class excClass is thrown
            by callableObj when invoked with arguments args and keyword
@@ -611,7 +629,7 @@ class TestCase(object):
            Note that decimal places (from zero) are usually not the same
            as significant digits (measured from the most significant digit).
         """
-        if round(abs(second-first), places) != 0:
+        if round(abs(second - first), places) != 0:
             standardMsg = '%r != %r within %r places' % (first, second, places)
             msg = self._formatMessage(msg, standardMsg)
             raise self.failureException(msg)
@@ -624,7 +642,7 @@ class TestCase(object):
            Note that decimal places (from zero) are usually not the same
            as significant digits (measured from the most significant digit).
         """
-        if round(abs(second-first), places) == 0:
+        if round(abs(second - first), places) == 0:
             standardMsg = '%r == %r within %r places' % (first, second, places)
             msg = self._formatMessage(msg, standardMsg)
             raise self.failureException(msg)
@@ -643,7 +661,7 @@ class TestCase(object):
     # These fail* assertion method names are pending deprecation and will
     # be a DeprecationWarning in 3.2; http://bugs.python.org/issue2578
     # pylint: disable=E0213
-    def _deprecate(original_func): # @NoSelf
+    def _deprecate(original_func):  # @NoSelf
         def deprecated_func(*args, **kwargs):
             warnings.warn(
                 'Please use %s instead.' % original_func.__name__,
@@ -673,7 +691,7 @@ class TestCase(object):
             msg: Optional message to use on failure instead of a list of
                     differences.
         """
-        if seq_type != None:
+        if seq_type is not None:
             seq_type_name = seq_type.__name__
             if not isinstance(seq1, seq_type):
                 raise self.failureException('First sequence is not a %s: %r'
@@ -689,14 +707,14 @@ class TestCase(object):
             len1 = len(seq1)
         except (TypeError, NotImplementedError):
             differing = 'First %s has no length.    Non-sequence?' % (
-                    seq_type_name)
+                seq_type_name)
 
         if differing is None:
             try:
                 len2 = len(seq2)
             except (TypeError, NotImplementedError):
                 differing = 'Second %s has no length.    Non-sequence?' % (
-                        seq_type_name)
+                    seq_type_name)
 
         if differing is None:
             if seq1 == seq2:
@@ -723,7 +741,7 @@ class TestCase(object):
                     break
             else:
                 if (len1 == len2 and seq_type is None and
-                    type(seq1) != type(seq2)):
+                        type(seq1) != type(seq2)):
                     # The sequences are the same, but have differing types.
                     return
                 # A catch-all message for handling arbitrary user-defined
@@ -861,7 +879,7 @@ class TestCase(object):
             if key not in actual:
                 missing.append(key)
             elif value != actual[key]:
-                mismatched.append('%s, expected: %s, actual: %s' % (key, value,                                                                                                       actual[key]))
+                mismatched.append('%s, expected: %s, actual: %s' % (key, value, actual[key]))
 
         if not (missing or mismatched):
             return
@@ -909,9 +927,9 @@ class TestCase(object):
     def assertMultiLineEqual(self, first, second, msg=None):
         """Assert that two multi-line strings are equal."""
         self.assert_(isinstance(first, basestring), (
-                'First argument is not a string'))
+            'First argument is not a string'))
         self.assert_(isinstance(second, basestring), (
-                'Second argument is not a string'))
+            'Second argument is not a string'))
 
         if first != second:
             standardMsg = '\n' + ''.join(difflib.ndiff(first.splitlines(True), second.splitlines(True)))
@@ -1022,6 +1040,7 @@ def _SortedListDifference(expected, actual):
 
 
 class TestSuite(object):
+
     """A test suite is a composite test consisting of a number of TestCases.
 
     For use, create an instance of TestSuite, then add test case instances.
@@ -1030,6 +1049,7 @@ class TestSuite(object):
     in the order in which they were added, aggregating the results. When
     subclassing, do not forget to call the base class constructor.
     """
+
     def __init__(self, tests=()):
         self._tests = []
         self.addTests(tests)
@@ -1089,6 +1109,7 @@ class TestSuite(object):
 
 
 class ClassTestSuite(TestSuite):
+
     """
     Suite of tests derived from a single TestCase class.
     """
@@ -1120,6 +1141,7 @@ class ClassTestSuite(TestSuite):
 
 
 class FunctionTestCase(TestCase):
+
     """A test case that wraps a test function.
 
     This is useful for slipping pre-existing test functions into the
@@ -1154,9 +1176,9 @@ class FunctionTestCase(TestCase):
             return NotImplemented
 
         return self._setUpFunc == other._setUpFunc and \
-               self._tearDownFunc == other._tearDownFunc and \
-               self._testFunc == other._testFunc and \
-               self._description == other._description
+            self._tearDownFunc == other._tearDownFunc and \
+            self._testFunc == other._testFunc and \
+            self._description == other._description
 
     def __ne__(self, other):
         return not self == other
@@ -1178,12 +1200,11 @@ class FunctionTestCase(TestCase):
         return doc and doc.split("\n")[0].strip() or None
 
 
-
-##############################################################################
+#
 # Locating and loading tests
-##############################################################################
-
+#
 class TestLoader(object):
+
     """
     This class is responsible for loading tests according to various criteria
     and returning them wrapped in a TestSuite
@@ -1196,8 +1217,8 @@ class TestLoader(object):
     def loadTestsFromTestCase(self, testCaseClass):
         """Return a suite of all tests cases contained in testCaseClass"""
         if issubclass(testCaseClass, TestSuite):
-            raise TypeError("Test cases should not be derived from TestSuite." \
-                                " Maybe you meant to derive from TestCase?")
+            raise TypeError("Test cases should not be derived from TestSuite."
+                            " Maybe you meant to derive from TestCase?")
         testCaseNames = self.getTestCaseNames(testCaseClass)
         if not testCaseNames and hasattr(testCaseClass, 'runTest'):
             testCaseNames = ['runTest']
@@ -1281,50 +1302,56 @@ class TestLoader(object):
         return testFnNames
 
 
-
 defaultTestLoader = TestLoader()
 
 
-##############################################################################
+#
 # Patches for old functions: these functions should be considered obsolete
-##############################################################################
+#
 
 def _makeLoader(prefix, sortUsing, suiteClass=None):
     loader = TestLoader()
     loader.sortTestMethodsUsing = sortUsing
     loader.testMethodPrefix = prefix
-    if suiteClass: loader.suiteClass = suiteClass
+    if suiteClass:
+        loader.suiteClass = suiteClass
     return loader
+
 
 def getTestCaseNames(testCaseClass, prefix, sortUsing=cmp):
     return _makeLoader(prefix, sortUsing).getTestCaseNames(testCaseClass)
 
+
 def makeSuite(testCaseClass, prefix='test', sortUsing=cmp, suiteClass=TestSuite):
     return _makeLoader(prefix, sortUsing, suiteClass).loadTestsFromTestCase(testCaseClass)
+
 
 def findTestCases(module, prefix='test', sortUsing=cmp, suiteClass=TestSuite):
     return _makeLoader(prefix, sortUsing, suiteClass).loadTestsFromModule(module)
 
 
-##############################################################################
+#
 # Text UI
-##############################################################################
+#
 
 class _WritelnDecorator(object):
+
     """Used to decorate file-like objects with a handy 'writeln' method"""
-    def __init__(self,stream):
+
+    def __init__(self, stream):
         self.stream = stream
 
     def __getattr__(self, attr):
-        return getattr(self.stream,attr)
+        return getattr(self.stream, attr)
 
     def writeln(self, arg=None):
         if arg:
             self.write(arg)
-        self.write('\n') # text-mode streams translate to \r\n if needed
+        self.write('\n')  # text-mode streams translate to \r\n if needed
 
 
 class _TextTestResult(TestResult):
+
     """A test result class that can print formatted text results to a stream.
 
     Used by TextTestRunner.
@@ -1409,17 +1436,19 @@ class _TextTestResult(TestResult):
     def printErrorList(self, flavour, errors):
         for test, err in errors:
             self.stream.writeln(self.separator1)
-            self.stream.writeln("%s: %s" % (flavour,self.getDescription(test)))
+            self.stream.writeln("%s: %s" % (flavour, self.getDescription(test)))
             self.stream.writeln(self.separator2)
             self.stream.writeln("%s" % err)
 
 
 class TextTestRunner(object):
+
     """A test runner class that displays results in textual form.
 
     It prints out the names of tests as they are run, errors as they
     occur, and a summary of the results at the end of the test run.
     """
+
     def __init__(self, stream=sys.stderr, descriptions=1, verbosity=1):
         self.stream = _WritelnDecorator(stream)
         self.descriptions = descriptions
@@ -1468,12 +1497,11 @@ class TextTestRunner(object):
         return result
 
 
-
-##############################################################################
+#
 # Facilities for running tests from the command line
-##############################################################################
-
+#
 class TestProgram(object):
+
     """A command-line program that runs a set of tests; this is primarily
        for making test modules conveniently executable.
     """
@@ -1492,6 +1520,7 @@ Examples:
   %(progName)s MyTestCase                    - run all 'test*' test methods
                                                in MyTestCase
 """
+
     def __init__(self, module='__main__', defaultTest=None,
                  argv=None, testRunner=TextTestRunner,
                  testLoader=defaultTestLoader):
@@ -1519,15 +1548,15 @@ Examples:
 
     def parseArgs(self, argv):
         import getopt
-        long_opts = ['help','verbose','quiet']
+        long_opts = ['help', 'verbose', 'quiet']
         try:
             options, args = getopt.getopt(argv[1:], 'hHvq', long_opts)
             for opt, value in options:
-                if opt in ('-h','-H','--help'):
+                if opt in ('-h', '-H', '--help'):
                     self.usageExit()
-                if opt in ('-q','--quiet'):
+                if opt in ('-q', '--quiet'):
                     self.verbosity = 0
-                if opt in ('-v','--verbose'):
+                if opt in ('-v', '--verbose'):
                     self.verbosity = 2
             if len(args) == 0 and self.defaultTest is None:
                 self.test = self.testLoader.loadTestsFromModule(self.module)
@@ -1560,9 +1589,9 @@ Examples:
 main = TestProgram
 
 
-##############################################################################
+#
 # Executing this module from the command line
-##############################################################################
+#
 
 if __name__ == "__main__":
     main(module=None)

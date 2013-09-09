@@ -38,14 +38,13 @@ from autotest.frontend import thread_local
 
 class ReservationsTest(unittest.TestCase,
                        frontend_test_utils.FrontendTestMixin):
+
     def setUp(self):
         self._frontend_common_setup()
         self._create_basic_reservation_data()
 
-
     def tearDown(self):
         self._frontend_common_teardown()
-
 
     def _create_basic_reservation_data(self):
         '''
@@ -60,7 +59,6 @@ class ReservationsTest(unittest.TestCase,
         self.user2 = models.User.objects.create(login='resuser2')
         reservations.create(['reshost4'], self.user2.login)
 
-
     def test_unreservable_already_reserved(self):
         '''
         Tests a reservation attempt on a already explicitly reserved host
@@ -72,15 +70,13 @@ class ReservationsTest(unittest.TestCase,
                           ['reshost4'],
                           self.user1.login)
 
-
     def test_unreservable_in_another_acl(self):
         '''
         Tests unreservable hosts in another acl
         '''
         models.AclGroup.check_for_acl_violation_hosts(
-                        self.reservation_hosts[2:3],
-                        self.user2.login)
-
+            self.reservation_hosts[2:3],
+            self.user2.login)
 
     def test_normal_reserve_lifecycle(self):
         '''
@@ -89,11 +85,11 @@ class ReservationsTest(unittest.TestCase,
         A few hosts will be reserved for a given user, and then a second
         user tries to access the host.
         '''
-        #reserve few hosts
+        # reserve few hosts
         host_names = [h.hostname for h in self.reservation_hosts[0:2]]
         reservations.create(host_names, self.user1.login)
 
-        #second user cannot access it
+        # second user cannot access it
         self.assertRaises(models.AclAccessViolation,
                           models.AclGroup.check_for_acl_violation_hosts,
                           self.reservation_hosts[0:2],
@@ -102,7 +98,6 @@ class ReservationsTest(unittest.TestCase,
         reservations.release(host_names, self.user1.login)
         models.AclGroup.check_for_acl_violation_hosts(
             self.reservation_hosts[0:2], self.user2.login)
-
 
     def test_nop_release(self):
         '''
@@ -117,7 +112,6 @@ class ReservationsTest(unittest.TestCase,
                           ['reshost4'],
                           self.user1.login)
 
-
     def test_reservations_default_user(self):
         '''
         Tests if we handle default logged in user
@@ -126,7 +120,6 @@ class ReservationsTest(unittest.TestCase,
         self.assertRaises(models.AclAccessViolation,
                           reservations.create,
                           ['reshost4'])
-
 
     def test_reservations_no_hosts(self):
         '''

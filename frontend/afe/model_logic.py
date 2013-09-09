@@ -10,7 +10,9 @@ import django.db.models.sql.where
 from django.utils import datastructures
 from autotest.frontend.afe import readonly_connection
 
+
 class ValidationError(Exception):
+
     """\
     Data validation error in adding or updating an object. The associated
     value is a dictionary mapping field names to error strings.
@@ -69,14 +71,15 @@ def _make_queryset_readonly(queryset):
 
 
 class ReadonlyQuerySet(dbmodels.query.QuerySet):
+
     """
     QuerySet object that performs all database queries with the read-only
     connection.
     """
+
     def __init__(self, model=None, *args, **kwargs):
         super(ReadonlyQuerySet, self).__init__(model, *args, **kwargs)
         _make_queryset_readonly(self)
-
 
     def values(self, *fields):
         return self._clone(klass=ReadonlyValuesQuerySet,
@@ -84,33 +87,33 @@ class ReadonlyQuerySet(dbmodels.query.QuerySet):
 
 
 class ReadonlyValuesQuerySet(dbmodels.query.ValuesQuerySet):
+
     def __init__(self, model=None, *args, **kwargs):
         super(ReadonlyValuesQuerySet, self).__init__(model, *args, **kwargs)
         _make_queryset_readonly(self)
 
 
 class ExtendedManager(dbmodels.Manager):
+
     """\
     Extended manager supporting subquery filtering.
     """
 
     class CustomQuery(query.Query):
+
         def __init__(self, *args, **kwargs):
             super(ExtendedManager.CustomQuery, self).__init__(*args, **kwargs)
             self._custom_joins = []
-
 
         def clone(self, klass=None, **kwargs):
             obj = super(ExtendedManager.CustomQuery, self).clone(klass)
             obj._custom_joins = list(self._custom_joins)
             return obj
 
-
         def combine(self, rhs, connector):
             super(ExtendedManager.CustomQuery, self).combine(rhs, connector)
             if hasattr(rhs, '_custom_joins'):
                 self._custom_joins.extend(rhs._custom_joins)
-
 
         def add_custom_join(self, table, condition, join_type,
                             condition_values=(), alias=None):
@@ -123,7 +126,6 @@ class ExtendedManager(dbmodels.Manager):
                              alias=alias)
             self._custom_joins.append(join_dict)
 
-
         @classmethod
         def convert_query(self, query_set):
             """
@@ -132,29 +134,27 @@ class ExtendedManager(dbmodels.Manager):
             # Make a copy of the query set
             query_set = query_set.all()
             query_set.query = query_set.query.clone(
-                    klass=ExtendedManager.CustomQuery,
-                    _custom_joins=[])
+                klass=ExtendedManager.CustomQuery,
+                _custom_joins=[])
             return query_set
 
-
     class _WhereClause(object):
+
         """Object allowing us to inject arbitrary SQL into Django queries.
 
         By using this instead of extra(where=...), we can still freely combine
         queries with & and |.
         """
+
         def __init__(self, clause, values=()):
             self._clause = clause
             self._values = values
 
-
         def as_sql(self, qn=None, connection=None):
             return self._clause, self._values
 
-
         def relabel_aliases(self, change_map):
             return
-
 
     def add_join(self, query_set, join_table, join_key, join_condition='',
                  join_condition_values=(), join_from_key=None, alias=None,
@@ -207,7 +207,6 @@ class ExtendedManager(dbmodels.Manager):
 
         return query_set
 
-
     def _info_for_many_to_one_join(self, field, join_to_query, alias):
         """
         @param field: the ForeignKey field on the related model
@@ -229,7 +228,6 @@ class ExtendedManager(dbmodels.Manager):
         info['where_clause'] = where_clause
         info['values'] = values
         return info
-
 
     def _info_for_many_to_many_join(self, m2m_field, join_to_query, alias,
                                     m2m_is_on_this_model):
@@ -275,7 +273,6 @@ class ExtendedManager(dbmodels.Manager):
         info['values'] = ()
         return info
 
-
     def join_custom_field(self, query_set, join_to_query, alias,
                           left_join=True):
         """Join to a related model to create a custom field in the given query.
@@ -292,18 +289,18 @@ class ExtendedManager(dbmodels.Manager):
         row if it's related, NULL otherwise.
         """
         relationship_type, field = self.determine_relationship(
-                join_to_query.model)
+            join_to_query.model)
 
         if relationship_type == self.MANY_TO_ONE:
             info = self._info_for_many_to_one_join(field, join_to_query, alias)
         elif relationship_type == self.M2M_ON_RELATED_MODEL:
             info = self._info_for_many_to_many_join(
-                    m2m_field=field, join_to_query=join_to_query, alias=alias,
-                    m2m_is_on_this_model=False)
-        elif relationship_type ==self.M2M_ON_THIS_MODEL:
+                m2m_field=field, join_to_query=join_to_query, alias=alias,
+                m2m_is_on_this_model=False)
+        elif relationship_type == self.M2M_ON_THIS_MODEL:
             info = self._info_for_many_to_many_join(
-                    m2m_field=field, join_to_query=join_to_query, alias=alias,
-                    m2m_is_on_this_model=True)
+                m2m_field=field, join_to_query=join_to_query, alias=alias,
+                m2m_is_on_this_model=True)
 
         return self.add_join(query_set, info['rhs_table'], info['rhs_column'],
                              join_from_key=info['lhs_column'],
@@ -312,7 +309,6 @@ class ExtendedManager(dbmodels.Manager):
                              alias=alias,
                              force_left_join=left_join)
 
-
     def key_on_joined_table(self, join_to_query):
         """Get a non-null column on the table joined for the given query.
 
@@ -320,11 +316,10 @@ class ExtendedManager(dbmodels.Manager):
         passed to join_custom_field.
         """
         relationship_type, field = self.determine_relationship(
-                join_to_query.model)
+            join_to_query.model)
         if relationship_type == self.MANY_TO_ONE:
             return join_to_query.model._meta.pk.column
-        return field.m2m_column_name() # any column on the M2M table will do
-
+        return field.m2m_column_name()  # any column on the M2M table will do
 
     def add_where(self, query_set, where, values=()):
         query_set = query_set.all()
@@ -332,10 +327,8 @@ class ExtendedManager(dbmodels.Manager):
                                   django.db.models.sql.where.AND)
         return query_set
 
-
     def _get_quoted_field(self, table, field):
         return _quote_name(table) + '.' + _quote_name(field)
-
 
     def get_key_on_this_table(self, key_field=None):
         if key_field is None:
@@ -343,10 +336,8 @@ class ExtendedManager(dbmodels.Manager):
             key_field = self.model._meta.pk.column
         return self._get_quoted_field(self.model._meta.db_table, key_field)
 
-
     def escape_user_sql(self, sql):
         return sql.replace('%', '%%')
-
 
     def _custom_select_query(self, query_set, selects):
         compiler = query_set.query.get_compiler(using=query_set.db)
@@ -363,10 +354,8 @@ class ExtendedManager(dbmodels.Manager):
         cursor.execute(sql_query, params)
         return cursor.fetchall()
 
-
     def _is_relation_to(self, field, model_class):
         return field.rel and field.rel.to is model_class
-
 
     MANY_TO_ONE = object()
     M2M_ON_RELATED_MODEL = object()
@@ -400,7 +389,6 @@ class ExtendedManager(dbmodels.Manager):
         raise ValueError('%s has no relation to %s' %
                          (related_model, self.model))
 
-
     def _get_pivot_iterator(self, base_objects_by_id, related_model):
         """
         Determine the relationship between this model and related_model, and
@@ -418,14 +406,13 @@ class ExtendedManager(dbmodels.Manager):
                                            related_model, field)
         elif relationship_type == self.M2M_ON_RELATED_MODEL:
             return self._many_to_many_pivot(
-                    base_objects_by_id, related_model, field.m2m_db_table(),
-                    field.m2m_reverse_name(), field.m2m_column_name())
+                base_objects_by_id, related_model, field.m2m_db_table(),
+                field.m2m_reverse_name(), field.m2m_column_name())
         else:
             assert relationship_type == self.M2M_ON_THIS_MODEL
             return self._many_to_many_pivot(
-                    base_objects_by_id, related_model, field.m2m_db_table(),
-                    field.m2m_column_name(), field.m2m_reverse_name())
-
+                base_objects_by_id, related_model, field.m2m_db_table(),
+                field.m2m_column_name(), field.m2m_reverse_name())
 
     def _many_to_one_pivot(self, base_objects_by_id, related_model,
                            foreign_key_field):
@@ -442,7 +429,6 @@ class ExtendedManager(dbmodels.Manager):
             base_object_id = getattr(related_object, foreign_key_field.attname)
             base_object = base_objects_by_id[base_object_id]
             yield base_object, related_object
-
 
     def _query_pivot_table(self, base_objects_by_id, pivot_table,
                            pivot_from_field, pivot_to_field):
@@ -468,7 +454,6 @@ class ExtendedManager(dbmodels.Manager):
         cursor.execute(query)
         return cursor.fetchall()
 
-
     def _many_to_many_pivot(self, base_objects_by_id, related_model,
                             pivot_table, pivot_from_field, pivot_to_field):
         """
@@ -486,7 +471,6 @@ class ExtendedManager(dbmodels.Manager):
 
         for base_id, related_id in id_pivot:
             yield base_objects_by_id[base_id], related_objects_by_id[related_id]
-
 
     def populate_relationships(self, base_objects, related_model,
                                related_list_name):
@@ -517,32 +501,39 @@ class ExtendedManager(dbmodels.Manager):
 
 
 class ModelWithInvalidQuerySet(dbmodels.query.QuerySet):
+
     """
     QuerySet that handles delete() properly for models with an "invalid" bit
     """
+
     def delete(self):
         for model in self:
             model.delete()
 
 
 class ModelWithInvalidManager(ExtendedManager):
+
     """
     Manager for objects with an "invalid" bit
     """
+
     def get_query_set(self):
         return ModelWithInvalidQuerySet(self.model)
 
 
 class ValidObjectsManager(ModelWithInvalidManager):
+
     """
     Manager returning only objects with invalid=False.
     """
+
     def get_query_set(self):
         queryset = super(ValidObjectsManager, self).get_query_set()
         return queryset.filter(invalid=False)
 
 
 class ModelExtensions(object):
+
     """\
     Mixin with convenience functions for models, built on top of the
     default Django model functions.
@@ -554,7 +545,6 @@ class ModelExtensions(object):
     # subclasses should override if they want to support smart_get() by name
     name_field = None
 
-
     @classmethod
     def get_field_dict(cls):
         if cls.field_dict is None:
@@ -562,7 +552,6 @@ class ModelExtensions(object):
             for field in cls._meta.fields:
                 cls.field_dict[field.name] = field
         return cls.field_dict
-
 
     @classmethod
     def clean_foreign_keys(cls, data):
@@ -576,7 +565,7 @@ class ModelExtensions(object):
             if not field.rel:
                 continue
             if (field.attname != field.name and
-                field.attname in data):
+                    field.attname in data):
                 data[field.name] = data[field.attname]
                 del data[field.attname]
             if field.name not in data:
@@ -584,7 +573,6 @@ class ModelExtensions(object):
             value = data[field.name]
             if isinstance(value, dbmodels.Model):
                 data[field.name] = value._get_pk_val()
-
 
     @classmethod
     def _convert_booleans(cls, data):
@@ -596,7 +584,6 @@ class ModelExtensions(object):
         for field in cls._meta.fields:
             if type(field) == dbmodels.BooleanField and field.name in data:
                 data[field.name] = bool(data[field.name])
-
 
     # TODO(showard) - is there a way to not have to do this?
     @classmethod
@@ -620,7 +607,6 @@ class ModelExtensions(object):
                   isinstance(obj, dbmodels.TextField)):
                 new_data[name] = ''
         return new_data
-
 
     @classmethod
     def convert_human_readable_values(cls, data, to_human_readable=False):
@@ -669,7 +655,6 @@ class ModelExtensions(object):
                 else:
                     data[field_name] = dest_obj
 
-
     @classmethod
     def validate_field_names(cls, data):
         'Checks for extraneous fields in data.'
@@ -680,11 +665,10 @@ class ModelExtensions(object):
                 errors[field_name] = 'No field of this name'
         return errors
 
-
     @classmethod
     def prepare_data_args(cls, data, kwargs):
         'Common preparation for add_object and update_object'
-        data = dict(data) # don't modify the default keyword arg
+        data = dict(data)  # don't modify the default keyword arg
         data.update(kwargs)
         # must check for extraneous field names here, while we have the
         # data in a dict
@@ -693,7 +677,6 @@ class ModelExtensions(object):
             raise ValidationError(errors)
         cls.convert_human_readable_values(data)
         return data
-
 
     def _validate_unique(self):
         """\
@@ -714,7 +697,7 @@ class ModelExtensions(object):
                 # generated
                 continue
 
-            existing_objs = manager.filter(**{field_name : value})
+            existing_objs = manager.filter(**{field_name: value})
             num_existing = existing_objs.count()
 
             if num_existing == 0:
@@ -724,7 +707,6 @@ class ModelExtensions(object):
             errors[field_name] = (
                 'This value must be unique (%s)' % (value))
         return errors
-
 
     def _validate(self):
         """
@@ -753,7 +735,6 @@ class ModelExtensions(object):
 
         return error_dict
 
-
     def do_validate(self):
         errors = self._validate()
         unique_errors = self._validate_unique()
@@ -762,9 +743,7 @@ class ModelExtensions(object):
         if errors:
             raise ValidationError(errors)
 
-
     # actually (externally) useful methods follow
-
     @classmethod
     def add_object(cls, data={}, **kwargs):
         """\
@@ -779,7 +758,6 @@ class ModelExtensions(object):
         obj.save()
         return obj
 
-
     def update_object(self, data={}, **kwargs):
         """\
         Updates the object with the given data (a dictionary mapping
@@ -792,11 +770,9 @@ class ModelExtensions(object):
         self.do_validate()
         self.save()
 
-
     # see query_objects()
     _SPECIAL_FILTER_KEYS = ('query_start', 'query_limit', 'sort_by',
                             'extra_args', 'extra_where', 'no_distinct')
-
 
     @classmethod
     def _extract_special_params(cls, filter_data):
@@ -811,7 +787,6 @@ class ModelExtensions(object):
             if key in regular_filters:
                 special_params[key] = regular_filters.pop(key)
         return special_params, regular_filters
-
 
     @classmethod
     def apply_presentation(cls, query, filter_data):
@@ -835,7 +810,6 @@ class ModelExtensions(object):
             query_limit += query_start
         return query[query_start:query_limit]
 
-
     @classmethod
     def query_objects(cls, filter_data, valid_only=True, initial_query=None,
                       apply_presentation=True):
@@ -853,7 +827,7 @@ class ModelExtensions(object):
         -no_distinct: if True, a DISTINCT will not be added to the SELECT
         """
         special_params, regular_filters = cls._extract_special_params(
-                filter_data)
+            filter_data)
 
         if initial_query is None:
             if valid_only:
@@ -882,7 +856,6 @@ class ModelExtensions(object):
 
         return query
 
-
     @classmethod
     def query_count(cls, filter_data, initial_query=None):
         """\
@@ -892,7 +865,6 @@ class ModelExtensions(object):
         filter_data.pop('query_limit', None)
         query = cls.query_objects(filter_data, initial_query=initial_query)
         return query.count()
-
 
     @classmethod
     def clean_object_dicts(cls, field_dicts):
@@ -907,7 +879,6 @@ class ModelExtensions(object):
             cls.convert_human_readable_values(field_dict,
                                               to_human_readable=True)
 
-
     @classmethod
     def list_objects(cls, filter_data, initial_query=None):
         """\
@@ -918,7 +889,6 @@ class ModelExtensions(object):
         field_dicts = [model_object.get_object_dict(extra_fields=extra_fields)
                        for model_object in query]
         return field_dicts
-
 
     @classmethod
     def smart_get(cls, id_or_name, valid_only=True):
@@ -934,11 +904,10 @@ class ModelExtensions(object):
         if isinstance(id_or_name, (int, long)):
             return manager.get(pk=id_or_name)
         if isinstance(id_or_name, basestring) and hasattr(cls, 'name_field'):
-            return manager.get(**{cls.name_field : id_or_name})
+            return manager.get(**{cls.name_field: id_or_name})
         raise ValueError(
             'Invalid positional argument: %s (%s)' % (id_or_name,
                                                       type(id_or_name)))
-
 
     @classmethod
     def smart_get_bulk(cls, id_or_name_list):
@@ -955,7 +924,6 @@ class ModelExtensions(object):
                                       ', '.join(invalid_inputs)))
         return result_objects
 
-
     def get_object_dict(self, extra_fields=None):
         """\
         Return a dictionary mapping fields to this object's values.  @param
@@ -971,16 +939,13 @@ class ModelExtensions(object):
         self._postprocess_object_dict(object_dict)
         return object_dict
 
-
     def _postprocess_object_dict(self, object_dict):
         """For subclasses to override."""
         pass
 
-
     @classmethod
     def get_valid_manager(cls):
         return cls.objects
-
 
     def _record_attributes(self, attributes):
         """
@@ -989,7 +954,6 @@ class ModelExtensions(object):
         assert not isinstance(attributes, basestring)
         self._recorded_attributes = dict((attribute, getattr(self, attribute))
                                          for attribute in attributes)
-
 
     def _check_for_updated_attributes(self):
         """
@@ -1000,7 +964,6 @@ class ModelExtensions(object):
             if original_value != new_value:
                 self.on_attribute_changed(attribute, original_value)
         self._record_attributes(self._recorded_attributes.keys())
-
 
     def on_attribute_changed(self, attribute, old_value):
         """
@@ -1016,6 +979,7 @@ class ModelExtensions(object):
 
 
 class ModelWithInvalid(ModelExtensions):
+
     """
     Overrides model methods save() and delete() to support invalidation in
     place of actual deletion.
@@ -1034,7 +998,7 @@ class ModelWithInvalid(ModelExtensions):
         if first_time:
             # see if this object was previously added and invalidated
             my_name = getattr(self, self.name_field)
-            filters = {self.name_field : my_name, 'invalid' : True}
+            filters = {self.name_field: my_name, 'invalid': True}
             try:
                 old_object = self.__class__.objects.get(**filters)
                 self.resurrect_object(old_object)
@@ -1043,7 +1007,6 @@ class ModelWithInvalid(ModelExtensions):
                 pass
 
         super(ModelWithInvalid, self).save(*args, **kwargs)
-
 
     def resurrect_object(self, old_object):
         """
@@ -1056,7 +1019,6 @@ class ModelWithInvalid(ModelExtensions):
         """
         self.id = old_object.id
 
-
     def clean_object(self):
         """
         Method supposed to be overriden by subclasses when invalidating objects
@@ -1066,7 +1028,6 @@ class ModelWithInvalid(ModelExtensions):
         should no longer exist if the object were deleted.
         """
         pass
-
 
     def delete(self):
         """
@@ -1078,13 +1039,12 @@ class ModelWithInvalid(ModelExtensions):
         self.save()
         self.clean_object()
 
-
     @classmethod
     def get_valid_manager(cls):
         return cls.valid_objects
 
-
     class Manipulator(object):
+
         """
         Force default manipulators to look only at valid objects -
         otherwise they will match against invalid objects when checking
@@ -1097,6 +1057,7 @@ class ModelWithInvalid(ModelExtensions):
 
 
 class ModelWithAttributes(object):
+
     """
     Mixin class for models that have an attribute model associated with them.
     The attribute model is assumed to have its value field named "value".
@@ -1111,14 +1072,12 @@ class ModelWithAttributes(object):
         """
         raise NotImplementedError
 
-
     def set_attribute(self, attribute, value):
         attribute_model, get_args = self._get_attribute_model_and_args(
             attribute)
         attribute_object, _ = attribute_model.objects.get_or_create(**get_args)
         attribute_object.value = value
         attribute_object.save()
-
 
     def delete_attribute(self, attribute):
         attribute_model, get_args = self._get_attribute_model_and_args(
@@ -1128,7 +1087,6 @@ class ModelWithAttributes(object):
         except attribute_model.DoesNotExist:
             pass
 
-
     def set_or_delete_attribute(self, attribute, value):
         if value is None:
             self.delete_attribute(attribute)
@@ -1137,12 +1095,12 @@ class ModelWithAttributes(object):
 
 
 class ModelWithHashManager(dbmodels.Manager):
+
     """Manager for use with the ModelWithHash abstract model class"""
 
     def create(self, **kwargs):
         raise Exception('ModelWithHash manager should use get_or_create() '
                         'instead of create()')
-
 
     def get_or_create(self, **kwargs):
         kwargs['the_hash'] = self.model._compute_hash(**kwargs)
@@ -1150,6 +1108,7 @@ class ModelWithHashManager(dbmodels.Manager):
 
 
 class ModelWithHash(dbmodels.Model):
+
     """Superclass with methods for dealing with a hash column"""
 
     the_hash = dbmodels.CharField(max_length=40, unique=True)
@@ -1159,11 +1118,9 @@ class ModelWithHash(dbmodels.Model):
     class Meta:
         abstract = True
 
-
     @classmethod
     def _compute_hash(cls, **kwargs):
         raise NotImplementedError('Subclasses must override _compute_hash()')
-
 
     def save(self, force_insert=False, **kwargs):
         """Prevents saving the model in most cases

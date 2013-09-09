@@ -4,7 +4,12 @@
 Utility to upload or remove the packages from the packages repository.
 """
 
-import logging, os, sys, optparse, tempfile, shutil
+import logging
+import os
+import sys
+import optparse
+import tempfile
+import shutil
 try:
     import autotest.common as common
 except ImportError:
@@ -16,6 +21,7 @@ from autotest.client.shared import base_packages, packages
 from autotest.server import utils as server_utils
 
 logging.basicConfig(level=logging.DEBUG)
+
 
 def get_exclude_string(client_dir):
     '''
@@ -69,7 +75,7 @@ def parse_args():
 
 # Method to upload or remove package depending on the flag passed to it.
 def process_packages(pkgmgr, pkg_type, pkg_names, src_dir,
-                    remove=False):
+                     remove=False):
     include_string = " ."
     exclude_string = None
     names = [p.strip() for p in pkg_names.split(',')]
@@ -200,7 +206,7 @@ def get_subdir_list(name, client_dir):
     dir_name = os.path.join(client_dir, name)
     return [f for f in
             os.listdir(dir_name)
-            if os.path.isdir(os.path.join(dir_name, f)) ]
+            if os.path.isdir(os.path.join(dir_name, f))]
 
 
 # Look whether the test is present in client/tests and client/site_tests dirs
@@ -264,7 +270,7 @@ def main():
 
     pkgmgr = packages.PackageManager(autotest_dir, repo_urls=repo_urls,
                                      upload_paths=upload_paths,
-                                     run_function_dargs={'timeout':600})
+                                     run_function_dargs={'timeout': 600})
 
     if options.all:
         process_all_packages(pkgmgr, client_dir, remove=remove_flag)

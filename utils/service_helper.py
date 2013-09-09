@@ -1,6 +1,13 @@
 #!/usr/bin/python
 """Service launcher that creates pidfiles and can redirect output to a file."""
-import subprocess, sys, os, optparse, signal, pwd, grp, re
+import subprocess
+import sys
+import os
+import optparse
+import signal
+import pwd
+import grp
+import re
 
 
 def stop_service(pidfile):
@@ -111,8 +118,6 @@ def main():
     parser.add_option('-g', '--chgid', action='store',
                       default=None,
                       help='GID to run process as')
-
-
 
     options, args = parser.parse_args()
 

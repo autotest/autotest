@@ -1,10 +1,14 @@
-import os, re, time, logging
+import os
+import re
+import time
+import logging
 
 from autotest.tko import models, status_lib, utils as tko_utils
 from autotest.tko.parsers import base, version_0
 
 
 class job(version_0.job):
+
     def exit_status(self):
         # find the .autoserv_execute path
         top_dir = tko_utils.find_toplevel_job_dir(self.dir)
@@ -35,6 +39,7 @@ class job(version_0.job):
 
 
 class kernel(models.kernel):
+
     def __init__(self, base, patches):
         if base:
             patches = [patch(*p.split()) for p in patches]
@@ -48,12 +53,14 @@ class kernel(models.kernel):
 
 
 class test(models.test):
+
     @staticmethod
     def load_iterations(keyval_path):
         return iteration.load_from_keyval(keyval_path)
 
 
 class iteration(models.iteration):
+
     @staticmethod
     def parse_line_into_dicts(line, attr_dict, perf_dict):
         key, val_type, value = "", "", ""
@@ -83,6 +90,7 @@ class iteration(models.iteration):
 
 
 class status_line(version_0.status_line):
+
     def __init__(self, indent, status, subdir, testname, reason,
                  optional_fields):
         # handle INFO fields
@@ -97,7 +105,6 @@ class status_line(version_0.status_line):
                                               testname, reason,
                                               optional_fields)
 
-
     def is_successful_reboot(self, current_status):
         # make sure this is a reboot line
         if self.testname != "reboot":
@@ -109,7 +116,6 @@ class status_line(version_0.status_line):
 
         # it must have been a successful reboot
         return True
-
 
     def get_kernel(self):
         # get the base kernel version
@@ -124,7 +130,6 @@ class status_line(version_0.status_line):
         # create a new kernel instance
         return kernel(base, patches)
 
-
     def get_timestamp(self):
         return tko_utils.get_timestamp(self.optional_fields,
                                        "timestamp")
@@ -135,10 +140,10 @@ patch = version_0.patch
 
 
 class parser(base.parser):
+
     @staticmethod
     def make_job(dir):
         return job(dir)
-
 
     @staticmethod
     def make_dummy_abort(indent, subdir, testname, timestamp, reason):
@@ -156,16 +161,14 @@ class parser(base.parser):
         msg = indent + "END ABORT\t%s\t%s%s\t%s"
         return msg % (subdir, testname, timestamp_field, reason)
 
-
     @staticmethod
     def put_back_line_and_abort(
-        line_buffer, line, indent, subdir, timestamp, reason):
+            line_buffer, line, indent, subdir, timestamp, reason):
         logging.debug("Unexpected indent regression, aborting")
         line_buffer.put_back(line)
         abort = parser.make_dummy_abort(
             indent, subdir, subdir, timestamp, reason)
         line_buffer.put_back(abort)
-
 
     def state_iterator(self, buffer):
         line = None
@@ -247,13 +250,12 @@ class parser(base.parser):
                 logging.debug("unexpected extra indentation, ignoring")
                 continue
 
-
             # initial line processing
             if line.type == "START":
                 stack.start()
                 started_time = line.get_timestamp()
                 if (line.testname is None and line.subdir is None
-                    and not running_test):
+                        and not running_test):
                     # we just started a client, all tests are relative to here
                     min_stack_size = stack.size()
                     # start a "RUNNING" CLIENT_JOB entry
@@ -307,7 +309,7 @@ class parser(base.parser):
                         if running_test:
                             running_reasons.add(line.reason)
                             running_reasons = tko_utils.drop_redundant_messages(
-                                    running_reasons)
+                                running_reasons)
                             sorted_reasons = sorted(running_reasons)
                             running_test.reason = ", ".join(sorted_reasons)
                             current_reason = running_test.reason
@@ -326,7 +328,7 @@ class parser(base.parser):
                 # grab the current subdir off of the subdir stack, or, if this
                 # is the end of a job, just pop it off
                 if (line.testname is None and line.subdir is None
-                    and not running_test):
+                        and not running_test):
                     min_stack_size = stack.size() - 1
                     subdir_stack.pop()
                 else:
@@ -361,7 +363,7 @@ class parser(base.parser):
                     running_test = running_client
                     job_count += 1
                     if not status_lib.is_worse_than_or_equal_to(
-                        current_status, "ABORT"):
+                            current_status, "ABORT"):
                         # a job hasn't really failed just because some of the
                         # tests it ran have
                         current_status = "GOOD"

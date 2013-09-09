@@ -34,6 +34,8 @@ def next(*args):
 
 # pylint: disable=W0622
 # noinspection PyShadowingBuiltins
+
+
 def any(iterable):
     """
     From http://stackoverflow.com/questions/3785433/python-backports-for-some-methods

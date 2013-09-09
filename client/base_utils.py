@@ -7,8 +7,13 @@ Convenience functions for use by tests or whomever.
 Note that this file is mixed in by utils.py - note very carefully the
 precedence order defined there
 """
-import os, shutil, commands, pickle
-import re, fnmatch, logging
+import os
+import shutil
+import commands
+import pickle
+import re
+import fnmatch
+import logging
 import platform
 from autotest.client.shared import error, utils, magic
 
@@ -41,7 +46,7 @@ def cat_file_to_cmd(file, command, ignore_status=0, return_output=False):
     """
     if not os.path.isfile(file):
         raise NameError('invalid file %s to cat to command %s'
-                % (file, command))
+                        % (file, command))
 
     if return_output:
         run_cmd = utils.system_output
@@ -55,7 +60,7 @@ def cat_file_to_cmd(file, command, ignore_status=0, return_output=False):
     else:
         cat = 'cat'
     return run_cmd('%s %s | %s' % (cat, file, command),
-                                                    ignore_status=ignore_status)
+                   ignore_status=ignore_status)
 
 
 def extract_tarball_to_dir(tarball, dir):
@@ -78,7 +83,7 @@ def extract_tarball_to_dir(tarball, dir):
 def extract_tarball(tarball):
     """Returns the directory extracted by the tarball."""
     extracted = cat_file_to_cmd(tarball, 'tar xvf - 2>/dev/null',
-                                    return_output=True).splitlines()
+                                return_output=True).splitlines()
 
     dir = None
 
@@ -505,7 +510,7 @@ def avgtime_print(dir):
 
     f.close()
     return "Elapsed: %0.2fs User: %0.2fs System: %0.2fs CPU: %0.0f%%" % \
-          (elapsed/count, user/count, system/count, cpu/count)
+        (elapsed / count, user / count, system / count, cpu / count)
 
 
 def running_config():
@@ -544,7 +549,7 @@ def cpu_online_map():
     cpus = []
     for line in open('/proc/cpuinfo', 'r').readlines():
         if line.startswith('processor'):
-            cpus.append(line.split()[2]) # grab cpu number
+            cpus.append(line.split()[2])  # grab cpu number
     return cpus
 
 
@@ -554,6 +559,7 @@ def check_glibc_ver(ver):
     if utils.compare_versions(glibc_ver, ver) == -1:
         raise error.TestError("Glibc too old (%s). Glibc >= %s is needed." %
                               (glibc_ver, ver))
+
 
 def check_kernel_ver(ver):
     kernel_ver = os.uname()[2]
@@ -789,7 +795,7 @@ def get_cpu_stat(key):
     @return: list of values of CPU times
     """
 
-    stats =  []
+    stats = []
     stat_file = open('/proc/stat', 'r')
     line = stat_file.readline()
     while line:

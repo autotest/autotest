@@ -1,6 +1,13 @@
 # Shared utility functions across monitors scripts.
 
-import fcntl, os, re, select, signal, subprocess, sys, time
+import fcntl
+import os
+import re
+import select
+import signal
+import subprocess
+import sys
+import time
 
 TERM_MSG = 'Console connection unexpectedly lost. Terminating monitor.'
 
@@ -160,7 +167,7 @@ def build_alert_hooks_from_path(patterns_path, warnfile):
 
 
 def process_input(
-    input, logfile, log_timestamp_format=None, alert_hooks=()):
+        input, logfile, log_timestamp_format=None, alert_hooks=()):
     """Continuously read lines from input stream and:
 
     - Write them to log, possibly prefixed by timestamp.
@@ -271,7 +278,7 @@ def nonblocking(pipe):
     Returns: pipe
     """
     flags = fcntl.fcntl(pipe, fcntl.F_GETFL)
-    fcntl.fcntl(pipe, fcntl.F_SETFL, flags| os.O_NONBLOCK)
+    fcntl.fcntl(pipe, fcntl.F_SETFL, flags | os.O_NONBLOCK)
     return pipe
 
 

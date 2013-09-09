@@ -15,6 +15,7 @@ from autotest.frontend import setup_test_environment
 from autotest.frontend.shared import resource_test_utils
 from autotest.frontend.afe import control_file, models, model_attributes
 
+
 class AfeResourceTestCase(resource_test_utils.ResourceTestCase):
     URI_PREFIX = 'http://testserver/afe/server/resources'
 
@@ -23,7 +24,6 @@ class AfeResourceTestCase(resource_test_utils.ResourceTestCase):
     def setUp(self):
         super(AfeResourceTestCase, self).setUp()
         self._add_additional_data()
-
 
     def _add_additional_data(self):
         models.Test.objects.create(name='mytest',
@@ -46,11 +46,9 @@ class FilteringPagingTest(AfeResourceTestCase):
         response = self.request('get', 'hosts?locked=true&has_label=label1')
         self.check_collection(response, 'hostname', ['host1', 'host2'])
 
-
     def test_in_filtering(self):
         response = self.request('get', 'hosts?hostname:in=host1,host2')
         self.check_collection(response, 'hostname', ['host1', 'host2'])
-
 
     def test_paging(self):
         response = self.request('get', 'hosts?start_index=1&items_per_page=2')
@@ -59,10 +57,9 @@ class FilteringPagingTest(AfeResourceTestCase):
         self.assertEquals(response['items_per_page'], 2)
         self.assertEquals(response['start_index'], 1)
 
-
     def test_full_representations(self):
         response = self.request(
-                'get', 'hosts?hostname=host1&full_representations=true')
+            'get', 'hosts?hostname=host1&full_representations=true')
         self.check_collection(response, 'hostname', ['host1'])
         host = response['members'][0]
         # invalid only included in full representation
@@ -70,23 +67,23 @@ class FilteringPagingTest(AfeResourceTestCase):
 
 
 class MiscellaneousTest(AfeResourceTestCase):
+
     def test_trailing_slash(self):
         response = self.request('get', 'hosts/host1/')
         self.assertEquals(response['hostname'], 'host1')
 
 
 class AtomicGroupClassTest(AfeResourceTestCase):
+
     def test_collection(self):
         response = self.request('get', 'atomic_group_classes')
         self.check_collection(response, 'name', ['atomic1', 'atomic2'],
                               length=2)
 
-
     def test_entry(self):
         response = self.request('get', 'atomic_group_classes/atomic1')
         self.assertEquals(response['name'], 'atomic1')
         self.assertEquals(response['max_number_of_machines'], 2)
-
 
     def test_labels(self):
         self.check_relationship('atomic_group_classes/atomic1', 'labels',
@@ -94,6 +91,7 @@ class AtomicGroupClassTest(AfeResourceTestCase):
 
 
 class LabelTest(AfeResourceTestCase):
+
     def test_collection(self):
         response = self.request('get', 'labels')
         self.check_collection(response, 'name', ['label1', 'label2'], length=9,
@@ -101,13 +99,11 @@ class LabelTest(AfeResourceTestCase):
         label1 = self.sorted_by(response['members'], 'name')[0]
         self.assertEquals(label1['is_platform'], False)
 
-
     def test_entry(self):
         response = self.request('get', 'labels/label1')
         self.assertEquals(response['name'], 'label1')
         self.assertEquals(response['is_platform'], False)
         self.assertEquals(response['atomic_group_class'], None)
-
 
     def test_hosts(self):
         self.check_relationship('labels/label1', 'hosts', 'host', 'hostname',
@@ -115,11 +111,11 @@ class LabelTest(AfeResourceTestCase):
 
 
 class UserTest(AfeResourceTestCase):
+
     def test_collection(self):
         response = self.request('get', 'users')
         self.check_collection(response, 'username',
                               ['autotest_system', 'debug_user'])
-
 
     def test_entry(self):
         response = self.request('get', 'users/debug_user')
@@ -128,11 +124,9 @@ class UserTest(AfeResourceTestCase):
         me_response = self.request('get', 'users/@me')
         self.assertEquals(response, me_response)
 
-
     def test_acls(self):
         self.check_relationship('users/debug_user', 'acls', 'acl', 'name',
                                 ['Everyone', 'my_acl'])
-
 
     def test_accessible_hosts(self):
         group = models.AclGroup.objects.create(name='mygroup')
@@ -145,20 +139,18 @@ class UserTest(AfeResourceTestCase):
 
 
 class AclTest(AfeResourceTestCase):
+
     def test_collection(self):
         response = self.request('get', 'acls')
         self.check_collection(response, 'name', ['Everyone', 'my_acl'])
-
 
     def test_entry(self):
         response = self.request('get', 'acls/my_acl')
         self.assertEquals(response['name'], 'my_acl')
 
-
     def test_users(self):
         self.check_relationship('acls/my_acl', 'users', 'user', 'username',
                                 ['autotest_system', 'debug_user'])
-
 
     def test_hosts(self):
         self.check_relationship('acls/my_acl', 'hosts', 'host', 'hostname',
@@ -166,6 +158,7 @@ class AclTest(AfeResourceTestCase):
 
 
 class HostTest(AfeResourceTestCase):
+
     def test_collection(self):
         response = self.request('get', 'hosts')
         self.check_collection(response, 'hostname', ['host1', 'host2'],
@@ -175,21 +168,17 @@ class HostTest(AfeResourceTestCase):
         self.assertEquals(host1['locked'], False)
         self.assertEquals(host1['status'], 'Ready')
 
-
     def test_entry(self):
         response = self.request('get', 'hosts/host1')
         self.assertEquals(response['protection_level'], 'No protection')
-
 
     def test_labels(self):
         self.check_relationship('hosts/host1', 'labels', 'label', 'name',
                                 ['label1', 'myplatform'])
 
-
     def test_acls(self):
         self.check_relationship('hosts/host1', 'acls', 'acl', 'name',
                                 ['my_acl'])
-
 
     def test_queue_entries(self):
         self._create_job(hosts=[1])
@@ -197,14 +186,12 @@ class HostTest(AfeResourceTestCase):
         entries = self.request('get', host['queue_entries']['href'])
         self.check_collection(entries, ['job', 'id'], [1])
 
-
     def test_health_tasks(self):
         models.SpecialTask.schedule_special_task(
-                host=self.hosts[0], task=models.SpecialTask.Task.VERIFY)
+            host=self.hosts[0], task=models.SpecialTask.Task.VERIFY)
         host = self.request('get', 'hosts/host1')
         tasks = self.request('get', host['health_tasks']['href'])
         self.check_collection(tasks, 'task_type', ['Verify'])
-
 
     def test_put(self):
         response = self.request('put', 'hosts/host1', data={'locked': True})
@@ -212,7 +199,6 @@ class HostTest(AfeResourceTestCase):
         response = self.request('get', 'hosts/host1')
         self.assertEquals(response['locked'], True)
         self.assertEquals(response['locked_by']['username'], 'debug_user')
-
 
     def test_post(self):
         data = {'hostname': 'newhost',
@@ -225,18 +211,15 @@ class HostTest(AfeResourceTestCase):
         self.assertEquals(host.platform().name, 'myplatform')
         self.assertEquals(host.protection, models.Host.Protection.DO_NOT_VERIFY)
 
-
     def _check_labels(self, host, expected_labels):
         label_names = sorted(label.name for label in host.labels.all())
         self.assertEquals(label_names, sorted(expected_labels))
-
 
     def test_add_label(self):
         labels_href = self.request('get', 'hosts/host1')['labels']['href']
         data = {'label': self.URI_PREFIX + '/labels/label2'}
         response = self.request('post', labels_href, data=data)
         self._check_labels(self.hosts[0], ['label1', 'label2', 'myplatform'])
-
 
     def test_remove_label(self):
         labels_href = self.request('get', 'hosts/host1')['labels']['href']
@@ -246,25 +229,23 @@ class HostTest(AfeResourceTestCase):
         self.request('delete', labelings[0]['href'])
         self._check_labels(self.hosts[0], ['myplatform'])
 
-
     def test_delete(self):
         self.request('delete', 'hosts/host1')
         hosts = models.Host.valid_objects.filter(hostname='host1')
         self.assertEquals(len(hosts), 0)
 
 
-class TestTest(AfeResourceTestCase): # yes, we're testing the "tests" resource
+class TestTest(AfeResourceTestCase):  # yes, we're testing the "tests" resource
+
     def test_collection(self):
         response = self.request('get', 'tests')
         self.check_collection(response, 'name', ['mytest'])
-
 
     def test_entry(self):
         response = self.request('get', 'tests/mytest')
         self.assertEquals(response['name'], 'mytest')
         self.assertEquals(response['control_file_type'], 'Server')
         self.assertEquals(response['control_file_path'], '/path/to/mytest')
-
 
     def test_dependencies(self):
         models.Test.objects.get(name='mytest').dependency_labels = [self.label3]
@@ -273,6 +254,7 @@ class TestTest(AfeResourceTestCase): # yes, we're testing the "tests" resource
 
 
 class ExecutionInfoTest(AfeResourceTestCase):
+
     def setUp(self):
         super(ExecutionInfoTest, self).setUp()
 
@@ -280,6 +262,7 @@ class ExecutionInfoTest(AfeResourceTestCase):
             return self.CONTROL_FILE_CONTENTS
         self.god.stub_with(control_file, 'read_control_file',
                            mock_read_control_file)
+
     def test_get(self):
         response = self.request('get', 'execution_info?tests=mytest')
         info = response['execution_info']
@@ -289,10 +272,11 @@ class ExecutionInfoTest(AfeResourceTestCase):
 
 
 class QueueEntriesRequestTest(AfeResourceTestCase):
+
     def test_get(self):
         response = self.request(
-                'get',
-                'queue_entries_request?hosts=host1,host2&meta_hosts=label1')
+            'get',
+            'queue_entries_request?hosts=host1,host2&meta_hosts=label1')
 
         # choose an arbitrary but consistent ordering to ease checking
         def entry_href(entry):
@@ -302,13 +286,14 @@ class QueueEntriesRequestTest(AfeResourceTestCase):
         entries = sorted(response['queue_entries'], key=entry_href)
 
         expected = [
-                {'host': {'href': self.URI_PREFIX + '/hosts/host1'}},
-                {'host': {'href': self.URI_PREFIX + '/hosts/host2'}},
-                {'meta_host': {'href': self.URI_PREFIX + '/labels/label1'}}]
+            {'host': {'href': self.URI_PREFIX + '/hosts/host1'}},
+            {'host': {'href': self.URI_PREFIX + '/hosts/host2'}},
+            {'meta_host': {'href': self.URI_PREFIX + '/labels/label1'}}]
         self.assertEquals(entries, expected)
 
 
 class JobTest(AfeResourceTestCase):
+
     def setUp(self):
         super(JobTest, self).setUp()
 
@@ -321,16 +306,13 @@ class JobTest(AfeResourceTestCase):
 
         models.JobKeyval.objects.create(job=job, key='mykey', value='myvalue')
 
-
     def test_collection(self):
         response = self.request('get', 'jobs')
         self.check_collection(response, 'id', [1, 2])
 
-
     def test_keyval_filtering(self):
         response = self.request('get', 'jobs?has_keyval=mykey=myvalue')
         self.check_collection(response, 'id', [1])
-
 
     def test_entry(self):
         response = self.request('get', 'jobs/1')
@@ -345,12 +327,10 @@ class JobTest(AfeResourceTestCase):
         self.assertEquals(info['machines_per_execution'], 1)
         self.assertEquals(info['run_verify'], True)
 
-
     def test_queue_entries(self):
         job = self.request('get', 'jobs/1')
         entries = self.request('get', job['queue_entries']['href'])
         self.check_collection(entries, ['host', 'hostname'], ['host1', 'host2'])
-
 
     def _test_post_helper(self, owner):
         data = {'name': 'myjob',
@@ -376,16 +356,15 @@ class JobTest(AfeResourceTestCase):
             owner_test = models.User.current_user().login
         self.assertEquals(job.owner, owner_test)
 
-
     def test_post_no_owner(self):
         self._test_post_helper(None)
-
 
     def test_post_with_owner(self):
         self._test_post_helper('job_owner')
 
 
 class DirectoryTest(AfeResourceTestCase):
+
     def test_get(self):
         response = self.request('get', '')
         for key in ('atomic_group_classes', 'labels', 'users', 'acl_groups',

@@ -8,7 +8,7 @@ from keyword import iskeyword as _iskeyword
 import sys as _sys
 
 
-#pylint: disable=I0011,R0914,W0141,W0122,W0612,C0103,W0212,R0912
+# pylint: disable=I0011,R0914,W0141,W0122,W0612,C0103,W0212,R0912
 def namedtuple(typename, field_names, verbose=False, rename=False):
     """
     Returns a new subclass of tuple with named fields.
@@ -56,7 +56,7 @@ def namedtuple(typename, field_names, verbose=False, rename=False):
                 or not name
                 or name[0].isdigit()
                 or name.startswith('_')
-                or name in seen):
+                    or name in seen):
                 names[i] = '_%d' % i
             seen.add(name)
         field_names = tuple(names)

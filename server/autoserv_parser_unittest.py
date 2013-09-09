@@ -13,6 +13,7 @@ from autotest.server import autoserv_parser
 
 
 class autoserv_parser_test(unittest.TestCase):
+
     def setUp(self):
         self.orig_sys_argv = sys.argv
 

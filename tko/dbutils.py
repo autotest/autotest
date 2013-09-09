@@ -1,4 +1,5 @@
-import os, re
+import os
+import re
 
 from autotest.tko import utils
 from autotest.frontend import setup_django_environment
@@ -44,6 +45,7 @@ def insert_kernel(kernel):
 
     return tko_kernel
 
+
 def insert_test(job, test, tko_job=None, tko_machine=None):
     tko_kernel = insert_kernel(test.kernel)
     status = tko_models.Status.objects.get(word=test.status)
@@ -68,7 +70,7 @@ def insert_test(job, test, tko_job=None, tko_machine=None):
         'machine': tko_machine,
         'started_time': test.started_time,
         'finished_time': test.finished_time
-        }
+    }
 
     test_already_exists = hasattr(test, "test_idx")
     if test_already_exists:
@@ -131,14 +133,14 @@ def insert_job(jobname, job):
         afe_job_id = None
 
     tko_job_data = {
-        'tag' : jobname,
-        'label' : job.label,
-        'machine' : machine,
-        'queued_time' : job.queued_time,
-        'started_time' : job.started_time,
-        'finished_time' : job.finished_time,
-        'afe_job_id' : afe_job_id
-        }
+        'tag': jobname,
+        'label': job.label,
+        'machine': machine,
+        'queued_time': job.queued_time,
+        'started_time': job.started_time,
+        'finished_time': job.finished_time,
+        'afe_job_id': afe_job_id
+    }
 
     job_already_exists = hasattr(job, 'index')
     if job_already_exists:

@@ -1,4 +1,8 @@
-import os, pickle, datetime, itertools, operator
+import os
+import pickle
+import datetime
+import itertools
+import operator
 from django.db import models as dbmodels
 from autotest.frontend.afe import rpc_utils, model_logic
 from autotest.frontend.afe import models as afe_models, readonly_connection
@@ -101,14 +105,14 @@ def get_latest_tests(group_by, header_groups=[], fixed_headers={},
     """
     # find latest test per group
     initial_query = models.TestView.objects.get_query_set_with_joins(
-            filter_data)
+        filter_data)
     query = models.TestView.query_objects(filter_data,
                                           initial_query=initial_query,
                                           apply_presentation=False)
     query = query.exclude(status__in=tko_rpc_utils._INVALID_STATUSES)
     query = query.extra(
-            select={'latest_test_idx' : 'MAX(%s)' %
-                    models.TestView.objects.get_key_on_this_table('test_idx')})
+        select={'latest_test_idx': 'MAX(%s)' %
+                models.TestView.objects.get_key_on_this_table('test_idx')})
     query = models.TestView.apply_presentation(query, filter_data)
 
     group_processor = tko_rpc_utils.GroupDataProcessor(query, group_by,
@@ -219,6 +223,7 @@ def get_detailed_test_views(**filter_data):
 
 # graphing view support
 
+
 def get_hosts_and_tests():
     """\
     Gets every host that has had a benchmark run on it. Additionally, also
@@ -311,7 +316,7 @@ def get_test_labels(**filter_data):
 
 def get_test_labels_for_tests(**test_filter_data):
     label_ids = models.TestView.objects.query_test_label_ids(test_filter_data)
-    labels = models.TestLabel.list_objects({'id__in' : label_ids})
+    labels = models.TestLabel.list_objects({'id__in': label_ids})
     return rpc_utils.prepare_for_serialization(labels)
 
 
@@ -343,7 +348,7 @@ def set_test_attribute(attribute, value, **test_filter_data):
     * test_filter_data - filter data to apply to TestView to choose tests to act
       upon
     """
-    assert test_filter_data # disallow accidental actions on all hosts
+    assert test_filter_data  # disallow accidental actions on all hosts
     test_ids = models.TestView.objects.query_test_ids(test_filter_data)
     tests = models.Test.objects.in_bulk(test_ids)
 
@@ -402,11 +407,11 @@ def get_static_data():
                     in models.TestView.extra_fields.iteritems()]
 
     benchmark_key = {
-        'kernbench' : 'elapsed',
-        'dbench' : 'throughput',
-        'tbench' : 'throughput',
-        'unixbench' : 'score',
-        'iozone' : '32768-4096-fwrite'
+        'kernbench': 'elapsed',
+        'dbench': 'throughput',
+        'tbench': 'throughput',
+        'unixbench': 'score',
+        'iozone': '32768-4096-fwrite'
     }
 
     tko_perf_view = [
@@ -442,7 +447,7 @@ def get_static_data():
     result['all_fields'] = sorted(model_fields + extra_fields)
     result['test_labels'] = get_test_labels(sort_by=['name'])
     result['current_user'] = rpc_utils.prepare_for_serialization(
-            afe_models.User.current_user().get_object_dict())
+        afe_models.User.current_user().get_object_dict())
     result['benchmark_key'] = benchmark_key
     result['tko_perf_view'] = tko_perf_view
     result['tko_test_view'] = model_fields
@@ -452,6 +457,7 @@ def get_static_data():
     return result
 
 # lower level access to tko models
+
 
 def get_machines(**filter_data):
     return rpc_utils.prepare_for_serialization(

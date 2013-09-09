@@ -1,6 +1,10 @@
 #!/usr/bin/python
 
-import os, unittest, time, datetime, itertools
+import os
+import unittest
+import time
+import datetime
+import itertools
 
 try:
     import autotest.common as common
@@ -11,6 +15,7 @@ from autotest.tko import utils
 
 
 class get_timestamp_test(unittest.TestCase):
+
     def test_zero_time(self):
         date = utils.get_timestamp({"key": "0"}, "key")
         timezone = datetime.timedelta(seconds=time.timezone)
@@ -24,16 +29,13 @@ class get_timestamp_test(unittest.TestCase):
         self.assertEquals(utc_date.second, 0)
         self.assertEquals(utc_date.microsecond, 0)
 
-
     def test_returns_none_on_missing_value(self):
         date = utils.get_timestamp({}, "missing_key")
         self.assertEquals(date, None)
 
-
     def test_fails_on_non_integer_values(self):
         self.assertRaises(ValueError, utils.get_timestamp,
                           {"key": "zero"}, "key")
-
 
     def test_date_can_be_string_or_integer(self):
         int_times = [1, 12, 123, 1234, 12345, 123456]
@@ -45,21 +47,19 @@ class get_timestamp_test(unittest.TestCase):
 
 
 class find_toplevel_job_dir_test(unittest.TestCase):
+
     def setUp(self):
         self.god = mock.mock_god()
         self.god.stub_function(os.path, "exists")
 
-
     def tearDown(self):
         self.god.unstub_all()
-
 
     def test_start_is_toplevel(self):
         jobdir = "/results/job1"
         os.path.exists.expect_call(
             jobdir + "/.autoserv_execute").and_return(True)
         self.assertEqual(utils.find_toplevel_job_dir(jobdir), jobdir)
-
 
     def test_parent_is_toplevel(self):
         jobdir = "/results/job2"
@@ -68,7 +68,6 @@ class find_toplevel_job_dir_test(unittest.TestCase):
         os.path.exists.expect_call(
             jobdir + "/.autoserv_execute").and_return(True)
         self.assertEqual(utils.find_toplevel_job_dir(jobdir + "/sub"), jobdir)
-
 
     def test_grandparent_is_toplevel(self):
         jobdir = "/results/job3"
@@ -90,7 +89,6 @@ class find_toplevel_job_dir_test(unittest.TestCase):
         os.path.exists.expect_call("/.autoserv_execute").and_return(True)
         self.assertEqual(utils.find_toplevel_job_dir(jobdir), "/")
 
-
     def test_no_toplevel(self):
         jobdir = "/results/job5"
         os.path.exists.expect_call(
@@ -102,31 +100,28 @@ class find_toplevel_job_dir_test(unittest.TestCase):
 
 
 class drop_redundant_messages(unittest.TestCase):
+
     def test_empty_set(self):
         self.assertEqual(utils.drop_redundant_messages(set()), set())
-
 
     def test_singleton(self):
         self.assertEqual(utils.drop_redundant_messages(set(["abc"])),
                          set(["abc"]))
 
-
     def test_distinct_messages(self):
         self.assertEqual(utils.drop_redundant_messages(set(["abc", "def"])),
                          set(["abc", "def"]))
 
-
     def test_one_unique_message(self):
         self.assertEqual(
-                utils.drop_redundant_messages(set(["abc", "abcd", "abcde"])),
-                set(["abcde"]))
-
+            utils.drop_redundant_messages(set(["abc", "abcd", "abcde"])),
+            set(["abcde"]))
 
     def test_some_unique_some_not(self):
         self.assertEqual(
-                utils.drop_redundant_messages(set(["abc", "def", "abcdef",
-                                                   "defghi", "cd"])),
-                set(["abcdef", "defghi"]))
+            utils.drop_redundant_messages(set(["abc", "def", "abcdef",
+                                               "defghi", "cd"])),
+            set(["abcdef", "defghi"]))
 
 
 if __name__ == "__main__":

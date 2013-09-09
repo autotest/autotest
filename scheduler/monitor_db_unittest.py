@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
-import gc, logging, time
+import gc
+import logging
+import time
 try:
     import autotest.common as common
 except ImportError:
@@ -37,36 +39,32 @@ class DummyAgent(object):
     def __init__(self):
         self.task = DummyAgentTask()
 
-
     def tick(self):
         self.started = True
 
-
     def is_done(self):
         return self._is_done
-
 
     def set_done(self, done):
         self._is_done = done
 
 
 class IsRow(mock.argument_comparator):
+
     def __init__(self, row_id):
         self.row_id = row_id
 
-
     def is_satisfied_by(self, parameter):
         return list(parameter)[0] == self.row_id
-
 
     def __str__(self):
         return 'row with id %s' % self.row_id
 
 
 class IsAgentWithTask(mock.argument_comparator):
+
     def __init__(self, task):
         self._task = task
-
 
     def is_satisfied_by(self, parameter):
         if not isinstance(parameter, monitor_db.Agent):
@@ -90,7 +88,6 @@ class BaseSchedulerTest(unittest.TestCase,
     def _do_query(self, sql):
         self._database.execute(sql)
 
-
     def _set_monitor_stubs(self):
         # Clear the instance cache as this is a brand new database.
         scheduler_models.DBObject._clear_instance_cache()
@@ -111,17 +108,14 @@ class BaseSchedulerTest(unittest.TestCase,
         monitor_db.initialize_globals()
         scheduler_models.initialize_globals()
 
-
     def setUp(self):
         self._frontend_common_setup()
         self._set_monitor_stubs()
         self._dispatcher = monitor_db.Dispatcher()
 
-
     def tearDown(self):
         self._database.disconnect()
         self._frontend_common_teardown()
-
 
     def _update_hqe(self, set, where=''):
         query = 'UPDATE afe_host_queue_entries SET ' + set
@@ -133,10 +127,8 @@ class BaseSchedulerTest(unittest.TestCase,
 class DispatcherSchedulingTest(BaseSchedulerTest):
     _jobs_scheduled = []
 
-
     def tearDown(self):
         super(DispatcherSchedulingTest, self).tearDown()
-
 
     def _set_monitor_stubs(self):
         super(DispatcherSchedulingTest, self)._set_monitor_stubs()
@@ -156,14 +148,12 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self.god.stub_with(scheduler_models.HostQueueEntry, 'queue_log_record',
                            hqe_queue_log_record_stub)
 
-
     def _record_job_scheduled(self, job_id, host_id):
         record = (job_id, host_id)
         self.assert_(record not in self._jobs_scheduled,
                      'Job %d scheduled on host %d twice' %
                      (job_id, host_id))
         self._jobs_scheduled.append(record)
-
 
     def _assert_job_scheduled_on(self, job_id, host_id):
         record = (job_id, host_id)
@@ -172,7 +162,6 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
                      'Jobs scheduled: %s' %
                      (job_id, host_id, self._jobs_scheduled))
         self._jobs_scheduled.remove(record)
-
 
     def _assert_job_scheduled_on_number_of(self, job_id, host_ids, number):
         """Assert job was scheduled on exactly number hosts out of a set."""
@@ -189,12 +178,10 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
             self.fail('Job %d scheduled on more than %d hosts in %s.\n'
                       'Jobs scheduled: %s' % (job_id, number, host_ids, found))
 
-
     def _check_for_extra_schedulings(self):
         if len(self._jobs_scheduled) != 0:
             self.fail('Extra jobs scheduled: ' +
                       str(self._jobs_scheduled))
-
 
     def _convert_jobs_to_metahosts(self, *job_ids):
         sql_tuple = '(' + ','.join(str(i) for i in job_ids) + ')'
@@ -202,21 +189,17 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
                        'meta_host=host_id, host_id=NULL '
                        'WHERE job_id IN ' + sql_tuple)
 
-
     def _lock_host(self, host_id):
         self._do_query('UPDATE afe_hosts SET locked=1 WHERE id=' +
                        str(host_id))
-
 
     def setUp(self):
         super(DispatcherSchedulingTest, self).setUp()
         self._jobs_scheduled = []
 
-
     def _run_scheduler(self):
-        for _ in xrange(2): # metahost scheduling can take two cycles
+        for _ in xrange(2):  # metahost scheduling can take two cycles
             self._dispatcher._schedule_new_jobs()
-
 
     def _test_basic_scheduling_helper(self, use_metahosts):
         'Basic nonmetahost scheduling'
@@ -227,18 +210,16 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._assert_job_scheduled_on(2, 2)
         self._check_for_extra_schedulings()
 
-
     def _test_priorities_helper(self, use_metahosts):
         'Test prioritization ordering'
         self._create_job_simple([1], use_metahosts)
         self._create_job_simple([2], use_metahosts)
-        self._create_job_simple([1,2], use_metahosts)
+        self._create_job_simple([1, 2], use_metahosts)
         self._create_job_simple([1], use_metahosts, priority=1)
         self._run_scheduler()
-        self._assert_job_scheduled_on(4, 1) # higher priority
-        self._assert_job_scheduled_on(2, 2) # earlier job over later
+        self._assert_job_scheduled_on(4, 1)  # higher priority
+        self._assert_job_scheduled_on(2, 2)  # earlier job over later
         self._check_for_extra_schedulings()
-
 
     def _test_hosts_ready_helper(self, use_metahosts):
         """
@@ -262,7 +243,6 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
             self._assert_job_scheduled_on(1, 1)
         self._check_for_extra_schedulings()
 
-
     def _test_hosts_idle_helper(self, use_metahosts):
         'Only idle hosts get scheduled'
         self._create_job(hosts=[1], active=True)
@@ -270,33 +250,26 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._run_scheduler()
         self._check_for_extra_schedulings()
 
-
     def _test_obey_ACLs_helper(self, use_metahosts):
         self._do_query('DELETE FROM afe_acl_groups_hosts WHERE host_id=1')
         self._create_job_simple([1], use_metahosts)
         self._run_scheduler()
         self._check_for_extra_schedulings()
 
-
     def test_basic_scheduling(self):
         self._test_basic_scheduling_helper(False)
-
 
     def test_priorities(self):
         self._test_priorities_helper(False)
 
-
     def test_hosts_ready(self):
         self._test_hosts_ready_helper(False)
-
 
     def test_hosts_idle(self):
         self._test_hosts_idle_helper(False)
 
-
     def test_obey_ACLs(self):
         self._test_obey_ACLs_helper(False)
-
 
     def test_one_time_hosts_ignore_ACLs(self):
         self._do_query('DELETE FROM afe_acl_groups_hosts WHERE host_id=1')
@@ -306,7 +279,6 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._assert_job_scheduled_on(1, 1)
         self._check_for_extra_schedulings()
 
-
     def test_non_metahost_on_invalid_host(self):
         """
         Non-metahost entries can get scheduled on invalid hosts (this is how
@@ -315,35 +287,28 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._do_query('UPDATE afe_hosts SET invalid=1')
         self._test_basic_scheduling_helper(False)
 
-
     def test_metahost_scheduling(self):
         """
         Basic metahost scheduling
         """
         self._test_basic_scheduling_helper(True)
 
-
     def test_metahost_priorities(self):
         self._test_priorities_helper(True)
-
 
     def test_metahost_hosts_ready(self):
         self._test_hosts_ready_helper(True)
 
-
     def test_metahost_hosts_idle(self):
         self._test_hosts_idle_helper(True)
 
-
     def test_metahost_obey_ACLs(self):
         self._test_obey_ACLs_helper(True)
-
 
     def _setup_test_only_if_needed_labels(self):
         # apply only_if_needed label3 to host1
         models.Host.smart_get('host1').labels.add(self.label3)
         return self._create_job_simple([1], use_metahost=True)
-
 
     def test_only_if_needed_labels_avoids_host(self):
         job = self._setup_test_only_if_needed_labels()
@@ -351,14 +316,12 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._run_scheduler()
         self._check_for_extra_schedulings()
 
-
     def test_only_if_needed_labels_schedules(self):
         job = self._setup_test_only_if_needed_labels()
         job.dependency_labels.add(self.label3)
         self._run_scheduler()
         self._assert_job_scheduled_on(1, 1)
         self._check_for_extra_schedulings()
-
 
     def test_only_if_needed_labels_via_metahost(self):
         job = self._setup_test_only_if_needed_labels()
@@ -370,7 +333,6 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._assert_job_scheduled_on(2, 1)
         self._check_for_extra_schedulings()
 
-
     def test_nonmetahost_over_metahost(self):
         """
         Non-metahost entries should take priority over metahost entries
@@ -381,7 +343,6 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._run_scheduler()
         self._assert_job_scheduled_on(2, 1)
         self._check_for_extra_schedulings()
-
 
     def test_metahosts_obey_blocks(self):
         """
@@ -395,7 +356,6 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._run_scheduler()
         self._check_for_extra_schedulings()
 
-
     # TODO(gps): These should probably live in their own TestCase class
     # specific to testing HostScheduler methods directly.  It was convenient
     # to put it here for now to share existing test environment setup code.
@@ -406,28 +366,27 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._dispatcher._refresh_pending_queue_entries()
 
         atomic_hqe = scheduler_models.HostQueueEntry.fetch(where='job_id=%d' %
-                                                     atomic_job.id)[0]
+                                                           atomic_job.id)[0]
         normal_hqe = scheduler_models.HostQueueEntry.fetch(where='job_id=%d' %
-                                                     normal_job.id)[0]
+                                                           normal_job.id)[0]
 
         host_scheduler = self._dispatcher._host_scheduler
         self.assertTrue(host_scheduler._check_atomic_group_labels(
-                [self.label4.id], atomic_hqe))
+            [self.label4.id], atomic_hqe))
         self.assertFalse(host_scheduler._check_atomic_group_labels(
-                [self.label4.id], normal_hqe))
+            [self.label4.id], normal_hqe))
         self.assertFalse(host_scheduler._check_atomic_group_labels(
-                [self.label5.id, self.label6.id, self.label7.id], normal_hqe))
+            [self.label5.id, self.label6.id, self.label7.id], normal_hqe))
         self.assertTrue(host_scheduler._check_atomic_group_labels(
-                [self.label4.id, self.label6.id], atomic_hqe))
+            [self.label4.id, self.label6.id], atomic_hqe))
         self.assertTrue(host_scheduler._check_atomic_group_labels(
                         [self.label4.id, self.label5.id],
                         atomic_hqe))
 
-
     def test_HostScheduler_get_host_atomic_group_id(self):
         job = self._create_job(metahosts=[self.label6.id])
         queue_entry = scheduler_models.HostQueueEntry.fetch(
-                where='job_id=%d' % job.id)[0]
+            where='job_id=%d' % job.id)[0]
         # Indirectly initialize the internal state of the host scheduler.
         self._dispatcher._refresh_pending_queue_entries()
 
@@ -437,6 +396,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         # Two labels each in a different atomic group.  This should log an
         # error and continue.
         orig_logging_error = logging.error
+
         def mock_logging_error(message, *args):
             mock_logging_error._num_calls += 1
             # Test the logging call itself, we just wrapped it to count it.
@@ -444,23 +404,22 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         mock_logging_error._num_calls = 0
         self.god.stub_with(logging, 'error', mock_logging_error)
         self.assertNotEquals(None, host_scheduler._get_host_atomic_group_id(
-                [self.label4.id, self.label8.id], queue_entry))
+            [self.label4.id, self.label8.id], queue_entry))
         self.assertTrue(mock_logging_error._num_calls > 0)
         self.god.unstub(logging, 'error')
 
         # Two labels both in the same atomic group, this should not raise an
         # error, it will merely cause the job to schedule on the intersection.
         self.assertEquals(1, host_scheduler._get_host_atomic_group_id(
-                [self.label4.id, self.label5.id]))
+            [self.label4.id, self.label5.id]))
 
         self.assertEquals(None, host_scheduler._get_host_atomic_group_id([]))
         self.assertEquals(None, host_scheduler._get_host_atomic_group_id(
-                [self.label3.id, self.label7.id, self.label6.id]))
+            [self.label3.id, self.label7.id, self.label6.id]))
         self.assertEquals(1, host_scheduler._get_host_atomic_group_id(
-                [self.label4.id, self.label7.id, self.label6.id]))
+            [self.label4.id, self.label7.id, self.label6.id]))
         self.assertEquals(1, host_scheduler._get_host_atomic_group_id(
-                [self.label7.id, self.label5.id]))
-
+            [self.label7.id, self.label5.id]))
 
     def test_atomic_group_hosts_blocked_from_non_atomic_jobs(self):
         # Create a job scheduled to run on label6.
@@ -469,7 +428,6 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         # label6 only has hosts that are in atomic groups associated with it,
         # there should be no scheduling.
         self._check_for_extra_schedulings()
-
 
     def test_atomic_group_hosts_blocked_from_non_atomic_jobs_explicit(self):
         # Create a job scheduled to run on label5.  This is an atomic group
@@ -480,13 +438,12 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         # there should be no scheduling.
         self._check_for_extra_schedulings()
 
-
     def test_atomic_group_scheduling_basics(self):
         # Create jobs scheduled to run on an atomic group.
         job_a = self._create_job(synchronous=True, metahosts=[self.label4.id],
-                         atomic_group=1)
+                                 atomic_group=1)
         job_b = self._create_job(synchronous=True, metahosts=[self.label5.id],
-                         atomic_group=1)
+                                 atomic_group=1)
         self._run_scheduler()
         # atomic_group.max_number_of_machines was 2 so we should run on 2.
         self._assert_job_scheduled_on_number_of(job_a.id, (5, 6, 7), 2)
@@ -512,7 +469,6 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._run_scheduler()
         self._check_for_extra_schedulings()
 
-
     def test_atomic_group_scheduling_obeys_acls(self):
         # Request scheduling on a specific atomic label but be denied by ACLs.
         self._do_query('DELETE FROM afe_acl_groups_hosts '
@@ -521,14 +477,12 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._run_scheduler()
         self._check_for_extra_schedulings()
 
-
     def test_atomic_group_scheduling_dependency_label_exclude(self):
         # A dependency label that matches no hosts in the atomic group.
         job_a = self._create_job(atomic_group=1)
         job_a.dependency_labels.add(self.label3)
         self._run_scheduler()
         self._check_for_extra_schedulings()
-
 
     def test_atomic_group_scheduling_metahost_dependency_label_exclude(self):
         # A metahost and dependency label that excludes too many hosts.
@@ -537,7 +491,6 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         job_b.dependency_labels.add(self.label7)
         self._run_scheduler()
         self._check_for_extra_schedulings()
-
 
     def test_atomic_group_scheduling_dependency_label_match(self):
         # A dependency label that exists on enough atomic group hosts in only
@@ -548,7 +501,6 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._assert_job_scheduled_on_number_of(job_c.id, (8, 9), 2)
         self._check_for_extra_schedulings()
 
-
     def test_atomic_group_scheduling_no_metahost(self):
         # Force it to schedule on the other group for a reliable test.
         self._do_query('UPDATE afe_hosts SET invalid=1 WHERE id=9')
@@ -558,19 +510,17 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._assert_job_scheduled_on_number_of(job.id, (5, 6, 7), 2)
         self._check_for_extra_schedulings()
 
-
     def test_atomic_group_scheduling_partial_group(self):
         # Make one host in labels[3] unavailable so that there are only two
         # hosts left in the group.
         self._do_query('UPDATE afe_hosts SET status="Repair Failed" WHERE id=5')
         job = self._create_job(synchronous=True, metahosts=[self.label4.id],
-                         atomic_group=1)
+                               atomic_group=1)
         self._run_scheduler()
         # Verify that it was scheduled on the 2 ready hosts in that group.
         self._assert_job_scheduled_on(job.id, 6)
         self._assert_job_scheduled_on(job.id, 7)
         self._check_for_extra_schedulings()
-
 
     def test_atomic_group_scheduling_not_enough_available(self):
         # Mark some hosts in each atomic group label as not usable.
@@ -592,7 +542,6 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._run_scheduler()
         self._assert_job_scheduled_on_number_of(onehost_job.id, (7, 8), 1)
 
-
     def test_atomic_group_scheduling_no_valid_hosts(self):
         self._do_query('UPDATE afe_hosts SET invalid=1 WHERE id in (8,9)')
         self._create_job(synchronous=True, metahosts=[self.label5.id],
@@ -600,7 +549,6 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._run_scheduler()
         # no hosts in the selected group and label are valid.  no schedulings.
         self._check_for_extra_schedulings()
-
 
     def test_atomic_group_scheduling_metahost_works(self):
         # Test that atomic group scheduling also obeys metahosts.
@@ -615,7 +563,6 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._assert_job_scheduled_on(job_b.id, 9)
         self._check_for_extra_schedulings()
 
-
     def test_atomic_group_skips_ineligible_hosts(self):
         # Test hosts marked ineligible for this job are not eligible.
         # How would this ever happen anyways?
@@ -626,7 +573,6 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._run_scheduler()
         # No scheduling should occur as all desired hosts were ineligible.
         self._check_for_extra_schedulings()
-
 
     def test_atomic_group_scheduling_fail(self):
         # If synch_count is > the atomic group number of machines, the job
@@ -641,7 +587,6 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self.assertEqual(1, len(queue_entries))
         self.assertEqual(queue_entries[0].status,
                          models.HostQueueEntry.Status.ABORTED)
-
 
     def test_atomic_group_no_labels_no_scheduling(self):
         # Never schedule on atomic groups marked invalid.
@@ -658,7 +603,6 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._run_scheduler()
         self._check_for_extra_schedulings()
 
-
     def test_schedule_directly_on_atomic_group_host_fail(self):
         # Scheduling a job directly on hosts in an atomic group must
         # fail to avoid users inadvertently holding up the use of an
@@ -666,7 +610,6 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         job = self._create_job(hosts=[5])
         self._run_scheduler()
         self._check_for_extra_schedulings()
-
 
     def test_schedule_directly_on_atomic_group_host(self):
         # Scheduling a job directly on one host in an atomic group will
@@ -677,20 +620,17 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._assert_job_scheduled_on(job.id, 5)
         self._check_for_extra_schedulings()
 
-
     def test_schedule_directly_on_atomic_group_hosts_sync2(self):
-        job = self._create_job(hosts=[5,8], atomic_group=1, synchronous=True)
+        job = self._create_job(hosts=[5, 8], atomic_group=1, synchronous=True)
         self._run_scheduler()
         self._assert_job_scheduled_on(job.id, 5)
         self._assert_job_scheduled_on(job.id, 8)
         self._check_for_extra_schedulings()
 
-
     def test_schedule_directly_on_atomic_group_hosts_wrong_group(self):
-        job = self._create_job(hosts=[5,8], atomic_group=2, synchronous=True)
+        job = self._create_job(hosts=[5, 8], atomic_group=2, synchronous=True)
         self._run_scheduler()
         self._check_for_extra_schedulings()
-
 
     def test_only_schedule_queued_entries(self):
         self._create_job(metahosts=[1])
@@ -698,13 +638,11 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._run_scheduler()
         self._check_for_extra_schedulings()
 
-
     def test_no_ready_hosts(self):
         self._create_job(hosts=[1])
         self._do_query('UPDATE afe_hosts SET status="Repair Failed"')
         self._run_scheduler()
         self._check_for_extra_schedulings()
-
 
     def test_garbage_collection(self):
         self.god.stub_with(self._dispatcher, '_seconds_between_garbage_stats',
@@ -721,8 +659,8 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._dispatcher._garbage_collection()
 
 
-
 class DispatcherThrottlingTest(BaseSchedulerTest):
+
     """
     Test that the dispatcher throttles:
      * total number of running processes
@@ -746,16 +684,13 @@ class DispatcherThrottlingTest(BaseSchedulerTest):
         self.god.stub_with(drone_manager.DroneManager, 'max_runnable_processes',
                            fake_max_runnable_processes)
 
-
     def _setup_some_agents(self, num_agents):
         self._agents = [DummyAgent() for i in xrange(num_agents)]
         self._dispatcher._agents = list(self._agents)
 
-
     def _run_a_few_cycles(self):
         for i in xrange(4):
             self._dispatcher._handle_agents()
-
 
     def _assert_agents_started(self, indexes, is_started=True):
         for i in indexes:
@@ -763,10 +698,8 @@ class DispatcherThrottlingTest(BaseSchedulerTest):
                          'Agent %d %sstarted' %
                          (i, is_started and 'not ' or ''))
 
-
     def _assert_agents_not_started(self, indexes):
         self._assert_agents_started(indexes, False)
-
 
     def test_throttle_total(self):
         self._setup_some_agents(4)
@@ -774,13 +707,11 @@ class DispatcherThrottlingTest(BaseSchedulerTest):
         self._assert_agents_started([0, 1, 2])
         self._assert_agents_not_started([3])
 
-
     def test_throttle_per_cycle(self):
         self._setup_some_agents(3)
         self._dispatcher._handle_agents()
         self._assert_agents_started([0, 1])
         self._assert_agents_not_started([2])
-
 
     def test_throttle_with_synchronous(self):
         self._setup_some_agents(2)
@@ -788,7 +719,6 @@ class DispatcherThrottlingTest(BaseSchedulerTest):
         self._run_a_few_cycles()
         self._assert_agents_started([0])
         self._assert_agents_not_started([1])
-
 
     def test_large_agent_starvation(self):
         """
@@ -804,7 +734,6 @@ class DispatcherThrottlingTest(BaseSchedulerTest):
         self._run_a_few_cycles()
         self._assert_agents_started([1])
         self._assert_agents_not_started([2])
-
 
     def test_zero_process_agent(self):
         self._setup_some_agents(5)
@@ -843,10 +772,8 @@ class PidfileRunMonitorTest(unittest.TestCase):
     def tearDown(self):
         self.god.unstub_all()
 
-
     def _mock_get_pidfile_timeout_secs(self):
         return 300
-
 
     def setup_pidfile(self, pid=None, exit_code=None, tests_failed=None,
                       use_second_read=False):
@@ -859,23 +786,18 @@ class PidfileRunMonitorTest(unittest.TestCase):
             self.pidfile_id, use_second_read=use_second_read).and_return(
             contents)
 
-
     def set_not_yet_run(self):
         self.setup_pidfile()
-
 
     def set_empty_pidfile(self):
         self.setup_pidfile()
 
-
     def set_running(self, use_second_read=False):
         self.setup_pidfile(self.pid, use_second_read=use_second_read)
-
 
     def set_complete(self, error_code, use_second_read=False):
         self.setup_pidfile(self.pid, error_code, self.num_tests_failed,
                            use_second_read=use_second_read)
-
 
     def _check_monitor(self, expected_pid, expected_exit_status,
                        expected_num_tests_failed):
@@ -887,9 +809,7 @@ class PidfileRunMonitorTest(unittest.TestCase):
         self.assertEquals(self.monitor._state.num_tests_failed,
                           expected_num_tests_failed)
 
-
         self.god.check_playback()
-
 
     def _test_read_pidfile_helper(self, expected_pid, expected_exit_status,
                                   expected_num_tests_failed):
@@ -897,14 +817,12 @@ class PidfileRunMonitorTest(unittest.TestCase):
         self._check_monitor(expected_pid, expected_exit_status,
                             expected_num_tests_failed)
 
-
     def _get_expected_tests_failed(self, expected_exit_status):
         if expected_exit_status is None:
             expected_tests_failed = None
         else:
             expected_tests_failed = self.num_tests_failed
         return expected_tests_failed
-
 
     def test_read_pidfile(self):
         self.set_not_yet_run()
@@ -919,7 +837,6 @@ class PidfileRunMonitorTest(unittest.TestCase):
         self.set_complete(123)
         self._test_read_pidfile_helper(self.pid, 123, self.num_tests_failed)
 
-
     def test_read_pidfile_error(self):
         self.mock_drone_manager.get_pidfile_contents.expect_call(
             self.pidfile_id, use_second_read=False).and_return(
@@ -928,18 +845,15 @@ class PidfileRunMonitorTest(unittest.TestCase):
                           self.monitor._read_pidfile)
         self.god.check_playback()
 
-
     def setup_is_running(self, is_running):
         self.mock_drone_manager.is_process_running.expect_call(
             self.process).and_return(is_running)
-
 
     def _test_get_pidfile_info_helper(self, expected_pid, expected_exit_status,
                                       expected_num_tests_failed):
         self.monitor._get_pidfile_info()
         self._check_monitor(expected_pid, expected_exit_status,
                             expected_num_tests_failed)
-
 
     def test_get_pidfile_info(self):
         """
@@ -953,13 +867,12 @@ class PidfileRunMonitorTest(unittest.TestCase):
         # exited during check
         self.set_running()
         self.setup_is_running(False)
-        self.set_complete(123, use_second_read=True) # pidfile gets read again
+        self.set_complete(123, use_second_read=True)  # pidfile gets read again
         self._test_get_pidfile_info_helper(self.pid, 123, self.num_tests_failed)
 
         # completed
         self.set_complete(123)
         self._test_get_pidfile_info_helper(self.pid, 123, self.num_tests_failed)
-
 
     def test_get_pidfile_info_running_no_proc(self):
         """
@@ -974,14 +887,12 @@ class PidfileRunMonitorTest(unittest.TestCase):
         self._test_get_pidfile_info_helper(self.pid, 1, 0)
         self.assertTrue(self.monitor.lost_process)
 
-
     def test_get_pidfile_info_not_yet_run(self):
         """
         pidfile hasn't been written yet
         """
         self.set_not_yet_run()
         self._test_get_pidfile_info_helper(None, None, None)
-
 
     def test_process_failed_to_write_pidfile(self):
         self.set_not_yet_run()
@@ -994,15 +905,14 @@ class PidfileRunMonitorTest(unittest.TestCase):
 
 
 class AgentTest(unittest.TestCase):
+
     def setUp(self):
         self.god = mock.mock_god()
         self._dispatcher = self.god.create_mock_class(monitor_db.Dispatcher,
                                                       'dispatcher')
 
-
     def tearDown(self):
         self.god.unstub_all()
-
 
     def _create_mock_task(self, name):
         task = self.god.create_mock_class(monitor_db.AgentTask, name)
@@ -1015,11 +925,9 @@ class AgentTest(unittest.TestCase):
         agent.dispatcher = self._dispatcher
         return agent
 
-
     def _finish_agent(self, agent):
         while not agent.is_done():
             agent.tick()
-
 
     def test_agent_abort(self):
         task = self._create_mock_task('task')
@@ -1033,7 +941,6 @@ class AgentTest(unittest.TestCase):
         agent.abort()
         self._finish_agent(agent)
         self.god.check_playback()
-
 
     def _test_agent_abort_before_started_helper(self, ignore_abort=False):
         task = self._create_mock_task('task')
@@ -1051,13 +958,13 @@ class AgentTest(unittest.TestCase):
         self._finish_agent(agent)
         self.god.check_playback()
 
-
     def test_agent_abort_before_started(self):
         self._test_agent_abort_before_started_helper()
         self._test_agent_abort_before_started_helper(True)
 
 
 class JobSchedulingTest(BaseSchedulerTest):
+
     def _test_run_helper(self, expect_agent=True, expect_starting=False,
                          expect_pending=False):
         if expect_starting:
@@ -1087,7 +994,6 @@ class JobSchedulingTest(BaseSchedulerTest):
         self.assert_(isinstance(agent, monitor_db.Agent))
         self.assert_(agent.task)
         return agent.task
-
 
     def test_run_if_ready_delays(self):
         # Also tests Job.run_with_ready_delay() on atomic group jobs.
@@ -1242,7 +1148,6 @@ class JobSchedulingTest(BaseSchedulerTest):
         self.god.check_playback()
         self.god.unstub(job, 'run')
 
-
     def test_run_synchronous_atomic_group_ready(self):
         self._create_job(hosts=[5, 6], atomic_group=1, synchronous=True)
         self._update_hqe("status='Pending', execution_subdir=''")
@@ -1254,7 +1159,6 @@ class JobSchedulingTest(BaseSchedulerTest):
         # atomic group will use the atomic group name as their group name.
         self.assertEquals(queue_task.queue_entries[0].get_group_name(),
                           'atomic1')
-
 
     def test_run_synchronous_atomic_group_with_label_ready(self):
         job = self._create_job(hosts=[5, 6], atomic_group=1, synchronous=True)
@@ -1269,7 +1173,6 @@ class JobSchedulingTest(BaseSchedulerTest):
         self.assertEquals(queue_task.queue_entries[0].get_group_name(),
                           'label4')
 
-
     def test_run_synchronous_ready(self):
         self._create_job(hosts=[1, 2], synchronous=True)
         self._update_hqe("status='Pending', execution_subdir=''")
@@ -1280,7 +1183,6 @@ class JobSchedulingTest(BaseSchedulerTest):
         self.assertEquals(queue_task.job.id, 1)
         hqe_ids = [hqe.id for hqe in queue_task.queue_entries]
         self.assertEquals(hqe_ids, [1, 2])
-
 
     def test_schedule_running_host_queue_entries_fail(self):
         self._create_job(hosts=[2])
@@ -1298,19 +1200,18 @@ class JobSchedulingTest(BaseSchedulerTest):
         class dummy_test_agent(object):
             task = 'dummy_test_agent'
         self._dispatcher._register_agent_for_ids(
-                self._dispatcher._host_agents, [queue_entry.host.id],
-                dummy_test_agent)
+            self._dispatcher._host_agents, [queue_entry.host.id],
+            dummy_test_agent)
 
         # Attempted to schedule on a host that already has an agent.
         self.assertRaises(host_scheduler.SchedulerError,
                           self._dispatcher._schedule_running_host_queue_entries)
 
-
     def test_schedule_hostless_job(self):
         job = self._create_job(hostless=True)
         self.assertEqual(1, job.hostqueueentry_set.count())
         hqe_query = scheduler_models.HostQueueEntry.fetch(
-                'id = %s' % job.hostqueueentry_set.all()[0].id)
+            'id = %s' % job.hostqueueentry_set.all()[0].id)
         self.assertEqual(1, len(hqe_query))
         hqe = hqe_query[0]
 
@@ -1330,13 +1231,12 @@ class JobSchedulingTest(BaseSchedulerTest):
 
 
 class TopLevelFunctionsTest(unittest.TestCase):
+
     def setUp(self):
         self.god = mock.mock_god()
 
-
     def tearDown(self):
         self.god.unstub_all()
-
 
     def test_autoserv_command_line(self):
         machines_s = 'abcd12,efgh34'
@@ -1356,7 +1256,7 @@ class TopLevelFunctionsTest(unittest.TestCase):
         ecl_profiles = ecl_profiles.union(['--verbose']).union(extra_args)
         cl = set(monitor_db._autoserv_command_line(machines, [], extra_args))
         cl_profiles = set(
-              monitor_db._autoserv_command_line(machines, profiles, extra_args))
+            monitor_db._autoserv_command_line(machines, profiles, extra_args))
 
         self.assertEqual(ecl, cl)
         self.assertEqual(ecl_profiles, cl_profiles)
@@ -1388,13 +1288,12 @@ class TopLevelFunctionsTest(unittest.TestCase):
 
 class AgentTaskTest(unittest.TestCase,
                     frontend_test_utils.FrontendTestMixin):
+
     def setUp(self):
         self._frontend_common_setup()
 
-
     def tearDown(self):
         self._frontend_common_teardown()
-
 
     def _setup_drones(self):
         self.god.stub_function(models.DroneSet, 'drone_sets_enabled')
@@ -1428,13 +1327,11 @@ class AgentTaskTest(unittest.TestCase,
 
         return (hqe_1, hqe_2, hqe_3, hqe_4), monitor_db.AgentTask()
 
-
     def test_get_drone_hostnames_allowed_no_drones_in_set(self):
         hqes, task = self._setup_drones()
         task.queue_entry_ids = (hqes[2].id,)
         self.assertEqual(set(), task.get_drone_hostnames_allowed())
         self.god.check_playback()
-
 
     def test_get_drone_hostnames_allowed_no_drone_set(self):
         hqes, task = self._setup_drones()
@@ -1445,18 +1342,16 @@ class AgentTaskTest(unittest.TestCase,
 
         self.god.stub_function(task, '_user_or_global_default_drone_set')
         task._user_or_global_default_drone_set.expect_call(
-                hqe.job, hqe.job.user()).and_return(result)
+            hqe.job, hqe.job.user()).and_return(result)
 
         self.assertEqual(result, task.get_drone_hostnames_allowed())
         self.god.check_playback()
 
-
     def test_get_drone_hostnames_allowed_success(self):
         hqes, task = self._setup_drones()
         task.queue_entry_ids = (hqes[0].id,)
-        self.assertEqual(set(('0','1')), task.get_drone_hostnames_allowed())
+        self.assertEqual(set(('0', '1')), task.get_drone_hostnames_allowed())
         self.god.check_playback()
-
 
     def test_get_drone_hostnames_allowed_multiple_jobs(self):
         hqes, task = self._setup_drones()
@@ -1465,7 +1360,6 @@ class AgentTaskTest(unittest.TestCase,
                           task.get_drone_hostnames_allowed)
         self.god.check_playback()
 
-
     def test_get_drone_hostnames_allowed_no_hqe(self):
         class MockSpecialTask(object):
             requested_by = object()
@@ -1473,6 +1367,7 @@ class AgentTaskTest(unittest.TestCase,
         class MockSpecialAgentTask(monitor_db.SpecialAgentTask):
             task = MockSpecialTask()
             queue_entry_ids = []
+
             def __init__(self, *args, **kwargs):
                 pass
 
@@ -1483,15 +1378,16 @@ class AgentTaskTest(unittest.TestCase,
         result = object()
         models.DroneSet.drone_sets_enabled.expect_call().and_return(True)
         task._user_or_global_default_drone_set.expect_call(
-                task.task, MockSpecialTask.requested_by).and_return(result)
+            task.task, MockSpecialTask.requested_by).and_return(result)
 
         self.assertEqual(result, task.get_drone_hostnames_allowed())
         self.god.check_playback()
 
-
     def _setup_test_user_or_global_default_drone_set(self):
         result = object()
+
         class MockDroneSet(object):
+
             def get_drone_hostnames(self):
                 return result
 
@@ -1499,32 +1395,32 @@ class AgentTaskTest(unittest.TestCase,
         models.DroneSet.get_default.expect_call().and_return(MockDroneSet())
         return result
 
-
     def test_user_or_global_default_drone_set(self):
         expected = object()
+
         class MockDroneSet(object):
+
             def get_drone_hostnames(self):
                 return expected
+
         class MockUser(object):
             drone_set = MockDroneSet()
 
         self._setup_test_user_or_global_default_drone_set()
 
         actual = monitor_db.AgentTask()._user_or_global_default_drone_set(
-                None, MockUser())
+            None, MockUser())
 
         self.assertEqual(expected, actual)
         self.god.check_playback()
-
 
     def test_user_or_global_default_drone_set_no_user(self):
         expected = self._setup_test_user_or_global_default_drone_set()
         actual = monitor_db.AgentTask()._user_or_global_default_drone_set(
-                None, None)
+            None, None)
 
         self.assertEqual(expected, actual)
         self.god.check_playback()
-
 
     def test_user_or_global_default_drone_set_no_user_drone_set(self):
         class MockUser(object):
@@ -1533,7 +1429,7 @@ class AgentTaskTest(unittest.TestCase,
 
         expected = self._setup_test_user_or_global_default_drone_set()
         actual = monitor_db.AgentTask()._user_or_global_default_drone_set(
-                None, MockUser())
+            None, MockUser())
 
         self.assertEqual(expected, actual)
         self.god.check_playback()

@@ -13,10 +13,12 @@ CREATE TABLE `jobs_dependency_labels` (
 );
 """
 
+
 def migrate_up(manager):
     manager.execute('ALTER TABLE labels '
                     'ADD COLUMN only_if_needed bool NOT NULL')
     manager.execute_script(CREATE_MANY2MANY_TABLES)
+
 
 def migrate_down(manager):
     manager.execute('ALTER TABLE labels DROP COLUMN only_if_needed')

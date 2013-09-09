@@ -1,6 +1,11 @@
 #!/usr/bin/python
 
-import unittest, os, time, re, glob, logging
+import unittest
+import os
+import time
+import re
+import glob
+import logging
 try:
     import autotest.common as common
 except ImportError:
@@ -28,7 +33,6 @@ class TestAddKernelToBootLoader(unittest.TestCase):
                                          image, initrd)
         god.check_playback()
 
-
     def test_add_kernel_to_bootloader(self):
         self.add_to_bootloader(base_args='baseargs', args='',
                                bootloader_args='baseargs')
@@ -46,13 +50,11 @@ class TestBootableKernel(unittest.TestCase):
         job_ = self.god.create_mock_class(job.job, "job")
         self.kernel = kernel.BootableKernel(job_)
         self.kernel.job.bootloader = self.god.create_mock_class(
-                              boottool.boottool, "boottool")
-
+            boottool.boottool, "boottool")
 
     def tearDown(self):
         # note: time.time() can only be unstubbed via tearDown()
         self.god.unstub_all()
-
 
     def boot_kernel(self, ident_check):
         notes = "applied_patches"
@@ -75,10 +77,10 @@ class TestBootableKernel(unittest.TestCase):
             status = ["job.end_reboot", subdir, tag, notes]
         self.kernel.job.next_step_prepend.expect_call(status)
         self.kernel.job.config_get.expect_call(
-                'boot.default_args').and_return(base_args)
+            'boot.default_args').and_return(base_args)
         kernel._add_kernel_to_bootloader.expect_call(
-                self.kernel.job.bootloader, base_args, tag,
-                args_, self.kernel.image, self.kernel.initrd)
+            self.kernel.job.bootloader, base_args, tag,
+            args_, self.kernel.image, self.kernel.initrd)
         utils.system.expect_call('touch /fastboot')
         self.kernel.job.start_reboot.expect_call()
         self.kernel.job.reboot.expect_call(tag=tag)
@@ -88,13 +90,13 @@ class TestBootableKernel(unittest.TestCase):
                                  expected_ident=tag, subdir=subdir, notes=notes)
         self.god.check_playback()
 
-
     def test_boot_kernel(self):
         self.boot_kernel(ident_check=False)
         self.boot_kernel(ident_check=True)
 
 
 class TestKernel(unittest.TestCase):
+
     def setUp(self):
         self.god = mock.mock_god()
 
@@ -123,6 +125,7 @@ class TestKernel(unittest.TestCase):
         self.god.stub_function(kernelexpand, "expand_classic")
         self.god.stub_function(kernel_config, "modules_needed")
         self.god.stub_function(glob, "glob")
+
         def dummy_mark(filename, msg):
             pass
         self.god.stub_with(kernel, '_mark', dummy_mark)
@@ -132,9 +135,9 @@ class TestKernel(unittest.TestCase):
                                                          "boottool")
 
         class DummyLoggingManager(object):
+
             def tee_redirect_debug_dir(self, *args, **kwargs):
                 pass
-
 
             def restore(self, *args, **kwargs):
                 pass
@@ -146,20 +149,18 @@ class TestKernel(unittest.TestCase):
         self.tmp_dir = "tmpdir"
         self.subdir = "subdir"
 
-
     def tearDown(self):
         self.god.unstub_all()
-
 
     def construct_kernel(self):
         self.kernel = kernel.kernel.__new__(kernel.kernel)
         self.god.stub_function(self.kernel, "extract")
 
         # setup
-        self.src_dir    = os.path.join(self.tmp_dir, 'src')
-        self.build_dir  = os.path.join(self.tmp_dir, "build_dir")
+        self.src_dir = os.path.join(self.tmp_dir, 'src')
+        self.build_dir = os.path.join(self.tmp_dir, "build_dir")
         self.config_dir = os.path.join(self.subdir, 'config')
-        self.log_dir    = os.path.join(self.subdir, 'debug')
+        self.log_dir = os.path.join(self.subdir, 'debug')
         self.results_dir = os.path.join(self.subdir, 'results')
 
         # record
@@ -187,10 +188,8 @@ class TestKernel(unittest.TestCase):
         self.god.check_playback()
         self.god.unstub(self.kernel, "extract")
 
-
     def test_constructor(self):
         self.construct_kernel()
-
 
     def test_kernelexpand1(self):
         self.construct_kernel()
@@ -199,7 +198,6 @@ class TestKernel(unittest.TestCase):
         self.assertEquals(ret_val, ["/path/to/kernel"])
         self.god.check_playback()
 
-
     def test_kernel_expand2(self):
         self.construct_kernel()
         kernel = "kernel.tar.gz"
@@ -207,12 +205,11 @@ class TestKernel(unittest.TestCase):
         # record
         self.job.config_get.expect_call('mirror.mirrors').and_return('mirror')
         kernelexpand.expand_classic.expect_call(kernel,
-            'mirror').and_return('patches')
+                                                'mirror').and_return('patches')
 
         # run
         self.assertEquals(self.kernel.kernelexpand(kernel), 'patches')
         self.god.check_playback()
-
 
     def test_kernel_expand3(self):
         self.construct_kernel()
@@ -224,17 +221,16 @@ class TestKernel(unittest.TestCase):
             'mirror.ftp_kernel_org').and_return('mirror')
         korg = 'http://www.kernel.org/pub/linux/kernel'
         mirrors = [
-                   [ korg + '/v2.6', 'mirror' + '/v2.6' ],
-                   [ korg + '/people/akpm/patches/2.6', 'mirror' + '/akpm' ],
-                   [ korg + '/people/mbligh', 'mirror' + '/mbligh' ],
-                  ]
+            [korg + '/v2.6', 'mirror' + '/v2.6'],
+            [korg + '/people/akpm/patches/2.6', 'mirror' + '/akpm'],
+            [korg + '/people/mbligh', 'mirror' + '/mbligh'],
+        ]
         kernelexpand.expand_classic.expect_call(kernel,
-            mirrors).and_return('patches')
+                                                mirrors).and_return('patches')
 
         # run
         self.assertEquals(self.kernel.kernelexpand(kernel), 'patches')
         self.god.check_playback()
-
 
     def test_extract1(self):
         self.construct_kernel()
@@ -251,7 +247,6 @@ class TestKernel(unittest.TestCase):
         self.kernel.extract(self.base_tree)
         self.god.check_playback()
         self.god.unstub(self.kernel, "get_kernel_tree")
-
 
     def test_extract2(self):
         self.construct_kernel()
@@ -277,24 +272,22 @@ class TestKernel(unittest.TestCase):
         self.god.unstub(self.kernel, "get_kernel_tree")
         self.god.unstub(self.kernel, "patch")
 
-
     def test_patch1(self):
         self.construct_kernel()
         patches = ('patch1', 'patch2')
         self.god.stub_function(self.kernel, "apply_patches")
         self.god.stub_function(self.kernel, "get_patches")
 
-        #record
+        # record
         self.kernel.get_patches.expect_call(patches).and_return(patches)
         self.kernel.apply_patches.expect_call(patches)
         self.job.record.expect_call('GOOD', self.subdir, 'kernel.patch')
 
-        #run
+        # run
         self.kernel.patch(*patches)
         self.god.check_playback()
         self.god.unstub(self.kernel, "apply_patches")
         self.god.unstub(self.kernel, "get_patches")
-
 
     def test_patch2(self):
         self.construct_kernel()
@@ -306,7 +299,6 @@ class TestKernel(unittest.TestCase):
         # run
         self.kernel.patch(*patches)
         self.god.check_playback()
-
 
     def test_config(self):
         self.construct_kernel()
@@ -329,7 +321,6 @@ class TestKernel(unittest.TestCase):
         self.god.check_playback()
         self.god.unstub(self.kernel, "set_cross_cc")
 
-
     def test_get_patches(self):
         self.construct_kernel()
 
@@ -349,7 +340,6 @@ class TestKernel(unittest.TestCase):
         self.assertEquals(self.kernel.get_patches(patches), local_patches)
         self.god.check_playback()
 
-
     def test_apply_patches(self):
         self.construct_kernel()
 
@@ -366,25 +356,25 @@ class TestKernel(unittest.TestCase):
         patch_id = "%s %s %s" % ('patch1', 'patch1', 'md5sum1')
         log = "PATCH: " + patch_id + "\n"
         utils.cat_file_to_cmd.expect_call('patch1.gz',
-            'patch -p1 > /dev/null')
+                                          'patch -p1 > /dev/null')
         self.logfile.write.expect_call(log)
         applied_patches.append(patch_id)
 
         patch_id = "%s %s %s" % ('patch2', 'patch2', 'md5sum2')
         log = "PATCH: " + patch_id + "\n"
         utils.cat_file_to_cmd.expect_call('patch2.bz2',
-            'patch -p1 > /dev/null')
+                                          'patch -p1 > /dev/null')
         self.logfile.write.expect_call(log)
         applied_patches.append(patch_id)
 
         utils.force_copy.expect_call('patch3',
-            self.results_dir).and_return('local_patch3')
+                                     self.results_dir).and_return('local_patch3')
         self.job.relative_path.expect_call('local_patch3').and_return(
             'rel_local_patch3')
         patch_id = "%s %s %s" % ('patch3', 'rel_local_patch3', 'md5sum3')
         log = "PATCH: " + patch_id + "\n"
         utils.cat_file_to_cmd.expect_call('patch3',
-            'patch -p1 > /dev/null')
+                                          'patch -p1 > /dev/null')
         self.logfile.write.expect_call(log)
         applied_patches.append(patch_id)
 
@@ -392,7 +382,6 @@ class TestKernel(unittest.TestCase):
         self.kernel.apply_patches(patches)
         self.assertEquals(self.kernel.applied_patches, applied_patches)
         self.god.check_playback()
-
 
     def test_get_kernel_tree1(self):
         self.construct_kernel()
@@ -405,7 +394,6 @@ class TestKernel(unittest.TestCase):
         self.kernel.get_kernel_tree(self.base_tree)
         self.god.check_playback()
 
-
     def test_get_kernel_tree2(self):
         self.construct_kernel()
 
@@ -415,12 +403,11 @@ class TestKernel(unittest.TestCase):
         tarball = os.path.join(self.src_dir, os.path.basename(self.base_tree))
         utils.get_file.expect_call(self.base_tree, tarball)
         utils.extract_tarball_to_dir.expect_call(tarball,
-                                                          self.build_dir)
+                                                 self.build_dir)
 
         # run and check
         self.kernel.get_kernel_tree(self.base_tree)
         self.god.check_playback()
-
 
     def test_extraversion(self):
         self.construct_kernel()
@@ -442,7 +429,6 @@ class TestKernel(unittest.TestCase):
         self.kernel.extraversion(tag)
         self.god.check_playback()
 
-
     def test_extraversion_nocfg(self):
         self.construct_kernel()
         tag = "tag"
@@ -460,7 +446,6 @@ class TestKernel(unittest.TestCase):
         # run and check
         self.kernel.extraversion(tag)
         self.god.check_playback()
-
 
     def test_build(self):
         self.construct_kernel()
@@ -485,14 +470,13 @@ class TestKernel(unittest.TestCase):
         self.kernel.get_kernel_build_ver.expect_call().and_return('2.6.24')
         kernel_version = re.sub('-autotest', '', '2.6.24')
         self.logfile.write.expect_call('BUILD VERSION: %s\n' % kernel_version)
-        utils.force_copy.expect_call(self.build_dir+'/System.map',
-                                              self.results_dir)
+        utils.force_copy.expect_call(self.build_dir + '/System.map',
+                                     self.results_dir)
         self.job.record.expect_call('GOOD', self.subdir, 'kernel.build')
 
         # run and check
         self.kernel.build()
         self.god.check_playback()
-
 
     def test_build_timed(self):
         self.construct_kernel()
@@ -512,7 +496,6 @@ class TestKernel(unittest.TestCase):
         self.kernel.build_timed(threads=8)
         self.god.check_playback()
 
-
     def test_clean(self):
         self.construct_kernel()
 
@@ -524,7 +507,6 @@ class TestKernel(unittest.TestCase):
         # run and check
         self.kernel.clean()
         self.god.check_playback()
-
 
     def test_mkinitrd(self):
         self.construct_kernel()
@@ -547,7 +529,6 @@ class TestKernel(unittest.TestCase):
                              system_map="system_map", initrd="initrd")
         self.god.check_playback()
 
-
     def test_install(self):
         self.construct_kernel()
         tag = 'autotest'
@@ -568,26 +549,25 @@ class TestKernel(unittest.TestCase):
             'arch/*/boot/' + 'build_target').and_return('')
         build_image = self.kernel.build_target
         utils.force_copy.expect_call('vmlinux',
-            '/boot/vmlinux-autotest')
+                                     '/boot/vmlinux-autotest')
         utils.force_copy.expect_call('build_target',
-            '/boot/vmlinuz-autotest')
+                                     '/boot/vmlinuz-autotest')
         utils.force_copy.expect_call('System.map',
-            '/boot/System.map-autotest')
+                                     '/boot/System.map-autotest')
         utils.force_copy.expect_call('.config',
-            '/boot/config-autotest')
+                                     '/boot/config-autotest')
         kernel_config.modules_needed.expect_call('.config').and_return(True)
         utils.system.expect_call('make modules_install INSTALL_MOD_PATH=%s'
                                  % prefix)
         initrd = boot_dir + '/initrd-' + tag
         self.kernel.get_kernel_build_ver.expect_call().and_return('2.6.24')
         self.kernel.mkinitrd.expect_call('2.6.24', '/boot/vmlinuz-autotest',
-            '/boot/System.map-autotest', '/boot/initrd-autotest')
+                                         '/boot/System.map-autotest', '/boot/initrd-autotest')
         self.job.record.expect_call('GOOD', self.subdir, 'kernel.install')
 
         # run and check
         self.kernel.install()
         self.god.check_playback()
-
 
     def test_get_kernel_build_arch1(self):
         self.construct_kernel()
@@ -599,14 +579,12 @@ class TestKernel(unittest.TestCase):
         self.assertEquals(self.kernel.get_kernel_build_arch(), "i386")
         self.god.check_playback()
 
-
     def test_get_kernel_build_arch2(self):
         self.construct_kernel()
 
         # run and check
         self.assertEquals(self.kernel.get_kernel_build_arch('i586'), "i386")
         self.god.check_playback()
-
 
     def test_get_kernel_build_release(self):
         self.construct_kernel()
@@ -629,7 +607,6 @@ class TestKernel(unittest.TestCase):
         self.kernel.get_kernel_build_release()
         self.god.check_playback()
 
-
     def test_get_kernel_build_ident(self):
         self.construct_kernel()
         self.god.stub_function(self.kernel, "get_kernel_build_release")
@@ -640,9 +617,8 @@ class TestKernel(unittest.TestCase):
 
         # run and check
         self.assertEquals(self.kernel.get_kernel_build_ident(),
-            "AwesomeRelease::1.0")
+                          "AwesomeRelease::1.0")
         self.god.check_playback()
-
 
     def test_boot(self):
         self.construct_kernel()
@@ -658,10 +634,10 @@ class TestKernel(unittest.TestCase):
         # record
         self.kernel.install.expect_call()
         self.kernel.get_kernel_build_ident.expect_call(
-                ).and_return(expected_ident)
+        ).and_return(expected_ident)
         self.kernel._boot_kernel.expect_call(
-                args, ident, expected_ident,
-                self.subdir, self.kernel.applied_patches)
+            args, ident, expected_ident,
+            self.subdir, self.kernel.applied_patches)
 
         # run and check
         self.kernel.boot(args=args, ident=ident)

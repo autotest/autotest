@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
-import sys, optparse, pwd
+import sys
+import optparse
+import pwd
 try:
     import autotest.common as common
 except ImportError:
@@ -37,11 +39,11 @@ RUNNING_HQE_STATUSES = host_queue_entry_states.ACTIVE_STATUSES
 # any entry eligible for this host?
 queue_entries = proxy.run('get_host_queue_entries', job__id=job_id)
 
-### Divine why an atomic group job is or is not running.
+# Divine why an atomic group job is or is not running.
 if queue_entries and queue_entries[0]['atomic_group']:
     if queue_entries[0]['status'] in RUNNING_HQE_STATUSES:
         print 'Job %d appears to have started (status: %s).' % (
-                job_id, queue_entries[0]['status'])
+            job_id, queue_entries[0]['status'])
         sys.exit(0)
     # Hosts in Repairing or Repair Failed will have Queued queue entries.
     # We shouldn't consider those queue entries as a multi-group job.
@@ -58,7 +60,7 @@ if queue_entries and queue_entries[0]['atomic_group']:
     all_queue_entries_have_hosts = (len(queue_entries) ==
                                     len(queue_entries_with_hosts))
     if (not all_queue_entries_have_hosts and len(queue_entries) > 1 and
-        not repair_hostnames):
+            not repair_hostnames):
         # We test repair_hostnames so that this message is not printed when
         # the script is run on an atomic group job which has hosts assigned
         # but is not running because too many of them are in Repairing or will
@@ -109,14 +111,14 @@ if queue_entries and queue_entries[0]['atomic_group']:
         label_name = label['name']
         if meta_host and meta_host_name != label_name:
             print 'Cannot run on atomic label %s due to meta_host %s.' % (
-                    label_name, meta_host_name)
+                label_name, meta_host_name)
             continue
         for dep_name in job_dependency_label_names:
             if dep_name != label_name:
                 print 'Not checking hosts in atomic label %s against' % (
-                        label_name,)
+                    label_name,)
                 print 'job dependency label %s.  There may be less hosts' % (
-                        dep_name,)
+                    dep_name,)
                 print 'than examined below available to run this job.'
 
         # Get the list of hosts associated with this atomic group label.
@@ -134,7 +136,7 @@ if queue_entries and queue_entries[0]['atomic_group']:
         for acl in acl_groups:
             for hostname in acl['hosts']:
                 hostname_to_acl_name_list.setdefault(hostname, []).append(
-                        acl['name'])
+                    acl['name'])
 
         # Exclude any hosts that ACLs deny us access to.
         accessible_hosts = proxy.run('get_hosts', hostname__in=atomic_hostnames,
@@ -147,15 +149,15 @@ if queue_entries and queue_entries[0]['atomic_group']:
             for hostname in acl_excluded_hostnames:
                 acls = ','.join(hostname_to_acl_name_list[hostname])
                 host_exclude_reasons.setdefault(hostname, []).append(
-                        'User %s does not have ACL access. ACLs: %s' % (
-                                owner, acls))
+                    'User %s does not have ACL access. ACLs: %s' % (
+                        owner, acls))
 
         # Check for locked hosts.
         locked_hosts = [h for h in atomic_hosts if h['locked']]
         for host in locked_hosts:
             locker = host.get('locked_by') or 'UNKNOWN'
             msg = 'Locked by user %s on %s.  No jobs will schedule on it.' % (
-                    locker, host.get('lock_time'))
+                locker, host.get('lock_time'))
             host_exclude_reasons.setdefault(host['hostname'], []).append(msg)
 
         # Exclude hosts that are not Ready.
@@ -165,8 +167,8 @@ if queue_entries and queue_entries[0]['atomic_group']:
                 message = 'Status is %s' % host['status']
                 if host['status'] in ('Verifying', 'Pending', 'Running'):
                     running_hqes = proxy.run(
-                            'get_host_queue_entries', host__hostname=hostname,
-                            status__in=RUNNING_HQE_STATUSES)
+                        'get_host_queue_entries', host__hostname=hostname,
+                        status__in=RUNNING_HQE_STATUSES)
                     if not running_hqes:
                         message += ' (unknown job)'
                     else:
@@ -187,7 +189,7 @@ if queue_entries and queue_entries[0]['atomic_group']:
     for label_name, reason_tuple in atomic_label_exclude_reasons.iteritems():
         job_reason, hosts_reasons = reason_tuple
         print 'Atomic group "%s" via label "%s" CANNOT run job %d because:' % (
-                atomic_group_name, label_name, job_id)
+            atomic_group_name, label_name, job_id)
         print job_reason
         for hostname in sorted(hosts_reasons.keys()):
             for reason in hosts_reasons[hostname]:
@@ -196,7 +198,7 @@ if queue_entries and queue_entries[0]['atomic_group']:
 
     for label_name, host_list in runnable_atomic_label_names.iteritems():
         print 'Atomic group "%s" via label "%s" is READY to run job %d on:' % (
-                atomic_group_name, label_name, job_id)
+            atomic_group_name, label_name, job_id)
         print ', '.join(host_list)
         print 'Is the job scheduler healthy?'
         print
@@ -204,7 +206,7 @@ if queue_entries and queue_entries[0]['atomic_group']:
     sys.exit(0)
 
 
-### Not an atomic group synchronous job:
+# Not an atomic group synchronous job:
 
 if len(args) != 2:
     if len(queue_entries) == 1 and queue_entries[0]['host']:
@@ -271,7 +273,7 @@ if host_atomic_group_labels:
 
 job_atomic_groups = set(entry['atomic_group'] for entry in queue_entries)
 assert len(job_atomic_groups) == 1, 'Job has more than one atomic group value!'
-job_atomic_group = job_atomic_groups.pop() # might be None
+job_atomic_group = job_atomic_groups.pop()  # might be None
 job_atomic_group_name = None
 if job_atomic_group:
     job_atomic_group_name = job_atomic_group['name']

@@ -2,8 +2,15 @@
 
 __author__ = """Copyright Andy Whitcroft 2006"""
 
-import sys, logging, os, pickle, traceback, gc, time
+import sys
+import logging
+import os
+import pickle
+import traceback
+import gc
+import time
 from autotest.client.shared import error, utils
+
 
 def fork_start(tmp, l):
     sys.stdout.flush()
@@ -82,6 +89,7 @@ def fork_waitfor(tmp, pid):
     if status:
         raise error.TestError("Test subprocess failed rc=%d" % (status))
 
+
 def fork_waitfor_timed(tmp, pid, timeout):
     """
     Waits for pid until it terminates or timeout expires.
@@ -109,6 +117,7 @@ def fork_waitfor_timed(tmp, pid, timeout):
 
     if status:
         raise error.TestError("Test subprocess failed rc=%d" % (status))
+
 
 def fork_nuke_subprocess(tmp, pid):
     utils.nuke_pid(pid)

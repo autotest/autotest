@@ -10,7 +10,11 @@ either in userspace tools or on the Linux kernel itself (via mount).
 __all__ = ['iso9660', 'Iso9660IsoInfo', 'Iso9660IsoRead', 'Iso9660Mount']
 
 
-import os, logging, tempfile, shutil, re
+import os
+import logging
+import tempfile
+import shutil
+import re
 from autotest.client.shared import utils
 
 
@@ -70,15 +74,16 @@ def can_mount():
 
 
 class BaseIso9660(object):
+
     '''
     Represents a ISO9660 filesystem
 
     This class holds common functionality and has many abstract methods
     '''
+
     def __init__(self, path):
         self.path = path
         self._verify_path(path)
-
 
     def _verify_path(self, path):
         '''
@@ -91,10 +96,8 @@ class BaseIso9660(object):
             raise OSError('File or device path could not be read: %s' %
                           self.path)
 
-
     def read(self, path):
         raise NotImplementedError
-
 
     def copy(self, src, dst):
         '''
@@ -105,7 +108,6 @@ class BaseIso9660(object):
         output.write(content)
         output.close()
 
-
     def close(self):
         '''
         Cleanup and free any resources being used
@@ -114,18 +116,19 @@ class BaseIso9660(object):
 
 
 class Iso9660IsoInfo(BaseIso9660):
+
     '''
     Represents a ISO9660 filesystem
 
     This implementation is based on the cdrkit's isoinfo tool
     '''
+
     def __init__(self, path):
         super(Iso9660IsoInfo, self).__init__(path)
         self.joliet = False
         self.rock_ridge = False
         self.el_torito = False
         self._get_extensions(path)
-
 
     def _get_extensions(self, path):
         cmd = 'isoinfo -i %s -d' % self.path
@@ -138,12 +141,10 @@ class Iso9660IsoInfo(BaseIso9660):
         if re.findall("\nEl Torito", output):
             self.el_torito = True
 
-
     def _normalize_path(self, path):
         if not os.path.isabs(path):
             path = os.path.join('/', path)
         return path
-
 
     def _get_filename_in_iso(self, path):
         cmd = 'isoinfo -i %s -f' % self.path
@@ -153,7 +154,6 @@ class Iso9660IsoInfo(BaseIso9660):
         if fname:
             return fname[0]
         return None
-
 
     def read(self, path):
         cmd = ['isoinfo']
@@ -176,15 +176,16 @@ class Iso9660IsoInfo(BaseIso9660):
 
 
 class Iso9660IsoRead(BaseIso9660):
+
     '''
     Represents a ISO9660 filesystem
 
     This implementation is based on the libcdio's iso-read tool
     '''
+
     def __init__(self, path):
         super(Iso9660IsoRead, self).__init__(path)
         self.temp_dir = tempfile.mkdtemp()
-
 
     def read(self, path):
         temp_file = os.path.join(self.temp_dir, path)
@@ -192,33 +193,29 @@ class Iso9660IsoRead(BaseIso9660):
         utils.run(cmd)
         return open(temp_file).read()
 
-
     def copy(self, src, dst):
         cmd = 'iso-read -i %s -e %s -o %s' % (self.path, src, dst)
         utils.run(cmd)
-
 
     def close(self):
         shutil.rmtree(self.temp_dir, True)
 
 
 class Iso9660Mount(BaseIso9660):
+
     def __init__(self, path):
         super(Iso9660Mount, self).__init__(path)
         self.mnt_dir = tempfile.mkdtemp()
         utils.run('mount -t iso9660 -v -o loop,ro %s %s' %
                   (path, self.mnt_dir))
 
-
     def read(self, path):
         full_path = os.path.join(self.mnt_dir, path)
         return open(full_path).read()
 
-
     def copy(self, src, dst):
         full_path = os.path.join(self.mnt_dir, src)
         shutil.copy(full_path, dst)
-
 
     def close(self):
         '''

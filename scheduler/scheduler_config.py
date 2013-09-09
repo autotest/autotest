@@ -6,7 +6,9 @@ from autotest.client.shared.settings import settings
 
 CONFIG_SECTION = 'SCHEDULER'
 
+
 class SchedulerConfig(object):
+
     """
     Contains configuration that can be changed during scheduler execution.
     """
@@ -17,15 +19,13 @@ class SchedulerConfig(object):
               'tick_pause_sec': 'tick_pause_sec',
               'max_transfer_processes': 'max_transfer_processes',
               'secs_to_wait_for_atomic_group_hosts':
-                  'secs_to_wait_for_atomic_group_hosts',
+              'secs_to_wait_for_atomic_group_hosts',
               'reverify_period_minutes': 'reverify_period_minutes',
               'reverify_max_hosts_at_once': 'reverify_max_hosts_at_once',
-             }
-
+              }
 
     def __init__(self):
         self.read_config()
-
 
     def read_config(self):
         settings.parse_config_file()

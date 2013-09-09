@@ -16,7 +16,16 @@
 #       src             eg. tests/<test>/src
 #       tmpdir          eg. tmp/<tempname>_<testname.tag>
 
-import fcntl, getpass, os, re, sys, shutil, tempfile, time, traceback, logging
+import fcntl
+import getpass
+import os
+import re
+import sys
+import shutil
+import tempfile
+import time
+import traceback
+import logging
 
 from autotest.client.shared import error, utils_memory
 from autotest.client.shared.settings import settings
@@ -62,19 +71,15 @@ class base_test(object):
         self.before_iteration_hooks = []
         self.after_iteration_hooks = []
 
-
     def configure_crash_handler(self):
         pass
-
 
     def crash_handler_report(self):
         pass
 
-
     def assert_(self, expr, msg='Assertion failed.'):
         if not expr:
             raise error.TestError(msg)
-
 
     def write_test_keyval(self, attr_dict):
         utils.write_keyval(self.outputdir, attr_dict,
@@ -88,20 +93,17 @@ class base_test(object):
             new_dict[new_key] = value
         return new_dict
 
-
     def write_perf_keyval(self, perf_dict):
         self.write_iteration_keyval({}, perf_dict,
                                     tap_report=self.job._tap)
-
 
     def write_attr_keyval(self, attr_dict):
         self.write_iteration_keyval(attr_dict, {},
                                     tap_report=self.job._tap)
 
-
     def write_iteration_keyval(self, attr_dict, perf_dict, tap_report=None):
         # append the dictionaries before they have the {perf} and {attr} added
-        self._keyvals.append({'attr':attr_dict, 'perf':perf_dict})
+        self._keyvals.append({'attr': attr_dict, 'perf': perf_dict})
         self._new_keyval = True
 
         if attr_dict:
@@ -116,7 +118,6 @@ class base_test(object):
 
         keyval_path = os.path.join(self.resultsdir, "keyval")
         print >> open(keyval_path, "a"), ""
-
 
     def analyze_perf_constraints(self, constraints):
         if not self._new_keyval:
@@ -143,7 +144,6 @@ class base_test(object):
         # keep track of the errors for each iteration
         self.failed_constraints.append(failures)
 
-
     def process_failed_constraints(self):
         msg = ''
         for i, failures in enumerate(self.failed_constraints):
@@ -152,7 +152,6 @@ class base_test(object):
 
         if msg:
             raise error.TestFail(msg)
-
 
     def register_before_iteration_hook(self, iteration_hook):
         """
@@ -166,7 +165,6 @@ class base_test(object):
         """
         self.before_iteration_hooks.append(iteration_hook)
 
-
     def register_after_iteration_hook(self, iteration_hook):
         """
         This is how we expect test writers to register an after_iteration_hook.
@@ -179,23 +177,18 @@ class base_test(object):
         """
         self.after_iteration_hooks.append(iteration_hook)
 
-
     def initialize(self):
         pass
-
 
     def setup(self):
         pass
 
-
     def warmup(self, *args, **dargs):
         pass
-
 
     def drop_caches_between_iterations(self):
         if self.job.drop_caches_between_iterations:
             utils_memory.drop_caches()
-
 
     def _call_run_once(self, constraints, profile_only,
                        postprocess_profiled_run, args, dargs):
@@ -224,7 +217,6 @@ class base_test(object):
         finally:
             for hook in self.after_iteration_hooks:
                 hook(self)
-
 
     def execute(self, iterations=None, test_length=None, profile_only=None,
                 _get_time=time.time, postprocess_profiled_run=None,
@@ -306,7 +298,6 @@ class base_test(object):
         self.postprocess()
         self.process_failed_constraints()
 
-
     def run_once_profiling(self, postprocess_profiled_run, *args, **dargs):
         profilers = self.job.profilers
         # Do a profiling run if necessary
@@ -337,18 +328,14 @@ class base_test(object):
 
             self.after_run_once()
 
-
     def postprocess(self):
         pass
-
 
     def postprocess_iteration(self):
         pass
 
-
     def cleanup(self):
         pass
-
 
     def before_run_once(self):
         """
@@ -358,14 +345,12 @@ class base_test(object):
         """
         pass
 
-
     def after_run_once(self):
         """
         Called after every run_once (including from a profiled run when it's
         called after stopping the profilers).
         """
         pass
-
 
     def _exec(self, args, dargs):
         self.job.logging.tee_redirect_debug_dir(self.debugdir,
@@ -375,7 +360,7 @@ class base_test(object):
                 self.job.disable_warnings("NETWORK")
 
             # write out the test attributes into a keyval
-            dargs   = dargs.copy()
+            dargs = dargs.copy()
             run_cleanup = dargs.pop('run_cleanup', self.job.run_test_cleanup)
             keyvals = dargs.pop('test_attributes', {}).copy()
             keyvals['version'] = self.version
@@ -396,7 +381,7 @@ class base_test(object):
                 try:
                     fcntl.flock(lockfile, fcntl.LOCK_EX)
                     # Setup: (compile and install the test, if needed)
-                    p_args, p_dargs = _cherry_pick_args(self.setup,args,dargs)
+                    p_args, p_dargs = _cherry_pick_args(self.setup, args, dargs)
                     utils.update_version(self.srcdir, self.preserve_srcdir,
                                          self.version, self.setup,
                                          *p_args, **p_dargs)
@@ -428,7 +413,7 @@ class base_test(object):
                 try:
                     logging.exception('Exception escaping from test:')
                 except:
-                    pass # don't let logging exceptions here interfere
+                    pass  # don't let logging exceptions here interfere
 
                 # Save the exception while we run our cleanup() before
                 # reraising it.
@@ -478,6 +463,7 @@ def subtest_fatal(function):
     Decorator which mark test critical.
     If subtest fails the whole test ends.
     """
+
     def wrapped(self, *args, **kwds):
         self._fatal = True
         self.decored()
@@ -491,6 +477,7 @@ def subtest_nocleanup(function):
     """
     Decorator used to disable cleanup function.
     """
+
     def wrapped(self, *args, **kwds):
         self._cleanup = False
         self.decored()
@@ -501,12 +488,14 @@ def subtest_nocleanup(function):
 
 
 class Subtest(object):
+
     """
     Collect result of subtest of main test.
     """
     result = []
     passed = 0
     failed = 0
+
     def __new__(cls, *args, **kargs):
         self = super(Subtest, cls).__new__(cls)
 
@@ -519,12 +508,12 @@ class Subtest(object):
             args = []
 
         res = {
-               'result' : None,
-               'name'   : self.__class__.__name__,
-               'args'   : args,
-               'kargs'  : kargs,
-               'output' : None,
-              }
+            'result': None,
+            'name': self.__class__.__name__,
+            'args': args,
+            'kargs': kargs,
+            'output': None,
+        }
         try:
             try:
                 logging.info("Starting test %s" % self.__class__.__name__)
@@ -549,8 +538,8 @@ class Subtest(object):
                               traceback.format_stack()[-2][:-1])
                 logging.error("Exception from:\n" +
                               "".join(traceback.format_exception(
-                                                      exc_type, exc_value,
-                                                      exc_traceback.tb_next)))
+                                      exc_type, exc_value,
+                                      exc_traceback.tb_next)))
                 # Clean up environment after subTest crash
                 res['result'] = 'FAIL'
                 logging.info(self.result_to_string(res))
@@ -564,7 +553,6 @@ class Subtest(object):
 
         return ret
 
-
     def test(self):
         """
         Check if test is defined.
@@ -573,7 +561,6 @@ class Subtest(object):
         decorator @subtest_fatal
         """
         raise NotImplementedError("Method 'test' must be implemented.")
-
 
     def clean(self):
         """
@@ -584,10 +571,8 @@ class Subtest(object):
         """
         raise NotImplementedError("Method 'cleanup' must be implemented.")
 
-
     def decored(self):
         self._num_decored += 1
-
 
     @classmethod
     def has_failed(cls):
@@ -599,7 +584,6 @@ class Subtest(object):
         else:
             return False
 
-
     @classmethod
     def get_result(cls):
         """
@@ -608,7 +592,6 @@ class Subtest(object):
              tuple(pass/fail,function_name,call_arguments)
         """
         return cls.result
-
 
     @staticmethod
     def result_to_string_debug(result):
@@ -622,7 +605,6 @@ class Subtest(object):
         return ("Subtest (%s(%s)): --> %s") % (result['name'],
                                                sargs,
                                                result['status'])
-
 
     @staticmethod
     def result_to_string(result):
@@ -641,7 +623,6 @@ class Subtest(object):
         """
         return ("Subtest (%(name)s): --> %(result)s") % (result)
 
-
     @classmethod
     def log_append(cls, msg):
         """
@@ -650,7 +631,6 @@ class Subtest(object):
         @param msg: Test of log_append
         """
         cls.result.append([msg])
-
 
     @classmethod
     def _gen_res(cls, format_func):
@@ -661,12 +641,11 @@ class Subtest(object):
         """
         result = ""
         for res in cls.result:
-            if (isinstance(res,dict)):
+            if (isinstance(res, dict)):
                 result += format_func(res) + "\n"
             else:
                 result += str(res[0]) + "\n"
         return result
-
 
     @classmethod
     def get_full_text_result(cls, format_func=None):
@@ -677,7 +656,6 @@ class Subtest(object):
             format_func = cls.result_to_string_debug
         return cls._gen_res(lambda s: format_func(s))
 
-
     @classmethod
     def get_text_result(cls, format_func=None):
         """
@@ -686,7 +664,6 @@ class Subtest(object):
         if format_func is None:
             format_func = cls.result_to_string
         return cls._gen_res(lambda s: format_func(s))
-
 
     def runsubtest(self, url, *args, **dargs):
         """
@@ -819,7 +796,7 @@ def _installtest(job, url):
     tarball_path = os.path.join(group_dir, tarball)
     test_dir = os.path.join(group_dir, name)
     job.pkgmgr.fetch_pkg(tarball, tarball_path,
-                         repo_url = os.path.dirname(url))
+                         repo_url=os.path.dirname(url))
 
     # Create the directory for the test
     if not os.path.exists(test_dir):
@@ -833,7 +810,7 @@ def _installtest(job, url):
     # 'group.name' we need to provide an __init__.py,
     # so link the main entry point to this.
     os.symlink(name + '.py', os.path.join(group_dir, name,
-                            '__init__.py'))
+                                          '__init__.py'))
 
     # The test is now installed.
     return (group, name)

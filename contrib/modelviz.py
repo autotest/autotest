@@ -21,14 +21,15 @@ __svnid__ = "$Id$"
 __license__ = "Python"
 __author__ = "Antonio Cavedoni <http://cavedoni.com/>"
 __contributors__ = [
-   "Stefano J. Attardi <http://attardi.org/>",
-   "limodou <http://www.donews.net/limodou/>",
-   "Carlo C8E Miron",
-   "Andre Campos <cahenan@gmail.com>",
-   "Justin Findlay <jfindlay@gmail.com>",
-   ]
+    "Stefano J. Attardi <http://attardi.org/>",
+    "limodou <http://www.donews.net/limodou/>",
+    "Carlo C8E Miron",
+    "Andre Campos <cahenan@gmail.com>",
+    "Justin Findlay <jfindlay@gmail.com>",
+]
 
-import getopt, sys
+import getopt
+import sys
 
 from django.core.management import setup_environ
 
@@ -108,6 +109,7 @@ tail_template = """
 }
 """
 
+
 def generate_dot(app_labels, **kwargs):
     disable_fields = kwargs.get('disable_fields', False)
 
@@ -119,14 +121,14 @@ def generate_dot(app_labels, **kwargs):
             'name': '"%s"' % app.__name__,
             'disable_fields': disable_fields,
             'models': []
-            })
+        })
 
         for appmodel in get_models(app):
             model = {
                 'name': appmodel.__name__,
                 'fields': [],
                 'relations': []
-                }
+            }
 
             # model attributes
             def add_attributes():
@@ -134,7 +136,7 @@ def generate_dot(app_labels, **kwargs):
                     'name': field.name,
                     'type': type(field).__name__,
                     'blank': field.blank
-                    })
+                })
 
             for field in appmodel._meta.fields:
                 add_attributes()
@@ -150,7 +152,7 @@ def generate_dot(app_labels, **kwargs):
                     'type': type(field).__name__,
                     'name': field.name,
                     'arrows': extras
-                    }
+                }
                 if _rel not in model['relations']:
                     model['relations'].append(_rel)
 
@@ -176,10 +178,11 @@ def generate_dot(app_labels, **kwargs):
 
     return dot
 
+
 def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hd",
-                    ["help", "disable_fields"])
+                                   ["help", "disable_fields"])
     except getopt.GetoptError, error:
         print __doc__
         sys.exit(error)

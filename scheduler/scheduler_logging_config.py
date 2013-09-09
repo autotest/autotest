@@ -5,13 +5,13 @@ except ImportError:
 import logging
 from autotest.client.shared import logging_config
 
+
 class SchedulerLoggingConfig(logging_config.LoggingConfig):
     GLOBAL_LEVEL = logging.INFO
 
     @classmethod
     def get_log_name(cls):
         return cls.get_timestamped_log_name('scheduler')
-
 
     def configure_logging(self, log_dir=None, logfile_name=None):
         super(SchedulerLoggingConfig, self).configure_logging(use_console=True)

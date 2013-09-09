@@ -6,6 +6,7 @@ import mail
 # pylint: disable=E0611
 from email import Message
 
+
 class test_data:
     mail_host = None
     mail_port = None
@@ -18,6 +19,7 @@ class test_data:
 
 # we define our needed mock SMTP
 class SMTP(object):
+
     def __init__(self, host=None, port=25):
         test_data.mail_host = host
         test_data.mail_port = port
@@ -25,18 +27,14 @@ class SMTP(object):
         if test_data.mail_host:
             self.connect(test_data.mail_host, test_data.mail_port)
 
-
     def connect(self, host, port):
         test_data.mail_connect = True
-
 
     def quit(self):
         test_data.mail_connect = False
 
-
     def login(self, user, password):
         test_data.login = True
-
 
     def sendmail(self, from_address, to_address, message):
         test_data.mail_from_address = from_address
@@ -52,11 +50,9 @@ class mail_test(unittest.TestCase):
         self.cached_SMTP = mail.smtplib.SMTP
         mail.smtplib.SMTP = SMTP
 
-
     def tearDown(self):
         # now put things back
         mail.smtplib.SMTP = self.cached_SMTP
-
 
     def test_send_message(self):
         message = Message.Message()
@@ -75,7 +71,7 @@ class mail_test(unittest.TestCase):
                   subject="hello", body="Hello everybody!", smtp_info=smtp_info)
 
         self.assertEquals("me", test_data.mail_from_address)
-        self.assertEquals(["you","them"], test_data.mail_to_address)
+        self.assertEquals(["you", "them"], test_data.mail_to_address)
         self.assertEquals(message.as_string(), test_data.mail_message)
 
 

@@ -1,4 +1,7 @@
-import re, glob, math, logging
+import re
+import glob
+import math
+import logging
 from autotest.client import utils
 
 
@@ -36,7 +39,7 @@ def rounded_memtotal():
     #   tighter spread between min and max possible deductions
 
     # increase mem size by at least min deduction, without rounding
-    min_kbytes   = int(usable_kbytes / (1.0 - mindeduct))
+    min_kbytes = int(usable_kbytes / (1.0 - mindeduct))
     # increase mem size further by 2**n rounding, by 0..roundKb or more
     round_kbytes = int(usable_kbytes / (1.0 - maxdeduct)) - min_kbytes
     # find least binary roundup 2**n that covers worst-cast roundKb
@@ -61,7 +64,7 @@ def node_size():
 
 def get_huge_page_size():
     output = utils.system_output('grep Hugepagesize /proc/meminfo')
-    return int(output.split()[1]) # Assumes units always in kB. :(
+    return int(output.split()[1])  # Assumes units always in kB. :(
 
 
 def get_num_huge_pages():
@@ -78,7 +81,7 @@ def drop_caches():
     utils.run("sync", verbose=False)
     # We ignore failures here as this will fail on 2.6.11 kernels.
     utils.run("echo 3 > /proc/sys/vm/drop_caches", ignore_status=True,
-                 verbose=False)
+              verbose=False)
 
 
 def read_from_vmstat(key):
@@ -133,7 +136,6 @@ def read_from_numa_maps(pid, key):
     numa_maps = open("/proc/%s/numa_maps" % pid)
     numa_map_info = numa_maps.read()
     numa_maps.close()
-
 
     numa_maps_dict = {}
     numa_pattern = r"(^[\dabcdfe]+)\s+.*%s[=:](\d+)" % key
@@ -194,7 +196,7 @@ def get_buddy_info(chunk_sizes, nodes="all", zones="all"):
     if re.findall("[<>=]", chunk_sizes) and buddy_list:
         size_list = range(len(buddy_list[-1][-1].strip().split()))
         chunk_sizes = [str(_) for _ in size_list if eval("%s %s" % (_,
-                                                               chunk_sizes))]
+                                                                    chunk_sizes))]
 
         chunk_sizes = ' '.join(chunk_sizes)
 

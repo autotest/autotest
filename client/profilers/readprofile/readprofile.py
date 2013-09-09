@@ -8,15 +8,17 @@ where those many ticks occurred, and the third is the normalized `load' of the
 procedure, calculated as a ratio between the number of ticks and the length of
 the procedure. The output is filled with blanks to ease readability.
 """
-import os, shutil
+import os
+import shutil
 from autotest.client import utils, profiler
 from autotest.client.shared import error
+
 
 class readprofile(profiler.profiler):
     version = 1
 
 # http://www.kernel.org/pub/linux/utils/util-linux/util-linux-2.12r.tar.bz2
-    def setup(self, tarball = 'util-linux-2.12r.tar.bz2'):
+    def setup(self, tarball='util-linux-2.12r.tar.bz2'):
         self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(self.tarball, self.srcdir)
         os.chdir(self.srcdir)
@@ -24,7 +26,6 @@ class readprofile(profiler.profiler):
         utils.configure()
         os.chdir('sys-utils')
         utils.make('readprofile')
-
 
     def initialize(self, **dargs):
         self.job.require_gcc()
@@ -36,10 +37,8 @@ class readprofile(profiler.profiler):
 
         self.cmd = self.srcdir + '/sys-utils/readprofile'
 
-
     def start(self, test):
         utils.system(self.cmd + ' -r')
-
 
     def stop(self, test):
         # There's no real way to stop readprofile, so we stash the
@@ -48,9 +47,8 @@ class readprofile(profiler.profiler):
         print "STOP"
         shutil.copyfile('/proc/profile', self.rawprofile)
 
-
     def report(self, test):
-        args  = ' -n'
+        args = ' -n'
         args += ' -m ' + utils.get_systemmap()
         args += ' -p ' + self.rawprofile
         cmd = self.cmd + ' ' + args

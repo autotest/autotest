@@ -15,7 +15,9 @@ __author__ = """Copyright Andy Whitcroft 2006"""
 
 import os
 
+
 class config(object):
+
     """The BASIC job configuration
 
     Properties:
@@ -32,7 +34,6 @@ class config(object):
         """
         self.job = job
         self.config = {}
-
 
     def set(self, name, value):
         if name == "proxy":

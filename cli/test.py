@@ -15,12 +15,14 @@ See topic_common.py for a High Level Design and Algorithm.
 """
 
 
-import os, sys
+import os
+import sys
 
 from autotest.cli import topic_common, action_common
 
 
 class test(topic_common.atest):
+
     """Test class
     atest test list <options>"""
     usage_action = 'list'
@@ -42,19 +44,21 @@ class test(topic_common.atest):
             filename_option='tlist',
             use_leftover=True)
 
-
     def get_items(self):
         return self.tests
 
 
 class test_help(test):
+
     """Just here to get the atest logic working.
     Usage is set by its parent"""
     pass
 
 
 class test_list(action_common.atest_list, test):
+
     """atest test list [--description] [--experimental|--all] [<tests>]"""
+
     def __init__(self):
         super(test_list, self).__init__()
 
@@ -71,7 +75,6 @@ class test_list(action_common.atest_list, test):
                                action='store_true',
                                default=False)
 
-
     def parse(self):
         (options, leftover) = super(test_list, self).parse()
 
@@ -84,7 +87,6 @@ class test_list(action_common.atest_list, test):
         self.experimental = options.experimental
 
         return (options, leftover)
-
 
     def execute(self):
         filters = {}
@@ -100,7 +102,6 @@ class test_list(action_common.atest_list, test):
         return super(test_list, self).execute(op='get_tests',
                                               filters=filters,
                                               check_results=check_results)
-
 
     def output(self, results):
         keys = ['name', 'test_type', 'test_class']

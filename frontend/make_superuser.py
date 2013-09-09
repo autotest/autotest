@@ -9,8 +9,8 @@ import sys
 from autotest.client.shared.settings import settings
 
 if (len(sys.argv) < 2 or
-    [arg for arg in sys.argv[1:] if arg.startswith('-')]):
-    print "Usage: %s username [username ...]" %sys.argv[0]
+        [arg for arg in sys.argv[1:] if arg.startswith('-')]):
+    print "Usage: %s username [username ...]" % sys.argv[0]
     sys.exit(1)
 
 section = 'AUTOTEST_WEB'

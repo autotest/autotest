@@ -2,18 +2,21 @@
 This module defines the GitKernel class.
 """
 
-import logging, os
+import logging
+import os
 import source_kernel
 from autotest.client.shared import git
 
 
 class GitKernel(git.GitRepoHelper):
+
     """
     This class represents an installable git kernel repo.
 
     It will fetch a git repo and copy its contents over to a client, so
     it can be built as a normal source kernel.
     """
+
     def __init__(self, uri, branch='master', lbranch='master', commit=None,
                  destination_dir=None, base_uri=None,
                  remote_destination_dir=None, patches=[], config=None):
@@ -50,7 +53,6 @@ class GitKernel(git.GitRepoHelper):
             self.remote_destination_dir = remote_destination_dir
         self.patches = patches
         self.config = config
-
 
     def install(self, host, build=True, branch=None, commit=None):
         """

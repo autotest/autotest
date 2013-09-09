@@ -1,4 +1,7 @@
-import httplib2, sys, traceback, cgi
+import httplib2
+import sys
+import traceback
+import cgi
 
 from django.http import HttpResponse, HttpResponsePermanentRedirect
 from django.http import HttpResponseServerError
@@ -9,8 +12,8 @@ from autotest.frontend.afe import models, rpc_handler, rpc_interface
 from autotest.frontend.afe import rpc_utils
 
 site_rpc_interface = utils.import_site_module(
-        __file__, 'autotest.frontend.afe.site_rpc_interface',
-        dummy=object())
+    __file__, 'autotest.frontend.afe.site_rpc_interface',
+    dummy=object())
 
 # since site_rpc_interface is later in the list, its methods will override those
 # of rpc_interface
@@ -39,6 +42,8 @@ def redirect_with_extra_data(request, url, **kwargs):
 
 
 GWT_SERVER = 'http://localhost:8888/'
+
+
 def gwt_forward(request, forward_addr):
     url = GWT_SERVER + forward_addr
     if len(request.POST) == 0:

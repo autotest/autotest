@@ -39,6 +39,7 @@ def _validate_args(args):
 
 
 class profiler_proxy(object):
+
     """ This is a server-side class that acts as a proxy to a real client-side
     profiler class."""
 
@@ -51,25 +52,20 @@ class profiler_proxy(object):
         profiler_class = getattr(profiler_module, profiler_name)
         self.supports_reboot = profiler_class.supports_reboot
 
-
     def initialize(self, *args, **dargs):
         _validate_args(args)
         _validate_args(dargs)
         self.args, self.dargs = args, dargs
 
-
     def setup(self, *args, **dargs):
         assert self.args == args and self.dargs == dargs
         # the actual setup happens lazily at start()
 
-
     def start(self, test, host=None):
         raise NotImplementedError('start not implemented')
 
-
     def stop(self, test, host=None):
         raise NotImplementedError('stop not implemented')
-
 
     def report(self, test, host=None, wait_on_client=True):
         raise NotImplementedError('report not implemented')

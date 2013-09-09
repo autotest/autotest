@@ -22,23 +22,21 @@ class TkoResourceTestCase(resource_test_utils.ResourceTestCase,
         self._patch_sqlite_stuff()
         self._create_initial_data()
 
-
     def tearDown(self):
         super(TkoResourceTestCase, self).tearDown()
         self.god.unstub_all()
 
 
 class TestResultTest(TkoResourceTestCase):
+
     def test_collection(self):
         response = self.request('get', 'test_results')
         self.check_collection(response, 'test_name',
                               ['kernbench', 'mytest1', 'mytest2'])
 
-
     def test_filter_afe_job_id(self):
         response = self.request('get', 'test_results?afe_job_id=1')
         self.check_collection(response, 'test_name', ['mytest1', 'mytest2'])
-
 
     def test_entry(self):
         response = self.request('get', 'test_results/1')

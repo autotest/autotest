@@ -10,22 +10,21 @@ from autotest.frontend import setup_django_environment
 from autotest.frontend import setup_test_environment
 from autotest.scheduler import metahost_scheduler, scheduler_models
 
+
 class LabelMetahostSchedulerTest(unittest.TestCase):
+
     def setUp(self):
         self.god = mock.mock_god()
         self.scheduling_utility = self.god.create_mock_class(
-                metahost_scheduler.HostSchedulingUtility, 'utility')
+            metahost_scheduler.HostSchedulingUtility, 'utility')
         self.metahost_scheduler = metahost_scheduler.LabelMetahostScheduler()
-
 
     def tearDown(self):
         self.god.unstub_all()
 
-
     def entry(self):
         return self.god.create_mock_class(scheduler_models.HostQueueEntry,
                                           'entry')
-
 
     def test_can_schedule_metahost(self):
         entry = self.entry()
@@ -35,14 +34,13 @@ class LabelMetahostSchedulerTest(unittest.TestCase):
         entry.meta_host = 1
         self.assert_(self.metahost_scheduler.can_schedule_metahost(entry))
 
-
     def test_schedule_metahost(self):
         entry = self.entry()
         entry.meta_host = 1
         host = object()
 
         self.scheduling_utility.hosts_in_label.expect_call(1).and_return(
-                [2, 3, 4, 5])
+            [2, 3, 4, 5])
         # 2 is in ineligible_hosts
         (self.scheduling_utility.ineligible_hosts_for_entry.expect_call(entry)
          .and_return([2]))
@@ -65,7 +63,6 @@ class LabelMetahostSchedulerTest(unittest.TestCase):
         self.metahost_scheduler.schedule_metahost(entry,
                                                   self.scheduling_utility)
         self.god.check_playback()
-
 
     def test_no_hosts(self):
         entry = self.entry()

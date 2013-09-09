@@ -16,11 +16,13 @@ The common options are:
 See topic_common.py for a High Level Design and Algorithm.
 """
 
-import os, sys
+import os
+import sys
 from autotest.cli import topic_common, action_common
 
 
 class label(topic_common.atest):
+
     """Label class
     atest label [create|delete|list|add|remove] <options>"""
     usage_action = '[create|delete|list|add|remove]'
@@ -43,21 +45,23 @@ class label(topic_common.atest):
             filename_option='blist',
             use_leftover=True)
 
-
     def get_items(self):
         return self.labels
 
 
 class label_help(label):
+
     """Just here to get the atest logic working.
     Usage is set by its parent"""
     pass
 
 
 class label_list(action_common.atest_list, label):
+
     """atest label list [--platform] [--all] [--atomicgroup]
     [--valid-only] [--machine <machine>]
     [--blist <file>] [<labels>]"""
+
     def __init__(self):
         super(label_list, self).__init__()
 
@@ -84,7 +88,6 @@ class label_list(action_common.atest_list, label):
                                type='string',
                                metavar='MACHINE')
 
-
     def parse(self):
         host_info = topic_common.item_parse_info(attribute_name='hosts',
                                                  inline_option='machine')
@@ -106,7 +109,6 @@ class label_list(action_common.atest_list, label):
         self.valid_only = options.valid_only
         return (options, leftover)
 
-
     def execute(self):
         filters = {}
         check_results = {}
@@ -121,7 +123,6 @@ class label_list(action_common.atest_list, label):
         return super(label_list, self).execute(op='get_labels',
                                                filters=filters,
                                                check_results=check_results)
-
 
     def output(self, results):
         if self.valid_only:
@@ -147,7 +148,9 @@ class label_list(action_common.atest_list, label):
 
 
 class label_create(action_common.atest_create, label):
+
     """atest label create <labels>|--blist <file> --platform"""
+
     def __init__(self):
         super(label_create, self).__init__()
         self.parser.add_option('-t', '--platform',
@@ -159,7 +162,6 @@ class label_create(action_common.atest_create, label):
                                default=False,
                                action='store_true')
 
-
     def parse(self):
         (options, leftover) = super(label_create,
                                     self).parse(req_items='labels')
@@ -170,12 +172,13 @@ class label_create(action_common.atest_create, label):
 
 
 class label_delete(action_common.atest_delete, label):
+
     """atest label delete <labels>|--blist <file>"""
     pass
 
 
-
 class label_add_or_remove(label):
+
     def __init__(self):
         super(label_add_or_remove, self).__init__()
         lower_words = tuple(word.lower() for word in self.usage_words)
@@ -189,7 +192,6 @@ class label_add_or_remove(label):
                                'the LABEL' % lower_words,
                                type='string',
                                metavar='MACHINE_FLIST')
-
 
     def parse(self):
         host_info = topic_common.item_parse_info(attribute_name='hosts',
@@ -207,12 +209,14 @@ class label_add_or_remove(label):
 
 
 class label_add(action_common.atest_add, label_add_or_remove):
+
     """atest label add <labels>|--blist <file>
     --platform [--machine <machine>] [--mlist <file>]"""
     pass
 
 
 class label_remove(action_common.atest_remove, label_add_or_remove):
+
     """atest label remove <labels>|--blist <file>
      [--machine <machine>] [--mlist <file>]"""
     pass

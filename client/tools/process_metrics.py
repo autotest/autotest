@@ -12,11 +12,12 @@ so that the jenkins measurement-plots plugin can parse them.
  Public License, Version 2 or later. See http://www.gnu.org/copyleft/gpl.html
  for details.
 """
-from sys                             import argv, stdout, stderr, exit
-from getopt                          import getopt, GetoptError
+from sys import argv, stdout, stderr, exit
+from getopt import getopt, GetoptError
 import os
 import json
-from datetime                        import datetime, date
+from datetime import datetime, date
+
 
 def main(path):
 
@@ -67,7 +68,7 @@ def main(path):
         fd = open(filenm, "r")
         lines = fd.readlines()
         for line in lines:
-            p =  line.strip().split('=')
+            p = line.strip().split('=')
             if len(p) != 2:
                 continue
             metrics[p[0]] = p[1]
@@ -77,6 +78,7 @@ def main(path):
     print json.dumps(results, sort_keys=True, indent=4)
 
     return
+
 
 def usage():
     print "                                                                                             \n",
@@ -97,7 +99,7 @@ def usage():
 if __name__ == "__main__":
     # process command line
     optsShort = ''
-    optsLong  = ['help', 'path=']
+    optsLong = ['help', 'path=']
     opts, args = getopt(argv[1:], optsShort, optsLong)
     path = None
     attrs = {}

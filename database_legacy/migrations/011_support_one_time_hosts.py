@@ -3,6 +3,7 @@ def migrate_up(manager):
     manager.execute(ADD_HOST_QUEUE_DELETED_COLUMN)
     manager.execute(DROP_DEFAULT)
 
+
 def migrate_down(manager):
     manager.execute(DROP_HOST_QUEUE_DELETED_COLUMN)
 

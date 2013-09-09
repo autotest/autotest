@@ -1,6 +1,13 @@
 # Copyright 2007 Google Inc. Released under the GPL v2
 
-import re, os, sys, traceback, time, glob, tempfile, logging
+import re
+import os
+import sys
+import traceback
+import time
+import glob
+import tempfile
+import logging
 from autotest.server import installable_object, prebuild, utils
 from autotest.client import os_dep
 from autotest.client import utils as client_utils
@@ -14,6 +21,7 @@ autoserv_prebuild = settings.get_value('AUTOSERV', 'enable_server_prebuild',
 
 
 class AutodirNotFoundError(Exception):
+
     """No Autotest installation could be found."""
 
 
@@ -51,6 +59,7 @@ UNINSTALL_CLIENT_CMD_MAPPING = {'Fedora': _yum_uninstall_cmd,
 
 
 class BaseAutotest(installable_object.InstallableObject):
+
     """
     This class represents the Autotest program.
 
@@ -71,8 +80,8 @@ class BaseAutotest(installable_object.InstallableObject):
         self.server_system_wide_install = _server_system_wide_install()
         super(BaseAutotest, self).__init__()
 
-
     install_in_tmpdir = False
+
     @classmethod
     def set_install_in_tmpdir(cls, flag):
         """
@@ -82,11 +91,9 @@ class BaseAutotest(installable_object.InstallableObject):
         """
         cls.install_in_tmpdir = flag
 
-
     @classmethod
     def get_client_autodir_paths(cls, host):
         return settings.get_value('AUTOSERV', 'client_autodir_paths', type=list)
-
 
     @classmethod
     def get_installed_autodir(cls, host):
@@ -120,7 +127,6 @@ class BaseAutotest(installable_object.InstallableObject):
 
         raise AutodirNotFoundError
 
-
     @classmethod
     def get_install_dir(cls, host):
         """
@@ -139,7 +145,6 @@ class BaseAutotest(installable_object.InstallableObject):
             return host.get_tmp_dir(parent=install_dir)
         return install_dir
 
-
     @classmethod
     def _find_installable_dir(cls, host):
         client_autodir_paths = cls.get_client_autodir_paths(host)
@@ -151,9 +156,8 @@ class BaseAutotest(installable_object.InstallableObject):
             except error.AutoservRunError:
                 logging.debug('Failed to create %s', path)
         raise error.AutoservInstallError(
-                'Unable to find a place to install Autotest; tried %s' %
-                ', '.join(client_autodir_paths))
-
+            'Unable to find a place to install Autotest; tried %s' %
+            ', '.join(client_autodir_paths))
 
     def _create_test_output_dir(self, host, autodir):
         tmpdir = os.path.join(autodir, 'tmp')
@@ -161,26 +165,21 @@ class BaseAutotest(installable_object.InstallableObject):
                                            default=tmpdir)
         host.run('mkdir -p %s' % utils.sh_escape(state_autodir))
 
-
     def get_fetch_location(self):
         repos = settings.get_value("PACKAGES", 'fetch_location', type=list,
                                    default=[])
         repos.reverse()
         return repos
 
-
     def install(self, host=None, autodir=None):
         self._install(host=host, autodir=autodir)
-
 
     def install_full_client(self, host=None, autodir=None):
         self._install(host=host, autodir=autodir, use_autoserv=False,
                       use_packaging=False)
 
-
     def install_no_autoserv(self, host=None, autodir=None):
         self._install(host=host, autodir=autodir, use_autoserv=False)
-
 
     def _install_using_packaging(self, host, autodir):
         repos = self.get_fetch_location()
@@ -204,7 +203,6 @@ class BaseAutotest(installable_object.InstallableObject):
         self._create_test_output_dir(host, autodir)
         logging.info("Installation of autotest completed")
         self.installed = True
-
 
     def _install_using_send_file(self, host, autodir):
         dirs_to_exclude = set(["tests", "site_tests", "deps", "profilers"])
@@ -238,7 +236,6 @@ class BaseAutotest(installable_object.InstallableObject):
             commands.append("mkdir -p '%s'" % abs_path)
             commands.append("touch '%s'/__init__.py" % abs_path)
         host.run(';'.join(commands))
-
 
     def _install(self, host=None, autodir=None, use_autoserv=True,
                  use_packaging=True):
@@ -314,8 +311,8 @@ class BaseAutotest(installable_object.InstallableObject):
         # try to install from file or directory
         if self.source_material:
             supports_autoserv_packaging = settings.get_value("PACKAGES",
-                                                "serve_packages_from_autoserv",
-                                                type=bool)
+                                                             "serve_packages_from_autoserv",
+                                                             type=bool)
             # Copy autotest recursively
             if supports_autoserv_packaging and use_autoserv:
                 self._install_using_send_file(host, autodir)
@@ -328,7 +325,6 @@ class BaseAutotest(installable_object.InstallableObject):
 
         raise error.AutoservError('Could not install autotest on '
                                   'target machine: %s' % host.name)
-
 
     def uninstall(self, host=None):
         """
@@ -358,7 +354,6 @@ class BaseAutotest(installable_object.InstallableObject):
         host.set_autodir(None)
         self.installed = False
 
-
     def get(self, location=None):
         if not location:
             location = os.path.join(self.serverdir, '../client')
@@ -374,7 +369,6 @@ class BaseAutotest(installable_object.InstallableObject):
                 os.chdir(cwd)
         super(BaseAutotest, self).get(location)
         self.got = True
-
 
     def run(self, control_file, results_dir='.', host=None, timeout=None,
             tag=None, parallel_flag=False, background=False,
@@ -414,7 +408,6 @@ class BaseAutotest(installable_object.InstallableObject):
         self._do_run(control_file, results_dir, host, atrun, timeout,
                      client_disconnect_timeout)
 
-
     def _get_host_and_setup(self, host):
         if not host:
             host = self.host
@@ -423,7 +416,6 @@ class BaseAutotest(installable_object.InstallableObject):
 
         host.wait_up(timeout=30)
         return host
-
 
     def _do_run(self, control_file, results_dir, host, atrun, timeout,
                 client_disconnect_timeout):
@@ -492,9 +484,8 @@ class BaseAutotest(installable_object.InstallableObject):
             os.remove(tmppath)
 
         atrun.execute_control(
-                timeout=timeout,
-                client_disconnect_timeout=client_disconnect_timeout)
-
+            timeout=timeout,
+            client_disconnect_timeout=client_disconnect_timeout)
 
     def run_timed_test(self, test_name, results_dir='.', host=None,
                        timeout=None, *args, **dargs):
@@ -511,13 +502,13 @@ class BaseAutotest(installable_object.InstallableObject):
         control = "job.run_test(%s)\n" % cmd
         self.run(control, results_dir, host, timeout=timeout)
 
-
     def run_test(self, test_name, results_dir='.', host=None, *args, **dargs):
         self.run_timed_test(test_name, results_dir, host, timeout=None,
                             *args, **dargs)
 
 
 class _BaseRun(object):
+
     """
     Represents a run of autotest control file.  This class maintains
     all the state necessary as an autotest control file is executed.
@@ -525,6 +516,7 @@ class _BaseRun(object):
     It is not intended to be used directly, rather control files
     should be run using the run method in Autotest.
     """
+
     def __init__(self, host, results_dir, tag, parallel_flag, background):
         self.host = host
         self.results_dir = results_dir
@@ -550,27 +542,25 @@ class _BaseRun(object):
 
         self.manual_control_file = control
         self.manual_control_init_state = os.path.join(state_dir,
-                          os.path.basename(control) + ".init.state")
+                                                      os.path.basename(control) + ".init.state")
         self.manual_control_state = os.path.join(state_dir,
-                          os.path.basename(control) + ".state")
+                                                 os.path.basename(control) + ".state")
 
         self.remote_control_file = control + '.autoserv'
         self.remote_control_init_state = os.path.join(state_dir,
-                          os.path.basename(control) + ".autoserv.init.state")
+                                                      os.path.basename(control) + ".autoserv.init.state")
         self.remote_control_state = os.path.join(state_dir,
-                          os.path.basename(control) + ".autoserv.state")
+                                                 os.path.basename(control) + ".autoserv.state")
         logging.debug("Remote control file: %s", self.remote_control_file)
         logging.debug("Remote control init state: %s", self.remote_control_init_state)
         logging.debug("Remote control state: %s", self.remote_control_state)
 
         self.config_file = os.path.join(self.autodir, 'global_config.ini')
 
-
     def _verify_machine_system_wide(self):
         if not _client_system_wide_install(self.host):
             raise error.AutoservInstallError("Autotest does not appear "
                                              "to be installed")
-
 
     def _verify_machine_local(self):
         binary = os.path.join(self.autodir, 'autotest')
@@ -579,7 +569,6 @@ class _BaseRun(object):
         except:
             raise error.AutoservInstallError("Autotest does not appear "
                                              "to be installed")
-
 
     def verify_machine(self):
         if self.server_system_wide_install:
@@ -591,7 +580,6 @@ class _BaseRun(object):
             download = os.path.join(self.autodir, 'tests/download')
             self.host.run('umount %s' % tmpdir, ignore_status=True)
             self.host.run('umount %s' % download, ignore_status=True)
-
 
     def get_base_cmd_args(self, section):
         args = ['--verbose']
@@ -608,7 +596,6 @@ class _BaseRun(object):
         args.append(self.remote_control_file)
         return args
 
-
     def get_background_cmd(self, section):
         system_wide_client_path = '/usr/bin/autotest-local-streamhandler'
         if self.server_system_wide_install:
@@ -618,7 +605,6 @@ class _BaseRun(object):
         cmd += self.get_base_cmd_args(section)
         cmd += ['>/dev/null', '2>/dev/null', '&']
         return ' '.join(cmd)
-
 
     def get_daemon_cmd(self, section, monitor_dir):
         system_wide_client_path = '/usr/bin/autotest-daemon'
@@ -633,7 +619,6 @@ class _BaseRun(object):
         cmd += ['>/dev/null', '2>/dev/null', '&']
         return ' '.join(cmd)
 
-
     def get_monitor_cmd(self, monitor_dir, stdout_read, stderr_read):
         system_wide_client_path = '/usr/bin/autotest-daemon-monitor'
         if self.server_system_wide_install:
@@ -643,7 +628,6 @@ class _BaseRun(object):
             cmd = [os.path.join(self.autodir, 'autotestd_monitor'),
                    monitor_dir, str(stdout_read), str(stderr_read)]
         return ' '.join(cmd)
-
 
     def get_client_log(self):
         """Find what the "next" client.* prefix should be
@@ -660,7 +644,6 @@ class _BaseRun(object):
                 max_digit = max(max_digit, int(number))
         return 'client.%d' % (max_digit + 1)
 
-
     def copy_client_config_file(self, client_log_prefix=None):
         """
         Create and copy the client config file based on the server config.
@@ -673,7 +656,6 @@ class _BaseRun(object):
             os.remove(client_config_file)
         else:
             logging.info("System wide install, not overriding client config")
-
 
     def _create_client_config_file(self, client_log_prefix=None):
         """
@@ -688,7 +670,6 @@ class _BaseRun(object):
         if client_log_prefix:
             config.set('CLIENT', 'default_logging_name', client_log_prefix)
         return self._create_aux_file(config.write)
-
 
     def _create_aux_file(self, func, *args):
         """
@@ -711,22 +692,18 @@ class _BaseRun(object):
             aux_file.close()
         return path
 
-
     @staticmethod
     def is_client_job_finished(last_line):
         return bool(re.match(r'^END .*\t----\t----\t.*$', last_line))
-
 
     @staticmethod
     def is_client_job_rebooting(last_line):
         return bool(re.match(r'^\t*GOOD\t----\treboot\.start.*$', last_line))
 
-
     def log_unexpected_abort(self, stderr_redirector):
         stderr_redirector.flush_all_buffers()
         msg = "Autotest client terminated unexpectedly"
         self.host.job.record("END ABORT", None, None, msg)
-
 
     def _execute_in_background(self, section, timeout):
         full_cmd = self.get_background_cmd(section)
@@ -745,7 +722,6 @@ class _BaseRun(object):
 
         return result
 
-
     @staticmethod
     def _strip_stderr_prologue(stderr):
         """Strips the 'standard' prologue that get pre-pended to every
@@ -757,7 +733,6 @@ class _BaseRun(object):
         elif stderr_lines[0].startswith("NOTE: autotestd_monitor"):
             del stderr_lines[0]
         return "\n".join(stderr_lines)
-
 
     def _execute_daemon(self, section, timeout, stderr_redirector,
                         client_disconnect_timeout):
@@ -810,7 +785,6 @@ class _BaseRun(object):
             client_log.close()
             self.host.job.pop_execution_context()
 
-
     def execute_section(self, section, timeout, stderr_redirector,
                         client_disconnect_timeout):
         if self.server_system_wide_install:
@@ -819,7 +793,7 @@ class _BaseRun(object):
             autotest_local_bin = os.path.join(self.autodir, "autotest")
 
         logging.info("Executing %s %s phase %d",
-                     autotest_local_bin, self.remote_control_file , section)
+                     autotest_local_bin, self.remote_control_file, section)
 
         if self.background:
             result = self._execute_in_background(section, timeout)
@@ -848,7 +822,6 @@ class _BaseRun(object):
         else:
             return stderr_redirector.last_line
 
-
     def _wait_for_reboot(self, old_boot_id):
         logging.info("Client is rebooting")
         logging.info("Waiting for client to halt")
@@ -875,7 +848,6 @@ class _BaseRun(object):
                                          (self.host.hostname,
                                           self.host.DEFAULT_REBOOT_TIMEOUT))
         self.host.reboot_followup()
-
 
     def execute_control(self, timeout=None, client_disconnect_timeout=None):
         if not self.background:
@@ -941,6 +913,7 @@ class _BaseRun(object):
 
 
 class log_collector(object):
+
     def __init__(self, host, client_tag, results_dir):
         self.host = host
         if not client_tag:
@@ -957,7 +930,6 @@ class log_collector(object):
         logging.debug("Log collector initialized")
         logging.debug("Client results dir: %s", self.client_results_dir)
         logging.debug("Server results dir: %s", self.server_results_dir)
-
 
     def collect_client_job_results(self):
         """ A method that collects all the current results of a running
@@ -983,7 +955,6 @@ class log_collector(object):
             logging.error(e_msg)
             traceback.print_exc(file=sys.stdout)
 
-
     def remove_redundant_client_logs(self):
         """Remove client.*.log files in favour of client.*.DEBUG files."""
         debug_dir = os.path.join(self.server_results_dir, 'debug')
@@ -999,6 +970,7 @@ class log_collector(object):
 # a file-like object for catching stderr from an autotest client and
 # extracting status logs from it
 class client_logger(object):
+
     """Partial file object to write to both stdout and
     the status log file.  We only implement those methods
     utils.run() actually calls.
@@ -1018,13 +990,11 @@ class client_logger(object):
         self.last_line = ""
         self.logs = {}
 
-
     def _process_log_dict(self, log_dict):
         log_list = log_dict.pop("logs", [])
         for key in sorted(log_dict.iterkeys()):
             log_list += self._process_log_dict(log_dict.pop(key))
         return log_list
-
 
     def _process_logs(self):
         """Go through the accumulated logs in self.log and print them
@@ -1044,7 +1014,6 @@ class client_logger(object):
             self.job.record_entry(entry, log_in_subdir=False)
         if log_list:
             self.last_line = log_list[-1].render()
-
 
     def _process_quoted_line(self, tag, line):
         """Process a line quoted with an AUTOTEST_STATUS flag. If the
@@ -1067,7 +1036,6 @@ class client_logger(object):
             log_list = log_dict.setdefault("logs", [])
             log_list.append(entry)
 
-
     def _process_info_line(self, line):
         """Check if line is an INFO line, and if it is, interpret any control
         messages (e.g. enabling/disabling warnings) that it may contain."""
@@ -1083,7 +1051,6 @@ class client_logger(object):
                 continue
             warning_type = field.split("=", 1)[1]
             func(warning_type)
-
 
     def _process_line(self, line):
         """Write out a line of data to the appropriate stream. Status
@@ -1124,7 +1091,6 @@ class client_logger(object):
                 logging.exception(msg)
         else:
             logging.info(line)
-
 
     def _send_tarball(self, pkg_name, remote_dest):
         name, pkg_type = self.job.pkgmgr.parse_tarball_name(pkg_name)
@@ -1171,20 +1137,18 @@ class client_logger(object):
                         exclude_file.close()
 
                     tarball_path = self.job.pkgmgr.tar_package(
-                                            pkg_name, src_dir, temp_dir.name,
-                                            " .", exclude_paths)
+                        pkg_name, src_dir, temp_dir.name,
+                        " .", exclude_paths)
                     self.host.send_file(tarball_path, remote_dest)
                 finally:
                     temp_dir.clean()
                 return
-
 
     def log_warning(self, msg, warning_type):
         """Injects a WARN message into the current status logging stream."""
         timestamp = int(time.time())
         if self.job.warning_manager.is_valid(timestamp, warning_type):
             self.job.record('WARN', None, None, msg)
-
 
     def write(self, data):
         # now start processing the existing buffer and the new data
@@ -1201,10 +1165,8 @@ class client_logger(object):
             # save any unprocessed lines for future processing
             self.leftover = '\n'.join(lines[processed_lines:])
 
-
     def flush(self):
         sys.stdout.flush()
-
 
     def flush_all_buffers(self):
         if self.leftover:
@@ -1212,7 +1174,6 @@ class client_logger(object):
             self.leftover = ""
         self._process_logs()
         self.flush()
-
 
     def close(self):
         self.flush_all_buffers()
@@ -1236,6 +1197,7 @@ class _Run(_SiteRun):
 
 
 class AutotestHostMixin(object):
+
     """A generic mixin to add a run_test method to classes, which will allow
     you to run an autotest client test on a machine directly."""
 

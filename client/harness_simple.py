@@ -4,9 +4,12 @@ The simple harness interface
 
 __author__ = """Copyright Andy Whitcroft, Martin J. Bligh 2006"""
 
-import os, harness
+import os
+import harness
+
 
 class harness_simple(harness.harness):
+
     """
     The simple server harness
 
@@ -23,7 +26,6 @@ class harness_simple(harness.harness):
         self.setup(job)
 
         self.status = os.fdopen(3, 'w')
-
 
     def test_status(self, status, tag):
         """A test within this job is completing"""

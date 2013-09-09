@@ -14,12 +14,13 @@ if os.path.isdir('cli'):
 else:
     cli_dir = '.'
 
+
 def get_package_dir():
     return {'autotest.cli': cli_dir}
 
 
 def get_package_data():
-    return {'autotest.cli': ['contrib/*' ]}
+    return {'autotest.cli': ['contrib/*']}
 
 
 def get_packages():

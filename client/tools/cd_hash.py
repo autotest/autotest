@@ -5,7 +5,10 @@ Program that calculates several hashes for a given CD image.
 @copyright: Red Hat 2008-2009
 """
 
-import os, sys, optparse, logging
+import os
+import sys
+import optparse
+import logging
 try:
     import autotest.common as common
 except ImportError:
@@ -41,9 +44,9 @@ if __name__ == "__main__":
             continue
 
         logging.info("Hash values for file %s", os.path.basename(filename))
-        logging.info("md5    (1m): %s", utils.hash_file(filename, 1024*1024,
+        logging.info("md5    (1m): %s", utils.hash_file(filename, 1024 * 1024,
                                                         method="md5"))
-        logging.info("sha1   (1m): %s", utils.hash_file(filename, 1024*1024,
+        logging.info("sha1   (1m): %s", utils.hash_file(filename, 1024 * 1024,
                                                         method="sha1"))
         logging.info("md5  (full): %s", utils.hash_file(filename, method="md5"))
         logging.info("sha1 (full): %s", utils.hash_file(filename,

@@ -2,7 +2,8 @@
 """Reexecute parser in scenario and store the result at specified tag.
 """
 
-import optparse, sys
+import optparse
+import sys
 from os import path
 try:
     import autotest.common as common

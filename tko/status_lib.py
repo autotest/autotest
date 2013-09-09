@@ -1,4 +1,5 @@
-import collections, re
+import collections
+import re
 try:
     import autotest.common as common
 except ImportError:
@@ -24,19 +25,20 @@ def is_worse_than_or_equal_to(lhs, rhs):
 
 
 DEFAULT_BLACKLIST = ('\r\x00',)
+
+
 def clean_raw_line(raw_line, blacklist=DEFAULT_BLACKLIST):
     """Strip blacklisted characters from raw_line."""
     return re.sub('|'.join(blacklist), '', raw_line)
 
 
 class status_stack(object):
+
     def __init__(self):
         self.status_stack = [statuses[-1]]
 
-
     def current_status(self):
         return self.status_stack[-1]
-
 
     def update(self, new_status):
         if new_status not in statuses:
@@ -44,10 +46,8 @@ class status_stack(object):
         if is_worse_than(new_status, self.current_status()):
             self.status_stack[-1] = new_status
 
-
     def start(self):
         self.status_stack.append(statuses[-1])
-
 
     def end(self):
         result = self.status_stack.pop()
@@ -55,31 +55,26 @@ class status_stack(object):
             self.status_stack.append(statuses[-1])
         return result
 
-
     def size(self):
         return len(self.status_stack) - 1
 
 
 class line_buffer(object):
+
     def __init__(self):
         self.buffer = collections.deque()
-
 
     def get(self):
         return self.buffer.pop()
 
-
     def put(self, line):
         self.buffer.appendleft(line)
-
 
     def put_multiple(self, lines):
         self.buffer.extendleft(lines)
 
-
     def put_back(self, line):
         self.buffer.append(line)
-
 
     def size(self):
         return len(self.buffer)

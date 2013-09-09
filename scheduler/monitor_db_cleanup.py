@@ -3,7 +3,9 @@ Autotest AFE Cleanup used by the scheduler
 """
 
 
-import time, logging, random
+import time
+import logging
+import random
 from autotest.frontend.afe import models
 from autotest.scheduler import scheduler_config
 from autotest.client.shared import host_protections, mail
@@ -11,18 +13,15 @@ from autotest.client.shared import host_protections, mail
 
 class PeriodicCleanup(object):
 
-
     def __init__(self, db, clean_interval, run_at_initialize=False):
         self._db = db
         self.clean_interval = clean_interval
         self._last_clean_time = time.time()
         self._run_at_initialize = run_at_initialize
 
-
     def initialize(self):
         if self._run_at_initialize:
             self._cleanup()
-
 
     def run_cleanup_maybe(self):
         should_cleanup = (self._last_clean_time + self.clean_interval * 60
@@ -31,22 +30,20 @@ class PeriodicCleanup(object):
             self._cleanup()
             self._last_clean_time = time.time()
 
-
     def _cleanup(self):
         """Abrstract cleanup method."""
         raise NotImplementedError
 
 
 class UserCleanup(PeriodicCleanup):
+
     """User cleanup that is controlled by the global config variable
        clean_interval in the SCHEDULER section.
     """
 
-
     def __init__(self, db, clean_interval_minutes):
         super(UserCleanup, self).__init__(db, clean_interval_minutes)
         self._last_reverify_time = time.time()
-
 
     def _cleanup(self):
         logging.info('Running periodic cleanup')
@@ -56,7 +53,6 @@ class UserCleanup(PeriodicCleanup):
         self._check_for_db_inconsistencies()
         self._reverify_dead_hosts()
 
-
     def _abort_timed_out_jobs(self):
         msg = 'Aborting all jobs that have timed out and are not complete'
         logging.info(msg)
@@ -65,7 +61,6 @@ class UserCleanup(PeriodicCleanup):
         for job in query.distinct():
             logging.warning('Aborting job %d due to job timeout', job.id)
             job.abort()
-
 
     def _abort_jobs_past_max_runtime(self):
         """
@@ -84,11 +79,9 @@ class UserCleanup(PeriodicCleanup):
             logging.warning('Aborting entry %s due to max runtime', queue_entry)
             queue_entry.abort()
 
-
     def _check_for_db_inconsistencies(self):
         logging.info('Cleaning db inconsistencies')
         self._check_all_invalid_related_objects()
-
 
     def _check_invalid_related_objects_one_way(self, first_model,
                                                relation_field, second_model):
@@ -110,7 +103,6 @@ class UserCleanup(PeriodicCleanup):
                 related_manager.clear()
         return error_lines
 
-
     def _check_invalid_related_objects(self, first_model, first_field,
                                        second_model, second_field):
         errors = self._check_invalid_related_objects_one_way(
@@ -118,7 +110,6 @@ class UserCleanup(PeriodicCleanup):
         errors.extend(self._check_invalid_related_objects_one_way(
             second_model, second_field, first_model))
         return errors
-
 
     def _check_all_invalid_related_objects(self):
         model_pairs = ((models.Host, 'labels', models.Label, 'host_set'),
@@ -139,7 +130,6 @@ class UserCleanup(PeriodicCleanup):
             logging.warning(message)
             mail.manager.enqueue_admin(subject, message)
 
-
     def _clear_inactive_blocks(self):
         msg = 'Clear out blocks for all completed jobs.'
         logging.info(msg)
@@ -152,14 +142,12 @@ class UserCleanup(PeriodicCleanup):
                        WHERE NOT complete) hqe
             USING (job_id) WHERE hqe.job_id IS NULL""")
 
-
     def _should_reverify_hosts_now(self):
         reverify_period_sec = (scheduler_config.config.reverify_period_minutes
                                * 60)
         if reverify_period_sec == 0:
             return False
         return (self._last_reverify_time + reverify_period_sec) <= time.time()
-
 
     def _choose_subset_of_hosts_to_reverify(self, hosts):
         """Given hosts needing verification, return a subset to reverify."""
@@ -168,7 +156,6 @@ class UserCleanup(PeriodicCleanup):
             return random.sample(hosts, max_at_once)
         return sorted(hosts)
 
-
     def _reverify_dead_hosts(self):
         if not self._should_reverify_hosts_now():
             return
@@ -176,11 +163,11 @@ class UserCleanup(PeriodicCleanup):
         self._last_reverify_time = time.time()
         logging.info('Checking for dead hosts to reverify')
         hosts = models.Host.objects.filter(
-                status=models.Host.Status.REPAIR_FAILED,
-                locked=False,
-                invalid=False)
+            status=models.Host.Status.REPAIR_FAILED,
+            locked=False,
+            invalid=False)
         hosts = hosts.exclude(
-                protection=host_protections.Protection.DO_NOT_VERIFY)
+            protection=host_protections.Protection.DO_NOT_VERIFY)
         if not hosts:
             return
 
@@ -191,26 +178,24 @@ class UserCleanup(PeriodicCleanup):
                      total_hosts, ', '.join(host.hostname for host in hosts))
         for host in hosts:
             models.SpecialTask.schedule_special_task(
-                    host=host, task=models.SpecialTask.Task.VERIFY)
+                host=host, task=models.SpecialTask.Task.VERIFY)
 
 
 class TwentyFourHourUpkeep(PeriodicCleanup):
+
     """Cleanup that runs at the startup of monitor_db and every subsequent
        twenty four hours.
     """
 
-
     def __init__(self, db, run_at_initialize=True):
-        clean_interval = 24 * 60 # 24 hours
+        clean_interval = 24 * 60  # 24 hours
         super(TwentyFourHourUpkeep, self).__init__(
             db, clean_interval, run_at_initialize=run_at_initialize)
-
 
     def _cleanup(self):
         logging.info('Running 24 hour clean up')
         self._django_session_cleanup()
         self._check_for_uncleanable_db_inconsistencies()
-
 
     def _django_session_cleanup(self):
         """Clean up django_session since django doesn't for us.
@@ -220,14 +205,12 @@ class TwentyFourHourUpkeep(PeriodicCleanup):
         sql = 'DELETE FROM django_session WHERE expire_date < NOW()'
         self._db.execute(sql)
 
-
     def _check_for_uncleanable_db_inconsistencies(self):
         logging.info('Checking for uncleanable DB inconsistencies')
         self._check_for_active_and_complete_queue_entries()
         self._check_for_multiple_platform_hosts()
         self._check_for_no_platform_hosts()
         self._check_for_multiple_atomic_group_hosts()
-
 
     def _check_for_active_and_complete_queue_entries(self):
         query = models.HostQueueEntry.objects.filter(active=True, complete=True)
@@ -236,7 +219,6 @@ class TwentyFourHourUpkeep(PeriodicCleanup):
                        % query.count())
             lines = [str(entry.get_object_dict()) for entry in query]
             self._send_inconsistency_message(subject, lines)
-
 
     def _check_for_multiple_platform_hosts(self):
         rows = self._db.execute("""
@@ -256,7 +238,6 @@ class TwentyFourHourUpkeep(PeriodicCleanup):
                      for row in rows]
             self._send_inconsistency_message(subject, lines)
 
-
     def _check_for_no_platform_hosts(self):
         rows = self._db.execute("""
             SELECT hostname
@@ -269,7 +250,6 @@ class TwentyFourHourUpkeep(PeriodicCleanup):
         if rows:
             logging.warn('%s hosts with no platform\n%s', self._db.rowcount,
                          ', '.join(row[0] for row in rows))
-
 
     def _check_for_multiple_atomic_group_hosts(self):
         rows = self._db.execute("""
@@ -292,7 +272,6 @@ class TwentyFourHourUpkeep(PeriodicCleanup):
             lines = [' '.join(str(item) for item in row)
                      for row in rows]
             self._send_inconsistency_message(subject, lines)
-
 
     def _send_inconsistency_message(self, subject, lines):
         logging.error(subject)

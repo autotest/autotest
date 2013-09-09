@@ -1,4 +1,12 @@
-import os, copy, logging, errno, fcntl, time, re, weakref, traceback
+import os
+import copy
+import logging
+import errno
+import fcntl
+import time
+import re
+import weakref
+import traceback
 import tarfile
 import cPickle as pickle
 from autotest.client.shared import autotemp, error, log
@@ -24,35 +32,38 @@ JOB_STATUSES = {"TEST_NA": False,
 
 
 class job_directory(object):
+
     """Represents a job.*dir directory."""
 
-
     class JobDirectoryException(error.AutotestError):
+
         """Generic job_directory exception superclass."""
 
-
     class MissingDirectoryException(JobDirectoryException):
+
         """Raised when a directory required by the job does not exist."""
+
         def __init__(self, path):
             Exception.__init__(self, 'Directory %s does not exist' % path)
 
-
     class UncreatableDirectoryException(JobDirectoryException):
+
         """Raised when a directory required by the job is missing and cannot
         be created."""
+
         def __init__(self, path, error):
             msg = 'Creation of directory %s failed with exception %s'
             msg %= (path, error)
             Exception.__init__(self, msg)
 
-
     class UnwritableDirectoryException(JobDirectoryException):
+
         """Raised when a writable directory required by the job exists
         but is not writable."""
+
         def __init__(self, path):
             msg = 'Directory %s exists but is not writable' % path
             Exception.__init__(self, msg)
-
 
     def __init__(self, path, is_writable=False):
         """
@@ -79,7 +90,6 @@ class job_directory(object):
             self._tempdir = None
             self.path = path
         self._ensure_valid(is_writable)
-
 
     def _ensure_valid(self, is_writable):
         """
@@ -115,7 +125,6 @@ class job_directory(object):
         if is_writable and not os.access(self.path, os.W_OK):
             raise self.UnwritableDirectoryException(self.path)
 
-
     @staticmethod
     def property_factory(attribute):
         """
@@ -145,6 +154,7 @@ def with_backing_lock(method):
     calls to the method in a backing file lock and before the call
     followed by a backing file unlock.
     """
+
     def wrapped_method(self, *args, **dargs):
         already_have_lock = self._backing_file_lock is not None
         if not already_have_lock:
@@ -181,8 +191,8 @@ def with_backing_file(method):
     return wrapped_method
 
 
-
 class job_state(object):
+
     """A class for managing explicit job and user state, optionally persistent.
 
     The class allows you to save state by name (like a dictionary). Any state
@@ -196,7 +206,6 @@ class job_state(object):
     NO_DEFAULT = object()
     PICKLE_PROTOCOL = 2  # highest protocol available in python 2.4
 
-
     def __init__(self):
         """Initialize the job state."""
         self._state = {}
@@ -204,13 +213,11 @@ class job_state(object):
         self._backing_file_initialized = False
         self._backing_file_lock = None
 
-
     def _lock_backing_file(self):
         """Acquire a lock on the backing file."""
         if self._backing_file:
             self._backing_file_lock = open(self._backing_file, 'a')
             fcntl.flock(self._backing_file_lock, fcntl.LOCK_EX)
-
 
     def _unlock_backing_file(self):
         """Release a lock on the backing file."""
@@ -218,7 +225,6 @@ class job_state(object):
             fcntl.flock(self._backing_file_lock, fcntl.LOCK_UN)
             self._backing_file_lock.close()
             self._backing_file_lock = None
-
 
     def read_from_file(self, file_path, merge=True):
         """Read in any state from the file at file_path.
@@ -268,7 +274,6 @@ class job_state(object):
         # lock the backing file before we refresh it
         with_backing_lock(self.__class__._write_to_backing_file)(self)
 
-
     def write_to_file(self, file_path):
         """Write out the current state to the given path.
 
@@ -284,7 +289,6 @@ class job_state(object):
         finally:
             outfile.close()
 
-
     def _read_from_backing_file(self):
         """Refresh the current state from the backing file.
 
@@ -297,19 +301,16 @@ class job_state(object):
             self.read_from_file(self._backing_file, merge=merge_backing_file)
             self._backing_file_initialized = True
 
-
     def _write_to_backing_file(self):
         """Flush the current state to the backing file."""
         if self._backing_file:
             self.write_to_file(self._backing_file)
-
 
     @with_backing_file
     def _synchronize_backing_file(self):
         """Synchronizes the contents of the in-memory and on-disk state."""
         # state is implicitly synchronized in _with_backing_file methods
         pass
-
 
     def set_backing_file(self, file_path):
         """Change the path used as the backing file for the persistent state.
@@ -327,7 +328,6 @@ class job_state(object):
         self._backing_file = file_path
         self._backing_file_initialized = False
         self._synchronize_backing_file()
-
 
     @with_backing_file
     def get(self, namespace, name, default=NO_DEFAULT):
@@ -351,7 +351,6 @@ class job_state(object):
         else:
             return default
 
-
     @with_backing_file
     def set(self, namespace, name, value):
         """Saves the value given with the provided name.
@@ -365,7 +364,6 @@ class job_state(object):
         logging.debug('Persistent state %s.%s now set to %r', namespace,
                       name, value)
 
-
     @with_backing_file
     def has(self, namespace, name):
         """Return a boolean indicating if namespace.name is defined.
@@ -377,7 +375,6 @@ class job_state(object):
             False otherwise.
         """
         return namespace in self._state and name in self._state[namespace]
-
 
     @with_backing_file
     def discard(self, namespace, name):
@@ -396,7 +393,6 @@ class job_state(object):
                 'Persistent state %s.%s not defined so nothing is discarded',
                 namespace, name)
 
-
     @with_backing_file
     def discard_namespace(self, namespace):
         """Delete all defined namespace.* names.
@@ -406,7 +402,6 @@ class job_state(object):
         if namespace in self._state:
             del self._state[namespace]
         logging.debug('Persistent state %s.* deleted', namespace)
-
 
     @staticmethod
     def property_factory(state_attribute, property_attribute, default,
@@ -428,6 +423,7 @@ class job_state(object):
         def getter(job):
             state = getattr(job, state_attribute)
             return state.get(namespace, property_attribute, default)
+
         def setter(job, value):
             state = getattr(job, state_attribute)
             state.set(namespace, property_attribute, value)
@@ -435,6 +431,7 @@ class job_state(object):
 
 
 class status_log_entry(object):
+
     """Represents a single status log entry."""
 
     RENDERED_NONE_VALUE = '----'
@@ -501,7 +498,6 @@ class status_log_entry(object):
         self.fields[self.LOCALTIME_FIELD] = time.strftime(
             '%b %d %H:%M:%S', time.localtime(timestamp))
 
-
     def is_start(self):
         """Indicates if this status log is the start of a new nested block.
 
@@ -509,14 +505,12 @@ class status_log_entry(object):
         """
         return self.status_code == 'START'
 
-
     def is_end(self):
         """Indicates if this status log is the end of a nested block.
 
         @return: A boolean indicating if this entry ends a nested block.
         """
         return self.status_code.startswith('END ')
-
 
     def render(self):
         """Render the status log entry into a text string.
@@ -535,7 +529,6 @@ class status_log_entry(object):
         all_lines = [first_line]
         all_lines += ['  ' + line for line in self.extra_message_lines]
         return '\n'.join(all_lines)
-
 
     @classmethod
     def parse(cls, line):
@@ -572,29 +565,30 @@ class status_log_entry(object):
 
 
 class status_indenter(object):
+
     """Abstract interface that a status log indenter should use."""
 
     @property
     def indent(self):
         raise NotImplementedError
 
-
     def increment(self):
         """Increase indentation by one level."""
         raise NotImplementedError
-
 
     def decrement(self):
         """Decrease indentation by one level."""
 
 
 class status_logger(object):
+
     """Represents a status log file. Responsible for translating messages
     into on-disk status log lines.
 
     @property global_filename: The filename to write top-level logs to.
     @property subdir_filename: The filename to write subdir-level logs to.
     """
+
     def __init__(self, job, indenter, global_filename='status',
                  subdir_filename='status', record_hook=None,
                  tap_writer=None):
@@ -625,7 +619,6 @@ class status_logger(object):
         else:
             self._tap_writer = tap_writer
 
-
     def render_entry(self, log_entry):
         """Render a status_log_entry as it would be written to a log file.
 
@@ -639,7 +632,6 @@ class status_logger(object):
         else:
             indent = self._indenter.indent
         return '\t' * indent + log_entry.render().rstrip('\n')
-
 
     def record_entry(self, log_entry, log_in_subdir=True):
         """Record a status_log_entry into the appropriate status log files.
@@ -688,6 +680,7 @@ class status_logger(object):
 
 
 class TAPReport(object):
+
     """
     Deal with TAP reporting for the Autotest client.
     """
@@ -706,7 +699,6 @@ class TAPReport(object):
         "NOSTATUS": False
     }
 
-
     def __init__(self, enable, resultdir=None, global_filename='status'):
         """
         @param enable: Set self.do_tap_report to trigger TAP reporting.
@@ -718,9 +710,8 @@ class TAPReport(object):
         if resultdir is not None:
             self.resultdir = os.path.abspath(resultdir)
         self._reports_container = {}
-        self._keyval_container = {} # {'path1': [entries],}
+        self._keyval_container = {}  # {'path1': [entries],}
         self.global_filename = global_filename
-
 
     @classmethod
     def tap_ok(self, success, counter, message):
@@ -736,7 +727,6 @@ class TAPReport(object):
         else:
             message = "not ok %s - %s" % (counter, message)
         return message
-
 
     def record(self, log_entry, indent, log_files):
         """
@@ -772,7 +762,6 @@ class TAPReport(object):
                 len(self._reports_container[key]) + 1, operation + "\n"
             )
             self._reports_container[key].append(entry)
-
 
     def record_keyval(self, path, dictionary, type_tag=None):
         """
@@ -815,7 +804,6 @@ class TAPReport(object):
             self._keyval_container[path][1].append("  ...\n")
         self._write_keyval()
 
-
     def _write_reports(self):
         """
         Write TAP reports to file.
@@ -832,7 +820,6 @@ class TAPReport(object):
             tap_fh.writelines(self._reports_container[key])
             tap_fh.close()
 
-
     def _write_keyval(self):
         """
         Write the self._keyval_container key values to a file.
@@ -843,13 +830,11 @@ class TAPReport(object):
             tap_fh.writelines(self._keyval_container[path][1])
             tap_fh.close()
 
-
     def write(self):
         """
         Write the TAP reports to files.
         """
         self._write_reports()
-
 
     def _write_tap_archive(self):
         """
@@ -873,6 +858,7 @@ class TAPReport(object):
 
 
 class base_job(object):
+
     """An abstract base class for the various autotest job classes.
 
     @property autodir: The top level autotest directory.
@@ -956,7 +942,6 @@ class base_job(object):
     _job_directory = job_directory
     _job_state = job_state
 
-
     # all the job directory attributes
     autodir = _job_directory.property_factory('autodir')
     clientdir = _job_directory.property_factory('clientdir')
@@ -972,7 +957,6 @@ class base_job(object):
     toolsdir = _job_directory.property_factory('toolsdir')
     conmuxdir = _job_directory.property_factory('conmuxdir')
 
-
     # all the generic persistent properties
     tag = _job_state.property_factory('_state', 'tag', '')
     default_profile_only = _job_state.property_factory(
@@ -987,8 +971,10 @@ class base_job(object):
     # the use_sequence_number property
     _sequence_number = _job_state.property_factory(
         '_state', '_sequence_number', None)
+
     def _get_use_sequence_number(self):
         return bool(self._sequence_number)
+
     def _set_use_sequence_number(self, value):
         if value:
             self._sequence_number = 1
@@ -996,7 +982,6 @@ class base_job(object):
             self._sequence_number = None
     use_sequence_number = property(_get_use_sequence_number,
                                    _set_use_sequence_number)
-
 
     def __init__(self, *args, **dargs):
         # initialize the base directories, all others are relative to these
@@ -1029,7 +1014,6 @@ class base_job(object):
     def _find_base_directories(cls):
         raise NotImplementedError()
 
-
     def _initialize_dir_properties(self):
         """
         Initializes all the secondary self.*dir properties. Requires autodir,
@@ -1038,6 +1022,7 @@ class base_job(object):
         # create some stubs for use as shortcuts
         def readonly_dir(*args):
             return self._job_directory(os.path.join(*args))
+
         def readwrite_dir(*args):
             return self._job_directory(os.path.join(*args), True)
 
@@ -1088,7 +1073,6 @@ class base_job(object):
     def _find_resultdir(self, *args, **dargs):
         raise NotImplementedError()
 
-
     def push_execution_context(self, resultdir):
         """
         Save off the current context of the job and change to the given one.
@@ -1106,7 +1090,6 @@ class base_job(object):
         self._execution_contexts.append(self._resultdir)
         self._resultdir = new_dir
 
-
     def pop_execution_context(self):
         """
         Reverse the effects of the previous push_execution_context call.
@@ -1116,7 +1099,6 @@ class base_job(object):
         if not self._execution_contexts:
             raise IndexError('No old execution context to restore')
         self._resultdir = self._execution_contexts.pop()
-
 
     def get_state(self, name, default=_job_state.NO_DEFAULT):
         """Returns the value associated with a particular name.
@@ -1136,7 +1118,6 @@ class base_job(object):
         except KeyError:
             raise KeyError(name)
 
-
     def set_state(self, name, value):
         """Saves the value given with the provided name.
 
@@ -1144,7 +1125,6 @@ class base_job(object):
         @param value: The value to save.
         """
         self._state.set('public', name, value)
-
 
     def _build_tagged_test_name(self, testname, dargs):
         """Builds the fully tagged testname and subdirectory for job.run_test.
@@ -1180,7 +1160,6 @@ class base_job(object):
 
         return full_testname, subdir, tag
 
-
     def _make_test_outputdir(self, subdir):
         """Creates an output directory for a test to run it.
 
@@ -1212,7 +1191,6 @@ class base_job(object):
         """
         return TAPReport(enable, resultdir=self.resultdir)
 
-
     def record(self, status_code, subdir, operation, status='',
                optional_fields=None):
         """Record a job-level status event.
@@ -1237,7 +1215,6 @@ class base_job(object):
         entry = status_log_entry(status_code, subdir, operation, status,
                                  optional_fields)
         self.record_entry(entry)
-
 
     def record_entry(self, entry, log_in_subdir=True):
         """Record a job-level status event, using a status_log_entry.

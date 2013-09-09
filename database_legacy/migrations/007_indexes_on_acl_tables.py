@@ -5,6 +5,7 @@ INDEXES = (
     ('acl_groups_users', 'acl_group_id'),
 )
 
+
 def get_index_name(table, field):
     return table + '_' + field
 

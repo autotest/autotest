@@ -2,7 +2,8 @@
 #
 # Eric Li <ericli@google.com>
 
-import logging, os
+import logging
+import os
 try:
     import autotest.common as common
 except ImportError:

@@ -11,9 +11,13 @@ import time
 __all__ = ['ExceptionPxssh', 'pxssh']
 
 # Exception classes used by this module.
+
+
 class ExceptionPxssh(ExceptionPexpect):
+
     """Raised for pxssh exceptions.
     """
+
 
 class pxssh (spawn):
 
@@ -70,19 +74,19 @@ class pxssh (spawn):
             s.login (hostname, username, password)
     """
 
-    def __init__ (self, timeout=30, maxread=2000, searchwindowsize=None, logfile=None, cwd=None, env=None):
+    def __init__(self, timeout=30, maxread=2000, searchwindowsize=None, logfile=None, cwd=None, env=None):
         spawn.__init__(self, None, timeout=timeout, maxread=maxread, searchwindowsize=searchwindowsize, logfile=logfile, cwd=cwd, env=env)
 
         self.name = '<pxssh>'
 
-        #SUBTLE HACK ALERT! Note that the command to set the prompt uses a
-        #slightly different string than the regular expression to match it. This
-        #is because when you set the prompt the command will echo back, but we
-        #don't want to match the echoed command. So if we make the set command
-        #slightly different than the regex we eliminate the problem. To make the
-        #set command different we add a backslash in front of $. The $ doesn't
-        #need to be escaped, but it doesn't hurt and serves to make the set
-        #prompt command different than the regex.
+        # SUBTLE HACK ALERT! Note that the command to set the prompt uses a
+        # slightly different string than the regular expression to match it. This
+        # is because when you set the prompt the command will echo back, but we
+        # don't want to match the echoed command. So if we make the set command
+        # slightly different than the regex we eliminate the problem. To make the
+        # set command different we add a backslash in front of $. The $ doesn't
+        # need to be escaped, but it doesn't hurt and serves to make the set
+        # prompt command different than the regex.
 
         # used to match the command-line prompt
         self.UNIQUE_PROMPT = "\[PEXPECT\][\$\#] "
@@ -100,28 +104,26 @@ class pxssh (spawn):
         self.force_password = False
         self.auto_prompt_reset = True
 
-    def levenshtein_distance(self, a,b):
-
+    def levenshtein_distance(self, a, b):
         """This calculates the Levenshtein distance between a and b.
         """
 
         n, m = len(a), len(b)
         if n > m:
-            a,b = b,a
-            n,m = m,n
-        current = range(n+1)
-        for i in range(1,m+1):
-            previous, current = current, [i]+[0]*n
-            for j in range(1,n+1):
-                add, delete = previous[j]+1, current[j-1]+1
-                change = previous[j-1]
-                if a[j-1] != b[i-1]:
+            a, b = b, a
+            n, m = m, n
+        current = range(n + 1)
+        for i in range(1, m + 1):
+            previous, current = current, [i] + [0] * n
+            for j in range(1, n + 1):
+                add, delete = previous[j] + 1, current[j - 1] + 1
+                change = previous[j - 1]
+                if a[j - 1] != b[i - 1]:
                     change = change + 1
                 current[j] = min(add, delete, change)
         return current[n]
 
-    def synch_original_prompt (self):
-
+    def synch_original_prompt(self):
         """This attempts to find the prompt. Basically, press enter and record
         the response; press enter again and record the response; if the two
         responses are similar then assume we are at the original prompt. """
@@ -133,31 +135,30 @@ class pxssh (spawn):
 
         self.sendline()
         time.sleep(0.5)
-        self.read_nonblocking(size=10000,timeout=1) # GAS: Clear out the cache before getting the prompt
+        self.read_nonblocking(size=10000, timeout=1)  # GAS: Clear out the cache before getting the prompt
         time.sleep(0.1)
         self.sendline()
         time.sleep(0.5)
-        x = self.read_nonblocking(size=1000,timeout=1)
+        x = self.read_nonblocking(size=1000, timeout=1)
         time.sleep(0.1)
         self.sendline()
         time.sleep(0.5)
-        a = self.read_nonblocking(size=1000,timeout=1)
+        a = self.read_nonblocking(size=1000, timeout=1)
         time.sleep(0.1)
         self.sendline()
         time.sleep(0.5)
-        b = self.read_nonblocking(size=1000,timeout=1)
-        ld = self.levenshtein_distance(a,b)
+        b = self.read_nonblocking(size=1000, timeout=1)
+        ld = self.levenshtein_distance(a, b)
         len_a = len(a)
         if len_a == 0:
             return False
-        if float(ld)/len_a < 0.4:
+        if float(ld) / len_a < 0.4:
             return True
         return False
 
-    ### TODO: This is getting messy and I'm pretty sure this isn't perfect.
-    ### TODO: I need to draw a flow chart for this.
-    def login (self,server,username,password='',terminal_type='ansi',original_prompt=r"[#$]",login_timeout=10,port=None,auto_prompt_reset=True):
-
+    # TODO: This is getting messy and I'm pretty sure this isn't perfect.
+    # TODO: I need to draw a flow chart for this.
+    def login(self, server, username, password='', terminal_type='ansi', original_prompt=r"[#$]", login_timeout=10, port=None, auto_prompt_reset=True):
         """This logs the user into the given server. It uses the
         'original_prompt' to try to find the prompt right after login. When it
         finds the prompt it immediately tries to reset the prompt to something
@@ -185,7 +186,7 @@ class pxssh (spawn):
         if self.force_password:
             ssh_options = ssh_options + ' ' + self.SSH_OPTS
         if port is not None:
-            ssh_options = ssh_options + ' -p %s'%(str(port))
+            ssh_options = ssh_options + ' -p %s' % (str(port))
         cmd = "ssh %s -l %s %s" % (ssh_options, username, server)
 
         # This does not distinguish between a remote server 'password' prompt
@@ -194,79 +195,77 @@ class pxssh (spawn):
         i = self.expect(["(?i)are you sure you want to continue connecting", original_prompt, "(?i)(?:password)|(?:passphrase for key)", "(?i)permission denied", "(?i)terminal type", TIMEOUT, "(?i)connection closed by remote host"], timeout=login_timeout)
 
         # First phase
-        if i==0:
+        if i == 0:
             # New certificate -- always accept it.
             # This is what you get if SSH does not have the remote host's
             # public key stored in the 'known_hosts' cache.
             self.sendline("yes")
             i = self.expect(["(?i)are you sure you want to continue connecting", original_prompt, "(?i)(?:password)|(?:passphrase for key)", "(?i)permission denied", "(?i)terminal type", TIMEOUT])
-        if i==2: # password or passphrase
+        if i == 2:  # password or passphrase
             self.sendline(password)
             i = self.expect(["(?i)are you sure you want to continue connecting", original_prompt, "(?i)(?:password)|(?:passphrase for key)", "(?i)permission denied", "(?i)terminal type", TIMEOUT])
-        if i==4:
+        if i == 4:
             self.sendline(terminal_type)
             i = self.expect(["(?i)are you sure you want to continue connecting", original_prompt, "(?i)(?:password)|(?:passphrase for key)", "(?i)permission denied", "(?i)terminal type", TIMEOUT])
 
         # Second phase
-        if i==0:
+        if i == 0:
             # This is weird. This should not happen twice in a row.
             self.close()
-            raise ExceptionPxssh ('Weird error. Got "are you sure" prompt twice.')
-        elif i==1: # can occur if you have a public key pair set to authenticate.
-            ### TODO: May NOT be OK if expect() got tricked and matched a false prompt.
+            raise ExceptionPxssh('Weird error. Got "are you sure" prompt twice.')
+        elif i == 1:  # can occur if you have a public key pair set to authenticate.
+            # TODO: May NOT be OK if expect() got tricked and matched a false prompt.
             pass
-        elif i==2: # password prompt again
+        elif i == 2:  # password prompt again
             # For incorrect passwords, some ssh servers will
             # ask for the password again, others return 'denied' right away.
             # If we get the password prompt again then this means
             # we didn't get the password right the first time.
             self.close()
-            raise ExceptionPxssh ('password refused')
-        elif i==3: # permission denied -- password was bad.
+            raise ExceptionPxssh('password refused')
+        elif i == 3:  # permission denied -- password was bad.
             self.close()
-            raise ExceptionPxssh ('permission denied')
-        elif i==4: # terminal type again? WTF?
+            raise ExceptionPxssh('permission denied')
+        elif i == 4:  # terminal type again? WTF?
             self.close()
-            raise ExceptionPxssh ('Weird error. Got "terminal type" prompt twice.')
-        elif i==5: # Timeout
-            #This is tricky... I presume that we are at the command-line prompt.
-            #It may be that the shell prompt was so weird that we couldn't match
-            #it. Or it may be that we couldn't log in for some other reason. I
-            #can't be sure, but it's safe to guess that we did login because if
-            #I presume wrong and we are not logged in then this should be caught
-            #later when I try to set the shell prompt.
+            raise ExceptionPxssh('Weird error. Got "terminal type" prompt twice.')
+        elif i == 5:  # Timeout
+            # This is tricky... I presume that we are at the command-line prompt.
+            # It may be that the shell prompt was so weird that we couldn't match
+            # it. Or it may be that we couldn't log in for some other reason. I
+            # can't be sure, but it's safe to guess that we did login because if
+            # I presume wrong and we are not logged in then this should be caught
+            # later when I try to set the shell prompt.
             pass
-        elif i==6: # Connection closed by remote host
+        elif i == 6:  # Connection closed by remote host
             self.close()
-            raise ExceptionPxssh ('connection closed')
-        else: # Unexpected
+            raise ExceptionPxssh('connection closed')
+        else:  # Unexpected
             self.close()
-            raise ExceptionPxssh ('unexpected login response')
+            raise ExceptionPxssh('unexpected login response')
         if not self.synch_original_prompt():
             self.close()
-            raise ExceptionPxssh ('could not synchronize with original prompt')
+            raise ExceptionPxssh('could not synchronize with original prompt')
         # We appear to be in.
         # set shell prompt to something unique.
         if auto_prompt_reset:
             if not self.set_unique_prompt():
                 self.close()
-                raise ExceptionPxssh ('could not set shell prompt\n'+self.before)
+                raise ExceptionPxssh('could not set shell prompt\n' + self.before)
         return True
 
-    def logout (self):
-
+    def logout(self):
         """This sends exit to the remote shell. If there are stopped jobs then
         this automatically sends exit twice. """
 
         self.sendline("exit")
         index = self.expect([EOF, "(?i)there are stopped jobs"])
-        if index==1:
+        if index == 1:
             self.sendline("exit")
             self.expect(EOF)
         self.close()
 
-    def prompt (self, timeout=20):
-
+    def prompt(self, timeout=20):
         """This matches the shell prompt. This is little more than a short-cut
         to the expect() method. This returns True if the shell prompt was
         matched. This returns False if there was a timeout. Note that if you
@@ -275,12 +274,11 @@ class pxssh (spawn):
         prompt. """
 
         i = self.expect([self.PROMPT, TIMEOUT], timeout=timeout)
-        if i==1:
+        if i == 1:
             return False
         return True
 
-    def set_unique_prompt (self):
-
+    def set_unique_prompt(self):
         """This sets the remote prompt to something more unique than # or $.
         This makes it easier for the prompt() method to match the shell prompt
         unambiguously. This method is called automatically by the login()
@@ -296,12 +294,12 @@ class pxssh (spawn):
         attribute. After that the prompt() method will try to match your prompt
         pattern."""
 
-        self.sendline ("unset PROMPT_COMMAND")
-        self.sendline (self.PROMPT_SET_SH) # sh-style
-        i = self.expect ([TIMEOUT, self.PROMPT], timeout=10)
-        if i == 0: # csh-style
-            self.sendline (self.PROMPT_SET_CSH)
-            i = self.expect ([TIMEOUT, self.PROMPT], timeout=10)
+        self.sendline("unset PROMPT_COMMAND")
+        self.sendline(self.PROMPT_SET_SH)  # sh-style
+        i = self.expect([TIMEOUT, self.PROMPT], timeout=10)
+        if i == 0:  # csh-style
+            self.sendline(self.PROMPT_SET_CSH)
+            i = self.expect([TIMEOUT, self.PROMPT], timeout=10)
             if i == 0:
                 return False
         return True

@@ -4,7 +4,8 @@ From the patch that was never applied (shameful!):
 http://bugs.python.org/issue1034053
 """
 
-import time, unittest
+import time
+import unittest
 
 
 class SkipException(Exception):
@@ -42,8 +43,10 @@ unittest.TestResult.__repr__ = TestResult__repr__
 class TestCase(unittest.TestCase):
     # Yuck, all of run has to be copied for this.
     # I don't care about wrapping setUp atm.
+
     def run(self, result=None):
-        if result is None: result = self.defaultTestResult()
+        if result is None:
+            result = self.defaultTestResult()
         result.startTest(self)
         # Support variable naming differences between 2.4 and 2.6
         # Yay for silly variable hiding
@@ -85,15 +88,14 @@ class TestCase(unittest.TestCase):
             except:
                 result.addError(self, exc_info())
                 ok = False
-            if ok: result.addSuccess(self)
+            if ok:
+                result.addSuccess(self)
         finally:
             result.stopTest(self)
-
 
     def skip(self, msg=None):
         """Skip the test, with the given message."""
         raise SkipException(msg)
-
 
     def skipIf(self, expr, msg=None):
         """Skip the test if the expression is true."""
@@ -135,7 +137,8 @@ def TextTestRunner_run(self, test):
         if failed:
             self.stream.write("failures=%d" % failed)
         if errored:
-            if failed: self.stream.write(", ")
+            if failed:
+                self.stream.write(", ")
             self.stream.write("errors=%d" % errored)
         if skipped:
             self.stream.write(", skipped=%d" % skipped)

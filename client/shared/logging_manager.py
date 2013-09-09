@@ -1,6 +1,12 @@
-import logging, os, signal, sys, warnings, re
+import logging
+import os
+import signal
+import sys
+import warnings
+import re
 
 # primary public APIs
+
 
 def configure_logging(logging_config, **kwargs):
     """
@@ -69,11 +75,11 @@ def _logging_manager_aware_logger__find_caller(unused):
         if filename == logging._srcfile:
             f = f.f_back
             continue
-        ### START additional code.
+        # START additional code.
         if co in _caller_code_to_skip_in_logging_stack:
             f = f.f_back
             continue
-        ### END additional code.
+        # END additional code.
         rv = (filename, f.f_lineno, co.co_name)
         break
     return rv
@@ -90,10 +96,12 @@ logging.Logger.findCaller = _logging_manager_aware_logger__find_caller
 
 
 class LoggingFile(object):
+
     """
     File-like object that will receive messages pass them to the logging
     infrastructure in an appropriate way.
     """
+
     def __init__(self, prefix='', level=logging.DEBUG,
                  logger=logging.getLogger()):
         """
@@ -104,7 +112,6 @@ class LoggingFile(object):
         self._level = level
         self._buffer = []
         self._logger = logger
-
 
     @do_not_report_as_logging_caller
     def write(self, data):
@@ -123,7 +130,6 @@ class LoggingFile(object):
         if data_lines[-1]:
             self._buffer.append(data_lines[-1])
 
-
     @do_not_report_as_logging_caller
     def writelines(self, lines):
         """"
@@ -134,7 +140,6 @@ class LoggingFile(object):
         for data in lines:
             self.write(data)
 
-
     @do_not_report_as_logging_caller
     def _log_line(self, line):
         """
@@ -142,34 +147,33 @@ class LoggingFile(object):
         """
         self._logger.log(self._level, self._prefix + line)
 
-
     @do_not_report_as_logging_caller
     def _flush_buffer(self):
         if self._buffer:
             self._log_line(''.join(self._buffer))
             self._buffer = []
 
-
     @do_not_report_as_logging_caller
     def flush(self):
         self._flush_buffer()
-
 
     def isatty(self):
         return False
 
 
 class SortingLoggingFile(LoggingFile):
+
     """
     File-like object that will receive messages and pass them to the logging
     infrastructure. It decides where to pass each line by applying a regex
     to it and seeing which level it matched.
     """
+
     def __init__(self, prefix='', level_list=[('ERROR', logging.ERROR),
-        ('WARN', logging.WARN), ('INFO', logging.INFO),
-        ('DEBUG', logging.DEBUG)], logger=logging.getLogger()):
+                ('WARN', logging.WARN), ('INFO', logging.INFO),
+            ('DEBUG', logging.DEBUG)], logger=logging.getLogger()):
         super(SortingLoggingFile, self).__init__(prefix=prefix, logger=logger)
-        self._level_list = [(re.compile(x),y) for x,y in level_list]
+        self._level_list = [(re.compile(x), y) for x, y in level_list]
 
     @do_not_report_as_logging_caller
     def _log_line(self, line):
@@ -179,14 +183,17 @@ class SortingLoggingFile(LoggingFile):
                 break
         else:
             self._logger.log(logging.ERROR, 'UNMATCHED_LOG_LEVEL: ' +
-                self._prefix + line)
+                             self._prefix + line)
+
 
 class _StreamManager(object):
+
     """
     Redirects all output for some output stream (normally stdout or stderr) to
     the logging module by replacing the file objects with a new LoggingFile
     that calls logging.log().
     """
+
     def __init__(self, stream, level, stream_setter):
         """
         @param stream: stream object to manage
@@ -199,29 +206,23 @@ class _StreamManager(object):
         self._stream_setter = stream_setter
         self._logging_stream = None
 
-
     def _replace_with_logger(self):
         self._logging_stream = LoggingFile(level=self._level)
         self._stream_setter(self._logging_stream)
 
-
     def _restore_stream(self):
         self._stream_setter(self._stream)
 
-
     def flush(self):
         self._logging_stream.flush()
-
 
     def start_logging(self):
         """Start directing the stream to the logging module."""
         self._replace_with_logger()
 
-
     def stop_logging(self):
         """Restore the stream to its original settings."""
         self._restore_stream()
-
 
     def on_push_context(self, context):
         """
@@ -231,7 +232,6 @@ class _StreamManager(object):
         """
         pass
 
-
     def on_restore_context(self, context):
         """
         Called when the logging manager is restoring a previous context.
@@ -239,8 +239,8 @@ class _StreamManager(object):
         pass
 
 
-
 class LoggingManager(object):
+
     """
     Manages a stack of logging configurations, allowing clients to conveniently
     add and remove logging destinations.  Also keeps a list of StreamManagers
@@ -268,7 +268,6 @@ class LoggingManager(object):
         self._streams = []
         self._started = False
 
-
     def manage_stream(self, stream, level, stream_setter):
         """
         Tells this manager to manage the given stream.  All data written to the
@@ -284,23 +283,20 @@ class LoggingManager(object):
         self._streams.append(self.STREAM_MANAGER_CLASS(stream, level,
                                                        stream_setter))
 
-
     def _sys_stream_setter(self, stream_name):
         assert stream_name in ('stdout', 'stderr'), stream_name
+
         def set_stream(file_object):
             setattr(sys, stream_name, file_object)
         return set_stream
-
 
     def manage_stdout(self):
         self.manage_stream(sys.stdout, logging.INFO,
                            self._sys_stream_setter('stdout'))
 
-
     def manage_stderr(self):
         self.manage_stream(sys.stderr, self.logging_config_object.stderr_level,
                            self._sys_stream_setter('stderr'))
-
 
     def start_logging(self):
         """
@@ -309,7 +305,6 @@ class LoggingManager(object):
         for stream_manager in self._streams:
             stream_manager.start_logging()
         self._started = True
-
 
     def stop_logging(self):
         """
@@ -323,26 +318,21 @@ class LoggingManager(object):
 
         self._started = False
 
-
     def _clear_all_handlers(self):
         for handler in _current_handlers():
             logger.removeHandler(handler)
 
-
     def _get_context(self):
         return {'old_handlers': _current_handlers()}
-
 
     def _push_context(self, context):
         for stream_manager in self._streams:
             stream_manager.on_push_context(context)
         self._context_stack.append(context)
 
-
     def _flush_all_streams(self):
         for stream_manager in self._streams:
             stream_manager.flush()
-
 
     def _add_log_handlers(self, add_handlers_fn):
         """
@@ -358,12 +348,13 @@ class LoggingManager(object):
 
         self._push_context(context)
 
-
     class _TaggingFormatter(logging.Formatter):
+
         """
         Delegates to a given formatter, but prefixes each line of output with a
         tag.
         """
+
         def __init__(self, base_formatter, tag):
             self.base_formatter = base_formatter
             prefix = tag + ' : '
@@ -371,12 +362,10 @@ class LoggingManager(object):
                                                     prefix + '%(message)s')
             self.datefmt = base_formatter.datefmt
 
-
     def _add_tagging_formatter(self, tag):
         for handler in _current_handlers():
             tagging_formatter = self._TaggingFormatter(handler.formatter, tag)
             handler.setFormatter(tagging_formatter)
-
 
     def _do_redirect(self, stream=None, filename=None, level=None,
                      clear_other_handlers=False):
@@ -384,7 +373,7 @@ class LoggingManager(object):
         @param clear_other_handlers - if true, clear out all other logging
         handlers.
         """
-        assert bool(stream) != bool(filename) # xor
+        assert bool(stream) != bool(filename)  # xor
         if not self._started:
             raise RuntimeError('You must call start_logging() before this')
 
@@ -402,26 +391,21 @@ class LoggingManager(object):
 
         self._add_log_handlers(add_handler)
 
-
     def redirect(self, filename):
         """Redirect output to the specified file"""
         self._do_redirect(filename=filename, clear_other_handlers=True)
-
 
     def redirect_to_stream(self, stream):
         """Redirect output to the given stream"""
         self._do_redirect(stream=stream, clear_other_handlers=True)
 
-
     def tee_redirect(self, filename, level=None):
         """Tee output to the specified file"""
         self._do_redirect(filename=filename, level=level)
 
-
     def tee_redirect_to_stream(self, stream):
         """Tee output to the given stream"""
         self._do_redirect(stream=stream)
-
 
     def tee_redirect_debug_dir(self, debug_dir, log_name=None, tag=None):
         """
@@ -432,9 +416,8 @@ class LoggingManager(object):
                 self._add_tagging_formatter(tag)
                 context['tag_added'] = True
             self.logging_config_object.add_debug_file_handlers(
-                    debug_dir, log_name=log_name)
+                debug_dir, log_name=log_name)
         self._add_log_handlers(add_handlers)
-
 
     def _restore_context(self, context):
         for stream_handler in self._streams:
@@ -453,12 +436,10 @@ class LoggingManager(object):
                 tagging_formatter = handler.formatter
                 handler.setFormatter(tagging_formatter.base_formatter)
 
-
     def _pop_context(self):
         self._flush_all_streams()
         context = self._context_stack.pop()
         self._restore_context(context)
-
 
     def undo_redirect(self):
         """
@@ -472,7 +453,6 @@ class LoggingManager(object):
             raise RuntimeError('No redirects to undo')
         self._pop_context()
 
-
     def restore(self):
         """
         Same as undo_redirect().  For backwards compatibility with
@@ -482,6 +462,7 @@ class LoggingManager(object):
 
 
 class _FdRedirectionStreamManager(_StreamManager):
+
     """
     Like StreamManager, but also captures output from subprocesses by modifying
     the underlying file descriptors.
@@ -497,6 +478,7 @@ class _FdRedirectionStreamManager(_StreamManager):
     get rid of all this business with subprocesses.  Another option would be
     to capture all stray output to a single, separate destination.
     """
+
     def __init__(self, stream, level, stream_setter):
         if not hasattr(stream, 'fileno'):
             # with fake, in-process file objects, subprocess output won't be
@@ -511,7 +493,6 @@ class _FdRedirectionStreamManager(_StreamManager):
         self._fd = stream.fileno()
         self._fd_copy_stream = None
 
-
     def _point_stream_handlers_to_copy(self):
         """
         point logging StreamHandlers that point to this stream to a safe
@@ -523,13 +504,11 @@ class _FdRedirectionStreamManager(_StreamManager):
         self._redirect_logging_stream_handlers(self._stream,
                                                self._fd_copy_stream)
 
-
     def _restore_stream_handlers(self):
         """ point logging StreamHandlers back to the original FD """
         self._redirect_logging_stream_handlers(self._fd_copy_stream,
                                                self._stream)
         self._fd_copy_stream.close()
-
 
     def _redirect_logging_stream_handlers(self, old_stream, new_stream):
         """
@@ -542,7 +521,7 @@ class _FdRedirectionStreamManager(_StreamManager):
                                 handler.stream.fileno() == old_stream.fileno())
             if points_to_stream:
                 logger.removeHandler(handler)
-                handler.close() # doesn't close the stream, just the handler
+                handler.close()  # doesn't close the stream, just the handler
 
                 new_handler = logging.StreamHandler(new_stream)
                 new_handler.setLevel(handler.level)
@@ -551,16 +530,13 @@ class _FdRedirectionStreamManager(_StreamManager):
                     new_handler.addFilter(log_filter)
                 logger.addHandler(new_handler)
 
-
     def start_logging(self):
         super(_FdRedirectionStreamManager, self).start_logging()
         self._point_stream_handlers_to_copy()
 
-
     def stop_logging(self):
         super(_FdRedirectionStreamManager, self).stop_logging()
         self._restore_stream_handlers()
-
 
     def _spawn_logging_subprocess(self):
         """
@@ -569,18 +545,18 @@ class _FdRedirectionStreamManager(_StreamManager):
         """
         read_end, write_end = os.pipe()
         pid = os.fork()
-        if pid: # parent
+        if pid:  # parent
             os.close(read_end)
-            os.dup2(write_end, self._fd) # point FD to the subprocess
+            os.dup2(write_end, self._fd)  # point FD to the subprocess
             os.close(write_end)
             return pid
-        else: # child
+        else:  # child
             try:
                 os.close(write_end)
                 # ensure this subprocess doesn't hold any pipes to others
                 os.close(1)
                 os.close(2)
-                self._run_logging_subprocess(read_end) # never returns
+                self._run_logging_subprocess(read_end)  # never returns
             except Exception:
                 # don't let exceptions in the child escape
                 try:
@@ -588,22 +564,19 @@ class _FdRedirectionStreamManager(_StreamManager):
                 finally:
                     os._exit(1)
 
-
     def _run_logging_subprocess(self, read_fd):
         """
         Always run from a subprocess.  Read from read_fd and write to the
         logging module until EOF.
         """
-        signal.signal(signal.SIGTERM, signal.SIG_DFL) # clear handler
+        signal.signal(signal.SIGTERM, signal.SIG_DFL)  # clear handler
         input_file = os.fdopen(read_fd, 'r')
         for line in iter(input_file.readline, ''):
             logging.log(self._level, line.rstrip('\n'))
         os._exit(0)
 
-
     def _context_id(self):
         return '%s_context' % id(self)
-
 
     def on_push_context(self, context):
         # adds a context dict for this stream, $id_context, with the following:
@@ -614,7 +587,6 @@ class _FdRedirectionStreamManager(_StreamManager):
         child_pid = self._spawn_logging_subprocess()
         my_context = {'old_fd': fd_copy, 'child_pid': child_pid}
         context[self._context_id()] = my_context
-
 
     def on_restore_context(self, context):
         my_context = context[self._context_id()]
@@ -634,6 +606,7 @@ class _FdRedirectionStreamManager(_StreamManager):
 
 
 class FdRedirectionLoggingManager(LoggingManager):
+
     """
     A simple extension of LoggingManager to use FdRedirectionStreamManagers,
     so that managed streams have their underlying FDs redirected.
@@ -645,7 +618,6 @@ class FdRedirectionLoggingManager(LoggingManager):
         super(FdRedirectionLoggingManager, self).start_logging()
         # spawn the initial logging subprocess
         self._push_context(self._get_context())
-
 
     def undo_redirect(self):
         # len == 1 would mean only start_logging() had been called (but no

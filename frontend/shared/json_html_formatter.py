@@ -46,18 +46,18 @@ _HTML_DOCUMENT_TEMPLATE = """
 </html>
 """
 
+
 class JsonHtmlFormatter(object):
+
     def _html_encode(self, value):
         if value is None:
             return ''
         return (str(value).replace('&', '&amp;').replace('"', '&quot;')
                 .replace('<', '&lt;').replace('>', '&gt;'))
 
-
     def _decorate_with_span(self, value, className):
         return '<span class="%s">%s</span>' % (
-                className, self._html_encode(value))
-
+            className, self._html_encode(value))
 
     # Convert a basic JSON datatype (number, string, boolean, null, object,
     # array) into an HTML fragment.
@@ -76,7 +76,6 @@ class JsonHtmlFormatter(object):
             assert isinstance(value, basestring)
             return self._decorate_with_span('"%s"' % value, 'string')
 
-
     # Convert an array into an HTML fragment
     def _array_to_html(self, array):
         if not array:
@@ -90,14 +89,12 @@ class JsonHtmlFormatter(object):
         output.append('</ul>]')
         return ''.join(output)
 
-
     def _link_href(self, href):
         if '?' in href:
             joiner = '&amp;'
         else:
             joiner = '?'
         return href + joiner + 'alt=json-html'
-
 
     # Convert a JSON object to an HTML fragment
     def _object_to_html(self, json_object):
@@ -121,13 +118,13 @@ class JsonHtmlFormatter(object):
         output.append('</ul>}')
         return ''.join(output)
 
-
     # Convert a whole JSON object into a formatted HTML document.
     def json_to_html(self, json_value):
         return _HTML_DOCUMENT_TEMPLATE % self._value_to_html(json_value)
 
 
 class JsonToHtmlMiddleware(object):
+
     def process_response(self, request, response):
         if response['Content-type'] != 'application/json':
             return response

@@ -1,4 +1,6 @@
-import re, os, logging
+import re
+import os
+import logging
 
 from autotest.client.shared import utils as common_utils
 from autotest.tko import utils as tko_utils, models, status_lib
@@ -10,10 +12,10 @@ class NoHostnameError(Exception):
 
 
 class job(models.job):
+
     def __init__(self, dir):
         job_dict = job.load_from_dir(dir)
         super(job, self).__init__(dir, **job_dict)
-
 
     @classmethod
     def load_from_dir(cls, dir):
@@ -38,7 +40,6 @@ class job(models.job):
                 "machine_group": machine_group, "aborted_by": aborted_by,
                 "aborted_on": aborted_at, "keyval_dict": keyval}
 
-
     @classmethod
     def determine_hostname(cls, keyval, job_dir):
         host_group_name = keyval.get("host_group_name", None)
@@ -53,13 +54,12 @@ class job(models.job):
                 machine = host_group_name
         elif is_multimachine:
             try:
-                machine = job.find_hostname(job_dir) # find a unique hostname
+                machine = job.find_hostname(job_dir)  # find a unique hostname
             except NoHostnameError:
                 pass  # just use the comma-separated name
 
         logging.debug("MACHINE NAME: %s" % machine)
         return machine
-
 
     @classmethod
     def determine_machine_group(cls, hostname, job_dir):
@@ -76,7 +76,6 @@ class job(models.job):
         logging.debug("MACHINE GROUP: %s" % machine_group)
         return machine_group
 
-
     @staticmethod
     def find_hostname(path):
         hostname = os.path.join(path, "sysinfo", "hostname")
@@ -85,7 +84,7 @@ class job(models.job):
             return machine
         except Exception:
             logging.debug("Could not read a hostname from "
-                             "sysinfo/hostname")
+                          "sysinfo/hostname")
 
         uname = os.path.join(path, "sysinfo", "uname_-a")
         try:
@@ -93,16 +92,16 @@ class job(models.job):
             return machine
         except Exception:
             logging.debug("Could not read a hostname from "
-                             "sysinfo/uname_-a")
+                          "sysinfo/uname_-a")
 
         raise NoHostnameError("Unable to find a machine name")
 
 
 class kernel(models.kernel):
+
     def __init__(self, job, verify_ident=None):
         kernel_dict = kernel.load_from_dir(job.dir, verify_ident)
         super(kernel, self).__init__(**kernel_dict)
-
 
     @staticmethod
     def load_from_dir(dir, verify_ident=None):
@@ -130,7 +129,7 @@ class kernel(models.kernel):
         else:
             base, patches, hashes = attributes
         logging.debug("kernel.__init__() found kernel version %s"
-                         % base)
+                      % base)
 
         # compute the kernel hash
         if base == "UNKNOWN":
@@ -140,7 +139,6 @@ class kernel(models.kernel):
 
         return {"base": base, "patches": patches,
                 "kernel_hash": kernel_hash}
-
 
     @staticmethod
     def load_from_sysinfo(path):
@@ -152,7 +150,6 @@ class kernel(models.kernel):
             uname = open(uname_path).readline().split()
             return re.sub("-autotest$", "", uname[2])
         return "UNKNOWN"
-
 
     @staticmethod
     def load_from_build_log(path):
@@ -172,6 +169,7 @@ class kernel(models.kernel):
 
 
 class test(models.test):
+
     def __init__(self, subdir, testname, status, reason, test_kernel,
                  machine, started_time, finished_time, iterations,
                  attributes, labels):
@@ -189,13 +187,13 @@ class test(models.test):
                                    finished_time, iterations,
                                    attributes, labels)
 
-
     @staticmethod
     def load_iterations(keyval_path):
         return iteration.load_from_keyval(keyval_path)
 
 
 class patch(models.patch):
+
     def __init__(self, spec, reference, hash):
         logging.debug("PATCH::%s %s %s" % (spec, reference, hash))
         super(patch, self).__init__(spec, reference, hash)
@@ -205,6 +203,7 @@ class patch(models.patch):
 
 
 class iteration(models.iteration):
+
     @staticmethod
     def parse_line_into_dicts(line, attr_dict, perf_dict):
         key, value = line.split("=", 1)
@@ -212,6 +211,7 @@ class iteration(models.iteration):
 
 
 class status_line(object):
+
     def __init__(self, indent, status, subdir, testname, reason,
                  optional_fields):
         # pull out the type & status of the line
@@ -234,18 +234,15 @@ class status_line(object):
         self.reason = reason
         self.optional_fields = optional_fields
 
-
     @staticmethod
     def parse_name(name):
         if name == "----":
             return None
         return name
 
-
     @staticmethod
     def is_status_line(line):
         return re.search(r"^\t*(\S[^\t]*\t){3}", line) is not None
-
 
     @classmethod
     def parse_line(cls, line):
@@ -285,10 +282,10 @@ class status_line(object):
 
 
 class parser(base.parser):
+
     @staticmethod
     def make_job(dir):
         return job(dir)
-
 
     def state_iterator(self, buffer):
         new_tests = []
@@ -314,23 +311,23 @@ class parser(base.parser):
             line = status_line.parse_line(line)
             if line is None:
                 logging.debug('non-status line, ignoring')
-                continue # ignore non-status lines
+                continue  # ignore non-status lines
 
             # have we hit the job start line?
             if (line.type == "START" and not line.subdir and
-                not line.testname):
+                    not line.testname):
                 sought_level = 1
                 logging.debug("found job level start "
-                                 "marker, looking for level "
-                                 "1 groups now")
+                              "marker, looking for level "
+                              "1 groups now")
                 continue
 
             # have we hit the job end line?
             if (line.type == "END" and not line.subdir and
-                not line.testname):
+                    not line.testname):
                 logging.debug("found job level end "
-                                 "marker, looking for level "
-                                 "0 lines now")
+                              "marker, looking for level "
+                              "0 lines now")
                 sought_level = 0
 
             # START line, just push another layer on to the stack
@@ -341,14 +338,14 @@ class parser(base.parser):
                 stack.start()
                 if line.indent == sought_level:
                     started_time = \
-                                 tko_utils.get_timestamp(
-                        line.optional_fields, "timestamp")
+                        tko_utils.get_timestamp(
+                            line.optional_fields, "timestamp")
                 logging.debug("start line, ignoring")
                 continue
             # otherwise, update the status on the stack
             else:
                 logging.debug("GROPE_STATUS: %s" %
-                                 [stack.current_status(),
+                              [stack.current_status(),
                                   line.status, line.subdir,
                                   line.testname, line.reason])
                 stack.update(line.status)
@@ -360,9 +357,9 @@ class parser(base.parser):
 
             # ignore Autotest.install => GOOD lines
             if (line.testname == "Autotest.install" and
-                line.status == "GOOD"):
+                    line.status == "GOOD"):
                 logging.debug("Successful Autotest "
-                                 "install, ignoring")
+                              "install, ignoring")
                 continue
 
             # ignore END lines for a reboot group
@@ -374,11 +371,11 @@ class parser(base.parser):
             # ignore other job-level events
             if line.testname is None:
                 if (line.status == "ABORT" and
-                    line.type != "END"):
+                        line.type != "END"):
                     line.testname = "CLIENT_JOB"
                 else:
                     logging.debug("job level event, "
-                                    "ignoring")
+                                  "ignoring")
                     continue
 
             # use the group subdir for END lines
@@ -388,14 +385,14 @@ class parser(base.parser):
             # are we inside a block group?
             if (line.indent != sought_level and
                 line.status != "ABORT" and
-                not line.testname.startswith('reboot.')):
+                    not line.testname.startswith('reboot.')):
                 if line.subdir:
                     logging.debug("set group_subdir: "
-                                     + line.subdir)
+                                  + line.subdir)
                     group_subdir = line.subdir
                 logging.debug("ignoring incorrect indent "
-                                 "level %d != %d," %
-                                 (line.indent, sought_level))
+                              "level %d != %d," %
+                             (line.indent, sought_level))
                 continue
 
             # use the subdir as the testname, except for
@@ -411,7 +408,7 @@ class parser(base.parser):
                 started_time = tko_utils.get_timestamp(
                     line.optional_fields, "timestamp")
                 logging.debug("reboot start event, "
-                                 "ignoring")
+                              "ignoring")
                 boot_in_progress = True
                 continue
 
@@ -434,9 +431,9 @@ class parser(base.parser):
                 line.optional_fields, "timestamp")
             final_status = stack.end()
             logging.debug("Adding: "
-                             "%s\nSubdir:%s\nTestname:%s\n%s" %
-                             (final_status, line.subdir,
-                              line.testname, line.reason))
+                          "%s\nSubdir:%s\nTestname:%s\n%s" %
+                         (final_status, line.subdir,
+                          line.testname, line.reason))
             new_test = test.parse_test(self.job, line.subdir,
                                        line.testname,
                                        final_status, line.reason,
@@ -451,8 +448,8 @@ class parser(base.parser):
             testname = "boot.%d" % boot_count
             reason = "machine did not return from reboot"
             logging.debug(("Adding: ABORT\nSubdir:----\n"
-                              "Testname:%s\n%s")
-                             % (testname, reason))
+                           "Testname:%s\n%s")
+                          % (testname, reason))
             new_test = test.parse_test(self.job, None, testname,
                                        "ABORT", reason,
                                        current_kernel, None, None)

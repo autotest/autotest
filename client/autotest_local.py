@@ -1,4 +1,5 @@
-import os, sys
+import os
+import sys
 try:
     import autotest.common as common
     rootdir = os.path.abspath(os.path.dirname(common.__file__))
@@ -23,24 +24,23 @@ from autotest.client import cmdparser, optparser
 
 
 class AutotestLocalApp:
+
     '''
     Autotest local app runs tests locally
 
     Point it to a control file and let it rock
     '''
+
     def __init__(self):
         self._set_parsers()
-
 
     def _set_parsers(self):
         self.opt_parser = optparser.AutotestLocalOptionParser()
         self.cmd_parser = cmdparser.CommandParser()
 
-
     def usage(self):
         self.opt_parser.print_help()
         sys.exit(1)
-
 
     def parse_cmdline(self):
         self.options, args = self.opt_parser.parse_args()
@@ -50,7 +50,6 @@ class AutotestLocalApp:
         if len(args) != 1 and self.options.client_test_setup is None:
             print "Missing control file!"
             self.usage()
-
 
     def main(self):
         self.parse_cmdline()

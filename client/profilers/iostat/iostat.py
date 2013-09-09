@@ -1,7 +1,9 @@
 """
 Run iostat with a default interval of 1 second.
 """
-import time, os, subprocess
+import time
+import os
+import subprocess
 from autotest.client import profiler
 from autotest.client.shared import utils, error
 
@@ -9,12 +11,11 @@ from autotest.client.shared import utils, error
 class iostat(profiler.profiler):
     version = 2
 
-    def initialize(self, interval = 1, options = '', **dargs):
+    def initialize(self, interval=1, options='', **dargs):
         # Usage: iostat [ options... ] [ <interval> [ <count> ] ]
         # e.g, iostat -tmx 2
         self.interval = interval
         self.options = options
-
 
     def start(self, test):
         cmd = "/usr/bin/iostat %s %d" % (self.options, self.interval)
@@ -24,13 +25,12 @@ class iostat(profiler.profiler):
                              stderr=subprocess.STDOUT)
         self.pid = p.pid
 
-
     def stop(self, test):
         try:
             term_profiler = "kill -15 %d" % self.pid
             # send SIGTERM to iostat and give it a 5-sec timeout
             utils.system(term_profiler, timeout=5)
-        except error.CmdError: # probably times out
+        except error.CmdError:  # probably times out
             pass
         # do a ps again to see if iostat is still there
         ps_cmd = "ps -p %d | grep iostat" % self.pid
@@ -38,7 +38,6 @@ class iostat(profiler.profiler):
         if out != '':
             kill_profiler = 'kill -9 %d' % self.pid
             utils.system(kill_profiler, ignore_status=True)
-
 
     def report(self, test):
         return None

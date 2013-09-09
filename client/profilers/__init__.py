@@ -1,4 +1,5 @@
-import os, sys
+import os
+import sys
 try:
     import autotest.common as common
 except ImportError:
@@ -7,7 +8,9 @@ except ImportError:
 from autotest.client.shared import utils, error, profiler_manager
 from autotest.client.shared.settings import settings
 
+
 class profilers(profiler_manager.profiler_manager):
+
     def load_profiler(self, profiler, args, dargs):
         prof_dir = os.path.join(self.job.autodir, "profilers", profiler)
 
@@ -35,7 +38,7 @@ class profilers(profiler_manager.profiler_manager):
                                            default=tmpdir)
         newprofiler.srcdir = os.path.join(output_config,
                                           os.path.basename(newprofiler.bindir),
-                                         'src')
+                                          'src')
         newprofiler.tmpdir = os.path.join(self.tmpdir, profiler)
         newprofiler.initialize(*args, **dargs)
         utils.update_version(newprofiler.srcdir, newprofiler.preserve_srcdir,

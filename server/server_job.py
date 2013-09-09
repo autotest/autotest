@@ -6,8 +6,22 @@ This is the core infrastructure. Derived from the client side job.py
 Copyright Martin J. Bligh, Andy Whitcroft 2007
 """
 
-import getpass, os, sys, re, tempfile, time, select, platform
-import traceback, shutil, warnings, fcntl, pickle, logging, itertools, errno
+import getpass
+import os
+import sys
+import re
+import tempfile
+import time
+import select
+import platform
+import traceback
+import shutil
+import warnings
+import fcntl
+import pickle
+import logging
+import itertools
+import errno
 from autotest.client import sysinfo
 from autotest.client.shared import base_job
 from autotest.client.shared import error, utils, packages
@@ -44,36 +58,37 @@ def _get_site_job_data_dummy(job):
 
 
 class status_indenter(base_job.status_indenter):
+
     """Provide a simple integer-backed status indenter."""
+
     def __init__(self):
         self._indent = 0
-
 
     @property
     def indent(self):
         return self._indent
 
-
     def increment(self):
         self._indent += 1
-
 
     def decrement(self):
         self._indent -= 1
 
-
     def get_context(self):
         """Returns a context object for use by job.get_record_context."""
         class context(object):
+
             def __init__(self, indenter, indent):
                 self._indenter = indenter
                 self._indent = indent
+
             def restore(self):
                 self._indenter._indent = self._indent
         return context(self, self._indent)
 
 
 class server_job_record_hook(object):
+
     """The job.record hook for server job. Used to inject WARN messages from
     the console or vlm whenever new logs are written, and to echo any logs
     to INFO level logging. Implemented as a class so that it can use state to
@@ -82,10 +97,10 @@ class server_job_record_hook(object):
 
     Depends on job._read_warnings and job._logger.
     """
+
     def __init__(self, job):
         self._job = job
         self._being_called = False
-
 
     def __call__(self, entry):
         """A wrapper around the 'real' record hook, the _hook method, which
@@ -99,7 +114,6 @@ class server_job_record_hook(object):
             self._hook(self._job, entry)
         finally:
             self._being_called = False
-
 
     @staticmethod
     def _hook(job, entry):
@@ -120,6 +134,7 @@ class server_job_record_hook(object):
 
 
 class base_server_job(base_job.base_job):
+
     """The server-side concrete implementation of base_job.
 
     Optional properties provided by this implementation:
@@ -191,17 +206,17 @@ class base_server_job(base_job.base_job):
         self._control_filename = control_filename
 
         self.logging = logging_manager.get_logging_manager(
-                manage_stdout_and_stderr=True, redirect_fds=True)
+            manage_stdout_and_stderr=True, redirect_fds=True)
         subcommand.logging_manager_object = self.logging
 
         self.sysinfo = sysinfo.sysinfo(self.resultdir)
         self.profilers = profilers.profilers(self)
 
-        job_data = {'label' : label, 'user' : user,
-                    'hostname' : ','.join(machines),
-                    'drone' : platform.node(),
-                    'status_version' : str(self._STATUS_VERSION),
-                    'job_started' : str(int(time.time()))}
+        job_data = {'label': label, 'user': user,
+                    'hostname': ','.join(machines),
+                    'drone': platform.node(),
+                    'status_version': str(self._STATUS_VERSION),
+                    'job_started': str(int(time.time()))}
         if group_name:
             job_data['host_group_name'] = group_name
 
@@ -213,7 +228,7 @@ class base_server_job(base_job.base_job):
         self._parse_job = parse_job
         self._using_parser = (self._parse_job and len(machines) <= 1)
         self.pkgmgr = packages.PackageManager(
-            self.autodir, run_function_dargs={'timeout':600})
+            self.autodir, run_function_dargs={'timeout': 600})
         self.num_tests_run = 0
         self.num_tests_failed = 0
 
@@ -229,7 +244,6 @@ class base_server_job(base_job.base_job):
             self, self._indenter, 'status.log', 'status.log',
             record_hook=server_job_record_hook(self))
 
-
     @classmethod
     # The unittests will hide this method, well, for unittesting
     # pylint: disable=E0202
@@ -244,7 +258,6 @@ class base_server_job(base_job.base_job):
         clientdir = os.path.join(autodir, 'client')
         return autodir, clientdir, serverdir
 
-
     # The unittests will hide this method, well, for unittesting
     # pylint: disable=E0202
     def _find_resultdir(self, resultdir):
@@ -257,11 +270,9 @@ class base_server_job(base_job.base_job):
         else:
             return None
 
-
     def _get_status_logger(self):
         """Return a reference to the status logger."""
         return self._logger
-
 
     @staticmethod
     def _load_control_file(path):
@@ -272,7 +283,6 @@ class base_server_job(base_job.base_job):
             f.close()
         return re.sub('\r', '', control_file)
 
-
     def _register_subcommand_hooks(self):
         """
         Register some hooks into the subcommand modules that allow us
@@ -280,13 +290,13 @@ class base_server_job(base_job.base_job):
         """
         def on_fork(cmd):
             self._existing_hosts_on_fork = set(self.hosts)
+
         def on_join(cmd):
             new_hosts = self.hosts - self._existing_hosts_on_fork
             for host in new_hosts:
                 host.close()
         subcommand.subcommand.register_fork_hook(on_fork)
         subcommand.subcommand.register_join_hook(on_join)
-
 
     def init_parser(self):
         """
@@ -311,7 +321,6 @@ class base_server_job(base_job.base_job):
             self.job_model.index = job_idx
             self.job_model.machine_idx = machine_idx
 
-
     def cleanup_parser(self):
         """
         This should be called after the server job is finished
@@ -325,23 +334,21 @@ class base_server_job(base_job.base_job):
             self.__insert_test(test)
         self._using_parser = False
 
-
     def verify(self):
         if not self.machines:
             raise error.AutoservError('No machines specified to verify')
         if self.resultdir:
             os.chdir(self.resultdir)
         try:
-            namespace = {'machines' : self.machines, 'job' : self,
-                         'ssh_user' : self._ssh_user,
-                         'ssh_port' : self._ssh_port,
-                         'ssh_pass' : self._ssh_pass}
+            namespace = {'machines': self.machines, 'job': self,
+                         'ssh_user': self._ssh_user,
+                         'ssh_port': self._ssh_port,
+                         'ssh_pass': self._ssh_pass}
             self._execute_code(VERIFY_CONTROL_FILE, namespace, protect=False)
         except Exception, e:
             msg = ('Verify failed\n' + str(e) + '\n' + traceback.format_exc())
             self.record('ABORT', None, None, msg)
             raise
-
 
     def repair(self, host_protection):
         if not self.machines:
@@ -355,13 +362,11 @@ class base_server_job(base_job.base_job):
 
         self._execute_code(REPAIR_CONTROL_FILE, namespace, protect=False)
 
-
     def precheck(self):
         """
         perform any additional checks in derived classes.
         """
         pass
-
 
     def enable_external_logging(self):
         """
@@ -369,20 +374,17 @@ class base_server_job(base_job.base_job):
         """
         pass
 
-
     def disable_external_logging(self):
         """
         Pause or stop external logging mechanism.
         """
         pass
 
-
     def use_external_logging(self):
         """
         Return True if external logging should be used.
         """
         return False
-
 
     def _make_parallel_wrapper(self, function, machines, log):
         """Wrap function as appropriate for calling by parallel_simple."""
@@ -403,15 +405,14 @@ class base_server_job(base_job.base_job):
             def wrapper(machine):
                 self.push_execution_context(machine)
                 os.chdir(self.resultdir)
-                machine_data = {'hostname' : machine,
-                                'status_version' : str(self._STATUS_VERSION)}
+                machine_data = {'hostname': machine,
+                                'status_version': str(self._STATUS_VERSION)}
                 utils.write_keyval(self.resultdir, machine_data)
                 result = function(machine)
                 return result
         else:
             wrapper = function
         return wrapper
-
 
     def parallel_simple(self, function, machines, log=True, timeout=None,
                         return_results=False):
@@ -437,7 +438,6 @@ class base_server_job(base_job.base_job):
                                           log=log, timeout=timeout,
                                           return_results=return_results)
 
-
     def parallel_on_machines(self, function, machines, timeout=None):
         """
         @param function: Called in parallel with one machine as its argument.
@@ -455,8 +455,8 @@ class base_server_job(base_job.base_job):
                 success_machines.append(machine)
         return success_machines
 
-
     _USE_TEMP_DIR = object()
+
     def run(self, cleanup=False, install_before=False, install_after=False,
             collect_crashdumps=True, namespace={}, control=None,
             control_file_dir=None, only_collect_crashinfo=False):
@@ -541,11 +541,11 @@ class base_server_job(base_job.base_job):
             except Exception, e:
                 try:
                     logging.exception(
-                            'Exception escaped control file, job aborting:')
+                        'Exception escaped control file, job aborting:')
                     self.record('INFO', None, None, str(e),
                                 {'job_abort_reason': str(e)})
                 except:
-                    pass # don't let logging exceptions here interfere
+                    pass  # don't let logging exceptions here interfere
                 raise
         finally:
             if temp_control_file_dir:
@@ -570,7 +570,6 @@ class base_server_job(base_job.base_job):
                 self._execute_code(CLEANUP_CONTROL_FILE, namespace)
             if install_after and machines:
                 self._execute_code(INSTALL_CONTROL_FILE, namespace)
-
 
     def run_test(self, url, *args, **dargs):
         """
@@ -606,7 +605,6 @@ class base_server_job(base_job.base_job):
         else:
             return True
 
-
     def _run_group(self, name, subdir, function, *args, **dargs):
         """\
         Underlying method for running something inside of a group.
@@ -628,7 +626,6 @@ class base_server_job(base_job.base_job):
 
         return result, exc_info
 
-
     def run_group(self, function, *args, **dargs):
         """\
         function:
@@ -645,7 +642,6 @@ class base_server_job(base_job.base_job):
             name = tag
 
         return self._run_group(name, None, function, *args, **dargs)[0]
-
 
     def run_reboot(self, reboot_func, get_kernel_func):
         """\
@@ -670,7 +666,6 @@ class base_server_job(base_job.base_job):
             self.record('END GOOD', None, 'reboot',
                         optional_fields={"kernel": kernel})
 
-
     def run_control(self, path):
         """Execute a control file found at path (relative to the autotest
         path). Intended for executing a control file within a control file,
@@ -679,22 +674,18 @@ class base_server_job(base_job.base_job):
         control_file = self._load_control_file(path)
         self.run(control=control_file, control_file_dir=self._USE_TEMP_DIR)
 
-
     def add_sysinfo_command(self, command, logfile=None, on_every_test=False):
         self._add_sysinfo_loggable(sysinfo.command(command, logf=logfile),
                                    on_every_test)
 
-
     def add_sysinfo_logfile(self, file, on_every_test=False):
         self._add_sysinfo_loggable(sysinfo.logfile(file), on_every_test)
-
 
     def _add_sysinfo_loggable(self, loggable, on_every_test):
         if on_every_test:
             self.sysinfo.test_loggables.add(loggable)
         else:
             self.sysinfo.boot_loggables.add(loggable)
-
 
     def _read_warnings(self):
         """Poll all the warning loggers and extract any new warnings that have
@@ -734,7 +725,6 @@ class base_server_job(base_job.base_job):
         warnings.sort()
         return warnings
 
-
     def _unique_subdirectory(self, base_subdirectory_name):
         """Compute a unique results subdirectory based on the given name.
 
@@ -748,7 +738,6 @@ class base_server_job(base_job.base_job):
             counter += 1
         return subdirectory
 
-
     def get_record_context(self):
         """Returns an object representing the current job.record context.
 
@@ -761,7 +750,6 @@ class base_server_job(base_job.base_job):
 
         @return: A context object with a 0-arg restore() method."""
         return self._indenter.get_context()
-
 
     def record_summary(self, status_code, test_name, reason='', attributes=None,
                        distinguishing_attributes=(), child_test_ids=None):
@@ -806,20 +794,17 @@ class base_server_job(base_job.base_job):
             utils.write_keyval(os.path.join(subdirectory_path, 'summary_data'),
                                summary_data)
 
-
     def disable_warnings(self, warning_type):
         self.warning_manager.disable_warnings(warning_type)
         self.record("INFO", None, None,
                     "disabling %s warnings" % warning_type,
                     {"warnings.disable": warning_type})
 
-
     def enable_warnings(self, warning_type):
         self.warning_manager.enable_warnings(warning_type)
         self.record("INFO", None, None,
                     "enabling %s warnings" % warning_type,
                     {"warnings.enable": warning_type})
-
 
     def get_status_log_path(self, subdir=None):
         """Return the path to the job status log.
@@ -836,7 +821,6 @@ class base_server_job(base_job.base_job):
                 return os.path.join(self.resultdir, "status.log")
         else:
             return None
-
 
     def _update_uncollected_logs_list(self, update_func):
         """Updates the uncollected logs list in a multi-process safe manner.
@@ -858,7 +842,6 @@ class base_server_job(base_job.base_job):
             fcntl.flock(log_file, fcntl.LOCK_UN)
             log_file.close()
 
-
     def add_client_log(self, hostname, remote_path, local_path):
         """Adds a new set of client logs to the list of uncollected logs,
         to allow for future log recovery.
@@ -870,7 +853,6 @@ class base_server_job(base_job.base_job):
         def update_func(logs_list):
             logs_list.append((hostname, remote_path, local_path))
         self._update_uncollected_logs_list(update_func)
-
 
     def remove_client_log(self, hostname, remote_path, local_path):
         """Removes a set of client logs from the list of uncollected logs,
@@ -884,7 +866,6 @@ class base_server_job(base_job.base_job):
             logs_list.remove((hostname, remote_path, local_path))
         self._update_uncollected_logs_list(update_func)
 
-
     def get_client_logs(self):
         """Retrieves the list of uncollected logs, if it exists.
 
@@ -897,7 +878,6 @@ class base_server_job(base_job.base_job):
             return pickle.load(open(self._uncollected_log_file))
         else:
             return []
-
 
     def _fill_server_control_namespace(self, namespace, protect=True):
         """
@@ -947,9 +927,9 @@ class base_server_job(base_job.base_job):
                 if name in namespace and protect:
                     if namespace[name] is not getattr(module, name):
                         raise error.AutoservError('importing name '
-                                '%s from %s %r would override %r' %
-                                (name, module_name, getattr(module, name),
-                                 namespace[name]))
+                                                  '%s from %s %r would override %r' %
+                                                 (name, module_name, getattr(module, name),
+                                                  namespace[name]))
                     else:
                         # Encourage cleanliness and the use of __all__ for a
                         # more concrete API with less surprises on '*' imports.
@@ -960,13 +940,12 @@ class base_server_job(base_job.base_job):
 
                 namespace[name] = getattr(module, name)
 
-
         # This is the equivalent of prepending a bunch of import statements to
         # the front of the control script.
         namespace.update(os=os, sys=sys, logging=logging)
         _import_names('autotest.server',
-                ('hosts', 'autotest_remote', 'standalone_profiler',
-                 'source_kernel', 'rpm_kernel', 'deb_kernel', 'git_kernel'))
+                     ('hosts', 'autotest_remote', 'standalone_profiler',
+                      'source_kernel', 'rpm_kernel', 'deb_kernel', 'git_kernel'))
         _import_names('autotest.server.subcommand',
                       ('parallel', 'parallel_simple', 'subcommand'))
         _import_names('autotest.server.utils',
@@ -984,7 +963,6 @@ class base_server_job(base_job.base_job):
         namespace['hosts'].factory.ssh_user = self._ssh_user
         namespace['hosts'].factory.ssh_port = self._ssh_port
         namespace['hosts'].factory.ssh_pass = self._ssh_pass
-
 
     def _execute_code(self, code_file, namespace, protect=True):
         """
@@ -1018,14 +996,12 @@ class base_server_job(base_job.base_job):
                 utils.open_write_close(MACHINES_FILENAME, machines_text)
         execfile(code_file, namespace, namespace)
 
-
     def _parse_status(self, new_line):
         if not self._using_parser:
             return
         new_tests = self.parser.process_lines([new_line])
         for test in new_tests:
             self.__insert_test(test)
-
 
     def __insert_test(self, test):
         """
@@ -1043,7 +1019,6 @@ class base_server_job(base_job.base_job):
                    "inserting test results into the database. "
                    "Ignoring error.\n" + traceback.format_exc())
             print >> sys.stderr, msg
-
 
     def preprocess_client_state(self):
         """
@@ -1064,7 +1039,6 @@ class base_server_job(base_job.base_job):
         # write_to_file doesn't need locking, we exclusively own file_path
         self._state.write_to_file(file_path)
         return file_path
-
 
     def postprocess_client_state(self, state_path):
         """
@@ -1095,7 +1069,6 @@ class base_server_job(base_job.base_job):
         # drop all the client-specific state
         self._state.discard_namespace('client')
 
-
     def clear_all_known_hosts(self):
         """Clears known hosts files for all AbstractSSHHosts."""
         for host in self.hosts:
@@ -1104,12 +1077,13 @@ class base_server_job(base_job.base_job):
 
 
 class warning_manager(object):
+
     """Class for controlling warning logs. Manages the enabling and disabling
     of warnings."""
+
     def __init__(self):
         # a map of warning types to a list of disabled time intervals
         self.disabled_warnings = {}
-
 
     def is_valid(self, timestamp, warning_type):
         """Indicates if a warning (based on the time it occurred and its type)
@@ -1121,13 +1095,11 @@ class warning_manager(object):
                 return False
         return True
 
-
     def disable_warnings(self, warning_type, current_time_func=time.time):
         """As of now, disables all further warnings of this type."""
         intervals = self.disabled_warnings.setdefault(warning_type, [])
         if not intervals or intervals[-1][1] is not None:
             intervals.append((int(current_time_func()), None))
-
 
     def enable_warnings(self, warning_type, current_time_func=time.time):
         """As of now, enables all further warnings of this type."""
@@ -1138,8 +1110,8 @@ class warning_manager(object):
 
 # load up site-specific code for generating site-specific job data
 get_site_job_data = utils.import_site_function(__file__,
-    "autotest.server.site_server_job", "get_site_job_data",
-    _get_site_job_data_dummy)
+                                               "autotest.server.site_server_job", "get_site_job_data",
+                                               _get_site_job_data_dummy)
 
 
 site_server_job = utils.import_site_class(

@@ -6,6 +6,7 @@ DOWN_SQL = """
 ALTER TABLE `host_queue_entries` ADD COLUMN `priority` int(11) default NULL
 """
 
+
 def migrate_up(manager):
     manager.execute_script(UP_SQL)
 

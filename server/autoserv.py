@@ -2,7 +2,14 @@
 Library for autotest-remote usage.
 """
 
-import sys, os, re, traceback, signal, time, logging, getpass
+import sys
+import os
+import re
+import traceback
+import signal
+import time
+import logging
+import getpass
 
 try:
     import autotest.common as common
@@ -34,6 +41,7 @@ from autotest.server import server_logging_config
 from autotest.server import server_job, autoserv_parser
 from autotest.server import autotest_remote
 from autotest.client.shared import pidfile, logging_manager
+
 
 def run_autoserv(pid_file_manager, results, parser):
     # send stdin to /dev/null
@@ -120,7 +128,7 @@ def run_autoserv(pid_file_manager, results, parser):
 
     if group_name and len(machines) < 2:
         parser.parser.error("-G %r may only be supplied with more than one machine."
-               % group_name)
+                            % group_name)
 
     kwargs = {'group_name': group_name, 'tag': execution_tag}
     if control_filename:
@@ -180,7 +188,7 @@ def main():
             if output_dir:
                 results = os.path.join(output_dir, results)
 
-        results  = os.path.abspath(results)
+        results = os.path.abspath(results)
         resultdir_exists = False
         for filename in ('control.srv', 'status.log', '.autoserv_execute'):
             if os.path.exists(os.path.join(results, filename)):
@@ -197,10 +205,10 @@ def main():
             os.makedirs(results)
 
     logging_manager.configure_logging(
-            server_logging_config.ServerLoggingConfig(), results_dir=results,
-            use_console=not parser.options.no_tee,
-            verbose=parser.options.verbose,
-            no_console_prefix=parser.options.no_console_prefix)
+        server_logging_config.ServerLoggingConfig(), results_dir=results,
+        use_console=not parser.options.no_tee,
+        verbose=parser.options.verbose,
+        no_console_prefix=parser.options.no_console_prefix)
     if results:
         logging.info("Results placed in %s" % results)
 
@@ -208,7 +216,6 @@ def main():
         if parser.options.use_existing_results and not resultdir_exists:
             logging.error("No existing results directory found: %s", results)
             sys.exit(1)
-
 
     if parser.options.write_pidfile:
         pid_file_manager = pidfile.PidFileManager(parser.options.pidfile_label,

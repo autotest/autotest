@@ -5,6 +5,7 @@ from autotest.client import utils
 
 version = 1
 
+
 def setup(tarball, topdir):
     srcdir = os.path.join(topdir, 'src')
     utils.extract_tarball_to_dir(tarball, srcdir)

@@ -34,8 +34,8 @@ db = database.dict_database('rsync.kernel.org.db')
 # create a source object that will be used to fetch the list of new kernel
 # files (this example uses rsync_source)
 source = source_module.rsync_source(db,
-    'rsync://rsync.kernel.org/pub/linux/kernel',
-    excludes=('2.6.0-test*/', 'broken-out/', '*.sign', '*.gz'))
+                                    'rsync://rsync.kernel.org/pub/linux/kernel',
+                                    excludes=('2.6.0-test*/', 'broken-out/', '*.sign', '*.gz'))
 source.add_path('v2.6/patch-2.6.*.bz2', 'v2.6')
 source.add_path('v2.6/linux-2.6.[0-9].tar.bz2', 'v2.6')
 source.add_path('v2.6/linux-2.6.[0-9][0-9].tar.bz2', 'v2.6')
@@ -58,7 +58,7 @@ filter_exprs = (
     r'^(.*/)?patch-(?P<arg>2\.6\.\d+(-rc\d+)?-git\d+)\.bz2$',
     # -mm tree
     r'^(.*/)?(?P<arg>2\.6\.\d+(-rc\d+)?-mm\d+)\.bz2$',
-    )
+)
 
 # associate kernel versions with kernel config files
 # all machines have the same hardware configuration so they will all
@@ -67,21 +67,21 @@ _common_kernel_config = {
     '2.6.20': '/path/to/2.6.20.config',
     '2.6.25': '~/kernel-2.6.25.config',
     '2.6.29': 'http://somesite/configs/2.6.29.conf',
-    }
+}
 
 # a mapping of machine -> machine_info (containing list a of test names as
 # they are named in the frontend database and kernel version association to
 # kernel config filenames)
 _tests_map = {
     'mach1': trigger_module.map_action.machine_info(
-            ('test1', 'server test2'), _common_kernel_config),
+        ('test1', 'server test2'), _common_kernel_config),
     'mach2': trigger_module.map_action.machine_info(
-            ('test1',), _common_kernel_config),
+        ('test1',), _common_kernel_config),
     'mach3': trigger_module.map_action.machine_info(
-            ('test3',), _common_kernel_config),
+        ('test3',), _common_kernel_config),
     'mach4': trigger_module.map_action.machine_info(
-            ('test4',), _common_kernel_config),
-    }
+        ('test4',), _common_kernel_config),
+}
 
 # no need to instantiate trigger_module.trigger() as it's already done so
 # trigger = trigger_module.trigger()

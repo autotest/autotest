@@ -4,9 +4,12 @@
 
 """Tests for thread."""
 
-import unittest, sys, os
+import unittest
+import sys
+import os
 
-import threading, Queue
+import threading
+import Queue
 
 try:
     import autotest.common as common
@@ -19,8 +22,7 @@ class thread_unittest(cli_mock.cli_unittest):
     results = Queue.Queue()
 
     def _workload(self, i):
-        self.results.put(i*i)
-
+        self.results.put(i * i)
 
     def test_starting(self):
         self.god.stub_class_method(threading.Thread, 'start')
@@ -32,7 +34,6 @@ class thread_unittest(cli_mock.cli_unittest):
         th = threads.ThreadPool(self._workload, numthreads=5)
         self.god.check_playback()
 
-
     def test_one_thread(self):
         th = threads.ThreadPool(self._workload, numthreads=1)
         th.queue_work(range(10))
@@ -42,7 +43,6 @@ class thread_unittest(cli_mock.cli_unittest):
             res.append(self.results.get())
         self.assertEqualNoOrder([0, 1, 4, 9, 16, 25, 36, 49, 64, 81], res)
 
-
     def _threading(self, numthreads, count):
         th = threads.ThreadPool(self._workload, numthreads=numthreads)
         th.queue_work(range(count))
@@ -50,16 +50,13 @@ class thread_unittest(cli_mock.cli_unittest):
         res = []
         while not self.results.empty():
             res.append(self.results.get())
-        self.assertEqualNoOrder([i*i for i in xrange(count)], res)
-
+        self.assertEqualNoOrder([i * i for i in xrange(count)], res)
 
     def test_threading(self):
         self._threading(10, 10)
 
-
     def test_threading_lots(self):
         self._threading(100, 100)
-
 
     def test_threading_multi_queueing(self):
         th = threads.ThreadPool(self._workload, numthreads=5)
@@ -69,7 +66,7 @@ class thread_unittest(cli_mock.cli_unittest):
         res = []
         while not self.results.empty():
             res.append(self.results.get())
-        self.assertEqualNoOrder([i*i for i in xrange(10)], res)
+        self.assertEqualNoOrder([i * i for i in xrange(10)], res)
 
 
 if __name__ == '__main__':
