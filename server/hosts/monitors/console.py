@@ -32,7 +32,7 @@ def _open_logfile(logfile_base_name):
     A timestamp and compression is added to the name.
 
     @param logfile_base_name - The log file path without a compression suffix.
-    @returns An open file like object.  Its close method must be called before
+    :return: An open file like object.  Its close method must be called before
             exiting or data may be lost due to internal buffering.
     """
     timestamp = int(time.time())

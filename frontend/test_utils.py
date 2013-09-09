@@ -103,7 +103,7 @@ class FrontendTestMixin(object):
         @param hostless - if True, this job is intended to be hostless (in that
                 case, hosts, metahosts, and atomic_group must all be empty)
 
-        @returns A Django frontend.afe.models.Job instance.
+        :return: A Django frontend.afe.models.Job instance.
         """
         if not drone_set:
             drone_set = (models.DroneSet.default_drone_set_name()

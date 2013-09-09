@@ -301,7 +301,7 @@ class DpkgBackend(BaseBackend):
         List files installed by package [package].
 
         @param package: Package name.
-        @return: List of paths installed by package.
+        :return: List of paths installed by package.
         """
         if os.path.isfile(package):
             l_cmd = self.lowlevel_base_cmd + ' -c ' + package
@@ -732,7 +732,7 @@ def install_distro_packages(distro_pkg_map, interactive=False):
     @type disto_pkg_map: dict
     @param distro_pkg_map: mapping of distro name, as returned by
         utils.get_os_vendor(), to a list of package names
-    @returns: True if any packages were actually installed, False otherwise
+    :return: True if any packages were actually installed, False otherwise
     '''
     if not interactive:
         os.environ['DEBIAN_FRONTEND'] = 'noninteractive'

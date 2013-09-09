@@ -63,7 +63,7 @@ class Cgroup(object):
         Get cgroup's full path
 
         @param: cgroup: cgroup name
-        @return: cgroup's full path
+        :return: cgroup's full path
         """
         if not isinstance(cgroup, str):
             raise error.TestError("cgroup type isn't string!")
@@ -74,7 +74,7 @@ class Cgroup(object):
         Get cgroup's name
 
         @param: pwd: cgroup name
-        @return: cgroup's name
+        :return: cgroup's name
         """
         if pwd is None:
             # root cgroup
@@ -93,7 +93,7 @@ class Cgroup(object):
         Get cgroup's index in cgroups
 
         @param: cgroup: cgroup name
-        @return: index of cgroup
+        :return: index of cgroup
         """
         try:
             if self.__get_cgroup_pwd(cgroup) not in self.cgroups:
@@ -108,7 +108,7 @@ class Cgroup(object):
         Make a cgroup by cgcreate command
 
         @params: cgroup: Maked cgroup name
-        @return: last cgroup index
+        :return: last cgroup index
         """
         try:
             parent_cgroup = self.get_cgroup_name(pwd)
@@ -139,7 +139,7 @@ class Cgroup(object):
         Creates new temporary cgroup
         @param pwd: where to create this cgroup (default: self.root)
         @param cgroup: desired cgroup name
-        @return: last cgroup index
+        :return: last cgroup index
         """
         if pwd is None:
             pwd = self.root
@@ -254,7 +254,7 @@ class Cgroup(object):
         Get all pids in cgroup
 
         @params: pwd: cgroup directory
-        @return: all pids(list)
+        :return: all pids(list)
         """
         if pwd is None:
             pwd = self.root
@@ -270,7 +270,7 @@ class Cgroup(object):
         Executes cgroup_client.py with cmd parameter.
 
         @param cmd: command to be executed
-        @return: subprocess.Popen() process
+        :return: subprocess.Popen() process
         """
         logging.debug("cg.test(): executing parallel process '%s'", cmd)
         cmd = self._client + ' ' + cmd
@@ -284,7 +284,7 @@ class Cgroup(object):
         Checks if the 'pid' process is in 'pwd' cgroup
         @param pid: pid of the process
         @param pwd: cgroup directory
-        @return: 0 when is 'pwd' member
+        :return: 0 when is 'pwd' member
         """
         if isinstance(pwd, int):
             pwd = self.cgroups[pwd]
@@ -297,7 +297,7 @@ class Cgroup(object):
         """
         Checks if the 'pid' process is in root cgroup (WO cgroup)
         @param pid: pid of the process
-        @return: 0 when is 'root' member
+        :return: 0 when is 'root' member
         """
         return self.is_cgroup(pid, self.root)
 
@@ -345,7 +345,7 @@ class Cgroup(object):
         """
         Resets the cgroup membership (sets to root)
         @param pid: pid of the process
-        @return: 0 when PASSED
+        :return: 0 when PASSED
         """
         return self.set_cgroup(pid, self.root)
 
@@ -354,7 +354,7 @@ class Cgroup(object):
         Gets the property value
         @param prop: property name (file)
         @param pwd: cgroup directory
-        @return: [] values or None when FAILED
+        :return: [] values or None when FAILED
         """
         if pwd is None:
             pwd = self.root
@@ -546,7 +546,7 @@ class CgroupModules(object):
         Checks the mounted modules and if necessary mounts them into tmp
             mountdir.
         @param _modules: Desired modules.'memory','cpu,cpuset'...
-        @return: Number of initialized modules.
+        :return: Number of initialized modules.
         """
         logging.debug("Desired cgroup modules: %s", _modules)
         mounts = []
@@ -592,7 +592,7 @@ class CgroupModules(object):
         """
         Returns the mount directory of 'module'
         @param module: desired module (memory, ...)
-        @return: mount directory of 'module' or None
+        :return: mount directory of 'module' or None
         """
         try:
             i = self.modules[0].index(module)
@@ -606,7 +606,7 @@ def get_load_per_cpu(_stats=None):
     """
     Gather load per cpu from /proc/stat
     @param _stats: previous values
-    @return: list of diff/absolute values of CPU times [SUM, CPU1, CPU2, ...]
+    :return: list of diff/absolute values of CPU times [SUM, CPU1, CPU2, ...]
     """
     stats = []
     f_stat = open('/proc/stat', 'r')
@@ -629,7 +629,7 @@ def get_cgroup_mountpoint(controller):
     Get desired controller's mountpoint
 
     @controller: Desired controller
-    @return: controller's mountpoint
+    :return: controller's mountpoint
     """
     if controller not in get_all_controllers():
         raise error.TestError("Doesn't support controller <%s>" % controller)
@@ -644,7 +644,7 @@ def get_all_controllers():
     """
     Get all controllers used in system
 
-    @return: all used controllers(controller_list)
+    :return: all used controllers(controller_list)
     """
     try:
         result = utils.run("lssubsys", ignore_status=False)
@@ -666,7 +666,7 @@ def resolve_task_cgroup_path(pid, controller):
     @params: pid : process id of a task for which the cgroup path required
     @params: controller: takes one of the controller names in controller list
 
-    @return: resolved path for cgroup controllers of a given pid
+    :return: resolved path for cgroup controllers of a given pid
     """
     if controller not in get_all_controllers():
         raise error.TestError("Doesn't support controller <%s>" % controller)

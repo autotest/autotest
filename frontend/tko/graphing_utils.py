@@ -60,13 +60,13 @@ _json_encoder = encoder.JSONEncoder()
 
 class NoDataError(Exception):
 
-    """\
+    """
     Exception to raise if the graphing query returned an empty resultset.
     """
 
 
 def _colors(n):
-    """\
+    """
     Generator function for creating n colors. The return value is a tuple
     representing the RGB of the color.
     """
@@ -75,7 +75,7 @@ def _colors(n):
 
 
 def _resort(kernel_labels, list_to_sort):
-    """\
+    """
     Resorts a list, using a list of kernel strings as the keys. Returns the
     resorted list.
     """
@@ -92,14 +92,14 @@ def _quote(string):
     return "%s%s%s" % ("'", string.replace("'", r"\'"), "'")
 
 
-_HTML_TEMPLATE = """\
+_HTML_TEMPLATE = """
 <html><head></head><body>
 <img src="data:image/png;base64,%s" usemap="#%s"
   border="0" alt="graph">
 <map name="%s">%s</map>
 </body></html>"""
 
-_AREA_TEMPLATE = """\
+_AREA_TEMPLATE = """
 <area shape="rect" coords="%i,%i,%i,%i" title="%s"
 href="#"
 onclick="%s(%s); return false;">"""
@@ -169,7 +169,7 @@ class QualificationHistogram(object):
 
 
 def _create_figure(height_inches):
-    """\
+    """
     Creates an instance of matplotlib.figure.Figure, given the height in inches.
     Returns the figure and the height in pixels.
     """
@@ -182,7 +182,7 @@ def _create_figure(height_inches):
 
 
 def _create_line(plots, labels, plot_info):
-    """\
+    """
     Given all the data for the metrics, create a line plot.
 
     plots: list of dicts containing the plot data. Each dict contains:
@@ -295,7 +295,7 @@ def _create_line(plots, labels, plot_info):
 
 
 def _get_adjusted_bar(x, bar_width, series_index, num_plots):
-    """\
+    """
     Adjust the list 'x' to take the multiple series into account. Each series
     should be shifted such that the middle series lies at the appropriate x-axis
     tick with the other bars around it.  For example, if we had four series
@@ -313,7 +313,7 @@ def _get_adjusted_bar(x, bar_width, series_index, num_plots):
 # TODO(showard): merge much of this function with _create_line by extracting and
 # parameterizing methods
 def _create_bar(plots, labels, plot_info):
-    """\
+    """
     Given all the data for the metrics, create a line plot.
 
     plots: list of dicts containing the plot data.
@@ -395,7 +395,7 @@ def _create_bar(plots, labels, plot_info):
 
 
 def _normalize(data_values, data_errors, base_values, base_errors):
-    """\
+    """
     Normalize the data against a baseline.
 
     data_values: y-values for the to-be-normalized data
@@ -435,7 +435,7 @@ def _normalize(data_values, data_errors, base_values, base_errors):
 
 
 def _create_png(figure):
-    """\
+    """
     Given the matplotlib figure, generate the PNG data for it.
     """
 
@@ -461,7 +461,7 @@ def _create_png(figure):
 
 
 def _create_image_html(figure, area_data, plot_info):
-    """\
+    """
     Given the figure and drilldown data, construct the HTML that will render the
     graph as a PNG image, and attach the image map to that image.
 
@@ -647,7 +647,7 @@ def create_metrics_plot(query_dict, plot_type, inverted_series, normalize_to,
 
 
 def _get_hostnames_in_bucket(hist_data, bucket):
-    """\
+    """
     Get all the hostnames that constitute a particular bucket in the histogram.
 
     hist_data: list containing tuples of (hostname, pass_rate)
@@ -659,7 +659,7 @@ def _get_hostnames_in_bucket(hist_data, bucket):
 
 
 def _create_qual_histogram_helper(plot_info, extra_text=None):
-    """\
+    """
     Create a machine qualification histogram of the given data.
 
     plot_info: a QualificationHistogram
@@ -791,7 +791,7 @@ def create_qual_histogram(query, filter_string, interval, drilldown_callback,
 
 
 def create_embedded_plot(model, update_time):
-    """\
+    """
     Given an EmbeddedGraphingQuery object, generate the PNG image for it.
 
     model: EmbeddedGraphingQuery object
@@ -827,7 +827,7 @@ _cache_timeout = settings.settings.get_value('AUTOTEST_WEB',
 
 
 def handle_plot_request(id, max_age):
-    """\
+    """
     Given the embedding id of a graph, generate a PNG of the embedded graph
     associated with that id.
 

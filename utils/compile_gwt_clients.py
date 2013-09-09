@@ -74,7 +74,7 @@ def install_completed_client(compiled_dir, project_client):
        dir.
        @param compiled_dir: Where the new client was compiled
        @param project_client: project.client pair e.g. autotest.AfeClient
-       @returns True if installation was successful or False if it failed
+       :return: True if installation was successful or False if it failed
     """
     tmp_client_dir = os.path.join(_TMP_COMPILE_DIR, project_client)
     install_dir = os.path.join(_DEFAULT_INSTALL_DIR, project_client)
@@ -109,7 +109,7 @@ def compile_and_install_client(project_client, extra_args='',
        call install_completed_client to install the new client.
        @param project_client: project.client pair e.g. autotest.AfeClient
        @param install_client: Boolean, if True install the clients
-       @return True if install and compile was successful False if it failed
+       :return: True if install and compile was successful False if it failed
     """
     java_args = {}
     java_args['compile_dir'] = _TMP_COMPILE_DIR
@@ -134,7 +134,7 @@ def compile_and_install_client(project_client, extra_args='',
 
 def compile_all_projects(projects, extra_args=''):
     """Compile all projects available as defined by enumerate_projects.
-       @returns list of failed client installations
+       :return: list of failed client installations
     """
     failed_clients = []
     for project, clients in enumerate_projects().iteritems():

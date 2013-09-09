@@ -225,7 +225,7 @@ def get_detailed_test_views(**filter_data):
 
 
 def get_hosts_and_tests():
-    """\
+    """
     Gets every host that has had a benchmark run on it. Additionally, also
     gets a dictionary mapping the host names to the benchmarks.
     """

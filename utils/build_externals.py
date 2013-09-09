@@ -108,7 +108,7 @@ def fetch_necessary_packages(dest_dir, install_dir):
     @param dest_dir: Directory the packages should be fetched into.
     @param install_dir: Directory where packages will later installed.
 
-    @returns A tuple containing two lists:
+    :return: A tuple containing two lists:
              * A list of ExternalPackage instances that were fetched and
                need to be installed.
              * A list of error messages for any failed fetches.
@@ -144,7 +144,7 @@ def build_and_install_packages(packages, install_dir):
     @param packages - A list of already fetched ExternalPackage instances.
     @param install_dir - Directory the packages should be installed into.
 
-    @returns A list of error messages for any installs that failed.
+    :return: A list of error messages for any installs that failed.
     """
     errors = []
     for package in packages:

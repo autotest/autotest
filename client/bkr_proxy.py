@@ -51,7 +51,7 @@ def make_path_cmdlog(r):
 
     @param r: recipe id
 
-    @return a path to the internal command log
+    :return: a path to the internal command log
     """
 
     path = AUTOTEST_CACHE_DIR + '/recipes/' + r
@@ -68,7 +68,7 @@ def make_path_bkrcache(r):
 
     @param r: recipe id
 
-    @return a path to the internal recipe cache file
+    :return: a path to the internal recipe cache file
     """
 
     return AUTOTEST_CACHE_DIR + '/recipes/' + r + '/beaker_recipe.cache'
@@ -87,7 +87,7 @@ def make_path_recipe(r):
 
     @param r: recipe id
 
-    @return a beaker path to the recipe id
+    :return: a beaker path to the recipe id
     """
 
     return '/recipes/' + r
@@ -99,7 +99,7 @@ def make_path_watchdog(r):
 
     @param r: recipe id
 
-    @return a beaker path of the recipe's watchdog file
+    :return: a beaker path of the recipe's watchdog file
     """
 
     return '/recipes/' + r + '/watchdog'
@@ -117,7 +117,7 @@ def make_path_status(r, t=None):
     @param r: recipe id
     @param t: task id
 
-    @return a beaker path of the recipe's/task's status file
+    :return: a beaker path of the recipe's/task's status file
     """
 
     rpath = '/recipes/' + r
@@ -136,7 +136,7 @@ def make_path_result(r, t):
     @param r: recipe id
     @param t: task id
 
-    @return a beaker path of the task's result file
+    :return: a beaker path of the task's result file
     """
 
     rpath = '/recipes/' + r
@@ -159,7 +159,7 @@ def make_path_log(r, t=None, i=None):
     @param t: task id
     @param i: result id
 
-    @return a beaker path of the task's result file
+    :return: a beaker path of the task's result file
     """
 
     rpath = '/recipes/' + r
@@ -186,7 +186,7 @@ def copy_remote(data, dest, use_put=None):
     @param dest: remote server URL
     @param use_put: dictionary of items if using PUT method
 
-    @return html header info for post processing
+    :return: html header info for post processing
     """
 
     ret = None
@@ -224,7 +224,7 @@ def copy_local(data, dest, use_put=None):
     @param dest: local file path
     @param use_put: chooses to write in binary or text
 
-    @return nothing
+    :return: nothing
     """
 
     dpath = os.path.dirname(dest)
@@ -249,7 +249,7 @@ def copy_data(data, dest, header=None, use_put=None):
     @param header: header info item to return
     @param use_put: dictionary of items for PUT method
 
-    @return nothing or header info if requested
+    :return: nothing or header info if requested
     """
 
     ret = None

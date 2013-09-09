@@ -205,7 +205,7 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
         @param host_labels: A list of label ids that the host has.
         @param queue_entry: The HostQueueEntry being considered for the host.
 
-        @returns True if atomic group settings are okay, False otherwise.
+        :return: True if atomic group settings are okay, False otherwise.
         """
         return (self._get_host_atomic_group_id(host_labels, queue_entry) ==
                 queue_entry.atomic_group_id)
@@ -220,7 +220,7 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
         @param queue_entry: The HostQueueEntry we're testing.  Only used for
                 extra info in a potential logged error message.
 
-        @returns The id of the atomic group found on a label in host_labels
+        :return: The id of the atomic group found on a label in host_labels
                 or None if no atomic group label is found.
         """
         atomic_labels = [self._labels[label_id] for label_id in host_labels
@@ -239,7 +239,7 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
 
         @param atomic_group_id - The id of the AtomicGroup to look up.
 
-        @returns A generator yielding Label ids for this atomic group.
+        :return: A generator yielding Label ids for this atomic group.
         """
         return (id for id, label in self._labels.iteritems()
                 if label.atomic_group_id == atomic_group_id
@@ -252,7 +252,7 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
         @param queue_entry - The HostQueueEntry that these hosts are being
                 tested for eligibility against.
 
-        @returns A subset of group_hosts Host ids that are eligible for the
+        :return: A subset of group_hosts Host ids that are eligible for the
                 supplied queue_entry.
         """
         return set(host_id for host_id in group_hosts
@@ -314,7 +314,7 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
         The caller is responsible for creating new HQEs for the additional
         hosts returned in order to run the actual job on them.
 
-        @returns A list of Host instances in a ready state to satisfy this
+        :return: A list of Host instances in a ready state to satisfy this
                 atomic group scheduling.  Hosts will all belong to the same
                 atomic group label as specified by the queue_entry.
                 An empty list will be returned if no suitable atomic

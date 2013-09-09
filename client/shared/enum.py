@@ -1,4 +1,4 @@
-"""\
+"""
 Generic enumeration support.
 """
 
@@ -7,7 +7,7 @@ __author__ = 'showard@google.com (Steve Howard)'
 
 class Enum(object):
 
-    """\
+    """
     Utility class to implement Enum-like functionality.
 
     >>> e = Enum('String one', 'String two')
@@ -55,7 +55,7 @@ class Enum(object):
         return zip(self.values, self.names)
 
     def get_value(self, name):
-        """\
+        """
         Convert a string name to it's corresponding value.  If a value
         is passed in, it is returned.
         """

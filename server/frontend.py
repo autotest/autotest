@@ -481,7 +481,7 @@ class AFE(RpcClient):
                 If any pairing object has its job_label attribute set it
                 will override this value for that particular job.
 
-        @returns A list of job objects.
+        :return: A list of job objects.
         """
         # The pairing can override the job label.
         if pairing.job_label:

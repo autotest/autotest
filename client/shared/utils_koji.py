@@ -152,7 +152,7 @@ class KojiClient(object):
         @type check_valid: boolean
         @param check_valid: whether to include a check on the configuration
         @raises: ValueError
-        @returns: None
+        :return: None
         '''
         if check_is_valid:
             if not self.is_config_valid():
@@ -169,7 +169,7 @@ class KojiClient(object):
         '''
         Filter only options necessary for setting up a cobbler client session
 
-        @returns: only the options used for session setup
+        :return: only the options used for session setup
         '''
         session_options = {}
         for name, value in self.config_options.items():
@@ -181,7 +181,7 @@ class KojiClient(object):
         '''
         Checks if the currently set koji command is valid
 
-        @returns: True or False
+        :return: True or False
         '''
         koji_command_ok = True
 
@@ -206,7 +206,7 @@ class KojiClient(object):
         '''
         Checks if the currently set koji configuration is valid
 
-        @returns: True or False
+        :return: True or False
         '''
         koji_config_ok = True
 
@@ -239,7 +239,7 @@ class KojiClient(object):
         first, and if found, we consider that the system is configured for
         brew. If not, we consider this is a system with plain koji.
 
-        @returns: either koji or brew command line executable path, or None
+        :return: either koji or brew command line executable path, or None
         '''
         koji_command = None
         for command in self.CMD_LOOKUP_ORDER:
@@ -262,7 +262,7 @@ class KojiClient(object):
         @type pkg: KojiPkgSpec
         @param pkg: information about the package, as a KojiPkgSpec instance
 
-        @returns: information from Koji about the specified package
+        :return: information from Koji about the specified package
         '''
         info = {}
         if pkg.build is not None:
@@ -283,7 +283,7 @@ class KojiClient(object):
         This verifies if the build or tag specified in the package
         specification actually exist on the Koji server
 
-        @returns: True or False
+        :return: True or False
         '''
         valid = True
         if pkg.build:
@@ -647,7 +647,7 @@ class KojiPkgSpec(object):
         Checks if this package is invalid due to not having either a valid
         tag or build set, that is, both are empty.
 
-        @returns: True if this is invalid and False if it's valid
+        :return: True if this is invalid and False if it's valid
         '''
         return (self.tag is None and self.build is None)
 
@@ -656,7 +656,7 @@ class KojiPkgSpec(object):
         Checks if this package is invalid due to having a package name set
         but tag or build set, that is, both are empty.
 
-        @returns: True if this is invalid and False if it's valid
+        :return: True if this is invalid and False if it's valid
         '''
         return (self.package and not self.tag)
 
@@ -669,7 +669,7 @@ class KojiPkgSpec(object):
         Specifying subpackages without a main package name is only valid when
         a build is used instead of a tag.
 
-        @returns: True if this is invalid and False if it's valid
+        :return: True if this is invalid and False if it's valid
         '''
         return (self.tag and self.subpackages and not self.package)
 
@@ -681,7 +681,7 @@ class KojiPkgSpec(object):
         It does not validate that the packages specified actually existe on
         the Koji server.
 
-        @returns: True or False
+        :return: True or False
         '''
         if self._is_invalid_neither_tag_or_build():
             return False
@@ -710,7 +710,7 @@ class KojiPkgSpec(object):
         '''
         Describe this package specification, in a human friendly way
 
-        @returns: package specification description
+        :return: package specification description
         '''
         if self.is_valid():
             description = ''
@@ -742,7 +742,7 @@ class KojiPkgSpec(object):
         We find that it's acceptable to put the currently set default tag
         as the package explicit tag in the textual definition for completeness.
 
-        @returns: package specification in a textual representation
+        :return: package specification in a textual representation
         '''
         default_tag = get_default_koji_tag()
 

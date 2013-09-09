@@ -25,7 +25,7 @@ from simplejson import decoder, encoder
 
 
 def customConvertJson(value):
-    """\
+    """
     Recursively process JSON values and do type conversions.
     -change floats to ints
     -change unicodes to strs
@@ -84,7 +84,7 @@ class ServiceHandler(object):
         """
         Invoke a json RPC call from a decoded json request.
         @param request: a decoded json_request
-        @returns a dictionary with keys id, result, err and err_traceback
+        :return: a dictionary with keys id, result, err and err_traceback
         """
         results = self.blank_result_dict()
 
@@ -139,7 +139,7 @@ class ServiceHandler(object):
         """
         @param result_dict: a dictionary containing the result, error, traceback
                             and id.
-        @returns translated json result
+        :return: translated json result
         """
         if result_dict['err'] is not None:
             error_name = result_dict['err'].__class__.__name__

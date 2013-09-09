@@ -1,4 +1,4 @@
-"""\
+"""
 RPC request handler Django.  Exposed RPC interface functions should be
 defined in rpc_interface.py.
 """
@@ -101,7 +101,7 @@ class RpcHandler(object):
 
     @staticmethod
     def _allow_keyword_args(f):
-        """\
+        """
         Decorator to allow a function to take keyword args even though
         the RPC layer doesn't support that.  The decorated function
         assumes its last argument is a dictionary of keyword args and

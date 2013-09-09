@@ -249,7 +249,7 @@ class DBObject(object):
         @param row - A sequence of values corresponding to fields named in
                 The class attribute _fields.
 
-        @returns A dictionary listing the differences keyed by field name
+        :return: A dictionary listing the differences keyed by field name
                 containing tuples of (current_value, row_value).
         """
         self._assert_row_length(row)
@@ -622,7 +622,7 @@ class HostQueueEntry(DBObject):
         @param summary: Job summary text. Optional.
         @param hostname: A hostname for the job. Optional.
 
-        @return: Tuple (subject, body) for the notification e-mail.
+        :return: Tuple (subject, body) for the notification e-mail.
         """
         job_stats = Job(id=self.job.id).get_execution_details()
 
@@ -893,7 +893,7 @@ class Job(DBObject):
         """
         Get test execution details for this job.
 
-        @return: Dictionary with test execution details
+        :return: Dictionary with test execution details
         """
         def _find_framework_tests(rows):
             """
@@ -1064,7 +1064,7 @@ class Job(DBObject):
 
     def _atomic_and_has_started(self):
         """
-        @returns True if any of the HostQueueEntries associated with this job
+        :return: True if any of the HostQueueEntries associated with this job
         have entered the Status.STARTING state or beyond.
         """
         atomic_entries = models.HostQueueEntry.objects.filter(
@@ -1096,7 +1096,7 @@ class Job(DBObject):
         """
         @param atomic_group: The AtomicGroup associated with this job that we
                 are using to set an upper bound on the threshold.
-        @returns The maximum number of HostQueueEntries assigned a Host before
+        :return: The maximum number of HostQueueEntries assigned a Host before
                 this job can run.
         """
         return min(self._hosts_assigned_count(),
@@ -1176,7 +1176,7 @@ class Job(DBObject):
         _drone_manager.write_lines_to_file(file_path, [hostname])
 
     def _next_group_name(self, group_name=''):
-        """@returns a directory name to use for the next host group results."""
+        """:return: a directory name to use for the next host group results."""
         if group_name:
             # Sanitize for use as a pathname.
             group_name = group_name.replace(os.path.sep, '_')
@@ -1201,7 +1201,7 @@ class Job(DBObject):
         @param queue_entry_from_group: A HostQueueEntry instance to find other
                 group entries on this job for.
 
-        @returns A list of HostQueueEntry objects all executing this job as
+        :return: A list of HostQueueEntry objects all executing this job as
                 part of the same group as the one supplied (having the same
                 execution_subdir).
         """
@@ -1229,7 +1229,7 @@ class Job(DBObject):
         Get a list of tasks to perform before the host_queue_entry
         may be used to run this Job (such as Cleanup & Verify).
 
-        @returns A list of tasks to be done to the given queue_entry before
+        :return: A list of tasks to be done to the given queue_entry before
                 it should be considered be ready to run this job.  The last
                 task in the list calls HostQueueEntry.on_pending(), which
                 continues the flow of the job.
@@ -1261,7 +1261,7 @@ class Job(DBObject):
 
     def _choose_group_to_run(self, include_queue_entry):
         """
-        @returns A tuple containing a list of HostQueueEntry instances to be
+        :return: A tuple containing a list of HostQueueEntry instances to be
                 used to run this Job, a string group name to suggest giving
                 to this job in the results database.
         """
@@ -1322,7 +1322,7 @@ class Job(DBObject):
         @param queue_entry: The HostQueueEntry object to get atomic group
                 info from and pass to run_if_ready when the delay is up.
 
-        @returns An Agent to run the job as appropriate or None if a delay
+        :return: An Agent to run the job as appropriate or None if a delay
                 has already been set.
         """
         assert queue_entry.job_id == self.id

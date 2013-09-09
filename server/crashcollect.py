@@ -49,7 +49,7 @@ def wait_for_machine_to_recover(host, hours_to_wait=HOURS_TO_WAIT):
     @param host: A RemoteHost instance to wait on
     @param hours_to_wait: Number of hours to wait before giving up
 
-    @returns: True if the machine comes back up, False otherwise
+    :return: True if the machine comes back up, False otherwise
     """
     current_time = time.strftime("%b %d %H:%M:%S", time.localtime())
     if host.is_up():
@@ -76,7 +76,7 @@ def get_crashinfo_dir(host):
 
     @param host: The RemoteHost object that crashinfo will be collected from
 
-    @returns: The path to an existing directory for writing crashinfo into
+    :return: The path to an existing directory for writing crashinfo into
     """
     host_resultdir = getattr(getattr(host, "job", None), "resultdir", None)
     if host_resultdir:

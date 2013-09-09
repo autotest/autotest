@@ -98,7 +98,7 @@ class Settings(object):
 
         @param section: Tuple with sections we want to turn into a config parser
                 object.
-        @return: ConfigParser() object containing all the contents of sections.
+        :return: ConfigParser() object containing all the contents of sections.
         """
         self._ensure_config_parsed()
 

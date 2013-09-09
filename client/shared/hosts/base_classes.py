@@ -103,7 +103,7 @@ class Host(object):
         @param args: sequence of strings to pass as arguments to command by
                 quoting them in " and escaping their contents if necessary
 
-        @return a utils.CmdResult object
+        :return: a utils.CmdResult object
 
         @raises AutotestHostRunError: the exit code of the command execution
                 was not 0 and ignore_status was not enabled
@@ -164,7 +164,7 @@ class Host(object):
 
         @param timeout The number of seconds to wait before timing out.
 
-        @return A string unique to this boot or None if not available."""
+        :return: A string unique to this boot or None if not available."""
         BOOT_ID_FILE = '/proc/sys/kernel/random/boot_id'
         NO_ID_MSG = 'no boot_id available'
         cmd = 'if [ -f %r ]; then cat %r; else echo %r; fi' % (
@@ -248,7 +248,7 @@ class Host(object):
         @param use_cache Cache results of self.run('cat <filename>') for the
             same filename
 
-        @return a function that can be used instead of built-in open()
+        :return: a function that can be used instead of built-in open()
         """
         cached_files = {}
 
@@ -569,7 +569,7 @@ class Host(object):
         can be reached from the initial set by following symlinks.
 
         @param paths: sequence of path strings.
-        @return: a sequence of path strings that are all the unique paths that
+        :return: a sequence of path strings that are all the unique paths that
                 can be reached from the given ones after following symlinks.
         """
         SCRIPT = ("python -c 'import cPickle, os, sys\n"

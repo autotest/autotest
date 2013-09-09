@@ -13,7 +13,7 @@ from autotest.frontend.afe import readonly_connection
 
 class ValidationError(Exception):
 
-    """\
+    """
     Data validation error in adding or updating an object. The associated
     value is a dictionary mapping field names to error strings.
     """
@@ -95,7 +95,7 @@ class ReadonlyValuesQuerySet(dbmodels.query.ValuesQuerySet):
 
 class ExtendedManager(dbmodels.Manager):
 
-    """\
+    """
     Extended manager supporting subquery filtering.
     """
 
@@ -367,7 +367,7 @@ class ExtendedManager(dbmodels.Manager):
 
         related_model must have some sort of many-valued relationship to this
         manager's model.
-        @returns (relationship_type, field), where relationship_type is one of
+        :return: (relationship_type, field), where relationship_type is one of
                 MANY_TO_ONE, M2M_ON_RELATED_MODEL, M2M_ON_THIS_MODEL, and field
                 is the Django field object for the relationship.
         """
@@ -395,7 +395,7 @@ class ExtendedManager(dbmodels.Manager):
         return a pivot iterator.
         @param base_objects_by_id: dict of instances of this model indexed by
         their IDs
-        @returns a pivot iterator, which yields a tuple (base_object,
+        :return: a pivot iterator, which yields a tuple (base_object,
         related_object) for each relationship between a base object and a
         related object.  all base_object instances come from base_objects_by_id.
         Note -- this depends on Django model internals.
@@ -417,7 +417,7 @@ class ExtendedManager(dbmodels.Manager):
     def _many_to_one_pivot(self, base_objects_by_id, related_model,
                            foreign_key_field):
         """
-        @returns a pivot iterator - see _get_pivot_iterator()
+        :return: a pivot iterator - see _get_pivot_iterator()
         """
         filter_data = {foreign_key_field.name + '__pk__in':
                        base_objects_by_id.keys()}
@@ -439,7 +439,7 @@ class ExtendedManager(dbmodels.Manager):
         self.model
         @param pivot_to_field a field name on pivot_table referencing the
         related model.
-        @returns pivot list of IDs (base_id, related_id)
+        :return: pivot list of IDs (base_id, related_id)
         """
         query = """
         SELECT %(from_field)s, %(to_field)s
@@ -460,7 +460,7 @@ class ExtendedManager(dbmodels.Manager):
         @param pivot_table: see _query_pivot_table
         @param pivot_from_field: see _query_pivot_table
         @param pivot_to_field: see _query_pivot_table
-        @returns a pivot iterator - see _get_pivot_iterator()
+        :return: a pivot iterator - see _get_pivot_iterator()
         """
         id_pivot = self._query_pivot_table(base_objects_by_id, pivot_table,
                                            pivot_from_field, pivot_to_field)
@@ -534,7 +534,7 @@ class ValidObjectsManager(ModelWithInvalidManager):
 
 class ModelExtensions(object):
 
-    """\
+    """
     Mixin with convenience functions for models, built on top of the
     default Django model functions.
     """
@@ -555,7 +555,7 @@ class ModelExtensions(object):
 
     @classmethod
     def clean_foreign_keys(cls, data):
-        """\
+        """
         -Convert foreign key fields in data from <field>_id to just
         <field>.
         -replace foreign key objects with their IDs
@@ -588,7 +588,7 @@ class ModelExtensions(object):
     # TODO(showard) - is there a way to not have to do this?
     @classmethod
     def provide_default_values(cls, data):
-        """\
+        """
         Provide default values for fields with default values which have
         nothing passed in.
 
@@ -610,7 +610,7 @@ class ModelExtensions(object):
 
     @classmethod
     def convert_human_readable_values(cls, data, to_human_readable=False):
-        """\
+        """
         Performs conversions on user-supplied field data, to make it
         easier for users to pass human-readable data.
 
@@ -679,7 +679,7 @@ class ModelExtensions(object):
         return data
 
     def _validate_unique(self):
-        """\
+        """
         Validate that unique fields are unique.  Django manipulators do
         this too, but they're a huge pain to use manually.  Trust me.
         """
@@ -746,7 +746,7 @@ class ModelExtensions(object):
     # actually (externally) useful methods follow
     @classmethod
     def add_object(cls, data={}, **kwargs):
-        """\
+        """
         Returns a new object created with the given data (a dictionary
         mapping field names to values). Merges any extra keyword args
         into data.
@@ -759,7 +759,7 @@ class ModelExtensions(object):
         return obj
 
     def update_object(self, data={}, **kwargs):
-        """\
+        """
         Updates the object with the given data (a dictionary mapping
         field names to values).  Merges any extra keyword args into
         data.
@@ -777,7 +777,7 @@ class ModelExtensions(object):
     @classmethod
     def _extract_special_params(cls, filter_data):
         """
-        @returns a tuple of dicts (special_params, regular_filters), where
+        :return: a tuple of dicts (special_params, regular_filters), where
         special_params contains the parameters we handle specially and
         regular_filters is the remaining data to be handled by Django.
         """
@@ -793,7 +793,7 @@ class ModelExtensions(object):
         """
         Apply presentation parameters -- sorting and paging -- to the given
         query.
-        @returns new query with presentation applied
+        :return: new query with presentation applied
         """
         special_params, _ = cls._extract_special_params(filter_data)
         sort_by = special_params.get('sort_by', None)
@@ -813,7 +813,7 @@ class ModelExtensions(object):
     @classmethod
     def query_objects(cls, filter_data, valid_only=True, initial_query=None,
                       apply_presentation=True):
-        """\
+        """
         Returns a QuerySet object for querying the given model_class
         with the given filter_data.  Optional special arguments in
         filter_data include:
@@ -858,7 +858,7 @@ class ModelExtensions(object):
 
     @classmethod
     def query_count(cls, filter_data, initial_query=None):
-        """\
+        """
         Like query_objects, but retrieve only the count of results.
         """
         filter_data.pop('query_start', None)
@@ -868,7 +868,7 @@ class ModelExtensions(object):
 
     @classmethod
     def clean_object_dicts(cls, field_dicts):
-        """\
+        """
         Take a list of dicts corresponding to object (as returned by
         query.values()) and clean the data to be more suitable for
         returning to the user.
@@ -881,7 +881,7 @@ class ModelExtensions(object):
 
     @classmethod
     def list_objects(cls, filter_data, initial_query=None):
-        """\
+        """
         Like query_objects, but return a list of dictionaries.
         """
         query = cls.query_objects(filter_data, initial_query=initial_query)
@@ -892,7 +892,7 @@ class ModelExtensions(object):
 
     @classmethod
     def smart_get(cls, id_or_name, valid_only=True):
-        """\
+        """
         smart_get(integer) -> get object by ID
         smart_get(string) -> get object by name_field
         """
@@ -925,7 +925,7 @@ class ModelExtensions(object):
         return result_objects
 
     def get_object_dict(self, extra_fields=None):
-        """\
+        """
         Return a dictionary mapping fields to this object's values.  @param
         extra_fields: list of extra attribute names to include, in addition to
         the fields defined on this object.

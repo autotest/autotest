@@ -504,7 +504,7 @@ def create_container_directly(name, mbytes, cpus):
 
 def create_container_with_mbytes_and_specific_cpus(name, mbytes,
                                                    cpus=None, root=SUPER_ROOT, io={}, move_in=True, timeout=0):
-    """\
+    """
     Create a cpuset container and move job's current pid into it
     Allocate the list "cpus" of cpus to that container
 

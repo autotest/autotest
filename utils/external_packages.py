@@ -27,7 +27,7 @@ class FetchError(Error):
 
 
 def _checksum_file(full_path):
-    """@returns The hex checksum of a file given its pathname."""
+    """:return: The hex checksum of a file given its pathname."""
     inputfile = open(full_path, 'rb')
     try:
         hex_sum = utils.hash('sha1', inputfile.read()).hexdigest()
@@ -43,7 +43,7 @@ def system(commandline):
 
 
 def find_top_of_autotest_tree():
-    """@returns The full path to the top of the autotest directory tree."""
+    """:return: The full path to the top of the autotest directory tree."""
     dirname = os.path.dirname(__file__)
     autotest_dir = os.path.abspath(os.path.join(dirname, '..'))
     return autotest_dir
@@ -106,7 +106,7 @@ class ExternalPackage(object):
         return class_name
 
     def is_needed(self, unused_install_dir):
-        """@returns True if self.module_name needs to be built and installed."""
+        """:return: True if self.module_name needs to be built and installed."""
         if not self.module_name or not self.version:
             logging.warning('version and module_name required for '
                             'is_needed() check to work.')
@@ -203,7 +203,7 @@ class ExternalPackage(object):
         Afterwards the build (regardless of failure) extracted .tar.gz
         directory is cleaned up.
 
-        @returns True on success, False otherwise.
+        :return: True on success, False otherwise.
 
         @raises OSError If the expected extraction directory does not exist.
         """
@@ -250,7 +250,7 @@ class ExternalPackage(object):
 
         @param setup_py - The name of the setup.py file to execute.
 
-        @returns True on success, False otherwise.
+        :return: True on success, False otherwise.
         """
         if not os.path.exists(setup_py):
             raise Error('%s does not exist in %s' % (setup_py, os.getcwd()))
@@ -267,7 +267,7 @@ class ExternalPackage(object):
 
         @param setup_py - The name of the setup.py file to execute.
 
-        @returns The relative path to the resulting egg file or '' on failure.
+        :return: The relative path to the resulting egg file or '' on failure.
         """
         if not os.path.exists(setup_py):
             raise Error('%s does not exist in %s' % (setup_py, os.getcwd()))
@@ -328,7 +328,7 @@ class ExternalPackage(object):
         @param install_dir the directory for the install to happen under.
         @param setup_py - The name of the setup.py file to execute.
 
-        @returns True on success, False otherwise.
+        :return: True on success, False otherwise.
         """
         if not os.path.exists(setup_py):
             raise Error('%s does not exist in %s' % (setup_py, os.getcwd()))
@@ -362,7 +362,7 @@ class ExternalPackage(object):
     def _build_using_make(self, install_dir):
         """Build the current package using configure/make.
 
-        @returns True on success, False otherwise.
+        :return: True on success, False otherwise.
         """
         install_prefix = os.path.join(install_dir, 'usr', 'local')
         status = system('./configure --prefix=%s' % install_prefix)
@@ -385,7 +385,7 @@ class ExternalPackage(object):
         Assumes the install path was set up while running ./configure (in
         _build_using_make()).
 
-        @returns True on success, False otherwise.
+        :return: True on success, False otherwise.
         """
         status = system('make install')
         return status == 0
@@ -402,7 +402,7 @@ class ExternalPackage(object):
         @param dest_dir - The destination directory to save the local file.
             If it does not exist it will be created.
 
-        @returns A boolean indicating if we the package is now in dest_dir.
+        :return: A boolean indicating if we the package is now in dest_dir.
         @raises FetchError - When something unexpected happens.
         """
         if not os.path.exists(dest_dir):

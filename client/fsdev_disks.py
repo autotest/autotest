@@ -25,7 +25,7 @@ def get_disk_list(std_mounts_only=True, get_all_disks=False):
             disks (False) or return every disk, regardless of being partitioned
             or not (True).
 
-    @return: List of dictionaries with disk information (see more below).
+    :return: List of dictionaries with disk information (see more below).
 
     The 'disk_list' array returned by get_disk_list() has an entry for each
     disk drive we find on the box. Each of these entries is a map with the

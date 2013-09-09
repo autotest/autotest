@@ -6,7 +6,7 @@ class PreconfigManager(object):
     _is_init = False
 
     def _get_preconfig_path(self, suffix):
-        """\
+        """
         Get the absolute path to a prefix directory or file.
 
         suffix: list of suffixes after the 'preconfigs' directory to navigate to
@@ -18,7 +18,7 @@ class PreconfigManager(object):
         return os.path.abspath(rel_path)
 
     def _init_preconfigs(self):
-        """\
+        """
         Read the names of all the preconfigs from disk and store them in the
         _preconfigs dictionary.
         """
@@ -31,7 +31,7 @@ class PreconfigManager(object):
             self._is_init = True
 
     def _read_preconfig(self, name, type):
-        """\
+        """
         Populate the _preconfigs dictionary entry for the preconfig described
         by the given parameters.  If the preconfig has already been loaded,
         do nothing.

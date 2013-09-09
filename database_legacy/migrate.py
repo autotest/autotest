@@ -243,7 +243,7 @@ class MigrationManager(object):
         print 'Migration complete'
 
     def test_sync_db(self, version=None):
-        """\
+        """
         Create a fresh DB and run all migrations on it.
         """
         self.initialize_test_db()
@@ -259,7 +259,7 @@ class MigrationManager(object):
         print 'Test finished successfully'
 
     def simulate_sync_db(self, version=None):
-        """\
+        """
         Create a fresh DB, copy the existing DB to it, and then
         try to synchronize it.
         """

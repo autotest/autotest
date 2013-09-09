@@ -69,7 +69,7 @@ def import_module(module, from_where):
 
     @param module: Module name.
     @param from_where: Package from where the module is being imported.
-    @return: The corresponding module.
+    :return: The corresponding module.
     """
     from_module = __import__(from_where, globals(), locals(), [module])
     return getattr(from_module, module)

@@ -112,7 +112,7 @@ class DroneUtility(object):
     @classmethod
     def _get_process_info(cls):
         """
-        @returns A generator of dicts with cls._PS_ARGS as keys and
+        :return: A generator of dicts with cls._PS_ARGS as keys and
                 string values each representing a running process.
         """
         ps_proc = subprocess.Popen(

@@ -101,7 +101,7 @@ class Bootloader(object):
         """
         Get the bootloader name that is detected on this machine
 
-        @returns: name of detected bootloader
+        :return: name of detected bootloader
         """
         return self._run_boottool_stdout('--bootloader-probe').strip()
 
@@ -149,7 +149,7 @@ class Bootloader(object):
         '''
         Get the default entry title.
 
-        @returns: a string of the default entry title.
+        :return: a string of the default entry title.
         '''
         default = self.get_default_index()
         entry = self.get_entry(default)
@@ -163,7 +163,7 @@ class Bootloader(object):
         Get a single bootloader entry information.
 
         @param entry: entry index
-        @return a dictionary of key->value where key is the type of entry
+        :return: a dictionary of key->value where key is the type of entry
                 information (ex. 'title', 'args', 'kernel', etc) and value
                 is the value for that piece of information.
         """
@@ -174,7 +174,7 @@ class Bootloader(object):
         """
         Get all entries information.
 
-        @return: a dictionary of index -> entry where entry is a dictionary
+        :return: a dictionary of index -> entry where entry is a dictionary
                 of entry information as described for get_entry().
         """
         raw = "\n" + self._run_boottool_stdout('--info=all')

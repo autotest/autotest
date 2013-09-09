@@ -278,7 +278,7 @@ class UnhandledTestFail(TestFail):
 
 class CmdError(TestError):
 
-    """\
+    """
     Indicates that a command failed, is fatal to the test unless caught.
     """
 

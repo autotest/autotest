@@ -115,7 +115,7 @@ def hash_file(filename, size=None, method="md5"):
     @param method: Method used to calculate the hash. Supported methods:
             * md5
             * sha1
-    @returns: Hash of the file, if something goes wrong, return None.
+    :return: Hash of the file, if something goes wrong, return None.
     """
     chunksize = 4096
     fsize = os.path.getsize(filename)
@@ -410,7 +410,7 @@ def sysctl(key, value=None):
     @param key: A location under /proc/sys
     @param value: If not None, a value to write into the sysctl.
 
-    @return The single-line sysctl value as a string.
+    :return: The single-line sysctl value as a string.
     """
     path = '/proc/sys/%s' % key
     if value is not None:
@@ -792,7 +792,7 @@ def suspend_to_disk():
 def get_cpu_stat(key):
     """
     Get load per cpu from /proc/stat
-    @return: list of values of CPU times
+    :return: list of values of CPU times
     """
 
     stats = []
@@ -808,7 +808,7 @@ def get_cpu_stat(key):
 
 def get_uptime():
     """
-    @return: return the uptime of system in secs in float
+    :return: return the uptime of system in secs in float
     in error case return 'None'
     """
 

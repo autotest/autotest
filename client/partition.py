@@ -102,7 +102,7 @@ def is_linux_fs_type(device):
 
     @param device: the device, e.g. /dev/sda3
 
-    @return: False if the supplied partition name is not type 83 linux, True
+    :return: False if the supplied partition name is not type 83 linux, True
             otherwise
     """
     disk_device = device.rstrip('0123456789')
@@ -142,7 +142,7 @@ def get_partition_list(job, min_blocks=0, filter_func=None, exclude_swap=True,
             device will be excluded.
     @param __open: Reserved for unit testing.
 
-    @return: A list of L{partition} objects.
+    :return: A list of L{partition} objects.
     """
     active_swap_devices = set()
     if exclude_swap:
@@ -214,7 +214,7 @@ def filter_partition_list(partitions, devnames):
     @param devnames: A list of devnames of the form '/dev/hdc3' that
                     specifies which partitions to include in the returned list.
 
-    @return: A list of L{partition} objects specified by devnames, in the
+    :return: A list of L{partition} objects specified by devnames, in the
              order devnames specified
     """
 
@@ -242,7 +242,7 @@ def get_unmounted_partition_list(root_part, job=None, min_blocks=0,
             the root_part from the ones checked to be mounted.
     @param job, min_blocks, filter_func, exclude_swap, open_func: Forwarded
             to get_partition_list().
-    @return List of L{partition} objects that are not mounted.
+    :return: List of L{partition} objects that are not mounted.
     """
     partitions = get_partition_list(job=job, min_blocks=min_blocks,
                                     filter_func=filter_func, exclude_swap=exclude_swap, open_func=open_func)
@@ -507,7 +507,7 @@ class partition(object):
                 (default None which means it will search /proc/mounts and/or
                 /etc/mtab)
 
-        @returns a string with the mount point of the partition or None if not
+        :return: a string with the mount point of the partition or None if not
                 mounted
         """
         if filename:
@@ -717,7 +717,7 @@ class partition(object):
         Kill all other jobs accessing this partition. Use fuser and ps to find
         all mounts on this mountpoint and unmount them.
 
-        @return: true for success or false for any errors
+        :return: true for success or false for any errors
         """
 
         logging.debug("Standard umount failed, will try forcing. Users:")
@@ -870,7 +870,7 @@ class virtual_partition:
 
         @param img_path: Path to the desired image file.
         @param size: Size of the desired image in Bytes.
-        @returns: Path of the image created.
+        :return: Path of the image created.
         """
         logging.debug('Creating disk image %s, size = %d Bytes', img_path, size)
         try:
@@ -887,7 +887,7 @@ class virtual_partition:
 
         @param img_path: Path of the image file that will be attached to a
                 loopback device
-        @returns: Path of the loopback device associated.
+        :return: Path of the loopback device associated.
         """
         logging.debug('Attaching image %s to a loop device', img_path)
         try:

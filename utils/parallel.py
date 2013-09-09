@@ -13,7 +13,7 @@ class ParallelError(Exception):
 class ParallelExecute(object):
 
     def __init__(self, functions, max_simultaneous_procs=20):
-        """\
+        """
         This takes in a dictionary of functions which map to a set of
         functions that they depend on.
 

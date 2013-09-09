@@ -1,4 +1,4 @@
-"""\
+"""
 Functions to expose over the RPC interface.
 
 For all modify* and delete* functions that ask for an 'id' parameter to
@@ -80,8 +80,8 @@ def label_remove_hosts(id, hosts):
 
 
 def get_labels(**filter_data):
-    """\
-    @returns A sequence of nested dictionaries of label information.
+    """
+    :return: A sequence of nested dictionaries of label information.
     """
     return rpc_utils.prepare_rows_as_nested_dicts(
         models.Label.query_objects(filter_data),
@@ -270,7 +270,7 @@ def get_num_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
     """
     Same parameters as get_hosts().
 
-    @returns The number of matching hosts.
+    :return: The number of matching hosts.
     """
     hosts = rpc_utils.get_host_query(multiple_labels,
                                      exclude_only_if_needed_labels,
@@ -322,7 +322,7 @@ def get_num_profiles():
     """
     Same parameters as get_profiles().
 
-    @returns The number of defined profiles.
+    :return: The number of defined profiles.
     """
     error_encountered = True
     profiles = get_install_server_profiles()
@@ -520,7 +520,7 @@ def generate_control_file(tests=(), kernel=None, label=None, profilers=(),
             tells the client of the new (local) path when compiling the kernel;
             the tests must be server side tests
 
-    @returns a dict with the following keys:
+    :return: a dict with the following keys:
         control_file: str, The control file text.
         is_server: bool, is the control file a server-side control file?
         synch_count: How many machines the job uses per autoserv execution.
@@ -678,7 +678,7 @@ def create_job(name, priority, control_file, control_type,
 
 
 def abort_host_queue_entries(**filter_data):
-    """\
+    """
     Abort a set of host queue entries.
     """
     query = models.HostQueueEntry.query_objects(filter_data)
@@ -692,10 +692,10 @@ def abort_host_queue_entries(**filter_data):
 
 
 def reverify_hosts(**filter_data):
-    """\
+    """
     Schedules a set of hosts for verify.
 
-    @returns A list of hostnames that a verify task was created for.
+    :return: A list of hostnames that a verify task was created for.
     """
     hosts = models.Host.query_objects(filter_data)
     models.AclGroup.check_for_acl_violation_hosts(hosts)
@@ -706,7 +706,7 @@ def reverify_hosts(**filter_data):
 
 
 def get_jobs(not_yet_run=False, running=False, finished=False, **filter_data):
-    """\
+    """
     Extra filter args for get_jobs:
     -not_yet_run: Include only jobs that have not yet started running.
     -running: Include only jobs that have start running but for which not
@@ -735,7 +735,7 @@ def get_jobs(not_yet_run=False, running=False, finished=False, **filter_data):
 
 def get_num_jobs(not_yet_run=False, running=False, finished=False,
                  **filter_data):
-    """\
+    """
     See get_jobs() for documentation of extra filter parameters.
     """
     filter_data['extra_args'] = rpc_utils.extra_job_filters(not_yet_run,
@@ -745,7 +745,7 @@ def get_num_jobs(not_yet_run=False, running=False, finished=False,
 
 
 def get_jobs_summary(**filter_data):
-    """\
+    """
     Like get_jobs(), but adds a 'status_counts' field, which is a dictionary
     mapping status strings to the number of hosts currently with that
     status, i.e. {'Queued' : 4, 'Running' : 2}.
@@ -759,7 +759,7 @@ def get_jobs_summary(**filter_data):
 
 
 def get_info_for_clone(id, preserve_metahosts, queue_entry_filter_data=None):
-    """\
+    """
     Retrieves all the information needed to clone a job.
     """
     job = models.Job.objects.get(id=id)
@@ -805,8 +805,8 @@ def get_info_for_clone(id, preserve_metahosts, queue_entry_filter_data=None):
 # host queue entries
 
 def get_host_queue_entries(**filter_data):
-    """\
-    @returns A sequence of nested dictionaries of host and job information.
+    """
+    :return: A sequence of nested dictionaries of host and job information.
     """
     return rpc_utils.prepare_rows_as_nested_dicts(
         models.HostQueueEntry.query_objects(filter_data),
@@ -814,7 +814,7 @@ def get_host_queue_entries(**filter_data):
 
 
 def get_num_host_queue_entries(**filter_data):
-    """\
+    """
     Get the number of host queue entries associated with this job.
     """
     return models.HostQueueEntry.query_count(filter_data)
@@ -846,7 +846,7 @@ def get_special_tasks(**filter_data):
 def get_host_queue_entries_and_special_tasks(hostname, query_start=None,
                                              query_limit=None):
     """
-    @returns an interleaved list of HostQueueEntries and SpecialTasks,
+    :return: an interleaved list of HostQueueEntries and SpecialTasks,
             in approximate run order.  each dict contains keys for type, host,
             job, status, started_on, execution_path, and ID.
     """
@@ -904,7 +904,7 @@ def create_recurring_run(job_id, start_date, loop_period, loop_count):
 # other
 
 def echo(data=""):
-    """\
+    """
     Returns a passed in string. For doing a basic test to see if RPC calls
     can successfully be made.
     """
@@ -912,14 +912,14 @@ def echo(data=""):
 
 
 def get_motd():
-    """\
+    """
     Returns the message of the day as a string.
     """
     return rpc_utils.get_motd()
 
 
 def get_static_data():
-    """\
+    """
     Returns a dictionary containing a bunch of data that shouldn't change
     often and is otherwise inaccessible.  This includes:
 

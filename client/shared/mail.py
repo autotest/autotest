@@ -26,7 +26,7 @@ def _process_to_string(to_string):
     Process a string containing email addresses. Separators: ',' ';' ':'
 
     @param to_string: String containing email addresses.
-    @return: List with email addresses.
+    :return: List with email addresses.
     """
     return [x for x in re.split('\s|,|;|:', to_string) if x]
 

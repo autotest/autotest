@@ -22,7 +22,7 @@ def has_pbzip2():
     '''
     Check if parallel bzip2 is available on this system.
 
-    @return: True if pbzip2 is available, False otherwise
+    :return: True if pbzip2 is available, False otherwise
     '''
     try:
         os_dep.command('pbzip2')
@@ -41,7 +41,7 @@ def parse_ssh_path(repo):
 
     @type repo: string
     @param repo: a repo uri like ssh://xx@xx/path/to/
-    @returns: tuple with (host, remote_path)
+    :return: tuple with (host, remote_path)
     '''
     match = re.search('^ssh://([^/]+)(/.*)$', repo)
     if match:
@@ -69,7 +69,7 @@ def repo_run_command(repo, cmd, ignore_status=False, cd=True):
     @type cd: boolean
     @param cd: wether to change the working directory to the repo directory
             before running the specified command.
-    @return: a CmdResult object or None
+    :return: a CmdResult object or None
     @raise CmdError: the exit code of the command execution was not 0
     """
     os_dep.command("ssh")
@@ -102,7 +102,7 @@ def create_directory(repo):
 
     @type repo: string
     @param repo: the repo URL containing the remote directory path
-    @return: a CmdResult object or None
+    :return: a CmdResult object or None
     '''
     remote_path = repo
     if repo.startswith('ssh://'):
@@ -208,7 +208,7 @@ class RepositoryFetcher(object):
         @param fetch_dir: The destination path to be munged
         @type install: boolean
         @param install: Whether this is be called from the install path or not
-        @return: tuple with (name, fetch_dir)
+        :return: tuple with (name, fetch_dir)
         """
         if install:
             fetch_dir = os.path.join(fetch_dir, re.sub("/", "_", name))
@@ -1077,7 +1077,7 @@ class BasePackageManager(object):
         @param name: The name of the package
         @param pkg_type: The type of the package
 
-        @returns A tarball filename for that specific type of package
+        :return: A tarball filename for that specific type of package
         """
         assert '-' not in pkg_type
         return '%s-%s.tar.bz2' % (pkg_type, name)
@@ -1088,7 +1088,7 @@ class BasePackageManager(object):
 
         @param tarball_name: The filename of the tarball
 
-        @returns (name, pkg_type) where name is the package name and pkg_type
+        :return: (name, pkg_type) where name is the package name and pkg_type
             is the package type.
         """
         match = re.search(r'^([^-]*)-(.*)\.tar\.bz2$', tarball_name)

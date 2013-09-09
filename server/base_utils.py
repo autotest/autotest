@@ -312,7 +312,7 @@ def get_sync_control_file(control, host_name, host_num,
     @param port_base: Port number that is used to derive the actual barrier
             ports.
 
-    @returns The modified control file.
+    :return: The modified control file.
     """
     sc_bar_port = port_base
     c_bar_port = port_base

@@ -72,7 +72,7 @@ class JobSerializer(object):
         @param
         infile: the name of the binary file that will be deserialized.
 
-        @return a tko job that is represented by the binary file will
+        :return: a tko job that is represented by the binary file will
         be returned.
         """
 
@@ -104,7 +104,7 @@ class JobSerializer(object):
         tag: contains the job name and the afe_job_id
         binaryfilename: the name of the file that will be written to
 
-        @return the filename of the file that contains the
+        :return: the filename of the file that contains the
         binary of the serialized object.
         """
 
@@ -138,7 +138,7 @@ class JobSerializer(object):
         @param
         job: a pb job where data is being extracted from.
 
-        @return a tko job object.
+        :return: a tko job object.
         """
 
         fields_dict = self.get_trivial_attr(job, self.job_type_dict)
@@ -200,7 +200,7 @@ class JobSerializer(object):
         @param:
         test: a pb_test where fields will be extracted from.
 
-        @return a new instance of models.test
+        :return: a new instance of models.test
         """
         fields_dict = self.get_trivial_attr(test, self.test_type_dict)
 
@@ -264,7 +264,7 @@ class JobSerializer(object):
         @param
         kernel: a pb kernel object where data will be extracted.
 
-        @return a new tko kernel object.
+        :return: a new tko kernel object.
         """
 
         fields_dict = self.get_trivial_attr(kernel, self.kernel_type_dict)
@@ -296,7 +296,7 @@ class JobSerializer(object):
         @param
         iteration: a pb iteration instance
 
-        @return a tko iteration instance with the same data.
+        :return: a tko iteration instance with the same data.
         """
 
         fields_dict = self.get_trivial_attr(iteration,
@@ -348,7 +348,7 @@ class JobSerializer(object):
         obj: the pb object that is being extracted.
         objdict: the dict that specifies the type.
 
-        @return a dict of each attr name and it's corresponding value.
+        :return: a dict of each attr name and it's corresponding value.
         """
 
         resultdict = {}

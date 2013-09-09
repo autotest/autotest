@@ -1028,7 +1028,7 @@ class test_status_logger(unittest.TestCase):
             of a nested group.
         @param subdir: An optional value to use for the entry subdir field.
 
-        @return: A dummy status log entry object with the given subdir field
+        :return: A dummy status log entry object with the given subdir field
             and a render implementation that returns rendered_text.
         """
         assert not start or not end  # real entries would never be both

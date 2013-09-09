@@ -85,7 +85,7 @@ def parse_results_dir(results_dir, relative_links=True):
     Parse a top level status file and produce a dictionary with job data.
 
     @param dirname: Autotest results directory path
-    @return: Dictionary with job data.
+    :return: Dictionary with job data.
     """
     job_data = {}
     op_data = {}

@@ -51,7 +51,7 @@ class CobblerInterface(object):
 
         @param host: Host name
 
-        @return: Tuple (system, system_handle)
+        :return: Tuple (system, system_handle)
         """
         try:
             system = self.server.find_system({"name": host.hostname})[0]

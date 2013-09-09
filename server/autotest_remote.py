@@ -99,7 +99,7 @@ class BaseAutotest(installable_object.InstallableObject):
     def get_installed_autodir(cls, host):
         """
         Find where the Autotest client is installed on the host.
-        @returns an absolute path to an installed Autotest client root.
+        :return: an absolute path to an installed Autotest client root.
         @raises AutodirNotFoundError if no Autotest installation can be found.
         """
         autodir = host.get_autodir()
@@ -632,7 +632,7 @@ class _BaseRun(object):
     def get_client_log(self):
         """Find what the "next" client.* prefix should be
 
-        @returns A string of the form client.INTEGER that should be prefixed
+        :return: A string of the form client.INTEGER that should be prefixed
             to all client debug log files.
         """
         max_digit = -1
@@ -664,7 +664,7 @@ class _BaseRun(object):
 
         @param client_log_prefix: Optional prefix to prepend to log files.
 
-        @return: Path of the temporary file generated.
+        :return: Path of the temporary file generated.
         """
         config = settings.get_section_values(('CLIENT', 'COMMON'))
         if client_log_prefix:
@@ -680,7 +680,7 @@ class _BaseRun(object):
         @param func: Function that will be used to write content to the
                 temporary file.
         @param *args: List of parameters that func takes.
-        @return: Path to the temporary file that was created.
+        :return: Path to the temporary file that was created.
         """
         fd, path = tempfile.mkstemp(dir=self.host.job.tmpdir)
         aux_file = os.fdopen(fd, "w")
@@ -1210,7 +1210,7 @@ class AutotestHostMixin(object):
         @param test_name: The name of the client test.
         @param dargs: Keyword arguments to pass to the test.
 
-        @returns: True if the test passes, False otherwise."""
+        :return: True if the test passes, False otherwise."""
         at = self._Autotest()
         control_file = ('result = job.run_test(%s)\n'
                         'job.set_state("test_result", result)\n')

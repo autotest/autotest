@@ -46,7 +46,7 @@ def get_user_name_id(user):
     @param user: integer or string containing either the uid #
         or a string username
 
-    @returns a tuple of the user name, user id
+    :return: a tuple of the user name, user id
     """
     if re.match('\d+', str(user)):
         pass_info = pwd.getpwuid(user)
@@ -63,7 +63,7 @@ def get_group_name_id(group):
     @param group: integer or string containing either the uid #
         or a string username
 
-    @returns a tuple of group name, group id
+    :return: a tuple of group name, group id
     """
     if re.match('\d+', str(group)):
         group_info = grp.getgrgid(group)

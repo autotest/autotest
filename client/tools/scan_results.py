@@ -11,7 +11,7 @@ def parse_results(text):
     """
     Parse text containing Autotest results.
 
-    @return: A list of result 4-tuples.
+    :return: A list of result 4-tuples.
     """
     result_list = []
     start_time_list = []

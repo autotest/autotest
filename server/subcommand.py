@@ -79,7 +79,7 @@ def parallel_simple(function, arglist, log=True, timeout=None,
             on any error a list of the results|exceptions from the function
             called on each arg is returned.  [default: False]
 
-    @returns None or a list of results/exceptions.
+    :return: None or a list of results/exceptions.
     """
     if not arglist:
         logging.warn('parallel_simple was called with an empty arglist, '

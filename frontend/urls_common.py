@@ -9,7 +9,7 @@ def generate_patterns(django_name, gwt_name):
     @param django_name the full name of the Django application
                        (e.g., frontend.afe)
     @param gwt_name the name of the GWT project (e.g., AfeClient)
-    @return the common standard and the debug pattern lists, as a tuple
+    :return: the common standard and the debug pattern lists, as a tuple
     """
 
     pattern_list = defaults.patterns(

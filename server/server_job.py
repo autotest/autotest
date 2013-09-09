@@ -444,7 +444,7 @@ class base_server_job(base_job.base_job):
         @param machines: A list of machines to call function(machine) on.
         @param timeout: Seconds after which the function call should timeout.
 
-        @returns A list of machines on which function(machine) returned
+        :return: A list of machines on which function(machine) returned
                 without raising an exception.
         """
         results = self.parallel_simple(function, machines, timeout=timeout,
@@ -606,7 +606,7 @@ class base_server_job(base_job.base_job):
             return True
 
     def _run_group(self, name, subdir, function, *args, **dargs):
-        """\
+        """
         Underlying method for running something inside of a group.
         """
         result, exc_info = None, None
@@ -627,7 +627,7 @@ class base_server_job(base_job.base_job):
         return result, exc_info
 
     def run_group(self, function, *args, **dargs):
-        """\
+        """
         function:
                 subroutine to run
         *args:
@@ -644,7 +644,7 @@ class base_server_job(base_job.base_job):
         return self._run_group(name, None, function, *args, **dargs)[0]
 
     def run_reboot(self, reboot_func, get_kernel_func):
-        """\
+        """
         A specialization of run_group meant specifically for handling
         a reboot. Includes support for capturing the kernel version
         after the reboot.
@@ -748,7 +748,7 @@ class base_server_job(base_job.base_job):
         client) can fail catastrophically and the server job record state
         needs to be reset to its original "known good" state.
 
-        @return: A context object with a 0-arg restore() method."""
+        :return: A context object with a 0-arg restore() method."""
         return self._indenter.get_context()
 
     def record_summary(self, status_code, test_name, reason='', attributes=None,
@@ -812,7 +812,7 @@ class base_server_job(base_job.base_job):
         @param subdir - Optional parameter indicating that you want the path
             to a subdirectory status log.
 
-        @returns The path where the status log should be.
+        :return: The path where the status log should be.
         """
         if self.resultdir:
             if subdir:
@@ -869,7 +869,7 @@ class base_server_job(base_job.base_job):
     def get_client_logs(self):
         """Retrieves the list of uncollected logs, if it exists.
 
-        @returns A list of (host, remote_path, local_path) tuples. Returns
+        :return: A list of (host, remote_path, local_path) tuples. Returns
                  an empty list if no uncollected logs file exists.
         """
         log_exists = (self._uncollected_log_file and
@@ -1027,7 +1027,7 @@ class base_server_job(base_job.base_job):
         Creates a new client state file with all the current server state, as
         well as some pre-set client state.
 
-        @returns The path of the file the state was written into.
+        :return: The path of the file the state was written into.
         """
         # initialize the sysinfo state
         self._state.set('client', 'sysinfo', self.sysinfo.serialize())

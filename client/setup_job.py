@@ -47,7 +47,7 @@ def init_test(options, testdir):
     @param options Command line options passed in to instantiate a setup_job
                    which associates with this test.
     @param testdir The test directory.
-    @returns A test object or None if failed to instantiate.
+    :return: A test object or None if failed to instantiate.
     """
 
     locals_dict = locals().copy()
@@ -100,7 +100,7 @@ def load_all_client_tests(options):
     @param options: an object passed in from command line OptionParser.
                     See all options defined on client/autotest.
 
-    @return a tuple containing the list of all instantiated tests and
+    :return: a tuple containing the list of all instantiated tests and
             a list of tests that failed to instantiate.
     """
 
@@ -124,7 +124,7 @@ def setup_test(client_test):
     """
     Direct invoke test.setup() method.
 
-    @returns A boolean to represent success or not.
+    :return: A boolean to represent success or not.
     """
 
     # TODO: check if its already build. .version? hash?

@@ -134,7 +134,7 @@ class job_directory(object):
             exposed as. '_'+attribute must then be attribute that holds
             either None or a job_directory-like object.
 
-        @returns A read-only property object that exposes a job_directory path
+        :return: A read-only property object that exposes a job_directory path
         """
         @property
         def dir_property(self):
@@ -338,7 +338,7 @@ class job_state(object):
         @param default: A default value to return if no state is currently
             associated with var.
 
-        @return: A deep copy of the value associated with name. Note that this
+        :return: A deep copy of the value associated with name. Note that this
             explicitly returns a deep copy to avoid problems with mutable
             values; mutations are not persisted or shared.
         @raise KeyError: raised when no state is associated with var and a
@@ -371,7 +371,7 @@ class job_state(object):
         @param namespace: The namespace to check for a definition.
         @param name: The name to check for a definition.
 
-        @return: True if the given name is defined in the given namespace and
+        :return: True if the given name is defined in the given namespace and
             False otherwise.
         """
         return namespace in self._state and name in self._state[namespace]
@@ -417,7 +417,7 @@ class job_state(object):
             if it is not set.
         @param namespace: The namespace to store the attribute value in.
 
-        @return: A read-write property object that performs self.get calls
+        :return: A read-write property object that performs self.get calls
             to read the value and self.set calls to set it.
         """
         def getter(job):
@@ -501,21 +501,21 @@ class status_log_entry(object):
     def is_start(self):
         """Indicates if this status log is the start of a new nested block.
 
-        @return: A boolean indicating if this entry starts a new nested block.
+        :return: A boolean indicating if this entry starts a new nested block.
         """
         return self.status_code == 'START'
 
     def is_end(self):
         """Indicates if this status log is the end of a nested block.
 
-        @return: A boolean indicating if this entry ends a nested block.
+        :return: A boolean indicating if this entry ends a nested block.
         """
         return self.status_code.startswith('END ')
 
     def render(self):
         """Render the status log entry into a text string.
 
-        @return: A text string suitable for writing into a status log file.
+        :return: A text string suitable for writing into a status log file.
         """
         # combine all the log line data into a tab-delimited string
         subdir = self.subdir or self.RENDERED_NONE_VALUE
@@ -538,7 +538,7 @@ class status_log_entry(object):
         parse(entry.render()) produces a new status_log_entry equivalent to
         entry.
 
-        @return: A new status_log_entry instance with fields extracted from the
+        :return: A new status_log_entry instance with fields extracted from the
             given status line. If the line is an extra message line then None
             is returned.
         """
@@ -624,7 +624,7 @@ class status_logger(object):
 
         @param log_entry: A status_log_entry instance to be rendered.
 
-        @return: The status log entry, rendered as it would be written to the
+        :return: The status log entry, rendered as it would be written to the
             logs (including indentation).
         """
         if log_entry.is_end():
@@ -1107,7 +1107,7 @@ class base_job(object):
         @param default: A default value to return if no state is currently
             associated with var.
 
-        @return: A deep copy of the value associated with name. Note that this
+        :return: A deep copy of the value associated with name. Note that this
             explicitly returns a deep copy to avoid problems with mutable
             values; mutations are not persisted or shared.
         @raise KeyError: raised when no state is associated with var and a
@@ -1133,7 +1133,7 @@ class base_job(object):
         @param dargs: The ** arguments passed to run_test. And arguments
             consumed by this method will be removed from the dictionary.
 
-        @return: A 3-tuple of the full name of the test, the subdirectory it
+        :return: A 3-tuple of the full name of the test, the subdirectory it
             should be stored in, and the full tag of the subdir.
         """
         tag_parts = []
@@ -1166,7 +1166,7 @@ class base_job(object):
         @param subdir: The subdirectory of the test. Generally computed by
             _build_tagged_test_name.
 
-        @return: A job_directory instance corresponding to the outputdir of
+        :return: A job_directory instance corresponding to the outputdir of
             the test.
         @raise TestError: If the output directory is invalid.
         """

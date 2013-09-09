@@ -31,7 +31,7 @@ def drop_redundant_messages(messages):
 
     @param messages - a set of message strings
 
-    @return - a subset of messages with unnecessary strings dropped
+    :return: - a subset of messages with unnecessary strings dropped
     """
     sorted_messages = sorted(messages, key=len, reverse=True)
     filtered_messages = set()
@@ -50,7 +50,7 @@ def get_afe_job_id(tag):
     @param
     tag: afe_job_id is extracted from this tag
 
-    @return
+    :return:
     returns the afe_job_id if regex matches, else return ''
     """
 

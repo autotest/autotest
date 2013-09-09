@@ -74,28 +74,28 @@ class Resource(object):
     def get(self):
         """Handle a GET request.
 
-        @returns an HttpResponse
+        :return: an HttpResponse
         """
         raise NotImplementedError
 
     def post(self):
         """Handle a POST request.
 
-        @returns an HttpResponse
+        :return: an HttpResponse
         """
         raise NotImplementedError
 
     def put(self):
         """Handle a PUT request.
 
-        @returns an HttpResponse
+        :return: an HttpResponse
         """
         raise NotImplementedError
 
     def delete(self):
         """Handle a DELETE request.
 
-        @returns an HttpResponse
+        :return: an HttpResponse
         """
         raise NotImplementedError
 

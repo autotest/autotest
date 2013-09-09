@@ -653,7 +653,7 @@ class FileFieldMonitor(object):
 
     def get_status(self):
         """
-        @return: Status of monitored process average value,
+        :return: Status of monitored process average value,
             time of test and array of monitored values and time step of
             continuous run.
         """
@@ -857,7 +857,7 @@ def run(command, timeout=None, ignore_status=False,
             element in the sequence will be given as a separate command
             argument
 
-    @return a CmdResult object
+    :return: a CmdResult object
 
     @raise CmdError: the exit code of the command execution was not 0
     """
@@ -890,7 +890,7 @@ def run_parallel(commands, timeout=None, ignore_status=False,
     - ignore_status toggles whether or not an exception should be raised
       on any error.
 
-    @return: a list of CmdResult objects
+    :return: a list of CmdResult objects
     """
     bg_jobs = []
     for command in commands:
@@ -1185,7 +1185,7 @@ def system(command, timeout=None, ignore_status=False, verbose=True):
             if ignore_status=True, return the exit code.
     @param verbose: if True, log the command being run.
 
-    @return exit status of command
+    :return: exit status of command
             (note, this will always be zero unless ignore_status=True)
     """
     return run(command, timeout=timeout, ignore_status=ignore_status,
@@ -1220,7 +1220,7 @@ def system_output(command, timeout=None, ignore_status=False,
             argument
     @param verbose: if True, log the command being run.
 
-    @return a string with the stdout output of the command.
+    :return: a string with the stdout output of the command.
     """
     if retain_output:
         out = run(command, timeout=timeout, ignore_status=ignore_status,
@@ -1310,7 +1310,7 @@ def etraceback(prep, exc_info):
     Enhanced Traceback formats traceback into lines "prep: line\nname: line"
     @param prep: desired line preposition
     @param exc_info: sys.exc_info of the exception
-    @return: string which contains beautifully formatted exception
+    :return: string which contains beautifully formatted exception
     """
     out = ""
     for line in traceback.format_exception(exc_info[0], exc_info[1],
@@ -1493,7 +1493,7 @@ class SystemLoad(object):
         Get the status of monitoring.
         @param pids: List of PIDs you intend to control. Use pids=[] to control
             all defined PIDs.
-         @return:
+         :return:
             tuple([cpu load], [memory load]):
                 ([(PID1, (PID1_cpu_meas)), (PID2, (PID2_cpu_meas)), ...],
                  [(PID1, (PID1_mem_meas)), (PID2, (PID2_mem_meas)), ...])
@@ -1526,7 +1526,7 @@ class SystemLoad(object):
         Convert status to string array.
         @param pids: List of PIDs you intend to control. Use pids=[] to control
             all defined PIDs.
-        @return: String format to table.
+        :return: String format to table.
         """
         if pids == []:
             pids = self.pids
@@ -1562,7 +1562,7 @@ class SystemLoad(object):
         Convert status to string array.
         @param pids: List of PIDs you intend to control. Use pids=[] to control
             all defined PIDs.
-        @return: String format to table.
+        :return: String format to table.
         """
         if pids == []:
             pids = self.pids
@@ -1732,7 +1732,7 @@ def import_site_module(path, module, dummy=None, modulefile=None):
     @param dummy dummy value to return in case there is no symbol to import
     @param modulefile module filename
 
-    @return site specific module or dummy
+    :return: site specific module or dummy
 
     @raises ImportError if the site file exists but imports fails
     """
@@ -1756,7 +1756,7 @@ def import_site_symbol(path, module, name, dummy=None, modulefile=None):
     @param dummy dummy value to return in case there is no symbol to import
     @param modulefile module filename
 
-    @return site specific symbol or dummy
+    :return: site specific symbol or dummy
 
     @raises ImportError if the site file exists but imports fails
     """
@@ -1875,7 +1875,7 @@ def get_pid_from_file(program_name, pid_files_dir=None):
     Reads the pid from <program_name>.pid in the autotest directory.
 
     @param program_name the name of the program
-    @return the pid if the file exists, None otherwise.
+    :return: the pid if the file exists, None otherwise.
     """
     pidfile_path = get_pid_path(program_name, pid_files_dir)
     if not os.path.exists(pidfile_path):
@@ -1909,7 +1909,7 @@ def program_is_alive(program_name, pid_files_dir=None):
     Checks if the process is alive and not in Zombie state.
 
     @param program_name the name of the program
-    @return True if still alive, False otherwise
+    :return: True if still alive, False otherwise
     """
     pid = get_pid_from_file(program_name, pid_files_dir)
     if pid is None:
@@ -2126,7 +2126,7 @@ def display_data_size(size):
 
     @type size: int
     @param size: Data size, in Bytes.
-    @return: Human readable string with data size.
+    :return: Human readable string with data size.
     '''
     prefixes = ['B', 'kB', 'MB', 'GB', 'TB']
     i = 0
@@ -2153,7 +2153,7 @@ def convert_data_size(size, default_sufix='B'):
 
     @param size: Human readable data size representation (string).
     @param default_sufix: Default sufix used to represent data.
-    @return: Int with data size in the appropriate order of magnitude.
+    :return: Int with data size in the appropriate order of magnitude.
     '''
     orders = {'B': 1,
               'K': 1024,
@@ -2227,7 +2227,7 @@ def generate_random_string(length, ignore_str=string.punctuation,
     @param ignore_str: Characters that will not include in generated string.
     @param convert_str: Characters that need to be escaped (prepend "\\").
 
-    @return: The generated random string.
+    :return: The generated random string.
     """
     r = random.SystemRandom()
     str = ""
@@ -2484,7 +2484,7 @@ class VersionableClass(object):
         Get version of installed OpenVSwtich.
         Must be re-implemented for in child class.
 
-        @return: Version or None when get_version is unsuccessful.
+        :return: Version or None when get_version is unsuccessful.
         """
         raise NotImplementedError("Method 'get_verison' must be"
                                   " implemented in child class")

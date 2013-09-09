@@ -37,7 +37,7 @@ def init_test(testdir):
     Instantiate a client test object from a given test directory.
 
     @param testdir The test directory.
-    @returns A test object or None if failed to instantiate.
+    :return: A test object or None if failed to instantiate.
     """
 
     class options:

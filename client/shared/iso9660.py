@@ -237,7 +237,7 @@ def iso9660(path):
 
     @param path: path to an iso9660 image file
     @type path: string
-    @return: an instance or None
+    :return: an instance or None
     '''
     IMPLEMENTATIONS = [('isoinfo', has_isoinfo, Iso9660IsoInfo),
                        ('iso-read', has_isoread, Iso9660IsoRead),

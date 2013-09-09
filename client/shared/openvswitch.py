@@ -22,7 +22,7 @@ class ServiceManagerInterface(VersionableClass):
     def get_version(cls):
         """
         Get version of ServiceManager.
-        @return: Version of ServiceManager.
+        :return: Version of ServiceManager.
         """
         return open("/proc/1/comm", "r").read().strip()
 
@@ -158,7 +158,7 @@ class OpenVSwitchControl(object):
         """
         Get version of installed OpenVSwtich.
 
-        @return: Version of OpenVSwtich.
+        :return: Version of OpenVSwtich.
         """
         version = None
         try:
@@ -342,7 +342,7 @@ class OpenVSwitchControlCli_140(OpenVSwitchControlCli, VersionableClass):
         Return bridge which contain port.
 
         @param port_name: Name of port.
-        @return: Bridge name or None if there is no bridge which contain port.
+        :return: Bridge name or None if there is no bridge which contain port.
         """
         bridge = None
         try:
@@ -386,7 +386,7 @@ class OpenVSwitchSystem(OpenVSwitchControlCli, OpenVSwitchControlDB):
         """
         Check if OpenVSwitch is already installed in system on default places.
 
-        @return: Version of OpenVSwtich.
+        :return: Version of OpenVSwtich.
         """
         if self.get_version():
             return True

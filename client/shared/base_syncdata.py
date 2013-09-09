@@ -33,7 +33,7 @@ def net_recv_object(sock, timeout=60):
 
     @param ip_addr: ipaddres of waiter for data.
     @param obj: object to send
-    @return: object from network
+    :return: object from network
     """
     try:
         endtime = time.time() + timeout

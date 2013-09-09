@@ -1,4 +1,4 @@
-"""\
+"""
 Utility functions for rpc_interface.py.  We keep them in a separate file so that
 only RPC interface functions go into that file.
 """
@@ -36,7 +36,7 @@ def prepare_rows_as_nested_dicts(query, nested_dict_column_names):
             rows returned by query to expand into nested dictionaries using
             their get_object_dict() method when not None.
 
-    @returns An list suitable to returned in an RPC.
+    :return: An list suitable to returned in an RPC.
     """
     all_dicts = []
     for row in query.select_related():
@@ -78,7 +78,7 @@ def raw_http_response(response_data, content_type=None):
 
 
 def gather_unique_dicts(dict_iterable):
-    """\
+    """
     Pick out unique objects (by ID) from an iterable of object dicts.
     """
     id_set = set()
@@ -91,7 +91,7 @@ def gather_unique_dicts(dict_iterable):
 
 
 def extra_job_filters(not_yet_run=False, running=False, finished=False):
-    """\
+    """
     Generate a SQL WHERE clause for job status filtering, and return it in
     a dict of keyword args to pass to query.extra().  No more than one of
     the parameters should be passed as True.
@@ -122,7 +122,7 @@ def extra_job_filters(not_yet_run=False, running=False, finished=False):
 
 
 def extra_host_filters(multiple_labels=()):
-    """\
+    """
     Generate SQL WHERE clauses for matching hosts in an intersection of
     labels.
     """
@@ -546,7 +546,7 @@ def find_platform_and_atomic_group(host):
     Figure out the platform name and atomic group name for the given host
     object.  If none, the return value for either will be None.
 
-    @returns (platform name, atomic group name) for the given host.
+    :return: (platform name, atomic group name) for the given host.
     """
     platforms = [label.name for label in host.label_list if label.platform]
     if not platforms:

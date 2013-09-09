@@ -16,7 +16,7 @@ NUM_MIGRATIONS = 3
 
 class DummyMigration(object):
 
-    """\
+    """
     Dummy migration class that records all migrations done in a class
     varaible.
     """

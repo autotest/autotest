@@ -347,7 +347,7 @@ def get_tests_from_fs(parent_dir, control_pattern, add_noncompliant=False):
     @param control_pattern: name format of control file.
     @param add_noncompliant: ignore control file parse errors.
 
-    @return dictionary of the form: tests[file_path] = parsed_object
+    :return: dictionary of the form: tests[file_path] = parsed_object
     """
     tests = {}
     profilers = False
@@ -385,7 +385,7 @@ def recursive_walk(path, wildcard):
     @param path: base directory to start search.
     @param wildcard: name format to match.
 
-    @return A list of files that match wildcard
+    :return: A list of files that match wildcard
     """
     files = []
     directories = [path]
@@ -427,7 +427,7 @@ def _create_whitelist_set(whitelist_path):
 
     @param whitelist_path: full path to the whitelist file.
 
-    @return set with files listed one/line - newlines included.
+    :return: set with files listed one/line - newlines included.
     """
     f = open(whitelist_path, 'r')
     whitelist_set = set([line.strip() for line in f])

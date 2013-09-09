@@ -104,7 +104,7 @@ class GitRepoHelper(object):
         '''
         Returns the topmost commit id for the current branch.
 
-        @return: Commit id.
+        :return: Commit id.
         '''
         return self.git_cmd('log --pretty=format:%H -1').stdout.strip()
 
@@ -112,7 +112,7 @@ class GitRepoHelper(object):
         '''
         Returns the topmost tag for the current branch.
 
-        @return: Tag.
+        :return: Tag.
         '''
         try:
             return self.git_cmd('describe').stdout.strip()

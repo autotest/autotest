@@ -15,7 +15,7 @@ class test(common_test.base_test):
     host_parameter = None
 
 
-_sysinfo_before_test_script = """\
+_sysinfo_before_test_script = """
 import pickle
 from autotest.client import test
 mytest = test.test(job, '', %r)
@@ -25,7 +25,7 @@ pickle.dump(job.sysinfo, open(sysinfo_pickle, 'w'))
 job.record('GOOD', '', 'sysinfo.before')
 """
 
-_sysinfo_after_test_script = """\
+_sysinfo_after_test_script = """
 import pickle
 from autotest.client import test
 mytest = test.test(job, '', %r)
@@ -41,7 +41,7 @@ job.record('GOOD', '', 'sysinfo.after')
 # _sysinfo_after_test_script which means the pickle file exists
 # already and should be dumped with updated state for
 # _sysinfo_after_test_script to pick it up later
-_sysinfo_iteration_script = """\
+_sysinfo_iteration_script = """
 import pickle
 from autotest.client import test
 mytest = test.test(job, '', %r)

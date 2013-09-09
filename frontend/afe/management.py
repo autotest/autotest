@@ -6,7 +6,7 @@ BASIC_ADMIN = 'Basic admin'
 
 
 def create_admin_group(app, **kwargs):
-    """\
+    """
     Create a basic admin group with permissions for managing basic autotest
     objects.
     """

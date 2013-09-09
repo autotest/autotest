@@ -33,7 +33,7 @@ def _str_to_num(n):
     Convert a hex or octal string to a decimal number.
 
     @param n: Hex or octal string to be converted.
-    @return: Resulting decimal number.
+    :return: Resulting decimal number.
     """
     val = 0
     col = long(1)
@@ -105,7 +105,7 @@ class MagicTest(object):
         Compare data read from file with self.value if operator is '='.
 
         @param data: Data read from the file.
-        @return: None if no match between data and expected value string. Else,
+        :return: None if no match between data and expected value string. Else,
                 print matching mime type information.
         """
         if self.mask:
@@ -1031,7 +1031,7 @@ def guess_type(filename):
     Guess the mimetype of a file based on its filename.
 
     @param filename: File name.
-    @return: Mimetype string or description, when appropriate mime not
+    :return: Mimetype string or description, when appropriate mime not
             available.
     """
     if not os.path.isfile(filename):

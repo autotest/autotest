@@ -17,7 +17,7 @@ def authorization_headers(username, server):
     Ask the user for their password, rather than assuming they don't
     need one.
 
-    @returns A dictionary of authorization headers to pass in to get_proxy().
+    :return: A dictionary of authorization headers to pass in to get_proxy().
     """
     if not username:
         if 'AUTOTEST_USER' in os.environ:

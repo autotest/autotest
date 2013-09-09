@@ -25,7 +25,7 @@ def _base_authorization_headers(username, server):
     Don't call this directly, call authorization_headers().
     This implementation may be overridden by site code.
 
-    @returns A dictionary of authorization headers to pass in to get_proxy().
+    :return: A dictionary of authorization headers to pass in to get_proxy().
     """
     if not username:
         if 'AUTOTEST_USER' in os.environ:

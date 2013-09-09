@@ -418,7 +418,7 @@ class AbstractSSHHost(SiteHost):
         """
         Check if the remote host is up.
 
-        @returns True if the remote host is up, False otherwise
+        :return: True if the remote host is up, False otherwise
         """
         try:
             self.ssh_ping()
@@ -437,7 +437,7 @@ class AbstractSSHHost(SiteHost):
         @param timeout time limit in seconds before returning even
             if the host is not up.
 
-        @returns True if the host was found to be up, False otherwise
+        :return: True if the host was found to be up, False otherwise
         """
         if timeout:
             end_time = time.time() + timeout
@@ -477,7 +477,7 @@ class AbstractSSHHost(SiteHost):
             prior to the host being told to shut down. Can be None if this is
             not available.
 
-        @returns True if the host was found to be down, False otherwise
+        :return: True if the host was found to be down, False otherwise
         """
         # TODO: there is currently no way to distinguish between knowing
         # TODO: boot_id was unsupported and not knowing the boot_id.

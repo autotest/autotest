@@ -703,7 +703,7 @@ class TestParameter(dbmodels.Model):
 
 class Profiler(dbmodels.Model, model_logic.ModelExtensions):
 
-    """\
+    """
     Required:
     name: profiler name
     test_type: Client or Server
@@ -1010,7 +1010,7 @@ class JobManager(model_logic.ExtendedManager):
     'Custom manager to provide efficient status counts querying.'
 
     def get_status_counts(self, job_ids):
-        """\
+        """
         Returns a dictionary mapping the given job IDs to their status
         count dictionaries.
         """
@@ -1426,7 +1426,7 @@ class AbortedHostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
 
 class RecurringRun(dbmodels.Model, model_logic.ModelExtensions):
 
-    """\
+    """
     job: job to use as a template
     owner: owner of the instantiated template
     start_date: Run the job at scheduled date
@@ -1453,7 +1453,7 @@ class RecurringRun(dbmodels.Model, model_logic.ModelExtensions):
 
 class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
 
-    """\
+    """
     Tasks to run on hosts at the next time they are in the Ready state. Use this
     for high-priority tasks, such as forced repair or forced reinstall.
 

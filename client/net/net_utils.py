@@ -34,7 +34,7 @@ class network_utils(object):
 
         @param query_ip: IP of client which wants to communicate with
                 autotest machine.
-        @return: IP address which can communicate with query_ip
+        :return: IP address which can communicate with query_ip
         """
         ip = utils.system_output("ip addr show to %s/%s" % (query_ip, netmask))
         ip = re.search(r"inet ([0-9.]*)/", ip)

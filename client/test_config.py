@@ -153,7 +153,7 @@ class config_loader:
         Verify if the ip address is valid
 
         @param ip String: IP Address
-        @return True if a valid IP Address or False
+        :return: True if a valid IP Address or False
         """
         octet1 = "([1-9][0-9]{,1}|1[0-9]{2}|2[0-4][0-9]|25[0-5])"
         octet = "([0-9]{1,2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])"

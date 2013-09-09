@@ -577,7 +577,7 @@ class Subtest(object):
     @classmethod
     def has_failed(cls):
         """
-        @return: If any of subtest not pass return True.
+        :return: If any of subtest not pass return True.
         """
         if cls.failed > 0:
             return True
@@ -587,7 +587,7 @@ class Subtest(object):
     @classmethod
     def get_result(cls):
         """
-        @return: Result of subtests.
+        :return: Result of subtests.
            Format:
              tuple(pass/fail,function_name,call_arguments)
         """
@@ -650,7 +650,7 @@ class Subtest(object):
     @classmethod
     def get_full_text_result(cls, format_func=None):
         """
-        @return string with text form of result
+        :return: string with text form of result
         """
         if format_func is None:
             format_func = cls.result_to_string_debug
@@ -659,7 +659,7 @@ class Subtest(object):
     @classmethod
     def get_text_result(cls, format_func=None):
         """
-        @return string with text form of result
+        :return: string with text form of result
         """
         if format_func is None:
             format_func = cls.result_to_string
@@ -691,7 +691,7 @@ def _get_nonstar_args(func):
 
     @param func: A callable that we want to chose arguments for.
 
-    @return: A tuple of parameters accepted by the function.
+    :return: A tuple of parameters accepted by the function.
     """
     return func.func_code.co_varnames[:func.func_code.co_argcount]
 

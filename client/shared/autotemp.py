@@ -29,7 +29,7 @@ class tempfile(object):
                       part of code created the tempfile.
     @var name: The name of the temporary file.
     @var fd:  the file descriptor of the temporary file that was created.
-    @return a tempfile object
+    :return: a tempfile object
     example usage:
         t = autotemp.tempfile(unique_id='fig')
         t.name # name of file
@@ -78,7 +78,7 @@ class tempdir(object):
     A wrapper for tempfile.mkdtemp
 
     @var name: The name of the temporary dir.
-    @return A tempdir object
+    :return: A tempdir object
     example usage:
         b = autotemp.tempdir(unique_id='exemdir')
         b.name # your directory

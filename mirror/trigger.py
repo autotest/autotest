@@ -131,7 +131,7 @@ class map_action(base_action):
 
         @param version: kernel version string to encode
 
-        @return processed kernel version string that can be compared using
+        :return: processed kernel version string that can be compared using
                 lexicographic comparison
         """
         # if it's not a "rc" release, add a -rc99 so it orders at the end of
@@ -159,7 +159,7 @@ class map_action(base_action):
 
         @param a, b: kernel version strings to compare
 
-        @return True if 'a' is less than 'b' or False otherwise
+        :return: True if 'a' is less than 'b' or False otherwise
         """
         a, b = cls._kver_encode(a), cls._kver_encode(b)
         return cmp(a, b)
@@ -191,7 +191,7 @@ class map_action(base_action):
         @param kernel_config: A str filename to the kernel config on the
                 client
 
-        @returns a dict representing a control file as described by
+        :return: a dict representing a control file as described by
                 frontend.afe.rpc_interface.generate_control_file
         """
         kernel_info = dict(version=kernel,

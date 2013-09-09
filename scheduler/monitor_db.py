@@ -82,7 +82,7 @@ _parser_path = _parser_path_func(drones.AUTOTEST_INSTALL_DIR)
 
 
 def _get_pidfile_timeout_secs():
-    """@returns How long to wait for autoserv to write pidfile."""
+    """:return: How long to wait for autoserv to write pidfile."""
     pidfile_timeout_mins = settings.get_value(scheduler_config.CONFIG_SECTION,
                                               'pidfile_timeout_mins', type=int)
     return pidfile_timeout_mins * 60
@@ -113,7 +113,7 @@ def _autoserv_command_line(machines, profiles, extra_args, job=None,
     @type verbose: boolean
     @param verbose: Add the '--verbose' argument to the autoserv command line
 
-    @returns: The autoserv command line as a list of executable + parameters.
+    :return: The autoserv command line as a list of executable + parameters.
     """
     autoserv_argv = [_autoserv_path, '-p',
                      '-r', drone_manager.WORKING_DIRECTORY]
@@ -447,7 +447,7 @@ class Dispatcher(object):
         Construct an AgentTask instance for the given active HostQueueEntry,
         if one can currently run it.
         @param queue_entry: a HostQueueEntry
-        @returns an AgentTask to run the queue entry
+        :return: an AgentTask to run the queue entry
         """
         task_entries = queue_entry.job.get_group_entries(queue_entry)
         self._check_for_duplicate_host_entries(task_entries)
@@ -492,7 +492,7 @@ class Dispatcher(object):
         Construct an AgentTask class to run the given SpecialTask and add it
         to this dispatcher.
         @param special_task: a models.SpecialTask instance
-        @returns an AgentTask to run this SpecialTask
+        :return: an AgentTask to run this SpecialTask
         """
         self._assert_host_has_no_agent(special_task)
 
@@ -645,7 +645,7 @@ class Dispatcher(object):
         Lookup the pending HostQueueEntries and call our HostScheduler
         refresh() method given that list.  Return the list.
 
-        @returns A list of pending HostQueueEntries sorted in priority order.
+        :return: A list of pending HostQueueEntries sorted in priority order.
         """
         queue_entries = self._get_pending_queue_entries()
         if not queue_entries:
@@ -926,7 +926,7 @@ class PidfileRunMonitor(object):
                     'autoserv died without writing exit code')
 
     def _get_pidfile_info(self):
-        """\
+        """
         After completion, self._state will contain:
          pid=None, exit_status=None if autoserv has not yet run
          pid!=None, exit_status=None if autoserv is running
@@ -938,7 +938,7 @@ class PidfileRunMonitor(object):
             self._handle_pidfile_error('Pidfile error', traceback.format_exc())
 
     def _handle_no_process(self):
-        """\
+        """
         Called when no pidfile is found or no pid is in the pidfile.
         """
         message = 'No pid found at %s' % self.pidfile_id
@@ -948,7 +948,7 @@ class PidfileRunMonitor(object):
             self.on_lost_process()
 
     def on_lost_process(self, process=None):
-        """\
+        """
         Called when autoserv has exited without writing an exit status,
         or we've timed out waiting for autoserv to write a pid to the
         pidfile.  In either case, we just return failure and the caller
@@ -966,7 +966,7 @@ class PidfileRunMonitor(object):
         return self._state.exit_status
 
     def num_tests_failed(self):
-        """@returns The number of tests that failed or -1 if unknown."""
+        """:return: The number of tests that failed or -1 if unknown."""
         self._get_pidfile_info()
         if self._state.num_tests_failed is None:
             return -1
@@ -1461,7 +1461,7 @@ class RepairTask(SpecialAgentTask):
     TASK_TYPE = models.SpecialTask.Task.REPAIR
 
     def __init__(self, task):
-        """\
+        """
         queue_entry: queue entry to mark failed if this repair fails.
         """
         protection = host_protections.Protection.get_string(

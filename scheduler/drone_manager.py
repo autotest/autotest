@@ -192,7 +192,7 @@ class DroneManager(object):
         """
         Normally refresh() is called on every monitor_db.Dispatcher.tick().
 
-        @returns: The number of refresh() calls before we forget a pidfile.
+        :return: The number of refresh() calls before we forget a pidfile.
         """
         pidfile_timeout = settings.get_value(
             scheduler_config.CONFIG_SECTION, 'max_pidfile_refreshes',

@@ -25,7 +25,7 @@ class BaseFsdevManager(object):
         @param mount_point: A mount point such as '/usr/local' or an empty
                 string if no mount point is known.
 
-        @returns The expected mount point for part_name or a false value
+        :return: The expected mount point for part_name or a false value
                 (None or '') if the client should not mount this partition.
         """
         return mount_point
@@ -34,7 +34,7 @@ class BaseFsdevManager(object):
         """
         @param part_name: A partition name such as 'sda3' or similar.
 
-        @returns bool, should we use this partition for testing?
+        :return: bool, should we use this partition for testing?
         """
         return True
 

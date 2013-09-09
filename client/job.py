@@ -352,7 +352,7 @@ class base_client_job(base_job.base_job):
                     {"warnings.enable": warning_type})
 
     def monitor_disk_usage(self, max_rate):
-        """\
+        """
         Signal that the job should monitor disk space usage on /
         and generate a warning if a test uses up disk space at a
         rate exceeding 'max_rate'.
@@ -365,7 +365,7 @@ class base_client_job(base_job.base_job):
         self._max_disk_usage_rate = max_rate
 
     def relative_path(self, path):
-        """\
+        """
         Return a patch relative to the job results directory
         """
         head = len(self.resultdir) + 1     # remove the / between
@@ -535,7 +535,7 @@ class base_client_job(base_job.base_job):
         @param subdir_tag An optional keyword argument that will be added
             to the subdir name.
 
-        @returns:
+        :return:
                 subdir: Test subdirectory
                 testname: Test name
                 group_func: Actual test run function
@@ -576,7 +576,7 @@ class base_client_job(base_job.base_job):
         @param subdir_tag An optional keyword argument that will be added
             to the subdir name.
 
-        @returns True if the test passes, False otherwise.
+        :return: True if the test passes, False otherwise.
         """
         (subdir, testname, group_func, timeout) = self._run_test_base(url,
                                                                       *args,
@@ -603,7 +603,7 @@ class base_client_job(base_job.base_job):
         @param subdir_tag An optional keyword argument that will be added
             to the subdir name.
 
-        @returns Test status
+        :return: Test status
         @see: client/shared/error.py, exit_status
         """
         (subdir, testname, group_func, timeout) = self._run_test_base(url,
@@ -616,7 +616,7 @@ class base_client_job(base_job.base_job):
             return detail.exit_status
 
     def _rungroup(self, subdir, testname, function, timeout, *args, **dargs):
-        """\
+        """
         subdir:
                 name of the group
         testname:
@@ -812,7 +812,7 @@ class base_client_job(base_job.base_job):
                                autotest tmp directory will be used.
             @param loop_size: Size of loopback device (in MB). Defaults to 0.
 
-            @return: A L{client.partition.partition} object
+            :return: A L{client.partition.partition} object
         """
 
         if not mountpoint:
