@@ -31,13 +31,13 @@ try:
 except ImportError:
     import common
 from autotest.frontend import setup_django_environment
-from autotest.frontend.afe import frontend_test_utils
+from autotest.frontend import test_utils
 from autotest.frontend.afe import models, reservations
 from autotest.frontend import thread_local
 
 
 class ReservationsTest(unittest.TestCase,
-                       frontend_test_utils.FrontendTestMixin):
+                       test_utils.FrontendTestMixin):
 
     def setUp(self):
         self._frontend_common_setup()

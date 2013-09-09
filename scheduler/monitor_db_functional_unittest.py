@@ -10,7 +10,8 @@ except ImportError:
 from autotest.client.shared import enum, settings, host_protections, mail
 from autotest.database_legacy import database_connection
 from autotest.frontend import setup_django_environment
-from autotest.frontend.afe import frontend_test_utils, models
+from autotest.frontend import test_utils
+from autotest.frontend.afe import models
 from autotest.frontend.afe import model_attributes
 from autotest.scheduler import drone_manager, host_scheduler
 from autotest.scheduler import monitor_db, scheduler_models
@@ -277,7 +278,7 @@ class MockEmailManager(NullMethodObject):
 
 
 class SchedulerFunctionalTest(unittest.TestCase,
-                              frontend_test_utils.FrontendTestMixin):
+                              test_utils.FrontendTestMixin):
     # some number of ticks after which the scheduler is presumed to have
     # stabilized, given no external changes
     _A_LOT_OF_TICKS = 10

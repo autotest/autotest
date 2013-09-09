@@ -8,7 +8,7 @@ try:
 except ImportError:
     import common
 from autotest.frontend import setup_django_environment
-from autotest.frontend.afe import frontend_test_utils
+from autotest.frontend import test_utils
 from autotest.client.shared import mail
 from autotest.client.shared.test_utils import mock
 from autotest.client.shared.test_utils import unittest
@@ -82,7 +82,7 @@ def _set_host_and_qe_ids(agent_or_task, id_list=None):
 
 
 class BaseSchedulerTest(unittest.TestCase,
-                        frontend_test_utils.FrontendTestMixin):
+                        test_utils.FrontendTestMixin):
     _config_section = 'AUTOTEST_WEB'
 
     def _do_query(self, sql):
@@ -1287,7 +1287,7 @@ class TopLevelFunctionsTest(unittest.TestCase):
 
 
 class AgentTaskTest(unittest.TestCase,
-                    frontend_test_utils.FrontendTestMixin):
+                    test_utils.FrontendTestMixin):
 
     def setUp(self):
         self._frontend_common_setup()

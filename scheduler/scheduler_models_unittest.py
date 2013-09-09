@@ -6,7 +6,7 @@ try:
 except ImportError:
     import common
 from autotest.frontend import setup_django_environment
-from autotest.frontend.afe import frontend_test_utils
+from autotest.frontend import test_utils
 from autotest.client.shared.test_utils import mock
 from autotest.client.shared.test_utils import unittest
 from autotest.database_legacy import database_connection
@@ -18,7 +18,7 @@ _DEBUG = False
 
 
 class BaseSchedulerModelsTest(unittest.TestCase,
-                              frontend_test_utils.FrontendTestMixin):
+                              test_utils.FrontendTestMixin):
     _config_section = 'AUTOTEST_WEB'
 
     def _do_query(self, sql):
