@@ -36,18 +36,18 @@ class iscsi_test(unittest.TestCase):
 
     def setup_stubs_get_device_name(self, iscsi_obj):
         s_msg = "127.0.0.1:3260,1 %s" % iscsi_obj.target
-        utils.system_output.expect_call("iscsiadm --mode session"
-                                        ).and_return(s_msg)
+        utils.system_output.expect_call("iscsiadm --mode session",
+                                        ignore_status=True).and_return(s_msg)
         detail = "Target: iqn.iscsitest\n Attached scsi disk sdb State"
         utils.system_output.expect_call("iscsiadm -m session -P 3"
                                         ).and_return(detail)
 
     def setup_stubs_cleanup(self, iscsi_obj, fname=""):
         s_msg = "127.0.0.1:3260,1 %s" % iscsi_obj.target
-        utils.system_output.expect_call("iscsiadm --mode session"
-                                        ).and_return(s_msg)
-        utils.system_output.expect_call("iscsiadm --mode session"
-                                        ).and_return(s_msg)
+        utils.system_output.expect_call("iscsiadm --mode session",
+                                        ignore_status=True).and_return(s_msg)
+        utils.system_output.expect_call("iscsiadm --mode session",
+                                        ignore_status=True).and_return(s_msg)
 
         out_cmd = "iscsiadm --mode node --logout -T %s" % iscsi_obj.target
         utils.system_output.expect_call(out_cmd).and_return("successful")
@@ -60,13 +60,13 @@ class iscsi_test(unittest.TestCase):
         utils.system.expect_call(d_cmd)
 
     def setup_stubs_logged_in(self, result=""):
-        utils.system_output.expect_call("iscsiadm --mode session"
-                                        ).and_return(result)
+        utils.system_output.expect_call("iscsiadm --mode session",
+                                        ignore_status=True).and_return(result)
 
     def setup_stubs_portal_visible(self, iscsi_obj, result=""):
         host_name = iscsi_obj.portal_ip
         v_cmd = "iscsiadm -m discovery -t sendtargets -p %s" % host_name
-        utils.system_output.expect_call(v_cmd).and_return(result)
+        utils.system_output.expect_call(v_cmd, ignore_status=True).and_return(result)
 
     def setup_stubs_export_target(self, iscsi_obj):
         s_cmd = "tgtadm --lld iscsi --mode target --op show"
