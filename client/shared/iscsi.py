@@ -8,7 +8,9 @@ iscsi in localhost then access it.
 """
 
 
-import re, os, logging
+import re
+import os
+import logging
 from autotest.client import os_dep
 from autotest.client.shared import utils, error
 
@@ -19,10 +21,10 @@ def iscsi_get_sessions():
     """
     cmd = "iscsiadm --mode session"
 
-    output = utils.system_output(cmd)
+    output = utils.system_output(cmd, ignore_status=True)
     pattern = r"(\d+\.\d+\.\d+\.\d+):\d+,\d+\s+([\w\.\-:\d]+)"
     sessions = []
-    if  "No active sessions" not in output:
+    if "No active sessions" not in output:
         sessions = re.findall(pattern, output)
     return sessions
 
@@ -36,7 +38,7 @@ def iscsi_get_nodes():
     output = utils.system_output(cmd)
     pattern = r"(\d+\.\d+\.\d+\.\d+):\d+,\d+\s+([\w\.\-:\d]+)"
     nodes = []
-    if  "No records found" not in output:
+    if "No records found" not in output:
         nodes = re.findall(pattern, output)
     return nodes
 
@@ -71,7 +73,7 @@ def iscsi_logout(target_name=None):
     output = utils.system_output(cmd)
 
     target_logout = ""
-    if  "successful" in output:
+    if "successful" in output:
         target_logout = target_name
 
     return target_logout
@@ -84,7 +86,7 @@ def iscsi_discover(portal_ip):
     @param portal_ip: Ip for iscsi server
     """
     cmd = "iscsiadm -m discovery -t sendtargets -p %s" % portal_ip
-    output = utils.system_output(cmd)
+    output = utils.system_output(cmd, ignore_status=True)
 
     session = ""
     if "Invalid" in output:
@@ -99,6 +101,7 @@ class Iscsi(object):
     Basic iscsi support class. Will handle the emulated iscsi export and
     access to both real iscsi and emulated iscsi device.
     """
+
     def __init__(self, params, root_dir="/tmp"):
         os_dep.command("iscsiadm")
         self.target = params.get("target")
@@ -111,7 +114,6 @@ class Iscsi(object):
         else:
             self.id = utils.generate_random_string(4)
         self.initiator = params.get("initiator")
-        self.export_flag = False
         if params.get("emulated_image"):
             self.initiator = None
             os_dep.command("tgtadm")
@@ -121,18 +123,18 @@ class Iscsi(object):
             self.emulated_size = params.get("image_size")
             self.unit = self.emulated_size[-1].upper()
             self.emulated_size = self.emulated_size[:-1]
+            self.export_flag = False
             # maps K,M,G,T => (count, bs)
             emulated_size = {'K': (1, 1),
                              'M': (1, 1024),
                              'G': (1024, 1024),
                              'T': (1024, 1048576),
-                            }
+                             }
             if emulated_size.has_key(self.unit):
                 block_size = emulated_size[self.unit][1]
                 size = int(self.emulated_size) * emulated_size[self.unit][0]
                 self.create_cmd = ("dd if=/dev/zero of=%s count=%s bs=%sK"
                                    % (self.emulated_image, size, block_size))
-
 
     def logged_in(self):
         """
@@ -146,14 +148,12 @@ class Iscsi(object):
                 break
         return login
 
-
     def portal_visible(self):
         """
         Check if the portal can be found or not.
         """
         return bool(re.findall("%s$" % self.target,
                                iscsi_discover(self.portal_ip), re.M))
-
 
     def login(self):
         """
@@ -183,7 +183,6 @@ class Iscsi(object):
         if login_flag:
             iscsi_login(self.target)
 
-
     def get_device_name(self):
         """
         Get device name from the target name.
@@ -202,7 +201,6 @@ class Iscsi(object):
             logging.debug("Session is not login yet.")
         return device_name
 
-
     def get_target_id(self):
         """
         Get target id from image name. Only works for emulated iscsi device
@@ -212,7 +210,7 @@ class Iscsi(object):
         target_id = ""
         for line in re.split("\n", target_info):
             if re.findall("Target\s+(\d+)", line):
-                target_id= re.findall("Target\s+(\d+)", line)[0]
+                target_id = re.findall("Target\s+(\d+)", line)[0]
             elif re.findall("Backing store path:\s+(/+.+)", line):
                 if self.emulated_image in line:
                     break
@@ -220,7 +218,6 @@ class Iscsi(object):
             target_id = ""
 
         return target_id
-
 
     def export_target(self):
         """
@@ -254,9 +251,8 @@ class Iscsi(object):
             utils.system(cmd)
             self.export_flag = True
         else:
-            self.emulated_id = re.findall("Target\s+(\d+):\s+%s$" %\
-                                         self.target, output)
-
+            self.emulated_id = re.findall("Target\s+(\d+):\s+%s$" %
+                                          self.target, output)
 
     def delete_target(self):
         """
@@ -270,14 +266,12 @@ class Iscsi(object):
                 cmd += "--tid %s" % self.emulated_id
                 utils.system(cmd)
 
-
     def logout(self):
         """
         Logout from target.
         """
         if self.logged_in():
             iscsi_logout(self.target)
-
 
     def cleanup(self):
         """
