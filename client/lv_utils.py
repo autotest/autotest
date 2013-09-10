@@ -2,8 +2,8 @@
 Utility for taking shapshots from existing logical volumes
 or creates such.
 
-@author: Plamen Dimitrov
-@copyright: Intra2net AG 2012
+:author: Plamen Dimitrov
+:copyright: Intra2net AG 2012
 @license: GPL v2
 
 @param vg_name: Name of the volume group.

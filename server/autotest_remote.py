@@ -100,7 +100,7 @@ class BaseAutotest(installable_object.InstallableObject):
         """
         Find where the Autotest client is installed on the host.
         :return: an absolute path to an installed Autotest client root.
-        @raises AutodirNotFoundError if no Autotest installation can be found.
+        :raise AutodirNotFoundError if no Autotest installation can be found.
         """
         autodir = host.get_autodir()
         if autodir:
@@ -392,7 +392,7 @@ class BaseAutotest(installable_object.InstallableObject):
                 to come back after a reboot. Defaults to the host setting for
                 DEFAULT_REBOOT_TIMEOUT.
 
-        @raises AutotestRunError: If there is a problem executing
+        :raise AutotestRunError: If there is a problem executing
                 the control file.
         """
         host = self._get_host_and_setup(host)

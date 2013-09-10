@@ -5,8 +5,8 @@ specifically, the inotifywait tool.
 
 Heavily inspired / shamelessly copied from the kvm_stat profiler.
 
-@copyright: Red Hat 2013
-@author: Cleber Rosa <cleber@redhat.com>
+:copyright: Red Hat 2013
+:author: Cleber Rosa <cleber@redhat.com>
 """
 import os
 import subprocess

@@ -7,8 +7,8 @@ a mirror. Example:
 $ ./kernelexpand.py 3.1
 http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.1.tar.bz2
 
-@author: Andy Whitcroft (apw@shadowen.org)
-@copyright: IBM 2008
+:author: Andy Whitcroft (apw@shadowen.org)
+:copyright: IBM 2008
 @license: GPL v2
 @see: Inspired by kernelexpand by Martin J. Bligh, 2003
 """

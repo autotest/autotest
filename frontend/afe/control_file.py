@@ -348,7 +348,7 @@ def _sanity_check_generate_control(is_server, client_control_file, kernels,
     This exists as its own function so that site_control_file may call it as
     well from its own generate_control().
 
-    @raises ValidationError if any of the parameters do not make sense.
+    :raise ValidationError if any of the parameters do not make sense.
     """
     if is_server and client_control_file:
         raise model_logic.ValidationError(

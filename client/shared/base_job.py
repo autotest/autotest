@@ -73,11 +73,11 @@ class job_directory(object):
             will be created instead.
         @param is_writable: If True, expect the directory to be writable.
 
-        @raise MissingDirectoryException: raised if is_writable=False and the
+        :raise MissingDirectoryException: raised if is_writable=False and the
             directory does not exist.
-        @raise UnwritableDirectoryException: raised if is_writable=True and
+        :raise UnwritableDirectoryException: raised if is_writable=True and
             the directory exists but is not writable.
-        @raise UncreatableDirectoryException: raised if is_writable=True, the
+        :raise UncreatableDirectoryException: raised if is_writable=True, the
             directory does not exist and it cannot be created.
         """
         if path is None:
@@ -104,11 +104,11 @@ class job_directory(object):
         @param is_writable A boolean indicating that the directory should
             not only exist, but also be writable.
 
-        @raises MissingDirectoryException raised if is_writable=False and the
+        :raise MissingDirectoryException raised if is_writable=False and the
             directory does not exist.
-        @raises UnwritableDirectoryException raised if is_writable=True and
+        :raise UnwritableDirectoryException raised if is_writable=True and
             the directory is not wrtiable.
-        @raises UncreatableDirectoryException raised if is_writable=True, the
+        :raise UncreatableDirectoryException raised if is_writable=True, the
             directory does not exist and it cannot be created
         """
         # ensure the directory exists
@@ -341,7 +341,7 @@ class job_state(object):
         :return: A deep copy of the value associated with name. Note that this
             explicitly returns a deep copy to avoid problems with mutable
             values; mutations are not persisted or shared.
-        @raise KeyError: raised when no state is associated with var and a
+        :raise KeyError: raised when no state is associated with var and a
             default value is not provided.
         """
         if self.has(namespace, name):
@@ -456,7 +456,7 @@ class status_log_entry(object):
             as a time.time() timestamp. If unspecified, the current time is
             used.
 
-        @raise ValueError: if any of the parameters are invalid
+        :raise ValueError: if any of the parameters are invalid
         """
 
         if not log.is_valid_status(status_code):
@@ -1094,7 +1094,7 @@ class base_job(object):
         """
         Reverse the effects of the previous push_execution_context call.
 
-        @raise IndexError: raised when the stack of contexts is empty.
+        :raise IndexError: raised when the stack of contexts is empty.
         """
         if not self._execution_contexts:
             raise IndexError('No old execution context to restore')
@@ -1110,7 +1110,7 @@ class base_job(object):
         :return: A deep copy of the value associated with name. Note that this
             explicitly returns a deep copy to avoid problems with mutable
             values; mutations are not persisted or shared.
-        @raise KeyError: raised when no state is associated with var and a
+        :raise KeyError: raised when no state is associated with var and a
             default value is not provided.
         """
         try:
@@ -1168,7 +1168,7 @@ class base_job(object):
 
         :return: A job_directory instance corresponding to the outputdir of
             the test.
-        @raise TestError: If the output directory is invalid.
+        :raise TestError: If the output directory is invalid.
         """
         # explicitly check that this subdirectory is new
         path = os.path.join(self.resultdir, subdir)

@@ -70,7 +70,7 @@ def repo_run_command(repo, cmd, ignore_status=False, cd=True):
     @param cd: wether to change the working directory to the repo directory
             before running the specified command.
     :return: a CmdResult object or None
-    @raise CmdError: the exit code of the command execution was not 0
+    :raise CmdError: the exit code of the command execution was not 0
     """
     os_dep.command("ssh")
     repo = repo.strip()
@@ -122,8 +122,8 @@ def check_diskspace(repo, min_free=None):
     @param repo: a remote package repo URL
     @type min_free: int
     @param: min_free mininum amount of free space, in GB (10**9 bytes)
-    @raise error.RepoUnknownError: general repository error condition
-    @raise error.RepoDiskFullError: repository does not have at least the
+    :raise error.RepoUnknownError: general repository error condition
+    :raise error.RepoDiskFullError: repository does not have at least the
         requested amount of free disk space.
     '''
     if min_free is None:
@@ -146,7 +146,7 @@ def check_write(repo):
 
     @type repo: string
     @param repo: a remote package repo URL
-    @raise error.RepoWriteError: repository write error
+    :raise error.RepoWriteError: repository write error
     '''
     try:
         repo_testfile = '.repo_test_file'
@@ -223,7 +223,7 @@ class RepositoryFetcher(object):
         @param filename: The filename of the package file to fetch.
         @type dest_path: string
         @param dest_path: Destination path to download the file to.
-        @raises PackageFetchError: if the fetch failed
+        :raise PackageFetchError: if the fetch failed
         """
         raise NotImplementedError()
 
@@ -306,7 +306,7 @@ class HttpFetcher(RepositoryFetcher):
         @param filename: The filename of the package file to fetch.
         @type dest_path: string
         @param dest_path: Destination path to download the file to.
-        @raises PackageFetchError: if the fetch failed
+        :raise PackageFetchError: if the fetch failed
         """
         logging.info('Fetching %s from %s to %s', filename, self.url,
                      dest_path)

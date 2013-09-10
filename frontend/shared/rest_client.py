@@ -204,7 +204,7 @@ class Resource(object):
         Like get() for collections, when the full collection is expected.
 
         @param results_limit: maxmimum number of results to allow
-        @raises ClientError if there are more than results_limit results.
+        :raise ClientError if there are more than results_limit results.
         """
         result = self.get(query_parameters=query_parameters,
                           items_per_page=results_limit,

@@ -236,8 +236,8 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         @param options: string with additional ssh command options
         @param verbose: log the commands
 
-        @raises AutoservRunError: if the command failed
-        @raises AutoservSSHTimeout: ssh connection has timed out
+        :raise AutoservRunError: if the command failed
+        :raise AutoservSSHTimeout: ssh connection has timed out
         """
 
         stdout = utils.get_stream_tee_file(

@@ -105,7 +105,7 @@ class Host(object):
 
         :return: a utils.CmdResult object
 
-        @raises AutotestHostRunError: the exit code of the command execution
+        :raise AutotestHostRunError: the exit code of the command execution
                 was not 0 and ignore_status was not enabled
         """
         raise NotImplementedError('Run not implemented!')
@@ -224,7 +224,7 @@ class Host(object):
 
         1000 based SI units are used.
 
-        @raises AutoservDiskFullHostError if path has less than gb GB free.
+        :raise AutoservDiskFullHostError if path has less than gb GB free.
         """
         one_mb = 10 ** 6  # Bytes (SI unit).
         mb_per_gb = 1000.0

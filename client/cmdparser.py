@@ -1,7 +1,7 @@
 """
 Autotest command parser
 
-@copyright: Don Zickus <dzickus@redhat.com> 2011
+:copyright: Don Zickus <dzickus@redhat.com> 2011
 """
 
 import os

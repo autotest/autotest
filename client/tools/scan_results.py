@@ -3,7 +3,7 @@
 Program that parses the autotest results and return a nicely printed final test
 result.
 
-@copyright: Red Hat 2008-2009
+:copyright: Red Hat 2008-2009
 """
 
 

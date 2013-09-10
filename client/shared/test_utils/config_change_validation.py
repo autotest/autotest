@@ -1,8 +1,8 @@
 """
 Module for testing config file changes.
 
-@author: Kristof Katus and Plamen Dimitrov
-@copyright: Intra2net AG 2012
+:author: Kristof Katus and Plamen Dimitrov
+:copyright: Intra2net AG 2012
 @license: GPL v2
 """
 

@@ -431,7 +431,7 @@ class base_server_job(base_job.base_job):
                 on any error a list of the results|exceptions from the function
                 called on each arg is returned.  [default: False]
 
-        @raises error.AutotestError: If any of the functions failed.
+        :raise error.AutotestError: If any of the functions failed.
         """
         wrapper = self._make_parallel_wrapper(function, machines, log)
         return subcommand.parallel_simple(wrapper, machines,

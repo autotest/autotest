@@ -3,8 +3,8 @@
 """
 Helpers for cgroup testing.
 
-@copyright: 2011 Red Hat Inc.
-@author: Lukas Doktor <ldoktor@redhat.com>
+:copyright: 2011 Red Hat Inc.
+:author: Lukas Doktor <ldoktor@redhat.com>
 """
 import logging
 import os

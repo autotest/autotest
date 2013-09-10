@@ -1,7 +1,7 @@
 """
 Function tracer profiler for autotest.
 
-@author: David Sharp (dhsharp@google.com)
+:author: David Sharp (dhsharp@google.com)
 """
 import logging
 import os

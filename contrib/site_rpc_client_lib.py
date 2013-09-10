@@ -4,7 +4,7 @@ It asks the end-user for a password, rather than assuming no password
 is necessary.
 To actually use this, put it in the cli/ directory.
 
-@author: Nishanth Aravamudan <nacc@linux.vnet.ibm.com>
+:author: Nishanth Aravamudan <nacc@linux.vnet.ibm.com>
 """
 
 import getpass

@@ -859,7 +859,7 @@ def run(command, timeout=None, ignore_status=False,
 
     :return: a CmdResult object
 
-    @raise CmdError: the exit code of the command execution was not 0
+    :raise CmdError: the exit code of the command execution was not 0
     """
     if isinstance(args, basestring):
         raise TypeError('Got a string for the "args" keyword argument, '
@@ -1734,7 +1734,7 @@ def import_site_module(path, module, dummy=None, modulefile=None):
 
     :return: site specific module or dummy
 
-    @raises ImportError if the site file exists but imports fails
+    :raise ImportError if the site file exists but imports fails
     """
     short_module = module[module.rfind(".") + 1:]
 
@@ -1758,7 +1758,7 @@ def import_site_symbol(path, module, name, dummy=None, modulefile=None):
 
     :return: site specific symbol or dummy
 
-    @raises ImportError if the site file exists but imports fails
+    :raise ImportError if the site file exists but imports fails
     """
     module = import_site_module(path, module, modulefile=modulefile)
     if not module:

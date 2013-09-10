@@ -5,7 +5,7 @@
 #  Brad Figg <brad.figg@canonical.com>
 # Copyright (C) 2012 Canonical Ltd.
 #
-# Based on scan_results.py, which is @copyright: Red Hat 2008-2009
+# Based on scan_results.py, which is :copyright: Red Hat 2008-2009
 #
 # This script is distributed under the terms and conditions of the GNU General
 # Public License, Version 2 or later. See http://www.gnu.org/copyleft/gpl.html

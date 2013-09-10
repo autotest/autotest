@@ -2,7 +2,7 @@
 """
 Program that calculates several hashes for a given CD image.
 
-@copyright: Red Hat 2008-2009
+:copyright: Red Hat 2008-2009
 """
 
 import os

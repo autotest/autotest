@@ -2,8 +2,8 @@
 """
 Simple crash handling application for autotest
 
-@copyright Red Hat Inc 2009
-@author Lucas Meneghel Rodrigues <lmr@redhat.com>
+:copyright: Red Hat Inc 2009
+:author: Lucas Meneghel Rodrigues <lmr@redhat.com>
 """
 import sys
 import os

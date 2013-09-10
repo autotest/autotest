@@ -282,7 +282,7 @@ def check_atomic_group_create_job(synch_count, host_objects, metahost_objects,
     @param labels_by_name - A dictionary mapping label names to models.Label
             instance.  Used to look up instances for dependencies.
 
-    @raises model_logic.ValidationError - When an issue is found.
+    :raise model_logic.ValidationError - When an issue is found.
     """
     # If specific host objects were supplied with an atomic group, verify
     # that there are enough to satisfy the synch_count.

@@ -112,7 +112,7 @@ class KojiClient(object):
         @param cmd: Optional command name, either 'brew' or 'koji'. If not
                 set, get_default_command() is used and to look for
                 one of them.
-        @raise: ValueError
+        :raise: ValueError
         """
         if not KOJI_INSTALLED:
             raise ValueError('No koji/brew installed on the machine')
@@ -151,7 +151,7 @@ class KojiClient(object):
 
         @type check_valid: boolean
         @param check_valid: whether to include a check on the configuration
-        @raises: ValueError
+        :raise: ValueError
         :return: None
         '''
         if check_is_valid:

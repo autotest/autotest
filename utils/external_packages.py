@@ -205,7 +205,7 @@ class ExternalPackage(object):
 
         :return: True on success, False otherwise.
 
-        @raises OSError If the expected extraction directory does not exist.
+        :raise OSError If the expected extraction directory does not exist.
         """
         self._extract_compressed_package()
         if self.verified_package.endswith('.tar.gz'):
@@ -403,7 +403,7 @@ class ExternalPackage(object):
             If it does not exist it will be created.
 
         :return: A boolean indicating if we the package is now in dest_dir.
-        @raises FetchError - When something unexpected happens.
+        :raise FetchError - When something unexpected happens.
         """
         if not os.path.exists(dest_dir):
             os.makedirs(dest_dir)

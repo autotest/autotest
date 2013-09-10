@@ -13,8 +13,8 @@ API Usage:
         function on python standard library 'mimetypes'.
 
 @license: GPL v2
-@copyright: Jason Petrone (jp_py@jsnp.net) 2000
-@copyright: Lucas Meneghel Rodrigues (lmr@redhat.com) 2010
+:copyright: Jason Petrone (jp_py@jsnp.net) 2000
+:copyright: Lucas Meneghel Rodrigues (lmr@redhat.com) 2010
 @see: http://www.jsnp.net/code/magic.py
 """
 

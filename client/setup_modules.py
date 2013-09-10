@@ -10,7 +10,7 @@ from autotest.server import hosts
 
 Without system wide install, we need some hacks, that are performed here.
 
-@author: John Admanski (jadmanski@google.com)
+:author: John Admanski (jadmanski@google.com)
 """
 import os
 import sys

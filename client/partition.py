@@ -2,8 +2,8 @@
 APIs to write tests and control files that handle partition creation, deletion
 and formatting.
 
-@copyright: Google 2006-2008
-@author: Martin Bligh (mbligh@google.com)
+:copyright: Google 2006-2008
+:author: Martin Bligh (mbligh@google.com)
 """
 
 import os

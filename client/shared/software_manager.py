@@ -8,12 +8,12 @@ and multiple high level package managers (here called backends). If you want
 to make this lib to support your particular package manager/distro, please
 implement the given backend class.
 
-@author: Higor Vieira Alves (halves@br.ibm.com)
-@author: Lucas Meneghel Rodrigues (lmr@redhat.com)
-@author: Ramon de Carvalho Valle (rcvalle@br.ibm.com)
+:author: Higor Vieira Alves (halves@br.ibm.com)
+:author: Lucas Meneghel Rodrigues (lmr@redhat.com)
+:author: Ramon de Carvalho Valle (rcvalle@br.ibm.com)
 
-@copyright: IBM 2008-2009
-@copyright: Red Hat 2009-2010
+:copyright: IBM 2008-2009
+:copyright: Red Hat 2009-2010
 """
 import os
 import re

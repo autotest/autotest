@@ -18,8 +18,8 @@ Usage: check_patch.py -p [/path/to/patch]
        check_patch.py -g [github pull request id]
        check_patch.py --full --yes [check the entire tree]
 
-@copyright: Red Hat Inc, 2009.
-@author: Lucas Meneghel Rodrigues <lmr@redhat.com>
+:copyright: Red Hat Inc, 2009.
+:author: Lucas Meneghel Rodrigues <lmr@redhat.com>
 """
 
 import os

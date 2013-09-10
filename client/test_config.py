@@ -1,7 +1,7 @@
 """
 Wrapper around ConfigParser to manage testcases configuration.
 
-@author rsalveti@linux.vnet.ibm.com (Ricardo Salveti de Araujo)
+:author: rsalveti@linux.vnet.ibm.com (Ricardo Salveti de Araujo)
 """
 
 from ConfigParser import ConfigParser

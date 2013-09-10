@@ -710,7 +710,7 @@ class base_client_job(base_job.base_job):
         @param running_id: An optional running_id to include in the reboot
             failure log message
 
-        @raise JobError: Raised if the current configuration does not match the
+        :raise JobError: Raised if the current configuration does not match the
             pre-reboot configuration.
         """
         abort_on_mismatch = settings.get_value('CLIENT', 'abort_on_mismatch',
