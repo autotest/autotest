@@ -32,6 +32,9 @@ __author__ = 'showard@google.com (Steve Howard)'
 import datetime
 import xmlrpclib
 import logging
+import os
+# psutil is a non stdlib import, it needs to be installed
+import psutil
 try:
     import autotest.common as common
 except ImportError:
@@ -47,7 +50,7 @@ from autotest.client.shared.settings import settings
 # IMPORTANT: please update INTERFACE_VERSION with the current date whenever
 # the interface changes, so that RPC clients can handle the changes
 #
-INTERFACE_VERSION = (2013, 05, 23)
+INTERFACE_VERSION = (2013, 9, 11)
 
 
 # labels
@@ -1002,3 +1005,64 @@ def get_version():
 
 def get_interface_version():
     return INTERFACE_VERSION
+
+
+def _get_logs_used_space():
+    """
+    Return disk usage (percentage) for the results directory.
+    """
+    logs_dir = settings.get_value('COMMON', 'test_output_dir', default=None)
+    autodir = os.path.abspath(os.path.join(os.path.dirname(__file__),
+                                           '..', '..'))
+    if logs_dir is None:
+        logs_dir = os.path.join(autodir, 'results')
+    usage = psutil.disk_usage(logs_dir)
+    return int(usage.percent)
+
+
+def _process_running(process_name):
+    """
+    Return whether a given process name is running.
+    """
+    process_running = False
+    for p in psutil.process_iter():
+        for args in p.cmdline:
+            if os.path.basename(args) == process_name and p.is_running:
+                process_running = True
+    return process_running
+
+
+def get_server_status():
+    """
+    Get autotest server system information.
+
+    :return: Dict with keys:
+             * 'disk_space_percentage' Autotest log directory disk usage
+             * 'scheduler_running' Whether the autotest scheduler is running
+             * 'sheduler_watcher_running' Whether the scheduler watcher is
+                running
+             * 'concerns' Global evaluation of whether there are problems to
+                be addressed
+    """
+    server_status = {}
+    concerns = False
+    disk_treshold = int(settings.get_value('SERVER', 'logs_disk_usage_treshold',
+                                           default="80"))
+    used_space_logs = _get_logs_used_space()
+    if used_space_logs > disk_treshold:
+        concerns = True
+    server_status['used_space_logs'] = used_space_logs
+    scheduler_running = _process_running('autotest-scheduler')
+    if not scheduler_running:
+        concerns = True
+    server_status['scheduler_running'] = scheduler_running
+    watcher_running = _process_running('autotest-scheduler-watcher')
+    if not watcher_running:
+        concerns = True
+    server_status['scheduler_watcher_running'] = watcher_running
+    install_server_running = get_install_server_profiles() is not None
+    if not install_server_running:
+        concerns = True
+    server_status['install_server_running'] = install_server_running
+    server_status['concerns'] = concerns
+    return server_status
