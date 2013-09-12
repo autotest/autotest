@@ -68,7 +68,6 @@ FEDORA_19_PKGS = [
 UBUNTU_PKGS = [
     'apache2-mpm-prefork',
     'git',
-    'gnuplot',
     'libapache2-mod-wsgi',
     'makepasswd',
     'mysql-server',
