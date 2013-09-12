@@ -168,13 +168,13 @@ class VCS(object):
         """
         Add an untracked file to version control.
         """
-        return self.backend.add_untracked_file(file)
+        return self.backend.add_untracked_file(fl)
 
     def revert_file(self, fl):
         """
         Restore file according to the latest state on the reference repo.
         """
-        return self.backend.revert_file(file)
+        return self.backend.revert_file(fl)
 
     def apply_patch(self, patch):
         """
