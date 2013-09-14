@@ -636,7 +636,7 @@ def get_cgroup_mountpoint(controller):
     f_cgcon = open("/proc/mounts", "rU")
     cgconf_txt = f_cgcon.read()
     f_cgcon.close()
-    mntpt = re.findall(r"\s(\S*cgroup/%s)" % controller, cgconf_txt)
+    mntpt = re.findall(r"\s(\S*cgroup/\S*,*%s,*\S*)" % controller, cgconf_txt)
     return mntpt[0]
 
 
@@ -683,7 +683,7 @@ def resolve_task_cgroup_path(pid, controller):
     finally:
         proc_file.close()
 
-    mount_path = re.findall(r":%s:(\S*)\n" % controller, proc_cgroup_txt)
+    mount_path = re.findall(r":\S*,*%s,*\S*:(\S*)\n" % controller, proc_cgroup_txt)
     return os.path.join(root_path, mount_path[0].strip("/"))
 
 
