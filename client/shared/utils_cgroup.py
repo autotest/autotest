@@ -684,7 +684,7 @@ def resolve_task_cgroup_path(pid, controller):
         proc_file.close()
 
     mount_path = re.findall(r":%s:(\S*)\n" % controller, proc_cgroup_txt)
-    return os.path.join(root_path, mount_path[0])
+    return os.path.join(root_path, mount_path[0].strip("/"))
 
 
 def service_cgconfig_control(action):
