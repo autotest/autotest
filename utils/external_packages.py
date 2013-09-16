@@ -574,6 +574,17 @@ class NumpyPackage(ExternalPackage):
         ExternalPackage._build_and_install_current_dir_setupegg_py)
 
 
+class PsUtilPackage(ExternalPackage):
+    version = '1.0.1'
+    local_filename = 'psutil-%s.tar.gz' % version
+    urls = ("https://psutil.googlecode.com/files/%s" % local_filename,)
+    hex_sum = '3d3abb8b7a5479b7299a8d170ec25179410f24d1'
+
+    _build_and_install = ExternalPackage._build_and_install_from_package
+    _build_and_install_current_dir = (
+        ExternalPackage._build_and_install_current_dir_setup_py)
+
+
 # This requires numpy so it must be declared after numpy to guarantee that it
 # is already installed.
 class MatplotlibPackage(ExternalPackage):
