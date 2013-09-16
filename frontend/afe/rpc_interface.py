@@ -1060,9 +1060,12 @@ def get_server_status():
     if not watcher_running:
         concerns = True
     server_status['scheduler_watcher_running'] = watcher_running
-    install_server_running = get_install_server_profiles() is not None
-    if not install_server_running:
-        concerns = True
+    if settings.get_value('INSTALL_SERVER', 'xmlrpc_url', default=''):
+        install_server_running = get_install_server_profiles() is not None
+        if not install_server_running:
+            concerns = True
+    else:
+        install_server_running = False
     server_status['install_server_running'] = install_server_running
     server_status['concerns'] = concerns
     return server_status
