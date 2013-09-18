@@ -1,5 +1,7 @@
 [Unit]
 Description=Autotest scheduler
+Requires=mysqld.service
+After=mysqld.service
 
 [Service]
 ExecStart=/usr/local/autotest/scheduler/autotest-scheduler-watcher
