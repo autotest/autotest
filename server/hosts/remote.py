@@ -4,10 +4,16 @@ if it is available."""
 import os
 import logging
 import urllib
+import socket
+import time
 from autotest.client.shared import error
 from autotest.client.shared.settings import settings
 from autotest.server import utils
 from autotest.server.hosts import base_classes, install_server
+
+
+class InstallServerUnavailable(Exception):
+    pass
 
 
 def get_install_server_info():
@@ -91,7 +97,26 @@ class RemoteHost(base_classes.Host):
                 return
             num_attempts = int(server_info.get('num_attempts', 2))
             ServerInterface = self.INSTALL_SERVER_MAPPING[server_info['type']]
-            server_interface = ServerInterface(**server_info)
+            end_time = time.time() + (timeout / 10)
+            step = int(timeout / 100)
+            server_interface = None
+            while time.time() < end_time:
+                try:
+                    server_interface = ServerInterface(**server_info)
+                    break
+                except socket.error:
+                    logging.error('Install server unavailable. Trying '
+                                  'again in %s s...', step)
+                    time.sleep(step)
+
+            if server_interface is None:
+                raise InstallServerUnavailable("%s install server at (%s) "
+                                               "unavailable. Tried to "
+                                               "communicate for %s s" %
+                                               (server_info['type'],
+                                                server_info['xmlrpc_url'],
+                                                timeout / 10))
+
             server_interface.install_host(self, profile=profile,
                                           timeout=timeout,
                                           num_attempts=num_attempts)
@@ -279,7 +304,7 @@ class RemoteHost(base_classes.Host):
                 if reboot_cmd:
                     self.run(reboot_cmd)
                 else:
-                  # Try several methods of rebooting in increasing harshness.
+                    # Try several methods of rebooting in increasing harshness.
                     self.run('(('
                              ' sync &'
                              ' sleep 5; reboot &'
