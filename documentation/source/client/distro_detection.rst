@@ -88,7 +88,7 @@ If you want to also detect the distro version numbers (and you should), then
 it's possible to use the :attr:`Probe.CHECK_VERSION_REGEX` feature
 of the :class:`Probe` class.
 
-.. autodata:: Probe.CHECK_VERSION_REGEX
+.. autoattribute:: Probe.CHECK_VERSION_REGEX
 
 If your regex has two or more groups, that is, it will look for and save
 references to two or more string, it will consider the second group to be
