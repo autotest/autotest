@@ -92,6 +92,7 @@ class RemoteHost(base_classes.Host):
         if timeout is None:
             timeout = settings.get_value('INSTALL_SERVER',
                                          'default_install_timeout',
+                                         type=int,
                                          default=3600)
         server_info = get_install_server_info()
         if install_server_is_configured():
