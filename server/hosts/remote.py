@@ -89,6 +89,10 @@ class RemoteHost(base_classes.Host):
 
         @param profile: Profile name inside the install server database.
         """
+        if timeout is None:
+            timeout = settings.get_value('INSTALL_SERVER',
+                                         'default_install_timeout',
+                                         default=3600)
         server_info = get_install_server_info()
         if install_server_is_configured():
             if not profile:
