@@ -22,6 +22,7 @@ except ImportError:
 
 from autotest.frontend import setup_django_environment
 from autotest.installation_support import database_manager
+from autotest.installation_support import global_config_set_value
 from autotest.client.shared import settings
 
 
@@ -33,27 +34,10 @@ def set_settings_value(section, key, value):
     far from efficient and should only be used to perform changes to a
     handful of configuration values
     '''
-    section_found = False
-    section_re = re.compile(r'^\[%s\]$' % section)
-    key_re = re.compile(r'^%s:\s+(.*)$' % key)
+    path = settings.settings.config_file
 
-    current_lines = open(settings.settings.config_file).readlines()
-    output_file = open(settings.settings.config_file, 'wb')
+    global_config_set_value.set_value(path, section, key, value)
 
-    for line in current_lines:
-        if section_re.match(line):
-            section_found = True
-            output_file.write('%s' % line)
-            continue
-
-        if section_found and key_re.match(line):
-            newline = '%s: %s\n' % (key, value)
-            output_file.write(newline)
-            section_found = False
-        else:
-            output_file.write('%s' % line)
-
-    output_file.close()
     reload(settings)
     assert settings.settings.get_value(section, key) == value
 
