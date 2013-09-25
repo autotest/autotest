@@ -13,8 +13,11 @@ for p in path_list:
 os.environ['DJANGO_SETTINGS_MODULE'] = 'frontend.settings'
 
 import django.core.handlers.wsgi
+import django.contrib.staticfiles.handlers
 
-_application = django.core.handlers.wsgi.WSGIHandler()
+# Here we serve static and dynamic content.
+_handler = django.core.handlers.wsgi.WSGIHandler()
+_application = django.contrib.staticfiles.handlers.StaticFilesHandler(_handler)
 
 def application(environ, start_response):
     environ['DJANGO_USE_POST_REWRITE'] = "yes"
