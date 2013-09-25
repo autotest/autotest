@@ -623,6 +623,10 @@ class Dispatcher(object):
                 continue
             if print_message:
                 logging.info(print_message, host.hostname)
+            if where == "status = 'Repair Failed'":
+                subject = "Host %s is in Repair Failed state" % host.hostname
+                body = print_message % host.hostname
+                mail.manager.enqueue_admin(subject, body)
             models.SpecialTask.objects.create(
                 task=models.SpecialTask.Task.CLEANUP,
                 host=models.Host.objects.get(id=host.id))
