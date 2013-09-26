@@ -50,14 +50,23 @@ MODULE_FILE = "autotest-firewalld-add-service"
 ETC_PATH = "/etc/firewalld/zones/public.xml"
 USR_LIB_PATH = "/usr/lib/firewalld/zones/public.xml"
 
+test_path = os.path.dirname(os.path.realpath(__file__))
+
+
+# Mock out argparse
+class MockArgParse(object):
+    class ArgumentParser(object):
+        def add_argument(self, *args, **kwargs):
+            pass
+sys.modules['argparse'] = MockArgParse
+autotest_firewall_module = load_module_from_file(
+    os.path.join(test_path, MODULE_FILE))
+
 
 class TestFirewalldAddService(unittest.TestCase):
 
     def setUp(self):
-        test_path = os.path.dirname(os.path.realpath(__file__))
-        self.autotestd_module = load_module_from_file(
-            os.path.join(test_path, MODULE_FILE))
-        self.app = self.autotestd_module.App()
+        self.app = autotest_firewall_module.App()
 
     def test_etc_firewalld_exists(self):
         self.app.try_open = lambda *args: ETC_PATH
