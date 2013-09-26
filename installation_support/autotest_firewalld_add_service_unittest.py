@@ -23,6 +23,13 @@ import sys
 import imp
 import unittest
 
+try:
+    import autotest.common as common
+except ImportError:
+    import common
+
+from autotest.client.shared.mock import patch
+
 
 def load_module_from_file(module_file_path):
     """
@@ -85,6 +92,30 @@ class TestFirewalldAddService(unittest.TestCase):
 
     def test_try_open(self):
         assert self.app.try_open("\x03") == ''
+
+
+class TestFirewalldArgumentParser(unittest.TestCase):
+    @staticmethod
+    def test_get_default_zone():
+
+        @patch.object(
+            autotest_firewall_module, "Popen",
+            **{"return_value.communicate.return_value": ("public", ""),
+               "return_value.returncode": 0})
+        def _(*args):
+            assert autotest_firewall_module.ArgumentParser._get_default_zone(
+            ) == "public"
+        _()
+
+        @patch.object(
+            autotest_firewall_module, "Popen",
+            **{"return_value.communicate.return_value": ("error", ""),
+               "return_value.returncode": 1})
+        def _(*args):
+            assert autotest_firewall_module.ArgumentParser._get_default_zone(
+            ) == ''
+        _()
+
 
 if __name__ == '__main__':
     unittest.main()
