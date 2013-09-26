@@ -136,17 +136,17 @@ class App(object):
             logging.error("Unable to determine default zone,"
                           "please specify zone or check firewall-cmd --get-default-zone")
             argument_parser.print_help()
-            raise SystemExit
+            raise SystemExit(1)
 
         if not self.parsed_arguments.zone:
             logging.error("A zone name is a required argument")
             argument_parser.print_help()
-            raise SystemExit
+            raise SystemExit(1)
 
         if not self.parsed_arguments.service:
             logging.error("A service name is a required argument")
             argument_parser.print_help()
-            raise SystemExit
+            raise SystemExit(1)
 
         result = self.add_service(self.parsed_arguments.zone,
                                   self.parsed_arguments.service)
