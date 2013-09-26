@@ -46,7 +46,6 @@ class ArgumentParser(argparse.ArgumentParser):
 
 class App(object):
     def __init__(self):
-        self.argument_parser = ArgumentParser()
         self.parsed_arguments = None
 
     @staticmethod
@@ -127,10 +126,11 @@ class App(object):
         return self.is_service_enabled(dst_file_path, service)
 
     def run(self):
-        self.parsed_arguments = self.argument_parser.parse_args()
+        argument_parser = ArgumentParser()
+        self.parsed_arguments = argument_parser.parse_args()
 
         if not (self.parsed_arguments.zone and self.parsed_arguments.service):
-            self.argument_parser.print_help()
+            argument_parser.print_help()
             raise SystemExit
 
         if not self.parsed_arguments.zone:
