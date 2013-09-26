@@ -6,6 +6,8 @@ This script attemps to make it trivial to create install the packages
 needed for the operation of an Autotest server
 """
 
+import sys
+
 
 try:
     import autotest.common as common
@@ -32,4 +34,8 @@ if __name__ == '__main__':
     options, args = option_parser.parse_args()
     logging_manager.configure_logging(AutotestInstallConfig(),
                                       verbose=options.verbose)
-    software_manager.install_distro_packages(PKG_DEPS)
+    install_successful = software_manager.install_distro_packages(PKG_DEPS)
+    if install_successful:
+        sys.exit(0)
+    else:
+        sys.exit(-1)
