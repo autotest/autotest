@@ -31,10 +31,14 @@ class SerialHost(SiteHost):
         if conmux_attach:
             return conmux_attach
 
-        # assume we're using the conmux-attach provided with autotest
-        server_dir = server_utils.get_server_dir()
-        path = os.path.join(server_dir, "..", "conmux", "conmux-attach")
-        path = os.path.abspath(path)
+        # Try to find conmux installed system wide first
+        if os.path.exists('/usr/bin/conmux-attach'):
+            path = '/usr/bin/conmux-attach'
+        else:
+            # assume we're using the conmux-attach provided with autotest
+            server_dir = server_utils.get_server_dir()
+            path = os.path.join(server_dir, "..", "conmux", "conmux-attach")
+            path = os.path.abspath(path)
         return path
 
     @staticmethod
