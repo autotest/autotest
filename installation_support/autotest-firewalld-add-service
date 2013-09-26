@@ -10,7 +10,7 @@ that does not have quite recent software, such as Python 2.7
 import os
 import logging
 import argparse
-import commands
+from subprocess import Popen, PIPE
 # This script won't be executed on py 2.4, but has to be checked through pylint
 # pylint: disable=E0611
 import xml.etree.ElementTree
@@ -33,15 +33,14 @@ class ArgumentParser(argparse.ArgumentParser):
         self.add_argument('-s', '--service', default='http',
                           help='Service name (defaults to "%(default)s")')
 
-    def _get_default_zone(self):
-        try:
-            s, o = commands.getstatusoutput('firewall-cmd --get-default-zone')
-            if s != 0:
-                return ''
-            else:
-                return o
-        except:
+    @staticmethod
+    def _get_default_zone():
+        proc = Popen(['firewall-cmd', '--get-default-zone'], stdout=PIPE, stderr=PIPE)
+        output = proc.communicate()[0]
+        if proc.returncode != 0:
             return ''
+        else:
+            return output
 
 
 class App(object):
