@@ -35,10 +35,14 @@ class ArgumentParser(argparse.ArgumentParser):
 
     @staticmethod
     def _get_default_zone():
-        proc = Popen(['firewall-cmd', '--get-default-zone'], stdout=PIPE, stderr=PIPE)
+        cmd = ['firewall-cmd', '--get-default-zone']
+        proc = Popen(cmd, stdout=PIPE, stderr=PIPE)
         output = proc.communicate()[0]
         if proc.returncode != 0:
-            return ''
+            # we could raise an exception here because firewall-cmd may not be present, instead
+            # return None so we can tell the differente between no default and an empty arg, and
+            # at least get a useful error message
+            return None
         else:
             return output
 
@@ -128,16 +132,20 @@ class App(object):
         argument_parser = ArgumentParser()
         self.parsed_arguments = argument_parser.parse_args()
 
-        if not (self.parsed_arguments.zone and self.parsed_arguments.service):
+        if self.parsed_arguments.zone is None:
+            logging.error("Unable to determine default zone,"
+                          "please specify zone or check firewall-cmd --get-default-zone")
             argument_parser.print_help()
             raise SystemExit
 
         if not self.parsed_arguments.zone:
             logging.error("A zone name is a required argument")
+            argument_parser.print_help()
             raise SystemExit
 
         if not self.parsed_arguments.service:
             logging.error("A service name is a required argument")
+            argument_parser.print_help()
             raise SystemExit
 
         result = self.add_service(self.parsed_arguments.zone,

@@ -93,6 +93,54 @@ class TestFirewalldAddService(unittest.TestCase):
     def test_try_open(self):
         assert self.app.try_open("\x03") == ''
 
+    def test_run_complains_about_missing_zone(self):
+        @patch.object(self.app, "add_service")
+        @patch.object(autotest_firewall_module, "logging")
+        @patch.object(autotest_firewall_module, "ArgumentParser",
+                      **{"return_value.parse_args.return_value.zone": "",
+                         "return_value.parse_args.return_value.service": "http"})
+        def _(*args):
+            arg_mock, logging_mock, add_service_mock = args
+            try:
+                self.app.run()
+            except SystemExit:
+                assert arg_mock.return_value.parse_args().zone == ""
+                assert "zone" in logging_mock.error.call_args[0][0]
+                assert arg_mock.return_value.print_help.call_count == 1
+        _()
+
+    def test_run_complains_about_default_zone_missing(self):
+        @patch.object(self.app, "add_service")
+        @patch.object(autotest_firewall_module, "logging")
+        @patch.object(autotest_firewall_module, "ArgumentParser",
+                      **{"return_value.parse_args.return_value.zone": None,
+                         "return_value.parse_args.return_value.service": "http"})
+        def _(*args):
+            arg_mock, logging_mock, add_service_mock = args
+            try:
+                self.app.run()
+            except SystemExit:
+                assert arg_mock.return_value.parse_args().zone is None
+                assert "default" in logging_mock.error.call_args[0][0]
+                assert arg_mock.return_value.print_help.call_count == 1
+        _()
+
+    def test_run_complains_about_missing_service(self):
+        @patch.object(self.app, "add_service")
+        @patch.object(autotest_firewall_module, "logging")
+        @patch.object(autotest_firewall_module, "ArgumentParser",
+                      **{"return_value.parse_args.return_value.zone": "public",
+                         "return_value.parse_args.return_value.service": ""})
+        def _(*args):
+            arg_mock, logging_mock, add_service_mock = args
+            try:
+                self.app.run()
+            except SystemExit:
+                assert arg_mock.return_value.parse_args().zone == "public"
+                assert "service" in logging_mock.error.call_args[0][0]
+                assert arg_mock.return_value.print_help.call_count == 1
+        _()
+
 
 class TestFirewalldArgumentParser(unittest.TestCase):
     @staticmethod
@@ -113,7 +161,7 @@ class TestFirewalldArgumentParser(unittest.TestCase):
                "return_value.returncode": 1})
         def _(*args):
             assert autotest_firewall_module.ArgumentParser._get_default_zone(
-            ) == ''
+            ) is None
         _()
 
 
