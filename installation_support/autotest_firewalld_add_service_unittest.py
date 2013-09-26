@@ -39,7 +39,7 @@ def load_module_from_file(module_file_path):
     module_file = open(module_file_path, py_source_open_mode)
     try:
         new_module = imp.load_module(
-            os.path.splitext(filename)[0],
+            os.path.splitext(filename)[0].replace("-", "_"),
             module_file, module_file_path, py_source_description)
     finally:
         module_file.close()
