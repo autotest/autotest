@@ -228,17 +228,32 @@ fi
 install_basic_pkgs_rh() {
     print_log "INFO" "Installing basic packages"
     yum install -y git passwd >> $LOG 2>&1
+    if [ $? != 0 ]
+    then
+        print_log "ERROR" "Failed to install basic packages"
+        exit 1
+    fi
 }
 
 install_basic_pkgs_deb() {
     print_log "INFO" "Installing basic packages"
     export DEBIAN_FRONTEND=noninteractive
     apt-get install -y git makepasswd >> $LOG 2>&1
+    if [ $? != 0 ]
+    then
+        print_log "ERROR" "Failed to install basic packages"
+        exit 1
+    fi
 }
 
 install_packages() {
     print_log "INFO" "Installing packages dependencies"
     $ATHOME/installation_support/autotest-install-packages-deps >> $LOG 2>&1
+    if [ $? != 0 ]
+    then
+        print_log "ERROR" "Failed to install autotest packages dependencies"
+        exit 1
+    fi
 }
 
 setup_selinux() {
