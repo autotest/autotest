@@ -88,12 +88,14 @@ class App(object):
                                 zone_filename)
             return self.try_open(path)
 
-    def get_dst_file_from_zone(self, zone):
+    @staticmethod
+    def get_dst_file_from_zone(zone):
         zone_filename = "%s.xml" % zone
         return os.path.join(DEFAULT_ZONE_SYSTEM_BASE_PATH,
                             zone_filename)
 
-    def is_service_enabled(self, path, service):
+    @staticmethod
+    def is_service_enabled(path, service):
         if not os.path.exists(path):
             return False
 
