@@ -147,8 +147,9 @@ class TestFirewalldArgumentParser(unittest.TestCase):
     def test_get_default_zone():
 
         @patch.object(
+            # communicate() returns newlines
             autotest_firewall_module, "Popen",
-            **{"return_value.communicate.return_value": ("public", ""),
+            **{"return_value.communicate.return_value": ("public\n", ""),
                "return_value.returncode": 0})
         def _(*args):
             assert autotest_firewall_module.ArgumentParser._get_default_zone(
@@ -156,8 +157,9 @@ class TestFirewalldArgumentParser(unittest.TestCase):
         _()
 
         @patch.object(
+            # communicate() returns newlines
             autotest_firewall_module, "Popen",
-            **{"return_value.communicate.return_value": ("error", ""),
+            **{"return_value.communicate.return_value": ("error\n", ""),
                "return_value.returncode": 1})
         def _(*args):
             assert autotest_firewall_module.ArgumentParser._get_default_zone(
