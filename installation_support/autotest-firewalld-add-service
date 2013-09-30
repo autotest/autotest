@@ -37,7 +37,8 @@ class ArgumentParser(argparse.ArgumentParser):
     def _get_default_zone():
         cmd = ['firewall-cmd', '--get-default-zone']
         proc = Popen(cmd, stdout=PIPE, stderr=PIPE)
-        output = proc.communicate()[0]
+        # don't forget to rstrip the newline
+        output = proc.communicate()[0].rstrip()
         if proc.returncode != 0:
             # we could raise an exception here because firewall-cmd may not be present, instead
             # return None so we can tell the differente between no default and an empty arg, and
