@@ -143,9 +143,9 @@ class TestFirewalldAddService(unittest.TestCase):
 
 
 class TestFirewalldArgumentParser(unittest.TestCase):
+
     @staticmethod
     def test_get_default_zone():
-
         @patch.object(
             # communicate() returns newlines
             autotest_firewall_module, "Popen",
@@ -156,6 +156,8 @@ class TestFirewalldArgumentParser(unittest.TestCase):
             ) == "public"
         _()
 
+    @staticmethod
+    def test_get_default_zone_returns_None_when_error():
         @patch.object(
             # communicate() returns newlines
             autotest_firewall_module, "Popen",
