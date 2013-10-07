@@ -37,7 +37,7 @@ class SerialHost(SiteHost):
         else:
             # assume we're using the conmux-attach provided with autotest
             server_dir = server_utils.get_server_dir()
-            path = os.path.join(server_dir, "..", "conmux", "conmux-attach")
+            path = os.path.join(server_dir, os.pardir, "conmux", "conmux-attach")
             path = os.path.abspath(path)
         return path
 
