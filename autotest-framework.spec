@@ -257,7 +257,7 @@ if [ $1 -eq 1 ] ; then
     # Initial installation
     restorecon %{python_sitelib}/autotest/tko/*
     %if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
-    /bin/systemctl daemon-reload >/dev/null 2>&1 || :
+    /usr/bin/systemctl daemon-reload >/dev/null 2>&1 || :
     %else
     /sbin/chkconfig --add autotestd >/dev/null 2>&1 || :
     %endif
@@ -268,8 +268,8 @@ fi
 if [ $1 -eq 0 ] ; then
     # Package removal, not upgrade
     %if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
-    /bin/systemctl --no-reload disable autotestd.service > /dev/null 2>&1 || :
-    /bin/systemctl stop autotestd.service > /dev/null 2>&1 || :
+    /usr/bin/systemctl --no-reload disable autotestd.service > /dev/null 2>&1 || :
+    /usr/bin/systemctl stop autotestd.service > /dev/null 2>&1 || :
     %else
     /sbin/service autotestd stop >/dev/null 2>&1
     /sbin/chkconfig --del autotestd >/dev/null 2>&1 || :
@@ -278,11 +278,11 @@ fi
 
 
 %postun server
-/bin/systemctl daemon-reload >/dev/null 2>&1 || :
+/usr/bin/systemctl daemon-reload >/dev/null 2>&1 || :
 if [ $1 -ge 1 ] ; then
     # Package upgrade, not uninstall
     %if 0%{?fedora} >= 15 || 0%{?rhel} >= 7
-    /bin/systemctl try-restart autotestd.service >/dev/null 2>&1 || :
+    /usr/bin/systemctl try-restart autotestd.service >/dev/null 2>&1 || :
     %else
     /sbin/service autotestd condrestart >/dev/null 2>&1 || :
     %endif
@@ -376,6 +376,7 @@ fi
 %changelog
 * Wed Sep 25 2013 Cleber Rosa <cleber@redhat> - 0.15.1-next-22be0ca7f4c32b80fc42efe96086a4d01d4d7a4c-1
 - Make SPEC file handle the latest upstream release
+- Substitute systemd location on scripts
 
 * Wed Feb 13 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.14.4-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_19_Mass_Rebuild
