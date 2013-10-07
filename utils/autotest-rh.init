@@ -44,7 +44,7 @@ SCHEDULER="$AUTOTEST_DIR/scheduler/autotest-scheduler"
 OPTIONS="--background"
 
 # Where to locate PID files
-PID_PATH="$AUTOTEST_DIR" # "/var/run/$PROG"
+PID_PATH="$AUTOTEST_DIR"
 WATCHER_PIDFILE="$PID_PATH/autotest-scheduler-watcher.pid"
 SCHEDULER_PIDFILE="$PID_PATH/autotest-scheduler.pid"
 

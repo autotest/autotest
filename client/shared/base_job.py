@@ -1064,7 +1064,14 @@ class base_job(object):
 
         # various server-specific directories
         if self.serverdir:
-            self._conmuxdir = readonly_dir(self.autodir, 'conmux')
+            # This is a NOT a flexible solution, but I feel that this does
+            # not deserve a configuration option by itself. So, let's just
+            # try to find conmux in the system and let the user know about it
+            if os.path.isdir('/usr/share/conmux'):
+                self._conmuxdir = readonly_dir('/usr/share/conmux')
+            else:
+                self._conmuxdir = readonly_dir(self.autodir, 'conmux')
+            logging.info('conmux directory set to: %s' % self._conmuxdir)
         else:
             self._conmuxdir = None
 

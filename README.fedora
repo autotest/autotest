@@ -1,0 +1,30 @@
+# For installation and configuration instruction on Fedora-based systems,
+# consult https://fedoraproject.org/wiki/Install_and_configure_autotest
+
+# For creating your own package, follow these instructions:
+
+1) Decide what autotest version/branch/commit you want to package. The following assumes you want to package the next tree, at commit 0c2ab5b5306f6ccf5b47ff8b989faa2ad412c3d6. This also assumes you building packages for the fedora-19-x86_64 target.
+
+2) Modify the specfile and update the commit accordingly.
+
+3) Write down the "shortcommit" also, it's just the first 7 characters of the commit hash.
+
+4) Get a tarball out of the autotest tree. This is usually a matter of running something like:
+
+  $ git archive next --prefix autotest-0.15.1.next.git0c2ab5b/ -o /tmp/autotest-src/autotest-0.15.1.next.git0c2ab5b.tar.gz
+
+Please pay attention to the prefix appended to the archive and the output in a separate, empty directory.
+
+5) Create a SRPM out of the SPEC file and tarball by running something like:
+
+  $ mock --buildsrpm --spec autotest-framework.spec --sources=/tmp/autotest-src
+
+6) Now save your SRPM to another location, or else, it'll be overwritten by the next mock run:
+
+  $ cp /var/lib/mock/fedora-19-x86_64/result/autotest-framework-0.15.1.next.git0c2ab5b-1.fc19.src.rpm /tmp/
+
+7) Now build the "binary" RPMS out of the SRPM:
+
+  $ mock --rebuild /tmp/autotest-framework-0.15.1.next.git0c2ab5b-1.fc19.src.rpm
+
+8) Enjoy! The RPMS should be located at: /var/lib/mock/fedora-19-x86_64/result
