@@ -61,12 +61,9 @@ class OptionParser(optparse.OptionParser):
 
 
 class App(object):
-    def __init__(self):
-        self.option_parser = OptionParser()
-
-
     def run(self):
         result = False
+        self.option_parser = OptionParser()
         opts, args = self.option_parser.parse_args()
 
         if not (opts.path and opts.section and opts.key and opts.value):
