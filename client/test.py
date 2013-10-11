@@ -95,8 +95,11 @@ class test(common_test.base_test):
         """
         if self.crash_handling_enabled:
             # Remove the debugdir info file
-            if os.path.isfile(self.debugdir_tmp_file):
-                os.unlink(self.debugdir_tmp_file)
+            try:
+                if os.path.isfile(self.debugdir_tmp_file):
+                    os.unlink(self.debugdir_tmp_file)
+            except OSError:
+                pass
             # Restore the core pattern backup
             try:
                 utils.open_write_close(self.pattern_file,
