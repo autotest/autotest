@@ -9,6 +9,9 @@ def get_public_key():
     Return a valid string ssh public key for the user executing autoserv or
     autotest. If there's no DSA or RSA public key, create a DSA keypair with
     ssh-keygen and return it.
+
+    :returns: a ssh public key
+    :rtype: str
     """
 
     ssh_conf_path = os.path.expanduser('~/.ssh')
@@ -45,6 +48,18 @@ def get_public_key():
 
 
 def setup_ssh_key(hostname, user, password, port):
+    '''
+    Setup up remote login in another server by using public key
+
+    :param hostname: the server to login
+    :type hostname: str
+    :param user: user to login
+    :type user: str
+    :param password: password
+    :type password: str
+    :param port: port number
+    :type port: int
+    '''
     logging.debug('Performing SSH key setup on %s:%d as %s.' %
                   (hostname, port, user))
 
