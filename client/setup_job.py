@@ -30,7 +30,7 @@ class setup_job(client_job.job):
         Since setup_job is a client job but run on a server, it takes no control
         file as input. So client_job.__init__ is by-passed.
 
-        @param options: an object passed in from command line OptionParser.
+        :param options: an object passed in from command line OptionParser.
                         See all options defined on client/autotest.
         """
         base_job.base_job.__init__(self, options=options)
@@ -44,9 +44,9 @@ def init_test(options, testdir):
     """
     Instantiate a client test object from a given test directory.
 
-    @param options Command line options passed in to instantiate a setup_job
+    :param options Command line options passed in to instantiate a setup_job
                    which associates with this test.
-    @param testdir The test directory.
+    :param testdir The test directory.
     :return: A test object or None if failed to instantiate.
     """
 
@@ -97,7 +97,7 @@ def load_all_client_tests(options):
 
     This function is inspired from runtest() on client/shared/test.py.
 
-    @param options: an object passed in from command line OptionParser.
+    :param options: an object passed in from command line OptionParser.
                     See all options defined on client/autotest.
 
     :return: a tuple containing the list of all instantiated tests and
@@ -172,7 +172,7 @@ def setup_tests(options):
 
     This function is inspired from runtest() on client/shared/test.py.
 
-    @param options: an object passed in from command line OptionParser.
+    :param options: an object passed in from command line OptionParser.
                     See all options defined on client/autotest.
     """
 

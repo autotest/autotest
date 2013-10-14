@@ -39,8 +39,8 @@ def parse_ssh_path(repo):
     '''
     Parse an SSH url
 
-    @type repo: string
-    @param repo: a repo uri like ssh://xx@xx/path/to/
+    :type repo: string
+    :param repo: a repo uri like ssh://xx@xx/path/to/
     :return: tuple with (host, remote_path)
     '''
     match = re.search('^ssh://([^/]+)(/.*)$', repo)
@@ -59,15 +59,15 @@ def repo_run_command(repo, cmd, ignore_status=False, cd=True):
     directory if it is appropriate, so parameters such as cmd and ignore_status
     are passed along to it.
 
-    @type repo: string
-    @param repo: a repository url
-    @type cmd: string
-    @param cmd: the command to be executed. This is passed along to utils.run()
-    @type ignore_status: boolean
-    @param ignore_status: do not raise an exception, no matter what the exit
+    :type repo: string
+    :param repo: a repository url
+    :type cmd: string
+    :param cmd: the command to be executed. This is passed along to utils.run()
+    :type ignore_status: boolean
+    :param ignore_status: do not raise an exception, no matter what the exit
             code of the command is.
-    @type cd: boolean
-    @param cd: wether to change the working directory to the repo directory
+    :type cd: boolean
+    :param cd: wether to change the working directory to the repo directory
             before running the specified command.
     :return: a CmdResult object or None
     :raise CmdError: the exit code of the command execution was not 0
@@ -100,8 +100,8 @@ def create_directory(repo):
     '''
     Create a directory over at the remote repository
 
-    @type repo: string
-    @param repo: the repo URL containing the remote directory path
+    :type repo: string
+    :param repo: the repo URL containing the remote directory path
     :return: a CmdResult object or None
     '''
     remote_path = repo
@@ -118,10 +118,10 @@ def check_diskspace(repo, min_free=None):
     configuration file, section [PACKAGES], key 'mininum_free_space'. The unit
     used are in SI, that is, 1 GB = 10**9 bytes.
 
-    @type repo: string
-    @param repo: a remote package repo URL
-    @type min_free: int
-    @param: min_free mininum amount of free space, in GB (10**9 bytes)
+    :type repo: string
+    :param repo: a remote package repo URL
+    :type min_free: int
+    :param: min_free mininum amount of free space, in GB (10**9 bytes)
     :raise error.RepoUnknownError: general repository error condition
     :raise error.RepoDiskFullError: repository does not have at least the
         requested amount of free disk space.
@@ -144,8 +144,8 @@ def check_write(repo):
     '''
     Checks that the remote repository directory is writable
 
-    @type repo: string
-    @param repo: a remote package repo URL
+    :type repo: string
+    :param repo: a remote package repo URL
     :raise error.RepoWriteError: repository write error
     '''
     try:
@@ -164,8 +164,8 @@ def trim_custom_directories(repo, older_than_days=None):
     taken from the global configuration file, at section [PACKAGES],
     configuration item 'custom_max_age'.
 
-    @type repo: string
-    @param repo: a remote package repo URL
+    :type repo: string
+    :param repo: a remote package repo URL
     '''
     if not repo:
         return
@@ -189,10 +189,10 @@ class RepositoryFetcher(object):
         """
         Initializes a new Repository Fetcher
 
-        @type package_manager: BasePackageManager instance
-        @param package_manager: and instance of BasePackageManager class
-        @type repository_url: string
-        @param repository_url: The base URL of the repository
+        :type package_manager: BasePackageManager instance
+        :param package_manager: and instance of BasePackageManager class
+        :type repository_url: string
+        :param repository_url: The base URL of the repository
         """
         self.run_command = package_manager._run_command
         self.url = repository_url
@@ -202,12 +202,12 @@ class RepositoryFetcher(object):
         """
         Install setup for a package based on fetcher type.
 
-        @type name: string
-        @param name:  The filename to be munged
-        @type fetch_dir: string
-        @param fetch_dir: The destination path to be munged
-        @type install: boolean
-        @param install: Whether this is be called from the install path or not
+        :type name: string
+        :param name:  The filename to be munged
+        :type fetch_dir: string
+        :param fetch_dir: The destination path to be munged
+        :type install: boolean
+        :param install: Whether this is be called from the install path or not
         :return: tuple with (name, fetch_dir)
         """
         if install:
@@ -219,10 +219,10 @@ class RepositoryFetcher(object):
         """
         Fetch a package file from a package repository.
 
-        @type filename: string
-        @param filename: The filename of the package file to fetch.
-        @type dest_path: string
-        @param dest_path: Destination path to download the file to.
+        :type filename: string
+        :param filename: The filename of the package file to fetch.
+        :type dest_path: string
+        :param dest_path: Destination path to download the file to.
         :raise PackageFetchError: if the fetch failed
         """
         raise NotImplementedError()
@@ -232,13 +232,13 @@ class RepositoryFetcher(object):
         """
         Fetcher specific post install
 
-        @type filename: string
-        @param filename: The filename of the package to install
-        @type fetch_dir: string
-        @param fetch_dir: The fetched path of the package
-        @type install_dir: string
-        @param install_dir: The path to install the package to
-        @type preserve_install_dir: boolean
+        :type filename: string
+        :param filename: The filename of the package to install
+        :type fetch_dir: string
+        :param fetch_dir: The fetched path of the package
+        :type install_dir: string
+        :param install_dir: The path to install the package to
+        :type preserve_install_dir: boolean
         @preserve_install_dir: Preserve the install directory
         """
         # check to see if the install_dir exists and if it does
@@ -302,10 +302,10 @@ class HttpFetcher(RepositoryFetcher):
         """
         Fetch a package file from a package repository.
 
-        @type filename: string
-        @param filename: The filename of the package file to fetch.
-        @type dest_path: string
-        @param dest_path: Destination path to download the file to.
+        :type filename: string
+        :param filename: The filename of the package file to fetch.
+        :type dest_path: string
+        :param dest_path: Destination path to download the file to.
         :raise PackageFetchError: if the fetch failed
         """
         logging.info('Fetching %s from %s to %s', filename, self.url,
@@ -352,10 +352,10 @@ class GitFetcher(RepositoryFetcher):
         """
         Initializes a new GitFetcher
 
-        @type package_manager: BasePackageManager class
-        @param package_manager: and instance of BasePackageManager class
-        @type repository_url: string
-        @param repository_url: The base URL of the git repository
+        :type package_manager: BasePackageManager class
+        :param package_manager: and instance of BasePackageManager class
+        :type repository_url: string
+        :param repository_url: The base URL of the git repository
         """
         super(GitFetcher, self).__init__(package_manager, repository_url)
         self._set_repo_url_branch(repository_url)
@@ -366,8 +366,8 @@ class GitFetcher(RepositoryFetcher):
         '''
         Parse the url, look for a branch and set it accordingly
 
-        @type repository_url: string
-        @param repository_url: The base URL of the git repository
+        :type repository_url: string
+        :param repository_url: The base URL of the git repository
         '''
         # do we have branch info in the repoistory_url?
         branch = "master"
@@ -386,10 +386,10 @@ class GitFetcher(RepositoryFetcher):
         a bz2'd tarball file.  However 'filename' is <type>-<name>.tar.bz2
         break this up and only fetch <name>.
 
-        @type filename: string
-        @param filename: The filename of the package file to fetch.
-        @type dest_path: string
-        @param dest_path: Destination path to download the file to.
+        :type filename: string
+        :param filename: The filename of the package file to fetch.
+        :type dest_path: string
+        :param dest_path: Destination path to download the file to.
         """
         logging.info('Fetching %s from %s to %s', filename, self.url,
                      dest_path)
@@ -458,26 +458,26 @@ class BasePackageManager(object):
         machine or on a remote machine (in which case ssh_host's run function
         is passed in for run_function).
 
-        @type pkgmgr_dir: string
-        @param pkgmgr_dir: A directory that can be used by the package manager
+        :type pkgmgr_dir: string
+        :param pkgmgr_dir: A directory that can be used by the package manager
                  to dump stuff (like checksum files of the repositories etc)
-        @type hostname: string
-        @param hostname: hostname from where to fetch a list of package repos
-        @type repo_urls: list of strings
-        @param repo_urls: The list of the repository urls which is consulted
+        :type hostname: string
+        :param hostname: hostname from where to fetch a list of package repos
+        :type repo_urls: list of strings
+        :param repo_urls: The list of the repository urls which is consulted
                  whilst fetching the package
-        @type upload_paths: list of strings
-        @param upload_paths: The list of the upload of repositories to which
+        :type upload_paths: list of strings
+        :param upload_paths: The list of the upload of repositories to which
                  the package is uploaded to
-        @type do_locking: boolean
-        @param do_locking: Enable locking when the packages are installed.
-        @type run_function: function
-        @param run_function: function used to execute commands.
-        @type run_function_args: tuple
-        @param run_function_args: positional (tuple-like) arguments to
+        :type do_locking: boolean
+        :param do_locking: Enable locking when the packages are installed.
+        :type run_function: function
+        :param run_function: function used to execute commands.
+        :type run_function_args: tuple
+        :param run_function_args: positional (tuple-like) arguments to
                  run_function
-        @param run_function_dargs: dictionary
-        @param run_function_dargs: named (dictionary-like) arguments to
+        :param run_function_dargs: dictionary
+        :param run_function_dargs: named (dictionary-like) arguments to
                  run_function
         '''
         # In memory dictionary that stores the checksum's of packages
@@ -998,12 +998,12 @@ class BasePackageManager(object):
         specified on the exclude string, while tarring the source. Returns the
         destination tarball path.
 
-        @param pkg_name: Package name.
-        @param src_dir: Directory that contains the data to be packaged.
-        @param dest_dir: Directory that will hold the destination tarball.
-        @param include_string: Pattern that represents the files that will be
+        :param pkg_name: Package name.
+        :param src_dir: Directory that contains the data to be packaged.
+        :param dest_dir: Directory that will hold the destination tarball.
+        :param include_string: Pattern that represents the files that will be
                 added to the tar package.
-        @param exclude_string: Pattern that represents the files that should be
+        :param exclude_string: Pattern that represents the files that should be
                 excluded from the tar package. It could be either a string or
                 a list.
         '''
@@ -1074,8 +1074,8 @@ class BasePackageManager(object):
         """
         Converts a package name and type into a tarball name.
 
-        @param name: The name of the package
-        @param pkg_type: The type of the package
+        :param name: The name of the package
+        :param pkg_type: The type of the package
 
         :return: A tarball filename for that specific type of package
         """
@@ -1086,7 +1086,7 @@ class BasePackageManager(object):
     def parse_tarball_name(tarball_name):
         """Coverts a package tarball name into a package name and type.
 
-        @param tarball_name: The filename of the tarball
+        :param tarball_name: The filename of the tarball
 
         :return: (name, pkg_type) where name is the package name and pkg_type
             is the package type.

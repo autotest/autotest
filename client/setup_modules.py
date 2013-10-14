@@ -35,7 +35,7 @@ def _create_module(name):
     """
     Create a single top-level module and add it to sys.modules.
 
-    @param name: Module name, such as 'autotest'.
+    :param name: Module name, such as 'autotest'.
     """
     module = new.module(name)
     sys.modules[name] = module
@@ -46,7 +46,7 @@ def _create_module_and_parents(name):
     """
     Create a module, and all the necessary parents and add them to sys.modules.
 
-    @param name: Module name, such as 'autotest.client'.
+    :param name: Module name, such as 'autotest.client'.
     """
     parts = name.split(".")
     # first create the top-level module
@@ -67,8 +67,8 @@ def import_module(module, from_where):
     """
     Equivalent to 'from from_where import module'.
 
-    @param module: Module name.
-    @param from_where: Package from where the module is being imported.
+    :param module: Module name.
+    :param from_where: Package from where the module is being imported.
     :return: The corresponding module.
     """
     from_module = __import__(from_where, globals(), locals(), [module])
@@ -82,8 +82,8 @@ def setup(base_path, root_module_name="autotest"):
     Perform all the necessary setup so that all the packages at
     'base_path' can be imported via "import root_module_name.package".
 
-    @param base_path: Base path for the module.
-    @param root_module_name: Top level name for the module.
+    :param base_path: Base path for the module.
+    :param root_module_name: Top level name for the module.
     """
     if sys.modules.has_key(root_module_name):
         # already set up

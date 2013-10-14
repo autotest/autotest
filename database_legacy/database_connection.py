@@ -292,7 +292,7 @@ class TranslatingDatabase(DatabaseConnection):
 
     def __init__(self, translators):
         """
-        @param translation_regexps: list of callables to apply to each query
+        :param translation_regexps: list of callables to apply to each query
                 string (in order).  Each accepts a query string and returns a
                 (possibly) modified query string.
         """

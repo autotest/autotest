@@ -301,15 +301,15 @@ def get_sync_control_file(control, host_name, host_num,
      Client    |      c_bar             c_bar        ......      c_bar
      Client    |    <run test>         <run test>    ......     <run test>
 
-    @param control: The control file which to which the above synchronization
+    :param control: The control file which to which the above synchronization
             code will be prepended.
-    @param host_name: The host name on which the job is going to run.
-    @param host_num: (non negative) A number to identify the machine so that
+    :param host_name: The host name on which the job is going to run.
+    :param host_num: (non negative) A number to identify the machine so that
             we have different sets of s_bar_ports for each of the machines.
-    @param instance: The number of the job
-    @param num_jobs: Total number of jobs that are going to run in parallel
+    :param instance: The number of the job
+    :param num_jobs: Total number of jobs that are going to run in parallel
             with this job starting at the same time.
-    @param port_base: Port number that is used to derive the actual barrier
+    :param port_base: Port number that is used to derive the actual barrier
             ports.
 
     :return: The modified control file.

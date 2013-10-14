@@ -21,8 +21,8 @@ class BaseFsdevManager(object):
 
     def check_mount_point(self, part_name, mount_point):
         """
-        @param part_name: A partition name such as 'sda3' or similar.
-        @param mount_point: A mount point such as '/usr/local' or an empty
+        :param part_name: A partition name such as 'sda3' or similar.
+        :param mount_point: A mount point such as '/usr/local' or an empty
                 string if no mount point is known.
 
         :return: The expected mount point for part_name or a false value
@@ -32,7 +32,7 @@ class BaseFsdevManager(object):
 
     def use_partition(self, part_name):
         """
-        @param part_name: A partition name such as 'sda3' or similar.
+        :param part_name: A partition name such as 'sda3' or similar.
 
         :return: bool, should we use this partition for testing?
         """

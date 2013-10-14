@@ -32,11 +32,11 @@ class FsOptions(object):
         """
         Fill in our properties.
 
-        @param fstype: The filesystem type ('ext2', 'ext4', 'xfs', etc.)
-        @param fs_tag: A short name for this filesystem test to use
+        :param fstype: The filesystem type ('ext2', 'ext4', 'xfs', etc.)
+        :param fs_tag: A short name for this filesystem test to use
                 in the results.
-        @param mkfs_flags: Optional. Additional command line options to mkfs.
-        @param mount_options: Optional. The options to pass to mount -o.
+        :param mkfs_flags: Optional. Additional command line options to mkfs.
+        :param mount_options: Optional. The options to pass to mount -o.
         """
 
         if not fstype or not fs_tag:
@@ -100,7 +100,7 @@ def is_linux_fs_type(device):
     """
     Checks if specified partition is type 83
 
-    @param device: the device, e.g. /dev/sda3
+    :param device: the device, e.g. /dev/sda3
 
     :return: False if the supplied partition name is not type 83 linux, True
             otherwise
@@ -130,17 +130,17 @@ def get_partition_list(job, min_blocks=0, filter_func=None, exclude_swap=True,
 
     Loopback devices and unnumbered (whole disk) devices are always excluded.
 
-    @param job: The job instance to pass to the partition object
+    :param job: The job instance to pass to the partition object
             constructor.
-    @param min_blocks: The minimum number of blocks for a partition to
+    :param min_blocks: The minimum number of blocks for a partition to
             be considered.
-    @param filter_func: A callable that returns True if a partition is
+    :param filter_func: A callable that returns True if a partition is
             desired. It will be passed one parameter:
             The partition name (hdc3, etc.).
             Some useful filter functions are already defined in this module.
-    @param exclude_swap: If True any partition actively in use as a swap
+    :param exclude_swap: If True any partition actively in use as a swap
             device will be excluded.
-    @param __open: Reserved for unit testing.
+    :param __open: Reserved for unit testing.
 
     :return: A list of L{partition} objects.
     """
@@ -210,8 +210,8 @@ def filter_partition_list(partitions, devnames):
     of strings.  If a partition has the device name of the strings it
     is returned in a list.
 
-    @param partitions: A list of L{partition} objects
-    @param devnames: A list of devnames of the form '/dev/hdc3' that
+    :param partitions: A list of L{partition} objects
+    :param devnames: A list of devnames of the form '/dev/hdc3' that
                     specifies which partitions to include in the returned list.
 
     :return: A list of L{partition} objects specified by devnames, in the
@@ -233,14 +233,14 @@ def get_unmounted_partition_list(root_part, job=None, min_blocks=0,
     """
     Return a list of partition objects that are not mounted.
 
-    @param root_part: The root device name (without the '/dev/' prefix, example
+    :param root_part: The root device name (without the '/dev/' prefix, example
             'hda2') that will be filtered from the partition list.
 
             Reasoning: in Linux /proc/mounts will never directly mention the
             root partition as being mounted on / instead it will say that
             /dev/root is mounted on /. Thus require this argument to filter out
             the root_part from the ones checked to be mounted.
-    @param job, min_blocks, filter_func, exclude_swap, open_func: Forwarded
+    :param job, min_blocks, filter_func, exclude_swap, open_func: Forwarded
             to get_partition_list().
     :return: List of L{partition} objects that are not mounted.
     """
@@ -294,7 +294,7 @@ def unmount_partition(device):
     """
     Unmount a mounted partition
 
-    @param device: e.g. /dev/sda1, /dev/hda1
+    :param device: e.g. /dev/sda1, /dev/hda1
     """
     p = partition(job=None, device=device)
     p.unmount(record=False)
@@ -304,7 +304,7 @@ def is_valid_partition(device):
     """
     Checks if a partition is valid
 
-    @param device: e.g. /dev/sda1, /dev/hda1
+    :param device: e.g. /dev/sda1, /dev/hda1
     """
     parts = get_partition_list(job=None)
     p_list = [p.device for p in parts]
@@ -318,7 +318,7 @@ def is_valid_disk(device):
     """
     Checks if a disk is valid
 
-    @param device: e.g. /dev/sda, /dev/hda
+    :param device: e.g. /dev/sda, /dev/hda
     """
     partitions = []
     for partline in open('/proc/partitions').readlines():
@@ -344,18 +344,18 @@ def run_test_on_partitions(job, test, partitions, mountpoint_func,
     made on the partitions and mounted, then the test will run, then the
     filesystems will be unmounted and optionally fsck'd.
 
-    @param job: A job instance to run the test
-    @param test: A string containing the name of the test
-    @param partitions: A list of partition objects, these are passed to the
+    :param job: A job instance to run the test
+    :param test: A string containing the name of the test
+    :param partitions: A list of partition objects, these are passed to the
             test as partitions=
-    @param mountpoint_func: A callable that returns a mountpoint given a
+    :param mountpoint_func: A callable that returns a mountpoint given a
             partition instance
-    @param tag: A string tag to make this test unique (Required for control
+    :param tag: A string tag to make this test unique (Required for control
             files that make multiple calls to this routine with the same value
             of 'test'.)
-    @param fs_opt: An FsOptions instance that describes what filesystem to make
-    @param do_fsck: include fsck in post-test partition cleanup.
-    @param dargs: Dictionary of arguments to be passed to job.run_test() and
+    :param fs_opt: An FsOptions instance that describes what filesystem to make
+    :param do_fsck: include fsck in post-test partition cleanup.
+    :param dargs: Dictionary of arguments to be passed to job.run_test() and
             eventually the test
     """
     # setup the filesystem parameters for all the partitions
@@ -384,8 +384,8 @@ class partition(object):
 
     def __init__(self, job, device, loop_size=0, mountpoint=None):
         """
-        @param job: A L{client.job} instance.
-        @param device: The device in question (e.g."/dev/hda2"). If device is a
+        :param job: A L{client.job} instance.
+        :param device: The device in question (e.g."/dev/hda2"). If device is a
                 file it will be mounted as loopback. If you have job config
                 'partition.partitions', e.g.,
             job.config_set('partition.partitions', ["/dev/sda2", "/dev/sda3"])
@@ -393,7 +393,7 @@ class partition(object):
                 "part1" to refer to elements of the partition list. This is
                 specially useful if you run a test in various machines and you
                 don't want to hardcode device names as those may vary.
-        @param loop_size: Size of loopback device (in MB). Defaults to 0.
+        :param loop_size: Size of loopback device (in MB). Defaults to 0.
         """
         # NOTE: This code is used by IBM / ABAT. Do not remove.
         part = re.compile(r'^part(\d+)$')
@@ -426,7 +426,7 @@ class partition(object):
         """
         Set filesystem options
 
-            @param fs_options: A L{FsOptions} object
+            :param fs_options: A L{FsOptions} object
         """
 
         self.fstype = fs_options.fstype
@@ -444,7 +444,7 @@ class partition(object):
         new filesystem (according to this partition's filesystem
         options) and mounts it where directed by mountpoint_func.
 
-        @param mountpoint_func: A callable that returns a path as a string,
+        :param mountpoint_func: A callable that returns a path as a string,
                 given a partition instance.
         """
         mountpoint = mountpoint_func(self)
@@ -464,8 +464,8 @@ class partition(object):
         Tests are also run by first umounting, mkfsing and then mounting
         before executing the test.
 
-        @param test: name of test to run
-        @param mountpoint_func: function to return mount point string
+        :param test: name of test to run
+        :param mountpoint_func: function to return mount point string
         """
         tag = dargs.get('tag')
         if tag:
@@ -501,9 +501,9 @@ class partition(object):
         """
         Find the mount point of this partition object.
 
-        @param open_func: the function to use for opening the file containing
+        :param open_func: the function to use for opening the file containing
                 the mounted partitions information
-        @param filename: where to look for the mounted partitions information
+        :param filename: where to look for the mounted partitions information
                 (default None which means it will search /proc/mounts and/or
                 /etc/mtab)
 
@@ -552,9 +552,9 @@ class partition(object):
         """
         Format a partition to filesystem type
 
-        @param fstype: the filesystem type, e.g.. "ext3", "ext2"
-        @param args: arguments to be passed to mkfs command.
-        @param record: if set, output result of mkfs operation to autotest
+        :param fstype: the filesystem type, e.g.. "ext3", "ext2"
+        :param args: arguments to be passed to mkfs command.
+        :param record: if set, output result of mkfs operation to autotest
                 output
         """
 
@@ -629,7 +629,7 @@ class partition(object):
         """
         Run filesystem check
 
-        @param args: arguments to filesystem check tool. Default is "-n"
+        :param args: arguments to filesystem check tool. Default is "-n"
                 which works on most tools.
         """
 
@@ -654,12 +654,12 @@ class partition(object):
         """
         Mount this partition to a mount point
 
-        @param mountpoint: If you have not provided a mountpoint to partition
+        :param mountpoint: If you have not provided a mountpoint to partition
                 object or want to use a different one, you may specify it here.
-        @param fstype: Filesystem type. If not provided partition object value
+        :param fstype: Filesystem type. If not provided partition object value
                 will be used.
-        @param args: Arguments to be passed to "mount" command.
-        @param record: If True, output result of mount operation to autotest
+        :param args: Arguments to be passed to "mount" command.
+        :param record: If True, output result of mount operation to autotest
                 output.
         """
 
@@ -754,8 +754,8 @@ class partition(object):
         If there turns out to be a problem with the simple umount we
         end up calling umount_force to get more  aggressive.
 
-        @param ignore_status: should we notice the umount status
-        @param record: if True, output result of umount operation to
+        :param ignore_status: should we notice the umount status
+        :param record: if True, output result of umount operation to
                 autotest output
         """
 
@@ -833,8 +833,8 @@ class virtual_partition:
         under /dev/mapper (device attribute) so test writers can use it
         on their filesystem tests.
 
-        @param file_img: Path to the desired disk image file.
-        @param file_size: Size of the desired image in Bytes.
+        :param file_img: Path to the desired disk image file.
+        :param file_size: Size of the desired image in Bytes.
         """
         logging.debug('Sanity check before attempting to create virtual '
                       'partition')
@@ -868,8 +868,8 @@ class virtual_partition:
         """
         Creates a disk image using dd.
 
-        @param img_path: Path to the desired image file.
-        @param size: Size of the desired image in Bytes.
+        :param img_path: Path to the desired image file.
+        :param size: Size of the desired image in Bytes.
         :return: Path of the image created.
         """
         logging.debug('Creating disk image %s, size = %d Bytes', img_path, size)
@@ -885,7 +885,7 @@ class virtual_partition:
         """
         Attaches a file image to a loopback device using losetup.
 
-        @param img_path: Path of the image file that will be attached to a
+        :param img_path: Path of the image file that will be attached to a
                 loopback device
         :return: Path of the loopback device associated.
         """
@@ -905,7 +905,7 @@ class virtual_partition:
         """
         Creates a single partition encompassing the whole 'disk' using cfdisk.
 
-        @param loop_path: Path to the loopback device.
+        :param loop_path: Path to the loopback device.
         """
         logging.debug('Creating single partition on %s', loop_path)
         try:
@@ -926,7 +926,7 @@ class virtual_partition:
         have partitioned it using a single partition, only one partition
         will be returned.
 
-        @param loop_path: Path to the loopback device.
+        :param loop_path: Path to the loopback device.
         """
         logging.debug('Creating entries under /dev/mapper for %s loop dev',
                       loop_path)

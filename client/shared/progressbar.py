@@ -20,12 +20,12 @@ class ProgressBar:
         '''
         Initializes a new progress bar
 
-        @type mininum: integer
-        @param mininum: mininum (initial) value on the progress bar
-        @type maximum: integer
-        @param maximum: maximum (final) value on the progress bar
-        @type width: integer
-        @param with: number of columns, that is screen width
+        :type mininum: integer
+        :param mininum: mininum (initial) value on the progress bar
+        :type maximum: integer
+        :param maximum: maximum (final) value on the progress bar
+        :type width: integer
+        :param with: number of columns, that is screen width
         '''
         assert maximum > minimum
 

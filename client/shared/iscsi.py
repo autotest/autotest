@@ -47,7 +47,7 @@ def iscsi_login(target_name):
     """
     Login to a target with the target name
 
-    @param target_name: Name of the target
+    :param target_name: Name of the target
     """
     cmd = "iscsiadm --mode node --login --targetname %s" % target_name
     output = utils.system_output(cmd)
@@ -64,7 +64,7 @@ def iscsi_logout(target_name=None):
     Logout from a target. If the target name is not set then logout all
     targets.
 
-    @params target_name: Name of the target.
+    :params target_name: Name of the target.
     """
     if target_name:
         cmd = "iscsiadm --mode node --logout -T %s" % target_name
@@ -83,7 +83,7 @@ def iscsi_discover(portal_ip):
     """
     Query from iscsi server for available targets
 
-    @param portal_ip: Ip for iscsi server
+    :param portal_ip: Ip for iscsi server
     """
     cmd = "iscsiadm -m discovery -t sendtargets -p %s" % portal_ip
     output = utils.system_output(cmd, ignore_status=True)

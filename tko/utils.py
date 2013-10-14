@@ -29,7 +29,7 @@ def drop_redundant_messages(messages):
     """ Given a set of message strings discard any 'redundant' messages which
     are simple a substring of the existing ones.
 
-    @param messages - a set of message strings
+    :param messages - a set of message strings
 
     :return: - a subset of messages with unnecessary strings dropped
     """
@@ -47,7 +47,7 @@ def drop_redundant_messages(messages):
 def get_afe_job_id(tag):
     """ Given a tag return the afe_job_id (if any).
 
-    @param
+    :param
     tag: afe_job_id is extracted from this tag
 
     :return:

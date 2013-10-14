@@ -51,7 +51,7 @@ class kvm_stat(profiler.profiler):
         """
         Starts kvm_stat subprocess.
 
-        @param test: Autotest test on which this profiler will operate on.
+        :param test: Autotest test on which this profiler will operate on.
         """
         if self.is_enabled:
             cmd = "%s -l" % self.stat_path
@@ -67,7 +67,7 @@ class kvm_stat(profiler.profiler):
         """
         Stops profiler execution by sending a SIGTERM to kvm_stat process.
 
-        @param test: Autotest test on which this profiler will operate on.
+        :param test: Autotest test on which this profiler will operate on.
         """
         if self.is_enabled:
             try:
@@ -79,6 +79,6 @@ class kvm_stat(profiler.profiler):
         """
         Report function. Does nothing as there's no postprocesing needed.
 
-        @param test: Autotest test on which this profiler will operate on.
+        :param test: Autotest test on which this profiler will operate on.
         """
         return None

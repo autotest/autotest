@@ -344,7 +344,7 @@ def read_file(filename):
 def get_field(data, param, linestart="", sep=" "):
     """
     Parse data from string.
-    @param data: Data to parse.
+    :param data: Data to parse.
         example:
           data:
              cpu   324 345 34  5 345
@@ -352,9 +352,9 @@ def get_field(data, param, linestart="", sep=" "):
              ^^^^
              start of line
              params 0   1   2  3   4
-    @param param: Position of parameter after linestart marker.
-    @param linestart: String to which start line with parameters.
-    @param sep: Separator between parameters regular expression.
+    :param param: Position of parameter after linestart marker.
+    :param linestart: String to which start line with parameters.
+    :param sep: Separator between parameters regular expression.
     """
     search = re.compile(r"(?<=^%s)\s*(.*)" % linestart, re.MULTILINE)
     find = search.search(data)
@@ -385,8 +385,8 @@ def matrix_to_string(matrix, header=None):
     database results. It works by scanning the lengths of each element
     in each column, and determining the format string dynamically.
 
-    @param matrix: Matrix representation (list with n rows of m elements).
-    @param header: Optional tuple or list with header elements to be displayed.
+    :param matrix: Matrix representation (list with n rows of m elements).
+    :param header: Optional tuple or list with header elements to be displayed.
     """
     if type(header) is list:
         header = tuple(header)
@@ -491,9 +491,9 @@ def write_keyval(path, dictionary, type_tag=None, tap_report=None):
     null then the keys must also have "{type_tag}" as a suffix. At
     the moment the only valid values of type_tag are "attr" and "perf".
 
-    @param path: full path of the file to be written
-    @param dictionary: the items to write
-    @param type_tag: see text above
+    :param path: full path of the file to be written
+    :param dictionary: the items to write
+    :param type_tag: see text above
     """
     if os.path.isdir(path):
         path = os.path.join(path, 'keyval')
@@ -535,7 +535,7 @@ class FileFieldMonitor(object):
 
         def __init__(self, master):
             """
-            @param master: Master class which control Monitor
+            :param master: Master class which control Monitor
             """
             Thread.__init__(self)
             self.master = master
@@ -552,9 +552,9 @@ class FileFieldMonitor(object):
                  contlogging=False, separator=" +", time_step=0.1):
         """
         Initialize variables.
-        @param status_file: File contain status.
-        @param mode_diff: If True make a difference of value, else average.
-        @param data_to_read: List of tuples with data position.
+        :param status_file: File contain status.
+        :param mode_diff: If True make a difference of value, else average.
+        :param data_to_read: List of tuples with data position.
             format: [(start_of_line,position in params)]
             example:
               data:
@@ -563,13 +563,13 @@ class FileFieldMonitor(object):
                  ^^^^
                  start of line
                  params 0   1   2  3   4
-        @param mode_diff: True to subtract old value from new value,
+        :param mode_diff: True to subtract old value from new value,
             False make average of the values.
-        @param continuously: Start the monitoring thread using the time_step
+        :param continuously: Start the monitoring thread using the time_step
             as the measurement period.
-        @param contlogging: Log data in continuous run.
-        @param separator: Regular expression of separator.
-        @param time_step: Time period of the monitoring value.
+        :param contlogging: Log data in continuous run.
+        :param separator: Regular expression of separator.
+        :param time_step: Time period of the monitoring value.
         """
         self.end_event = Event()
         self.start_time = 0
@@ -596,7 +596,7 @@ class FileFieldMonitor(object):
     def _get_value(self, logging=True):
         """
         Return current values.
-        @param logging: If true log value in memory. There can be problem
+        :param logging: If true log value in memory. There can be problem
           with long run.
         """
         data = read_file(self.status_file)
@@ -713,7 +713,7 @@ def hash(type, input=None):
     make the function to behave exactly the same among both python
     implementations.
 
-    @param input: Optional input string that will be used to update the hash.
+    :param input: Optional input string that will be used to update the hash.
     """
     if type not in ['md5', 'sha1']:
         raise ValueError("Unsupported hash type: %s" % type)
@@ -839,20 +839,20 @@ def run(command, timeout=None, ignore_status=False,
     """
     Run a command on the host.
 
-    @param command: the command line string.
-    @param timeout: time limit in seconds before attempting to kill the
+    :param command: the command line string.
+    :param timeout: time limit in seconds before attempting to kill the
             running process. The run() function will take a few seconds
             longer than 'timeout' to complete if it has to kill the process.
-    @param ignore_status: do not raise an exception, no matter what the exit
+    :param ignore_status: do not raise an exception, no matter what the exit
             code of the command is.
-    @param stdout_tee: optional file-like object to which stdout data
+    :param stdout_tee: optional file-like object to which stdout data
             will be written as it is generated (data will still be stored
             in result.stdout).
-    @param stderr_tee: likewise for stderr.
-    @param verbose: if True, log the command being run.
-    @param stdin: stdin to pass to the executed process (can be a file
+    :param stderr_tee: likewise for stderr.
+    :param verbose: if True, log the command being run.
+    :param stdin: stdin to pass to the executed process (can be a file
             descriptor, a file object of a real file or a string).
-    @param args: sequence of strings of arguments to be given to the command
+    :param args: sequence of strings of arguments to be given to the command
             inside " quotes after they have been escaped for that; each
             element in the sequence will be given as a separate command
             argument
@@ -918,9 +918,9 @@ class InterruptedThread(Thread):
         """
         Initialize the instance.
 
-        @param target: Function to run in the thread.
-        @param args: Arguments to pass to target.
-        @param kwargs: Keyword arguments to pass to target.
+        :param target: Function to run in the thread.
+        :param args: Arguments to pass to target.
+        :param kwargs: Keyword arguments to pass to target.
         """
         Thread.__init__(self)
         self._target = target
@@ -951,8 +951,8 @@ class InterruptedThread(Thread):
         Join the thread.  If target raised an exception, re-raise it.
         Otherwise, return the value returned by target.
 
-        @param timeout: Timeout value to pass to threading.Thread.join().
-        @param suppress_exception: If True, don't re-raise the exception.
+        :param timeout: Timeout value to pass to threading.Thread.join().
+        :param suppress_exception: If True, don't re-raise the exception.
         """
         Thread.join(self, timeout)
         try:
@@ -1179,11 +1179,11 @@ def system(command, timeout=None, ignore_status=False, verbose=True):
     """
     Run a command
 
-    @param timeout: timeout in seconds
-    @param ignore_status: if ignore_status=False, throw an exception if the
+    :param timeout: timeout in seconds
+    :param ignore_status: if ignore_status=False, throw an exception if the
             command's exit code is non-zero
             if ignore_status=True, return the exit code.
-    @param verbose: if True, log the command being run.
+    :param verbose: if True, log the command being run.
 
     :return: exit status of command
             (note, this will always be zero unless ignore_status=True)
@@ -1206,19 +1206,19 @@ def system_output(command, timeout=None, ignore_status=False,
     """
     Run a command and return the stdout output.
 
-    @param command: command string to execute.
-    @param timeout: time limit in seconds before attempting to kill the
+    :param command: command string to execute.
+    :param timeout: time limit in seconds before attempting to kill the
             running process. The function will take a few seconds longer
             than 'timeout' to complete if it has to kill the process.
-    @param ignore_status: do not raise an exception, no matter what the exit
+    :param ignore_status: do not raise an exception, no matter what the exit
             code of the command is.
-    @param retain_output: set to True to make stdout/stderr of the command
+    :param retain_output: set to True to make stdout/stderr of the command
             output to be also sent to the logging system
-    @param args: sequence of strings of arguments to be given to the command
+    :param args: sequence of strings of arguments to be given to the command
             inside " quotes after they have been escaped for that; each
             element in the sequence will be given as a separate command
             argument
-    @param verbose: if True, log the command being run.
+    :param verbose: if True, log the command being run.
 
     :return: a string with the stdout output of the command.
     """
@@ -1308,8 +1308,8 @@ class ForAllPSE(list):
 def etraceback(prep, exc_info):
     """
     Enhanced Traceback formats traceback into lines "prep: line\nname: line"
-    @param prep: desired line preposition
-    @param exc_info: sys.exc_info of the exception
+    :param prep: desired line preposition
+    :param exc_info: sys.exc_info of the exception
     :return: string which contains beautifully formatted exception
     """
     out = ""
@@ -1322,8 +1322,8 @@ def etraceback(prep, exc_info):
 def log_last_traceback(msg=None, log=logging.error):
     """
     Writes last traceback into specified log.
-    @param msg: Override the default message. ["Original traceback"]
-    @param log: Where to log the traceback [logging.error]
+    :param msg: Override the default message. ["Original traceback"]
+    :param log: Where to log the traceback [logging.error]
     """
     if not log:
         log = logging.error
@@ -1383,13 +1383,13 @@ class SystemLoad(object):
     def __init__(self, pids, advanced=False, time_step=0.1, cpu_cont=False,
                  use_log=False):
         """
-        @param pids: List of pids to be monitored. If pid = 0 whole system will
+        :param pids: List of pids to be monitored. If pid = 0 whole system will
           be monitored. pid == 0 means whole system.
-        @param advanced: monitor add value for system irq count and softirq
+        :param advanced: monitor add value for system irq count and softirq
           for process minor and maior page fault
-        @param time_step: Time step for continuous monitoring.
-        @param cpu_cont: If True monitor CPU load continuously.
-        @param use_log: If true every monitoring is logged for dump.
+        :param time_step: Time step for continuous monitoring.
+        :param cpu_cont: If True monitor CPU load continuously.
+        :param use_log: If true every monitoring is logged for dump.
         """
         self.pids = []
         self.stats = {}
@@ -1465,7 +1465,7 @@ class SystemLoad(object):
     def start(self, pids=[]):
         """
         Start monitoring of the process system usage.
-        @param pids: List of PIDs you intend to control. Use pids=[] to control
+        :param pids: List of PIDs you intend to control. Use pids=[] to control
             all defined PIDs.
         """
         if pids == []:
@@ -1478,7 +1478,7 @@ class SystemLoad(object):
     def stop(self, pids=[]):
         """
         Stop monitoring of the process system usage.
-        @param pids: List of PIDs you intend to control. Use pids=[] to control
+        :param pids: List of PIDs you intend to control. Use pids=[] to control
             all defined PIDs.
         """
         if pids == []:
@@ -1491,7 +1491,7 @@ class SystemLoad(object):
     def dump(self, pids=[]):
         """
         Get the status of monitoring.
-        @param pids: List of PIDs you intend to control. Use pids=[] to control
+        :param pids: List of PIDs you intend to control. Use pids=[] to control
             all defined PIDs.
          :return:
             tuple([cpu load], [memory load]):
@@ -1524,7 +1524,7 @@ class SystemLoad(object):
     def get_cpu_status_string(self, pids=[]):
         """
         Convert status to string array.
-        @param pids: List of PIDs you intend to control. Use pids=[] to control
+        :param pids: List of PIDs you intend to control. Use pids=[] to control
             all defined PIDs.
         :return: String format to table.
         """
@@ -1560,7 +1560,7 @@ class SystemLoad(object):
     def get_mem_status_string(self, pids=[]):
         """
         Convert status to string array.
-        @param pids: List of PIDs you intend to control. Use pids=[] to control
+        :param pids: List of PIDs you intend to control. Use pids=[] to control
             all defined PIDs.
         :return: String format to table.
         """
@@ -1727,10 +1727,10 @@ def import_site_module(path, module, dummy=None, modulefile=None):
     """
     Try to import the site specific module if it exists.
 
-    @param path full filename of the source file calling this (ie __file__)
-    @param module full module name
-    @param dummy dummy value to return in case there is no symbol to import
-    @param modulefile module filename
+    :param path full filename of the source file calling this (ie __file__)
+    :param module full module name
+    :param dummy dummy value to return in case there is no symbol to import
+    :param modulefile module filename
 
     :return: site specific module or dummy
 
@@ -1750,11 +1750,11 @@ def import_site_symbol(path, module, name, dummy=None, modulefile=None):
     """
     Try to import site specific symbol from site specific file if it exists
 
-    @param path full filename of the source file calling this (ie __file__)
-    @param module full module name
-    @param name symbol name to be imported from the site file
-    @param dummy dummy value to return in case there is no symbol to import
-    @param modulefile module filename
+    :param path full filename of the source file calling this (ie __file__)
+    :param module full module name
+    :param name symbol name to be imported from the site file
+    :param dummy dummy value to return in case there is no symbol to import
+    :param modulefile module filename
 
     :return: site specific symbol or dummy
 
@@ -1874,7 +1874,7 @@ def get_pid_from_file(program_name, pid_files_dir=None):
     """
     Reads the pid from <program_name>.pid in the autotest directory.
 
-    @param program_name the name of the program
+    :param program_name the name of the program
     :return: the pid if the file exists, None otherwise.
     """
     pidfile_path = get_pid_path(program_name, pid_files_dir)
@@ -1899,7 +1899,7 @@ def get_pid_from_file(program_name, pid_files_dir=None):
 def get_process_name(pid):
     """
     Get process name from PID.
-    @param pid: PID of process.
+    :param pid: PID of process.
     """
     return get_field(read_file("/proc/%d/stat" % pid), 1)[1:-1]
 
@@ -1908,7 +1908,7 @@ def program_is_alive(program_name, pid_files_dir=None):
     """
     Checks if the process is alive and not in Zombie state.
 
-    @param program_name the name of the program
+    :param program_name the name of the program
     :return: True if still alive, False otherwise
     """
     pid = get_pid_from_file(program_name, pid_files_dir)
@@ -1921,8 +1921,8 @@ def signal_program(program_name, sig=signal.SIGTERM, pid_files_dir=None):
     """
     Sends a signal to the process listed in <program_name>.pid
 
-    @param program_name the name of the program
-    @param sig signal to send
+    :param program_name the name of the program
+    :param sig signal to send
     """
     pid = get_pid_from_file(program_name, pid_files_dir)
     if pid:
@@ -1933,8 +1933,8 @@ def get_relative_path(path, reference):
     """Given 2 absolute paths "path" and "reference", compute the path of
     "path" as relative to the directory "reference".
 
-    @param path the absolute path to convert to a relative path
-    @param reference an absolute directory path to which the relative
+    :param path the absolute path to convert to a relative path
+    :param reference an absolute directory path to which the relative
         path will be computed
     """
     # normalize the paths (remove double slashes, etc)
@@ -1991,8 +1991,8 @@ def configure(extra=None, configure='./configure'):
     """
     Run configure passing in the correct host, build, and target options.
 
-    @param extra: extra command line arguments to pass to configure
-    @param configure: which configure script to use
+    :param extra: extra command line arguments to pass to configure
+    :param configure: which configure script to use
     """
     args = []
     if 'CHOST' in os.environ:
@@ -2011,7 +2011,7 @@ def make(extra='', make='make', timeout=None, ignore_status=False):
     """
     Run make, adding MAKEOPTS to the list of options.
 
-    @param extra: extra command line arguments to pass to make.
+    :param extra: extra command line arguments to pass to make.
     """
     cmd = '%s %s %s' % (make, os.environ.get('MAKEOPTS', ''), extra)
     return system(cmd, timeout=timeout, ignore_status=ignore_status)
@@ -2110,8 +2110,8 @@ def ask(question, auto=False):
     """
     Raw input with a prompt that emulates logging.
 
-    @param question: Question to be asked
-    @param auto: Whether to return "y" instead of asking the question
+    :param question: Question to be asked
+    :param auto: Whether to return "y" instead of asking the question
     """
     if auto:
         logging.info("%s (y/n) y" % question)
@@ -2124,8 +2124,8 @@ def display_data_size(size):
     '''
     Display data size in human readable units.
 
-    @type size: int
-    @param size: Data size, in Bytes.
+    :type size: int
+    :param size: Data size, in Bytes.
     :return: Human readable string with data size.
     '''
     prefixes = ['B', 'kB', 'MB', 'GB', 'TB']
@@ -2151,8 +2151,8 @@ def convert_data_size(size, default_sufix='B'):
     '''
     Convert data size from human readable units to an int of arbitrary size.
 
-    @param size: Human readable data size representation (string).
-    @param default_sufix: Default sufix used to represent data.
+    :param size: Human readable data size representation (string).
+    :param default_sufix: Default sufix used to represent data.
     :return: Int with data size in the appropriate order of magnitude.
     '''
     orders = {'B': 1,
@@ -2174,14 +2174,14 @@ def interactive_download(url, output_file, title='', chunk_size=100 * 1024):
     '''
     Interactively downloads a given file url to a given output file
 
-    @type url: string
-    @param url: URL for the file to be download
-    @type output_file: string
-    @param output_file: file name or absolute path on which to save the file to
-    @type title: string
-    @param title: optional title to go along the progress bar
-    @type chunk_size: integer
-    @param chunk_size: amount of data to read at a time
+    :type url: string
+    :param url: URL for the file to be download
+    :type output_file: string
+    :param output_file: file name or absolute path on which to save the file to
+    :type title: string
+    :param title: optional title to go along the progress bar
+    :type chunk_size: integer
+    :param chunk_size: amount of data to read at a time
     '''
     output_dir = os.path.dirname(output_file)
     output_file = open(output_file, 'w+b')
@@ -2223,9 +2223,9 @@ def generate_random_string(length, ignore_str=string.punctuation,
     """
     Return a random string using alphanumeric characters.
 
-    @param length: Length of the string that will be generated.
-    @param ignore_str: Characters that will not include in generated string.
-    @param convert_str: Characters that need to be escaped (prepend "\\").
+    :param length: Length of the string that will be generated.
+    :param ignore_str: Characters that will not include in generated string.
+    :param convert_str: Characters that need to be escaped (prepend "\\").
 
     :return: The generated random string.
     """
@@ -2418,8 +2418,8 @@ class VersionableClass(object):
         Check version of versionable class and if version not
         match repair version to correct version.
 
-        @param master_classes: Check and repair only master_class.
-        @type master_classes: list.
+        :param master_classes: Check and repair only master_class.
+        :type master_classes: list.
         """
         if master_classes is None:
             master_classes = cls._find_versionable_baseclass()
@@ -2503,7 +2503,7 @@ class VersionableClass(object):
         Finds all class with same master_class as new_class in class tree
         and replaces them by new_class.
 
-        @param new_class: Class for replacing.
+        :param new_class: Class for replacing.
         """
         def find_replace_class(bases):
             for base in bases:
@@ -2541,7 +2541,7 @@ class VersionableClass(object):
         Function must be re-implemented in new OpenVSwitchControl class.
         Must be re-implemented for in child class.
 
-        @param version: version of OpenVSwtich
+        :param version: version of OpenVSwtich
         """
         raise NotImplementedError("Method 'is_right_version' must be"
                                   " implemented in child class")

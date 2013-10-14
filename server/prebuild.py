@@ -36,7 +36,7 @@ def init_test(testdir):
     """
     Instantiate a client test object from a given test directory.
 
-    @param testdir The test directory.
+    :param testdir The test directory.
     :return: A test object or None if failed to instantiate.
     """
 
@@ -55,8 +55,8 @@ def setup(autotest_client_dir, client_test_dir):
     """
     Setup prebuild of a client test.
 
-    @param autotest_client_dir: The autotest/client base directory.
-    @param client_test_dir: The actual test directory under client.
+    :param autotest_client_dir: The autotest/client base directory.
+    :param client_test_dir: The actual test directory under client.
     """
 
     os.environ['AUTODIR'] = autotest_client_dir

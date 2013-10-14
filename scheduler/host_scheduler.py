@@ -202,8 +202,8 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
         Determine if the given HostQueueEntry's atomic group settings are okay
         to schedule on a host with the given labels.
 
-        @param host_labels: A list of label ids that the host has.
-        @param queue_entry: The HostQueueEntry being considered for the host.
+        :param host_labels: A list of label ids that the host has.
+        :param queue_entry: The HostQueueEntry being considered for the host.
 
         :return: True if atomic group settings are okay, False otherwise.
         """
@@ -216,8 +216,8 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
         labels if any, or None otherwise.  Raises an exception if more than
         one atomic group are found in the set of labels.
 
-        @param host_labels: A list of label ids that the host has.
-        @param queue_entry: The HostQueueEntry we're testing.  Only used for
+        :param host_labels: A list of label ids that the host has.
+        :param queue_entry: The HostQueueEntry we're testing.  Only used for
                 extra info in a potential logged error message.
 
         :return: The id of the atomic group found on a label in host_labels
@@ -237,7 +237,7 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
         """
         Lookup the label ids that an atomic_group is associated with.
 
-        @param atomic_group_id - The id of the AtomicGroup to look up.
+        :param atomic_group_id - The id of the AtomicGroup to look up.
 
         :return: A generator yielding Label ids for this atomic group.
         """
@@ -247,9 +247,9 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
 
     def _get_eligible_host_ids_in_group(self, group_hosts, queue_entry):
         """
-        @param group_hosts - A sequence of Host ids to test for usability
+        :param group_hosts - A sequence of Host ids to test for usability
                 and eligibility against the Job associated with queue_entry.
-        @param queue_entry - The HostQueueEntry that these hosts are being
+        :param queue_entry - The HostQueueEntry that these hosts are being
                 tested for eligibility against.
 
         :return: A subset of group_hosts Host ids that are eligible for the

@@ -29,7 +29,7 @@ class ftrace(profiler.profiler):
         """
         Shell escape the command for BgJob. grmbl.
 
-        @param cmd: Command list.
+        :param cmd: Command list.
         """
         result = []
         for arg in cmd:
@@ -45,8 +45,8 @@ class ftrace(profiler.profiler):
         removing the Documentation and the .git folders, and compressing
         it.
 
-        @param tarball: Path to trace-cmd tarball.
-        @param **kwargs: Dictionary with additional parameters.
+        :param tarball: Path to trace-cmd tarball.
+        :param **kwargs: Dictionary with additional parameters.
         """
         self.tarball = utils.unmap_url(self.bindir, tarball, self.tmpdir)
         utils.extract_tarball_to_dir(self.tarball, self.srcdir)
@@ -58,12 +58,12 @@ class ftrace(profiler.profiler):
         """
         Initialize ftrace profiler.
 
-        @param tracepoints: List containing a mix of tracpoint names and
+        :param tracepoints: List containing a mix of tracpoint names and
                 (tracepoint name, filter) tuples. Tracepoint names are as
                 accepted by trace-cmd -e, eg "syscalls", or
                 "syscalls:sys_enter_read". Filters are as accepted by
                 trace-cmd -f, eg "((sig >= 10 && sig < 15) || sig == 17)"
-        @param buffer_size_kb: Set the size of the ring buffer (per cpu).
+        :param buffer_size_kb: Set the size of the ring buffer (per cpu).
         """
         self.job.require_gcc()
         self.trace_cmd_args = ['-b', str(buffer_size_kb)]
@@ -85,7 +85,7 @@ class ftrace(profiler.profiler):
         """
         Start ftrace profiler
 
-        @param test: Autotest test in which the profiler will operate on.
+        :param test: Autotest test in which the profiler will operate on.
         """
         # Make sure debugfs is mounted and tracing disabled.
         utils.system('%s reset' % self.trace_cmd)
@@ -115,7 +115,7 @@ class ftrace(profiler.profiler):
         """
         Stop ftrace profiler.
 
-        @param test: Autotest test in which the profiler will operate on.
+        :param test: Autotest test in which the profiler will operate on.
         """
         os.kill(self.record_job.sp.pid, signal.SIGINT)
         utils.join_bg_jobs([self.record_job])

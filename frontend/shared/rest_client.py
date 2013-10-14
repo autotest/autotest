@@ -180,7 +180,7 @@ class Resource(object):
 
     def get(self, query_parameters=None, **kwarg_query_parameters):
         """
-        @param query_parameters: a dict or MultiValueDict
+        :param query_parameters: a dict or MultiValueDict
         """
         query_parameters = copy.copy(query_parameters)  # avoid mutating original
         if query_parameters is None:
@@ -203,7 +203,7 @@ class Resource(object):
         """
         Like get() for collections, when the full collection is expected.
 
-        @param results_limit: maxmimum number of results to allow
+        :param results_limit: maxmimum number of results to allow
         :raise ClientError if there are more than results_limit results.
         """
         result = self.get(query_parameters=query_parameters,

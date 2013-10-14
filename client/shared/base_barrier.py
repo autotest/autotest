@@ -34,17 +34,17 @@ class listen_server(object):
 
     Attributes:
 
-    @attr address: Address to bind to (string).
-    @attr port: Port to bind to.
-    @attr socket: Listening socket object.
+    :attr address: Address to bind to (string).
+    :attr port: Port to bind to.
+    :attr socket: Listening socket object.
     """
 
     def __init__(self, address='', port=_DEFAULT_PORT):
         """
         Create a listen_server instance for the given address/port.
 
-        @param address: The address to listen on.
-        @param port: The port to listen on.
+        :param address: The address to listen on.
+        :param port: The port to listen on.
         """
         self.address = address
         self.port = port
@@ -139,11 +139,11 @@ class barrier(object):
     def __init__(self, hostid, tag, timeout=None, port=None,
                  listen_server=None):
         """
-        @param hostid: My hostname/IP address + optional tag.
-        @param tag: Symbolic name of the barrier in progress.
-        @param timeout: Maximum seconds to wait for a the barrier to meet.
-        @param port: Port number to listen on.
-        @param listen_server: External listen_server instance to use instead
+        :param hostid: My hostname/IP address + optional tag.
+        :param tag: Symbolic name of the barrier in progress.
+        :param timeout: Maximum seconds to wait for a the barrier to meet.
+        :param port: Port number to listen on.
+        :param listen_server: External listen_server instance to use instead
                 of creating our own.  Create a listen_server instance and
                 reuse it across multiple barrier instances so that the
                 barrier code doesn't try to quickly re-bind on the same port

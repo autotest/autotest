@@ -88,19 +88,19 @@ class FrontendTestMixin(object):
         """
         Create a job row in the test database.
 
-        @param hosts - A list of explicit host ids for this job to be
+        :param hosts - A list of explicit host ids for this job to be
                 scheduled on.
-        @param metahosts - A list of label ids for each host that this job
+        :param metahosts - A list of label ids for each host that this job
                 should be scheduled on (meta host scheduling).
-        @param priority - The job priority (integer).
-        @param active - bool, mark this job as running or not in the database?
-        @param synchronous - bool, if True use synch_count=2 otherwise use
+        :param priority - The job priority (integer).
+        :param active - bool, mark this job as running or not in the database?
+        :param synchronous - bool, if True use synch_count=2 otherwise use
                 synch_count=1.
-        @param atomic_group - An atomic group id for this job to schedule on
+        :param atomic_group - An atomic group id for this job to schedule on
                 or None if atomic scheduling is not required.  Each metahost
                 becomes a request to schedule an entire atomic group.
                 This does not support creating an active atomic group job.
-        @param hostless - if True, this job is intended to be hostless (in that
+        :param hostless - if True, this job is intended to be hostless (in that
                 case, hosts, metahosts, and atomic_group must all be empty)
 
         :return: A Django frontend.afe.models.Job instance.

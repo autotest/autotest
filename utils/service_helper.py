@@ -16,7 +16,7 @@ def stop_service(pidfile):
 
     Read the first line of a file for an integer that should refer to a pid,
     send a SIGTERM to that pid #.
-       @param pidfile: file to read for the process id number
+       :param pidfile: file to read for the process id number
     """
     pidfh = open(pidfile)
     pid = int(pidfh.readline())
@@ -27,10 +27,10 @@ def start_service(cmd, pidfile, logfile=os.devnull, chdir=None):
     """
     Start cmd in the background and write the pid to pidfile.
 
-    @param cmd: command to run with arguments
-    @param pidfile: pidfile to write the pid to
-    @param logfile: file to write stderr/stdout to
-    @param chdir: Directory to change to before starting the application
+    :param cmd: command to run with arguments
+    :param pidfile: pidfile to write the pid to
+    :param logfile: file to write stderr/stdout to
+    :param chdir: Directory to change to before starting the application
     """
     logfh = open(logfile, 'a')
     pidfh = open(pidfile, 'w')
@@ -43,7 +43,7 @@ def get_user_name_id(user):
     """
     Get the user id # and name.
 
-    @param user: integer or string containing either the uid #
+    :param user: integer or string containing either the uid #
         or a string username
 
     :return: a tuple of the user name, user id
@@ -60,7 +60,7 @@ def get_group_name_id(group):
     """
     Get the group id # and name
 
-    @param group: integer or string containing either the uid #
+    :param group: integer or string containing either the uid #
         or a string username
 
     :return: a tuple of group name, group id
@@ -77,8 +77,8 @@ def set_group_user(group=None, user=None):
     """
     Set the group and user id if gid or uid is defined.
 
-    @param group: Change the group id the program is run under
-    @param user: Change the user id the program is run under
+    :param group: Change the group id the program is run under
+    :param user: Change the user id the program is run under
     """
     if group:
         _, gid = get_group_name_id(group)
