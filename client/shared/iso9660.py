@@ -21,6 +21,10 @@ from autotest.client.shared import utils
 def has_userland_tool(executable):
     '''
     Returns whether the system has a given executable
+
+    :param executable: the name of the executable
+    :type executable: str
+    :rtype: bool
     '''
     if os.path.isabs(executable):
         return os.path.exists(executable)
@@ -38,16 +42,20 @@ def has_isoinfo():
 
     Maybe more checks could be added to see if isoinfo supports the needed
     features
+
+    :rtype: bool
     '''
     return has_userland_tool('isoinfo')
 
 
 def has_isoread():
     '''
-    Returns whether the system has the isoinfo executable
+    Returns whether the system has the iso-read executable
 
     Maybe more checks could be added to see if iso-read supports the needed
     features
+
+    :rtype: bool
     '''
     return has_userland_tool('iso-read')
 
@@ -57,6 +65,8 @@ def can_mount():
     Test wether the current user can perform a loop mount
 
     AFAIK, this means being root, having mount and iso9660 kernel support
+
+    :rtype: bool
     '''
     if os.getuid() != 0:
         logging.debug('Can not use mount: current user is not "root"')
@@ -88,6 +98,11 @@ class BaseIso9660(object):
     def _verify_path(self, path):
         '''
         Verify that the current set path is accessible
+
+        :param path: the path for test
+        :type path: str
+        :raise OSError: path does not exist or path could not be read
+        :rtype: None
         '''
         if not os.path.exists(self.path):
             raise OSError('File or device path does not exist: %s' %
@@ -97,11 +112,24 @@ class BaseIso9660(object):
                           self.path)
 
     def read(self, path):
+        '''
+        Abstract method to read data from path
+
+        :param path: path to the file
+        :returns: data content from the file
+        :rtype: str
+        '''
         raise NotImplementedError
 
     def copy(self, src, dst):
         '''
         Simplistic version of copy that relies on read()
+
+        :param src: source path
+        :type src: str
+        :param dst: destination path
+        :type dst: str
+        :rtype: None
         '''
         content = self.read(src)
         output = open(dst, 'w+b')
@@ -111,6 +139,8 @@ class BaseIso9660(object):
     def close(self):
         '''
         Cleanup and free any resources being used
+
+        :rtype: None
         '''
         pass
 
@@ -203,23 +233,49 @@ class Iso9660IsoRead(BaseIso9660):
 
 class Iso9660Mount(BaseIso9660):
 
+    '''
+    Represents a mounted ISO9660 filesystem.
+    '''
     def __init__(self, path):
+        '''
+        initializes a mounted ISO9660 filesystem
+
+        :param path: path to the ISO9660 file
+        :type path: str
+        '''
         super(Iso9660Mount, self).__init__(path)
         self.mnt_dir = tempfile.mkdtemp()
         utils.run('mount -t iso9660 -v -o loop,ro %s %s' %
                   (path, self.mnt_dir))
 
     def read(self, path):
+        '''
+        Read data from path
+
+        :param path: path to read data
+        :type path: str
+        :return: data content
+        :rtype: str
+        '''
         full_path = os.path.join(self.mnt_dir, path)
         return open(full_path).read()
 
     def copy(self, src, dst):
+        '''
+        :param src: source
+        :type src: str
+        :param dst: destination
+        :type dst: str
+        :rtype: None
+        '''
         full_path = os.path.join(self.mnt_dir, src)
         shutil.copy(full_path, dst)
 
     def close(self):
         '''
         Perform umount operation on the temporary dir
+
+        :rtype: None
         '''
         if os.path.ismount(self.mnt_dir):
             utils.run('fuser -k %s' % self.mnt_dir, ignore_status=True)
@@ -235,9 +291,10 @@ def iso9660(path):
     This is a convinience function, that will pick the first avaialable
     iso9660 capable tool.
 
-    @param path: path to an iso9660 image file
-    @type path: string
-    :return: an instance or None
+    :param path: path to an iso9660 image file
+    :type path: str
+    :return: an instance of any iso9660 capable tool
+    :rtype: :class:`Iso9660IsoInfo`, :class:`Iso9660IsoRead`, :class:`Iso9660Mount` or None
     '''
     IMPLEMENTATIONS = [('isoinfo', has_isoinfo, Iso9660IsoInfo),
                        ('iso-read', has_isoread, Iso9660IsoRead),
