@@ -31,7 +31,7 @@ def _open_logfile(logfile_base_name):
 
     A timestamp and compression is added to the name.
 
-    @param logfile_base_name - The log file path without a compression suffix.
+    :param logfile_base_name - The log file path without a compression suffix.
     :return: An open file like object.  Its close method must be called before
             exiting or data may be lost due to internal buffering.
     """
@@ -54,7 +54,7 @@ def _set_logfile_close_signal_handler(logfile):
     a SIGTERM and waits 5 seconds for before sending a SIGKILL so we have
     plenty of time to do this.
 
-    @param logfile - An open file object to be closed on SIGTERM.
+    :param logfile - An open file object to be closed on SIGTERM.
     """
     def _on_signal_close_logfile_before_exit(unused_signal_no, unused_frame):
         logfile.close()

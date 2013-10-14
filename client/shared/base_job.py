@@ -69,9 +69,9 @@ class job_directory(object):
         """
         Instantiate a job directory.
 
-        @param path: The path of the directory. If None a temporary directory
+        :param path: The path of the directory. If None a temporary directory
             will be created instead.
-        @param is_writable: If True, expect the directory to be writable.
+        :param is_writable: If True, expect the directory to be writable.
 
         :raise MissingDirectoryException: raised if is_writable=False and the
             directory does not exist.
@@ -100,8 +100,8 @@ class job_directory(object):
         will still fail if the path is rooted in a non-writable directory, or
         if a file already exists at the given location.
 
-        @param dir_path A path where a directory should be located
-        @param is_writable A boolean indicating that the directory should
+        :param dir_path A path where a directory should be located
+        :param is_writable A boolean indicating that the directory should
             not only exist, but also be writable.
 
         :raise MissingDirectoryException raised if is_writable=False and the
@@ -130,7 +130,7 @@ class job_directory(object):
         """
         Create a job.*dir -> job._*dir.path property accessor.
 
-        @param attribute A string with the name of the attribute this is
+        :param attribute A string with the name of the attribute this is
             exposed as. '_'+attribute must then be attribute that holds
             either None or a job_directory-like object.
 
@@ -233,9 +233,9 @@ class job_state(object):
         Any state specified on-disk will be set in-memory, even if an in-memory
         setting already exists.
 
-        @param file_path: The path where the state should be read from. It must
+        :param file_path: The path where the state should be read from. It must
             exist but it can be empty.
-        @param merge: If true, merge the on-disk state with the in-memory
+        :param merge: If true, merge the on-disk state with the in-memory
             state. If false, replace the in-memory state with the on-disk
             state.
 
@@ -277,7 +277,7 @@ class job_state(object):
     def write_to_file(self, file_path):
         """Write out the current state to the given path.
 
-        @param file_path: The path where the state should be written out to.
+        :param file_path: The path where the state should be written out to.
             Must be writable.
 
         @warning: This method is intentionally concurrency-unsafe. It makes no
@@ -321,7 +321,7 @@ class job_state(object):
         contents. The file will then be kept in sync with the (combined)
         in-memory state. The syncing can be disabled by setting this to None.
 
-        @param file_path: A path on the filesystem that can be read from and
+        :param file_path: A path on the filesystem that can be read from and
             written to, or None to turn off the backing store.
         """
         self._synchronize_backing_file()
@@ -333,9 +333,9 @@ class job_state(object):
     def get(self, namespace, name, default=NO_DEFAULT):
         """Returns the value associated with a particular name.
 
-        @param namespace: The namespace that the property should be stored in.
-        @param name: The name the value was saved with.
-        @param default: A default value to return if no state is currently
+        :param namespace: The namespace that the property should be stored in.
+        :param name: The name the value was saved with.
+        :param default: A default value to return if no state is currently
             associated with var.
 
         :return: A deep copy of the value associated with name. Note that this
@@ -355,9 +355,9 @@ class job_state(object):
     def set(self, namespace, name, value):
         """Saves the value given with the provided name.
 
-        @param namespace: The namespace that the property should be stored in.
-        @param name: The name the value should be saved with.
-        @param value: The value to save.
+        :param namespace: The namespace that the property should be stored in.
+        :param name: The name the value should be saved with.
+        :param value: The value to save.
         """
         namespace_dict = self._state.setdefault(namespace, {})
         namespace_dict[name] = copy.deepcopy(value)
@@ -368,8 +368,8 @@ class job_state(object):
     def has(self, namespace, name):
         """Return a boolean indicating if namespace.name is defined.
 
-        @param namespace: The namespace to check for a definition.
-        @param name: The name to check for a definition.
+        :param namespace: The namespace to check for a definition.
+        :param name: The name to check for a definition.
 
         :return: True if the given name is defined in the given namespace and
             False otherwise.
@@ -380,8 +380,8 @@ class job_state(object):
     def discard(self, namespace, name):
         """If namespace.name is a defined value, deletes it.
 
-        @param namespace: The namespace that the property is stored in.
-        @param name: The name the value is saved with.
+        :param namespace: The namespace that the property is stored in.
+        :param name: The name the value is saved with.
         """
         if self.has(namespace, name):
             del self._state[namespace][name]
@@ -397,7 +397,7 @@ class job_state(object):
     def discard_namespace(self, namespace):
         """Delete all defined namespace.* names.
 
-        @param namespace: The namespace to be cleared.
+        :param namespace: The namespace to be cleared.
         """
         if namespace in self._state:
             del self._state[namespace]
@@ -409,13 +409,13 @@ class job_state(object):
         """
         Create a property object for an attribute using self.get and self.set.
 
-        @param state_attribute: A string with the name of the attribute on
+        :param state_attribute: A string with the name of the attribute on
             job that contains the job_state instance.
-        @param property_attribute: A string with the name of the attribute
+        :param property_attribute: A string with the name of the attribute
             this property is exposed as.
-        @param default: A default value that should be used for this property
+        :param default: A default value that should be used for this property
             if it is not set.
-        @param namespace: The namespace to store the attribute value in.
+        :param namespace: The namespace to store the attribute value in.
 
         :return: A read-write property object that performs self.get calls
             to read the value and self.set calls to set it.
@@ -445,14 +445,14 @@ class status_log_entry(object):
                  timestamp=None):
         """Construct a status.log entry.
 
-        @param status_code: A message status code. Must match the codes
+        :param status_code: A message status code. Must match the codes
             accepted by autotest.shared.log.is_valid_status.
-        @param subdir: A valid job subdirectory, or None.
-        @param operation: Description of the operation, or None.
-        @param message: A printable string describing event to be recorded.
-        @param fields: A dictionary of arbitrary alphanumeric key=value pairs
+        :param subdir: A valid job subdirectory, or None.
+        :param operation: Description of the operation, or None.
+        :param message: A printable string describing event to be recorded.
+        :param fields: A dictionary of arbitrary alphanumeric key=value pairs
             to be included in the log, or None.
-        @param timestamp: An optional integer timestamp, in the same format
+        :param timestamp: An optional integer timestamp, in the same format
             as a time.time() timestamp. If unspecified, the current time is
             used.
 
@@ -594,19 +594,19 @@ class status_logger(object):
                  tap_writer=None):
         """Construct a logger instance.
 
-        @param job: A reference to the job object this is logging for. Only a
+        :param job: A reference to the job object this is logging for. Only a
             weak reference to the job is held, to avoid a
             status_logger <-> job circular reference.
-        @param indenter: A status_indenter instance, for tracking the
+        :param indenter: A status_indenter instance, for tracking the
             indentation level.
-        @param global_filename: An optional filename to initialize the
+        :param global_filename: An optional filename to initialize the
             self.global_filename attribute.
-        @param subdir_filename: An optional filename to initialize the
+        :param subdir_filename: An optional filename to initialize the
             self.subdir_filename attribute.
-        @param record_hook: An optional function to be called before an entry
+        :param record_hook: An optional function to be called before an entry
             is logged. The function should expect a single parameter, a
             copy of the status_log_entry object.
-        @param tap_writer: An instance of the class TAPReport for addionally
+        :param tap_writer: An instance of the class TAPReport for addionally
             writing TAP files
         """
         self._jobref = weakref.ref(job)
@@ -622,7 +622,7 @@ class status_logger(object):
     def render_entry(self, log_entry):
         """Render a status_log_entry as it would be written to a log file.
 
-        @param log_entry: A status_log_entry instance to be rendered.
+        :param log_entry: A status_log_entry instance to be rendered.
 
         :return: The status log entry, rendered as it would be written to the
             logs (including indentation).
@@ -636,9 +636,9 @@ class status_logger(object):
     def record_entry(self, log_entry, log_in_subdir=True):
         """Record a status_log_entry into the appropriate status log files.
 
-        @param log_entry: A status_log_entry instance to be recorded into the
+        :param log_entry: A status_log_entry instance to be recorded into the
                 status logs.
-        @param log_in_subdir: A boolean that indicates (when true) that subdir
+        :param log_in_subdir: A boolean that indicates (when true) that subdir
                 logs should be written into the subdirectory status log file.
         """
         # acquire a strong reference for the duration of the method
@@ -701,9 +701,9 @@ class TAPReport(object):
 
     def __init__(self, enable, resultdir=None, global_filename='status'):
         """
-        @param enable: Set self.do_tap_report to trigger TAP reporting.
-        @param resultdir: Path where the TAP report files will be written.
-        @param global_filename: File name of the status files .tap extensions
+        :param enable: Set self.do_tap_report to trigger TAP reporting.
+        :param resultdir: Path where the TAP report files will be written.
+        :param global_filename: File name of the status files .tap extensions
                 will be appended.
         """
         self.do_tap_report = enable
@@ -718,9 +718,9 @@ class TAPReport(object):
         """
         return a TAP message string.
 
-        @param success: True for positive message string.
-        @param counter: number of TAP line in plan.
-        @param message: additional message to report in TAP line.
+        :param success: True for positive message string.
+        :param counter: number of TAP line in plan.
+        :param message: additional message to report in TAP line.
         """
         if success:
             message = "ok %s - %s" % (counter, message)
@@ -734,12 +734,12 @@ class TAPReport(object):
         events will be written to TAP log files at the end of the test run.
         Otherwise, it's impossilble to determine the TAP plan.
 
-        @param log_entry: A string status code describing the type of status
+        :param log_entry: A string status code describing the type of status
                 entry being recorded. It must pass log.is_valid_status to be
                 considered valid.
-        @param indent: Level of the log_entry to determine the operation if
+        :param indent: Level of the log_entry to determine the operation if
                 log_entry.operation is not given.
-        @param log_files: List of full path of files the TAP report will be
+        :param log_files: List of full path of files the TAP report will be
                 written to at the end of the test.
         """
         for log_file in log_files:
@@ -774,9 +774,9 @@ class TAPReport(object):
         null then the keys must also have "{type_tag}" as a suffix. At
         the moment the only valid values of type_tag are "attr" and "perf".
 
-        @param path: The full path of the keyval.tap file to be created
-        @param dictionary: The keys and values.
-        @param type_tag: The type of the values
+        :param path: The full path of the keyval.tap file to be created
+        :param dictionary: The keys and values.
+        :param type_tag: The type of the values
         """
         self._keyval_container.setdefault(path, [0, []])
         self._keyval_container[path][0] += 1
@@ -1096,7 +1096,7 @@ class base_job(object):
         the way parallel_simple does). The original context can be restored
         with a pop_execution_context call.
 
-        @param resultdir: The new resultdir, relative to the current one.
+        :param resultdir: The new resultdir, relative to the current one.
         """
         new_dir = self._job_directory(
             os.path.join(self.resultdir, resultdir), True)
@@ -1116,8 +1116,8 @@ class base_job(object):
     def get_state(self, name, default=_job_state.NO_DEFAULT):
         """Returns the value associated with a particular name.
 
-        @param name: The name the value was saved with.
-        @param default: A default value to return if no state is currently
+        :param name: The name the value was saved with.
+        :param default: A default value to return if no state is currently
             associated with var.
 
         :return: A deep copy of the value associated with name. Note that this
@@ -1134,16 +1134,16 @@ class base_job(object):
     def set_state(self, name, value):
         """Saves the value given with the provided name.
 
-        @param name: The name the value should be saved with.
-        @param value: The value to save.
+        :param name: The name the value should be saved with.
+        :param value: The value to save.
         """
         self._state.set('public', name, value)
 
     def _build_tagged_test_name(self, testname, dargs):
         """Builds the fully tagged testname and subdirectory for job.run_test.
 
-        @param testname: The base name of the test
-        @param dargs: The ** arguments passed to run_test. And arguments
+        :param testname: The base name of the test
+        :param dargs: The ** arguments passed to run_test. And arguments
             consumed by this method will be removed from the dictionary.
 
         :return: A 3-tuple of the full name of the test, the subdirectory it
@@ -1176,7 +1176,7 @@ class base_job(object):
     def _make_test_outputdir(self, subdir):
         """Creates an output directory for a test to run it.
 
-        @param subdir: The subdirectory of the test. Generally computed by
+        :param subdir: The subdirectory of the test. Generally computed by
             _build_tagged_test_name.
 
         :return: A job_directory instance corresponding to the outputdir of
@@ -1212,15 +1212,15 @@ class base_job(object):
         be written into a global status log file, as well as a subdir-local
         status log file (if subdir is specified).
 
-        @param status_code: A string status code describing the type of status
+        :param status_code: A string status code describing the type of status
             entry being recorded. It must pass log.is_valid_status to be
             considered valid.
-        @param subdir: A specific results subdirectory this also applies to, or
+        :param subdir: A specific results subdirectory this also applies to, or
             None. If not None the subdirectory must exist.
-        @param operation: A string describing the operation that was run.
-        @param status: An optional human-readable message describing the status
+        :param operation: A string describing the operation that was run.
+        :param status: An optional human-readable message describing the status
             entry, for example an error message or "completed successfully".
-        @param optional_fields: An optional dictionary of additional named fields
+        :param optional_fields: An optional dictionary of additional named fields
             to be included with the status message. Every time timestamp and
             localtime entries are generated with the current time and added
             to this dictionary.
@@ -1235,8 +1235,8 @@ class base_job(object):
         This is the same as self.record but using an existing status log
         entry object rather than constructing one for you.
 
-        @param entry: A status_log_entry object
-        @param log_in_subdir: A boolean that indicates (when true) that subdir
+        :param entry: A status_log_entry object
+        :param log_in_subdir: A boolean that indicates (when true) that subdir
                 logs should be written into the subdirectory status log file.
         """
         self._get_status_logger().record_entry(entry, log_in_subdir)

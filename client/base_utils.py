@@ -111,8 +111,8 @@ def hash_file(filename, size=None, method="md5"):
     Can be also implemented with bash one-liner (assuming size%1024==0):
     dd if=filename bs=1024 count=size/1024 | sha1sum -
 
-    @param filename: Path of the file that will have its hash calculated.
-    @param method: Method used to calculate the hash. Supported methods:
+    :param filename: Path of the file that will have its hash calculated.
+    :param method: Method used to calculate the hash. Supported methods:
             * md5
             * sha1
     :return: Hash of the file, if something goes wrong, return None.
@@ -148,12 +148,12 @@ def unmap_url_cache(cachedir, url, expected_hash, method="md5"):
     at the expected position and has the expected hash, let's not download it
     again.
 
-    @param cachedir: Directory that might hold a copy of the file we want to
+    :param cachedir: Directory that might hold a copy of the file we want to
             download.
-    @param url: URL for the file we want to download.
-    @param expected_hash: Hash string that we expect the file downloaded to
+    :param url: URL for the file we want to download.
+    :param expected_hash: Hash string that we expect the file downloaded to
             have.
-    @param method: Method used to calculate the hash string (md5, sha1).
+    :param method: Method used to calculate the hash string (md5, sha1).
     """
     # Let's convert cachedir to a canonical path, if it's not already
     cachedir = os.path.realpath(cachedir)
@@ -407,8 +407,8 @@ def count_cpus():
 def sysctl(key, value=None):
     """Generic implementation of sysctl, to read and write.
 
-    @param key: A location under /proc/sys
-    @param value: If not None, a value to write into the sysctl.
+    :param key: A location under /proc/sys
+    :param value: If not None, a value to write into the sysctl.
 
     :return: The single-line sysctl value as a string.
     """
@@ -669,7 +669,7 @@ def unload_module(module_name):
     Removes a module. Handles dependencies. If even then it's not possible
     to remove one of the modules, it will trhow an error.CmdError exception.
 
-    @param module_name: Name of the module we want to remove.
+    :param module_name: Name of the module we want to remove.
     """
     l_raw = utils.system_output("/sbin/lsmod").splitlines()
     lsmod = [x for x in l_raw if x.split()[0] == module_name]

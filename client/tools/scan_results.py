@@ -55,8 +55,8 @@ def print_result(result, name_width):
     """
     Nicely print a single Autotest result.
 
-    @param result: a 4-tuple
-    @param name_width: test name maximum width
+    :param result: a 4-tuple
+    :param name_width: test name maximum width
     """
     if result:
         format = "%%-%ds    %%-10s %%-8s %%s" % name_width

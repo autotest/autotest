@@ -130,9 +130,9 @@ class url_source(source):
         """
         Add a URL path to a HTML document with links to kernel files.
 
-        @param url: URL path to a HTML file with links to kernel files
+        :param url: URL path to a HTML file with links to kernel files
                 (can be either an absolute URL or one relative to self.prefix)
-        @param pattern: regex pattern to filter kernel files links out of
+        :param pattern: regex pattern to filter kernel files links out of
                 all othe links found in the HTML document
         """
         # if it does not have an extension then it's a directory and it needs
@@ -193,8 +193,8 @@ class directory_source(source):
         """
         Initialize a directory_source instance.
 
-        @param database: Persistent database with known kernels information.
-        @param path: Path to the directory with the kernel files found by
+        :param database: Persistent database with known kernels information.
+        :param path: Path to the directory with the kernel files found by
                 this source.
         """
         super(directory_source, self).__init__(database)
@@ -205,7 +205,7 @@ class directory_source(source):
         """
         Main function, see source.get_new_files().
 
-        @param _stat_func: Used for unit testing, if we stub os.stat in the
+        :param _stat_func: Used for unit testing, if we stub os.stat in the
                 unit test then unit test failures get reported confusingly
                 because the unit test framework tries to stat() the unit test
                 file.

@@ -72,8 +72,8 @@ def install_completed_client(compiled_dir, project_client):
     """Remove old client directory if it exists,  move installed client to the
        old directory and move newly compield client to the installed client
        dir.
-       @param compiled_dir: Where the new client was compiled
-       @param project_client: project.client pair e.g. autotest.AfeClient
+       :param compiled_dir: Where the new client was compiled
+       :param project_client: project.client pair e.g. autotest.AfeClient
        :return: True if installation was successful or False if it failed
     """
     tmp_client_dir = os.path.join(_TMP_COMPILE_DIR, project_client)
@@ -107,8 +107,8 @@ def compile_and_install_client(project_client, extra_args='',
                                install_client=True):
     """Compile the client into a temporary directory, if successful
        call install_completed_client to install the new client.
-       @param project_client: project.client pair e.g. autotest.AfeClient
-       @param install_client: Boolean, if True install the clients
+       :param project_client: project.client pair e.g. autotest.AfeClient
+       :param install_client: Boolean, if True install the clients
        :return: True if install and compile was successful False if it failed
     """
     java_args = {}

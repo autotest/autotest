@@ -241,13 +241,13 @@ def get_tests_stanza(tests, is_server, prepend=None, append=None,
                      client_control_file=''):
     """ Constructs the control file test step code from a list of tests.
 
-    @param tests A sequence of test control files to run.
-    @param is_server bool, Is this a server side test?
-    @param prepend A list of steps to prepend to each client test.
+    :param tests A sequence of test control files to run.
+    :param is_server bool, Is this a server side test?
+    :param prepend A list of steps to prepend to each client test.
         Defaults to [].
-    @param append A list of steps to append to each client test.
+    :param append A list of steps to append to each client test.
         Defaults to [].
-    @param client_control_file If specified, use this text as the body of a
+    :param client_control_file If specified, use this text as the body of a
         final client control file to run after tests.  is_server must be False.
 
     :return: The control file test code to be run.
@@ -270,12 +270,12 @@ def _get_tests_stanza(raw_control_files, is_server, prepend, append,
     A site_control_file that wants to implement its own get_tests_stanza
     likely wants to call this in the end.
 
-    @param raw_control_files A list of raw control file data to be combined
+    :param raw_control_files A list of raw control file data to be combined
         into a single control file.
-    @param is_server bool, Is this a server side test?
-    @param prepend A list of steps to prepend to each client test.
-    @param append A list of steps to append to each client test.
-    @param client_control_file If specified, use this text as the body of a
+    :param is_server bool, Is this a server side test?
+    :param prepend A list of steps to prepend to each client test.
+    :param append A list of steps to append to each client test.
+    :param client_control_file If specified, use this text as the body of a
         final client control file to append to raw_control_files after fixups.
 
     :return: The combined mega control file.
@@ -383,17 +383,17 @@ def generate_control(tests, kernels=None, platform=None, is_server=False,
     """
     Generate a control file for a sequence of tests.
 
-    @param tests A sequence of test control files to run.
-    @param kernels A sequence of kernel info dictionaries configuring which
+    :param tests A sequence of test control files to run.
+    :param kernels A sequence of kernel info dictionaries configuring which
             kernels to boot for this job and other options for them
-    @param platform A platform object with a kernel_config attribute.
-    @param is_server bool, Is this a server control file rather than a client?
-    @param profilers A list of profiler objects to enable during the tests.
-    @param client_control_file Contents of a client control file to run as the
+    :param platform A platform object with a kernel_config attribute.
+    :param is_server bool, Is this a server control file rather than a client?
+    :param profilers A list of profiler objects to enable during the tests.
+    :param client_control_file Contents of a client control file to run as the
             last test after everything in tests.  Requires is_server=False.
-    @param profile_only bool, should this control file run all tests in
+    :param profile_only bool, should this control file run all tests in
             profile_only mode by default
-    @param upload_kernel_config: if enabled it will generate server control
+    :param upload_kernel_config: if enabled it will generate server control
             file code that uploads the kernel config file to the client and
             tells the client of the new (local) path when compiling the kernel;
             the tests must be server side tests

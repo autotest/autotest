@@ -24,7 +24,7 @@ class sar(profiler.profiler):
         """
         Set sar interval and verify what flags the installed sar supports.
 
-        @param interval: Interval used by sar to produce system data.
+        :param interval: Interval used by sar to produce system data.
         """
         self.interval = interval
         self.sar_path = os_dep.command('sar')
@@ -51,7 +51,7 @@ class sar(profiler.profiler):
         """
         Starts sar subprocess.
 
-        @param test: Autotest test on which this profiler will operate on.
+        :param test: Autotest test on which this profiler will operate on.
         """
         logfile = open(os.path.join(test.profdir, "sar"), 'w')
         # Save the sar data as binary, convert to text after the test.
@@ -64,7 +64,7 @@ class sar(profiler.profiler):
         """
         Stops profiler execution by sending a SIGTERM to sar process.
 
-        @param test: Autotest test on which this profiler will operate on.
+        :param test: Autotest test on which this profiler will operate on.
         """
         try:
             os.kill(self.sar_process.pid, 15)
@@ -75,7 +75,7 @@ class sar(profiler.profiler):
         """
         Report function. Convert the binary sar data to text.
 
-        @param test: Autotest test on which this profiler will operate on.
+        :param test: Autotest test on which this profiler will operate on.
         """
         raw = os.path.join(test.profdir, "sar.raw")
         output = os.path.join(test.profdir, "sar")

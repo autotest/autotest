@@ -45,8 +45,8 @@ class harness_autoserv(harness.harness):
         """Send a message to the autoserv and wait for it to signal
         completion.
 
-        @param title: An alphanumeric string to title the message.
-        @param *args: Additional arbitrary alphanumeric arguments to pass
+        :param title: An alphanumeric string to title the message.
+        :param *args: Additional arbitrary alphanumeric arguments to pass
                 to the server.
         """
         # create a named pipe for us to receive a signal on
@@ -83,9 +83,9 @@ class harness_autoserv(harness.harness):
     def fetch_package(self, pkg_name, dest_path):
         """Request a package from the remote autoserv.
 
-        @param pkg_name: The name of the package, as generally used by the
+        :param pkg_name: The name of the package, as generally used by the
                 client.shared.packages infrastructure.
-        @param dest_path: The path the package should be copied to.
+        :param dest_path: The path the package should be copied to.
         """
         self._send_and_wait('AUTOTEST_FETCH_PACKAGE', pkg_name, dest_path)
 

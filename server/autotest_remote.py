@@ -242,11 +242,11 @@ class BaseAutotest(installable_object.InstallableObject):
         """
         Install autotest.
 
-        @param host A Host instance on which autotest will be installed
-        @param autodir Location on the remote host to install to
-        @param use_autoserv Enable install modes that depend on the client
+        :param host A Host instance on which autotest will be installed
+        :param autodir Location on the remote host to install to
+        :param use_autoserv Enable install modes that depend on the client
             running with the autoserv harness
-        @param use_packaging Enable install modes that use the packaging system
+        :param use_packaging Enable install modes that use the packaging system
 
         @exception AutoservError If it wasn't possible to install the client
                 after trying all available methods
@@ -331,7 +331,7 @@ class BaseAutotest(installable_object.InstallableObject):
         Uninstall (i.e. delete) autotest. Removes the autotest client install
         from the specified host.
 
-        @params host a Host instance from which the client will be removed
+        :params host a Host instance from which the client will be removed
         """
         if not self.installed:
             return
@@ -376,19 +376,19 @@ class BaseAutotest(installable_object.InstallableObject):
         """
         Run an autotest job on the remote machine.
 
-        @param control_file: An open file-like-obj of the control file.
-        @param results_dir: A str path where the results should be stored
+        :param control_file: An open file-like-obj of the control file.
+        :param results_dir: A str path where the results should be stored
                 on the local filesystem.
-        @param host: A Host instance on which the control file should
+        :param host: A Host instance on which the control file should
                 be run.
-        @param timeout: Maximum number of seconds to wait for the run or None.
-        @param tag: Tag name for the client side instance of autotest.
-        @param parallel_flag: Flag set when multiple jobs are run at the
+        :param timeout: Maximum number of seconds to wait for the run or None.
+        :param tag: Tag name for the client side instance of autotest.
+        :param parallel_flag: Flag set when multiple jobs are run at the
                 same time.
-        @param background: Indicates that the client should be launched as
+        :param background: Indicates that the client should be launched as
                 a background job; the code calling run will be responsible
                 for monitoring the client and collecting the results.
-        @param client_disconnect_timeout: Seconds to wait for the remote host
+        :param client_disconnect_timeout: Seconds to wait for the remote host
                 to come back after a reboot. Defaults to the host setting for
                 DEFAULT_REBOOT_TIMEOUT.
 
@@ -648,7 +648,7 @@ class _BaseRun(object):
         """
         Create and copy the client config file based on the server config.
 
-        @param client_log_prefix: Optional prefix to prepend to log files.
+        :param client_log_prefix: Optional prefix to prepend to log files.
         """
         if not self.server_system_wide_install:
             client_config_file = self._create_client_config_file(client_log_prefix)
@@ -662,7 +662,7 @@ class _BaseRun(object):
         Create a temporary file with the [CLIENT] and [COMMON] section
         configuration values taken from the server global_config.ini.
 
-        @param client_log_prefix: Optional prefix to prepend to log files.
+        :param client_log_prefix: Optional prefix to prepend to log files.
 
         :return: Path of the temporary file generated.
         """
@@ -677,9 +677,9 @@ class _BaseRun(object):
         content creation function. The file object is appended to *args, which
         is then passed to the content creation function
 
-        @param func: Function that will be used to write content to the
+        :param func: Function that will be used to write content to the
                 temporary file.
-        @param *args: List of parameters that func takes.
+        :param *args: List of parameters that func takes.
         :return: Path to the temporary file that was created.
         """
         fd, path = tempfile.mkstemp(dir=self.host.job.tmpdir)
@@ -1207,8 +1207,8 @@ class AutotestHostMixin(object):
     def run_test(self, test_name, **dargs):
         """Run an autotest client test on the host.
 
-        @param test_name: The name of the client test.
-        @param dargs: Keyword arguments to pass to the test.
+        :param test_name: The name of the client test.
+        :param dargs: Keyword arguments to pass to the test.
 
         :return: True if the test passes, False otherwise."""
         at = self._Autotest()

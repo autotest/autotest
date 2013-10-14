@@ -136,7 +136,7 @@ class Bootloader(object):
 
         To set a default only for the next boot, use boot_once() instead.
 
-        @param index: entry index number to set as the default.
+        :param index: entry index number to set as the default.
         '''
         if self._host().job:
             self._host().job.last_boot_tag = None
@@ -162,7 +162,7 @@ class Bootloader(object):
         """
         Get a single bootloader entry information.
 
-        @param entry: entry index
+        :param entry: entry index
         :return: a dictionary of key->value where key is the type of entry
                 information (ex. 'title', 'args', 'kernel', etc) and value
                 is the value for that piece of information.
@@ -191,8 +191,8 @@ class Bootloader(object):
         """
         Add cmdline arguments for the specified kernel.
 
-        @param kernel: can be a position number (index) or title
-        @param args: argument to be added to the current list of args
+        :param kernel: can be a position number (index) or title
+        :param args: argument to be added to the current list of args
         """
         return self._run_boottool_exit_status('--update-kernel=%s' %
                                               utils.sh_escape(str(kernel)),
@@ -203,8 +203,8 @@ class Bootloader(object):
         """
         Removes specified cmdline arguments.
 
-        @param kernel: can be a position number (index) or title
-        @param args: argument to be removed of the current list of args
+        :param kernel: can be a position number (index) or title
+        :param args: argument to be removed of the current list of args
         """
         return self._run_boottool_exit_status('--update-kernel=%s' %
                                               utils.sh_escape(str(kernel)),
@@ -217,14 +217,14 @@ class Bootloader(object):
         Add a kernel entry to the bootloader (or replace if one exists
         already with the same title).
 
-        @param path: string path to the kernel image file
-        @param title: title of this entry in the bootloader config
-        @param root: string of the root device
-        @param args: string with cmdline args
-        @param initrd: string path to the initrd file
-        @param default: set to True to make this entry the default one
+        :param path: string path to the kernel image file
+        :param title: title of this entry in the bootloader config
+        :param root: string of the root device
+        :param args: string with cmdline args
+        :param initrd: string path to the initrd file
+        :param default: set to True to make this entry the default one
                 (default False)
-        @param position: where to insert the new entry in the bootloader
+        :param position: where to insert the new entry in the bootloader
                 config file (default 'end', other valid input 'start', or
                 # of the title)
         """

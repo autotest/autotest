@@ -412,9 +412,9 @@ class mock_god(object):
     def stub_function_to_return(self, namespace, symbol, object_to_return):
         """Stub out a function with one that always returns a fixed value.
 
-        @param namespace The namespace containing the function to stub out.
-        @param symbol The attribute within the namespace to stub out.
-        @param object_to_return The value that the stub should return whenever
+        :param namespace The namespace containing the function to stub out.
+        :param symbol The attribute within the namespace to stub out.
+        :param object_to_return The value that the stub should return whenever
             it is called.
         """
         self.stub_with(namespace, symbol,

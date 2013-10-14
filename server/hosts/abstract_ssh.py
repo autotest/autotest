@@ -434,7 +434,7 @@ class AbstractSSHHost(SiteHost):
         In fact, it will wait until an ssh connection to the remote
         host can be established, and getty is running.
 
-        @param timeout time limit in seconds before returning even
+        :param timeout time limit in seconds before returning even
             if the host is not up.
 
         :return: True if the host was found to be up, False otherwise
@@ -469,11 +469,11 @@ class AbstractSSHHost(SiteHost):
         If old_boot_id is None then until the machine becomes unreachable the
         method assumes the machine has not yet shut down.
 
-        @param timeout Time limit in seconds before returning even
+        :param timeout Time limit in seconds before returning even
             if the host is still up.
-        @param warning_timer Time limit in seconds that will generate
+        :param warning_timer Time limit in seconds that will generate
             a warning if the host is not down yet.
-        @param old_boot_id A string containing the result of self.get_boot_id()
+        :param old_boot_id A string containing the result of self.get_boot_id()
             prior to the host being told to shut down. Can be None if this is
             not available.
 

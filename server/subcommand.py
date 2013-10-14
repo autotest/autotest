@@ -19,9 +19,9 @@ def parallel(tasklist, timeout=None, return_results=False):
     """
     Run a set of predefined subcommands in parallel.
 
-    @param tasklist: A list of subcommand instances to execute.
-    @param timeout: Number of seconds after which the commands should timeout.
-    @param return_results: If True instead of an AutoServError being raised
+    :param tasklist: A list of subcommand instances to execute.
+    :param timeout: Number of seconds after which the commands should timeout.
+    :param return_results: If True instead of an AutoServError being raised
             on any error a list of the results|exceptions from the tasks is
             returned.  [default: False]
     """
@@ -69,13 +69,13 @@ def parallel_simple(function, arglist, log=True, timeout=None,
 
     NOTE: As an optimization, if len(arglist) == 1 a subcommand is not used.
 
-    @param function: A callable to run in parallel once per arg in arglist.
-    @param arglist: A list of single arguments to be used one per subcommand;
+    :param function: A callable to run in parallel once per arg in arglist.
+    :param arglist: A list of single arguments to be used one per subcommand;
             typically a list of machine names.
-    @param log: If True, output will be written to output in a subdirectory
+    :param log: If True, output will be written to output in a subdirectory
             named after each subcommand's arg.
-    @param timeout: Number of seconds after which the commands should timeout.
-    @param return_results: If True instead of an AutoServError being raised
+    :param timeout: Number of seconds after which the commands should timeout.
+    :param return_results: If True instead of an AutoServError being raised
             on any error a list of the results|exceptions from the function
             called on each arg is returned.  [default: False]
 

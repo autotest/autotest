@@ -34,7 +34,7 @@ class CobblerInterface(object):
         """
         Sets class attributes from the keyword arguments passed to constructor.
 
-        @param **kwargs: Dict of keyword arguments passed to constructor.
+        :param **kwargs: Dict of keyword arguments passed to constructor.
         """
         self.xmlrpc_url = kwargs['xmlrpc_url']
         self.user = kwargs['user']
@@ -49,7 +49,7 @@ class CobblerInterface(object):
         """
         Get a system handle, needed to perform operations on the given host
 
-        @param host: Host name
+        :param host: Host name
 
         :return: Tuple (system, system_handle)
         """
@@ -95,10 +95,10 @@ class CobblerInterface(object):
         """
         Install a host object with profile name defined by distro.
 
-        @param host: Autotest host object.
-        @param profile: String with cobbler profile name.
-        @param timeout: Amount of time to wait for the install.
-        @param num_attempts: Maximum number of install attempts.
+        :param host: Autotest host object.
+        :param profile: String with cobbler profile name.
+        :param timeout: Amount of time to wait for the install.
+        :param num_attempts: Maximum number of install attempts.
         """
         if not self.xmlrpc_url:
             return
@@ -176,8 +176,8 @@ class CobblerInterface(object):
         """
         Power on/off/reboot a host through cobbler.
 
-        @param host: Autotest host object.
-        @param state: Allowed states - one of 'on', 'off', 'reboot'.
+        :param host: Autotest host object.
+        :param state: Allowed states - one of 'on', 'off', 'reboot'.
         """
         if self.xmlrpc_url:
             system_handle = self.get_system_handle(host)[1]

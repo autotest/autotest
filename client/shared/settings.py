@@ -96,7 +96,7 @@ class Settings(object):
         Return a config parser object containing a single section of the
         global configuration, that can be later written to a file object.
 
-        @param section: Tuple with sections we want to turn into a config parser
+        :param section: Tuple with sections we want to turn into a config parser
                 object.
         :return: ConfigParser() object containing all the contents of sections.
         """

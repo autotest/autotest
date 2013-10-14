@@ -25,7 +25,7 @@ def _process_to_string(to_string):
     """
     Process a string containing email addresses. Separators: ',' ';' ':'
 
-    @param to_string: String containing email addresses.
+    :param to_string: String containing email addresses.
     :return: List with email addresses.
     """
     return [x for x in re.split('\s|,|;|:', to_string) if x]
@@ -115,7 +115,7 @@ class EmailNotificationManager(object):
         """
         Initialize an email notification manager.
 
-        @param subsystem: String describing the module this manager is
+        :param subsystem: String describing the module this manager is
             handling. Example: 'scheduler'.
         """
         self.module = module

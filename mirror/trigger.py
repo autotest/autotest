@@ -36,7 +36,7 @@ class base_action(object):
         """
         Perform the action for that given kernel filenames list.
 
-        @param kernel_list: a sequence of kernel filenames (strings)
+        :param kernel_list: a sequence of kernel filenames (strings)
         """
         raise NotImplementedError('__call__ not implemented')
 
@@ -61,9 +61,9 @@ class map_action(base_action):
             """
             Instantiate a machine_info object.
 
-            @param tests: a sequence of test names (as named in the frontend
+            :param tests: a sequence of test names (as named in the frontend
                     database) to run for this host
-            @param kernel_configs: a dictionary of
+            :param kernel_configs: a dictionary of
                     kernel_version -> config_filename associating kernel
                     versions with corresponding kernel configuration files
                     ("~" inside the filename will be expanded)
@@ -76,12 +76,12 @@ class map_action(base_action):
         """
         Instantiate a map_action.
 
-        @param tests_map: a dictionary of hostname -> machine_info
-        @param jobname_pattern: a string pattern used to make the job name
+        :param tests_map: a dictionary of hostname -> machine_info
+        :param jobname_pattern: a string pattern used to make the job name
                 containing a single "%s" that will be replaced with the kernel
                 version
-        @param job_owner: the user used to talk with the RPC server
-        @param upload_kernel_config: specify if the generate control file
+        :param job_owner: the user used to talk with the RPC server
+        :param upload_kernel_config: specify if the generate control file
                 should contain code that downloads and sends to the client the
                 kernel config file (in case it is an URL); this requires that
                 the tests_map refers only to server side tests
@@ -129,7 +129,7 @@ class map_action(base_action):
         2.7.30-rc2-git3, etc) in a way that makes them easily comparable using
         lexicographic ordering.
 
-        @param version: kernel version string to encode
+        :param version: kernel version string to encode
 
         :return: processed kernel version string that can be compared using
                 lexicographic comparison
@@ -157,7 +157,7 @@ class map_action(base_action):
         """
         Compare 2 kernel versions.
 
-        @param a, b: kernel version strings to compare
+        :param a, b: kernel version strings to compare
 
         :return: True if 'a' is less than 'b' or False otherwise
         """
@@ -185,10 +185,10 @@ class map_action(base_action):
         Uses generate_control_file RPC to generate a control file given
         a test name and kernel information.
 
-        @param test: The test name string as it's named in the frontend
+        :param test: The test name string as it's named in the frontend
                 database.
-        @param kernel: A str of the kernel version (i.e. x.x.xx)
-        @param kernel_config: A str filename to the kernel config on the
+        :param kernel: A str of the kernel version (i.e. x.x.xx)
+        :param kernel_config: A str filename to the kernel config on the
                 client
 
         :return: a dict representing a control file as described by
@@ -218,9 +218,9 @@ class email_action(base_action):
         """
         Create an email_action instance.
 
-        @param dest_addr: a string or a list of strings with the destination
+        :param dest_addr: a string or a list of strings with the destination
                 email address(es)
-        @param from_addr: optional source email address for the sent mails
+        :param from_addr: optional source email address for the sent mails
                 (default 'autotest-server@localhost')
         """
         # if passed a string for the dest_addr convert it to a tuple

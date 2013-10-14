@@ -25,7 +25,7 @@ class tempfile(object):
     """
     A wrapper for tempfile.mkstemp
 
-    @param unique_id: required, a unique string to help identify what
+    :param unique_id: required, a unique string to help identify what
                       part of code created the tempfile.
     @var name: The name of the temporary file.
     @var fd:  the file descriptor of the temporary file that was created.

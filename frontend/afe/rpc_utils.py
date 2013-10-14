@@ -31,8 +31,8 @@ def prepare_rows_as_nested_dicts(query, nested_dict_column_names):
     Prepare a Django query to be returned via RPC as a sequence of nested
     dictionaries.
 
-    @param query - A Django model query object with a select_related() method.
-    @param nested_dict_column_names - A list of column/attribute names for the
+    :param query - A Django model query object with a select_related() method.
+    :param nested_dict_column_names - A list of column/attribute names for the
             rows returned by query to expand into nested dictionaries using
             their get_object_dict() method when not None.
 
@@ -274,12 +274,12 @@ def check_atomic_group_create_job(synch_count, host_objects, metahost_objects,
     will be impossible to schedule.  The checks are not perfect but
     should catch the most obvious issues.
 
-    @param synch_count - The job's minimum synch count.
-    @param host_objects - A list of models.Host instances.
-    @param metahost_objects - A list of models.Label instances.
-    @param dependencies - A list of job dependency label names.
-    @param atomic_group - The models.AtomicGroup instance.
-    @param labels_by_name - A dictionary mapping label names to models.Label
+    :param synch_count - The job's minimum synch count.
+    :param host_objects - A list of models.Host instances.
+    :param metahost_objects - A list of models.Label instances.
+    :param dependencies - A list of job dependency label names.
+    :param atomic_group - The models.AtomicGroup instance.
+    :param labels_by_name - A dictionary mapping label names to models.Label
             instance.  Used to look up instances for dependencies.
 
     :raise model_logic.ValidationError - When an issue is found.
@@ -342,7 +342,7 @@ def check_modify_host(update_data):
     """
     Sanity check modify_host* requests.
 
-    @param update_data: A dictionary with the changes to make to a host
+    :param update_data: A dictionary with the changes to make to a host
             or hosts.
     """
     # Only the scheduler (monitor_db) is allowed to modify Host status.
@@ -358,8 +358,8 @@ def check_modify_host_locking(host, update_data):
     Checks when locking/unlocking has been requested if the host is already
     locked/unlocked.
 
-    @param host: models.Host object to be modified
-    @param update_data: A dictionary with the changes to make to the host.
+    :param host: models.Host object to be modified
+    :param update_data: A dictionary with the changes to make to the host.
     """
     locked = update_data.get('locked', None)
     if locked is not None:

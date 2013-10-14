@@ -32,7 +32,7 @@ class network_utils(object):
         """
         Get ip address in local system which can communicate with query_ip.
 
-        @param query_ip: IP of client which wants to communicate with
+        :param query_ip: IP of client which wants to communicate with
                 autotest machine.
         :return: IP address which can communicate with query_ip
         """

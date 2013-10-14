@@ -88,14 +88,14 @@ class ResourceTestCase(unittest.TestCase,
                          length=None, check_number=None):
         """Check the members of a collection of dicts.
 
-        @param collection: an iterable of dicts
-        @param attribute_or_list: an attribute or list of attributes to read.
+        :param collection: an iterable of dicts
+        :param attribute_or_list: an attribute or list of attributes to read.
                 the results will be sorted and compared with expected_list. if
                 a list of attributes is given, the attributes will be read
                 hierarchically, i.e. item[attribute1][attribute2]...
-        @param expected_list: list of expected values
-        @param check_number: if given, only check this number of entries
-        @param length: expected length of list, only necessary if check_number
+        :param expected_list: list of expected values
+        :param check_number: if given, only check this number of entries
+        :param length: expected length of list, only necessary if check_number
                 is given
         """
         actual_list = sorted(self._read_attribute(item, attribute_or_list)
@@ -116,12 +116,12 @@ class ResourceTestCase(unittest.TestCase,
                            length=None, check_number=None):
         """Check the members of a relationship collection.
 
-        @param resource_uri: URI of base resource
-        @param relationship_name: name of relationship attribute on base
+        :param resource_uri: URI of base resource
+        :param relationship_name: name of relationship attribute on base
                 resource
-        @param other_entry_name: name of other entry in relationship
-        @param field: name of field to grab on other entry
-        @param expected values: list of expected values for the given field
+        :param other_entry_name: name of other entry in relationship
+        :param field: name of field to grab on other entry
+        :param expected values: list of expected values for the given field
         """
         response = self.request('get', resource_uri)
         relationship_uri = response[relationship_name]['href']

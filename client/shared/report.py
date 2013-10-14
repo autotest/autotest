@@ -57,7 +57,7 @@ def get_info_file(filename):
 
     It also and highlights the file contents with possible problems.
 
-    @param filename: Info file path.
+    :param filename: Info file path.
     """
     data = ''
     errors = re.compile(r"\b(error|fail|failed)\b", re.IGNORECASE)
@@ -84,7 +84,7 @@ def parse_results_dir(results_dir, relative_links=True):
     """
     Parse a top level status file and produce a dictionary with job data.
 
-    @param dirname: Autotest results directory path
+    :param dirname: Autotest results directory path
     :return: Dictionary with job data.
     """
     job_data = {}
@@ -210,7 +210,7 @@ def generate_json_file(results_dir, relative_links=True):
     """
     Generate a JSON file with autotest job summary on a given results directory
 
-    @param results_dir: Path to the results directory.
+    :param results_dir: Path to the results directory.
     """
     results_data = parse_results_dir(results_dir, relative_links)
     json_path = os.path.join(results_dir, 'status.json')
@@ -226,7 +226,7 @@ def generate_html_report(results_dir, relative_links=True):
 
     All CSS and javascript are inlined, for more convenience.
 
-    @param results_dir: Path to the results directory.
+    :param results_dir: Path to the results directory.
     """
     json_path = generate_json_file(results_dir, relative_links)
     json_fo = open(json_path, 'r')
@@ -262,8 +262,8 @@ def write_html_report(results_dir, report_path=None):
 
     If no report_path specified, generate one at results_dir/job_report.html.
 
-    @param results_dir: Directory with test results.
-    @param report_path: Path to a report file (optional).
+    :param results_dir: Directory with test results.
+    :param report_path: Path to a report file (optional).
     """
     default_report_path = os.path.join(results_dir, "job_report.html")
     if report_path is None:

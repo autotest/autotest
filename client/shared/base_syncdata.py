@@ -19,8 +19,8 @@ def net_send_object(sock, obj):
     """
     Send python object over network.
 
-    @param ip_addr: ipaddres of waiter for data.
-    @param obj: object to send
+    :param ip_addr: ipaddres of waiter for data.
+    :param obj: object to send
     """
     data = pickle.dumps(obj, pickle.HIGHEST_PROTOCOL)
     sock.sendall("%10d" % (len(data)))
@@ -31,8 +31,8 @@ def net_recv_object(sock, timeout=60):
     """
     Receive python object over network.
 
-    @param ip_addr: ipaddres of waiter for data.
-    @param obj: object to send
+    :param ip_addr: ipaddres of waiter for data.
+    :param obj: object to send
     :return: object from network
     """
     try:
@@ -98,9 +98,9 @@ class SyncListenServer(object):
 
     def __init__(self, address='', port=_DEFAULT_PORT, tmpdir=None):
         """
-        @param address: Address on which server must be started.
-        @param port: Port of server.
-        @param tmpdir: Dir where pid file is saved.
+        :param address: Address on which server must be started.
+        :param port: Port of server.
+        :param tmpdir: Dir where pid file is saved.
         """
         l = lambda: self._start_server(address, port)
 

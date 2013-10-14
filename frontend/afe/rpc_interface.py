@@ -138,8 +138,8 @@ def modify_host(id, **data):
 
 def modify_hosts(host_filter_data, update_data):
     """
-    @param host_filter_data: Filters out which hosts to modify.
-    @param update_data: A dictionary with the changes to make to the hosts.
+    :param host_filter_data: Filters out which hosts to modify.
+    :param update_data: A dictionary with the changes to make to the hosts.
     """
     rpc_utils.check_modify_host(update_data)
     hosts = models.Host.query_objects(host_filter_data)
@@ -168,9 +168,9 @@ def host_remove_labels(id, labels):
 
 def set_host_attribute(attribute, value, **host_filter_data):
     """
-    @param attribute string name of attribute
-    @param value string, or None to delete an attribute
-    @param host_filter_data filter data to apply to Hosts to choose hosts to act
+    :param attribute string name of attribute
+    :param value string, or None to delete an attribute
+    :param host_filter_data filter data to apply to Hosts to choose hosts to act
     upon
     """
     assert host_filter_data  # disallow accidental actions on all hosts
@@ -188,11 +188,11 @@ def delete_host(id):
 def get_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
               exclude_atomic_group_hosts=False, valid_only=True, **filter_data):
     """
-    @param multiple_labels: match hosts in all of the labels given.  Should
+    :param multiple_labels: match hosts in all of the labels given.  Should
             be a list of label names.
-    @param exclude_only_if_needed_labels: Exclude hosts with at least one
+    :param exclude_only_if_needed_labels: Exclude hosts with at least one
             "only_if_needed" label applied.
-    @param exclude_atomic_group_hosts: Exclude hosts that have one or more
+    :param exclude_atomic_group_hosts: Exclude hosts that have one or more
             atomic group labels associated with them.
     """
     hosts = rpc_utils.get_host_query(multiple_labels,
@@ -501,24 +501,24 @@ def generate_control_file(tests=(), kernel=None, label=None, profilers=(),
     """
     Generates a client-side control file to load a kernel and run tests.
 
-    @param tests List of tests to run.
-    @param kernel A list of kernel info dictionaries configuring which kernels
+    :param tests List of tests to run.
+    :param kernel A list of kernel info dictionaries configuring which kernels
         to boot for this job and other options for them
-    @param label Name of label to grab kernel config from.
-    @param profilers List of profilers to activate during the job.
-    @param client_control_file The contents of a client-side control file to
+    :param label Name of label to grab kernel config from.
+    :param profilers List of profilers to activate during the job.
+    :param client_control_file The contents of a client-side control file to
         run at the end of all tests.  If this is supplied, all tests must be
         client side.
         TODO: in the future we should support server control files directly
         to wrap with a kernel.  That'll require changing the parameter
         name and adding a boolean to indicate if it is a client or server
         control file.
-    @param use_container unused argument today.  TODO: Enable containers
+    :param use_container unused argument today.  TODO: Enable containers
         on the host during a client side test.
-    @param profile_only A boolean that indicates what default profile_only
+    :param profile_only A boolean that indicates what default profile_only
         mode to use in the control file. Passing None will generate a
         control file that does not explcitly set the default mode at all.
-    @param upload_kernel_config: if enabled it will generate server control
+    :param upload_kernel_config: if enabled it will generate server control
             file code that uploads the kernel config file to the client and
             tells the client of the new (local) path when compiling the kernel;
             the tests must be server side tests
@@ -564,10 +564,10 @@ def create_parameterized_job(name, priority, test, parameters, kernel=None,
     Most parameters a combination of the parameters for generate_control_file()
     and create_job(), with the exception of:
 
-    @param test name or ID of the test to run
-    @param parameters a map of parameter name ->
+    :param test name or ID of the test to run
+    :param parameters a map of parameter name ->
                           tuple of (param value, param type)
-    @param profiler_parameters a dictionary of parameters for the profilers:
+    :param profiler_parameters a dictionary of parameters for the profilers:
                                    key: profiler name
                                    value: dict of param name -> tuple of
                                                                 (param value,

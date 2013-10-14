@@ -149,7 +149,7 @@ class ExternalPackage(object):
         """
         Builds and installs the package.  It must have been fetched already.
 
-        @param install_dir - The package installation directory.  If it does
+        :param install_dir - The package installation directory.  If it does
             not exist it will be created.
         """
         if not self.verified_package:
@@ -248,7 +248,7 @@ class ExternalPackage(object):
         Assuming the cwd is the extracted python package, execute a simple
         python setup.py build.
 
-        @param setup_py - The name of the setup.py file to execute.
+        :param setup_py - The name of the setup.py file to execute.
 
         :return: True on success, False otherwise.
         """
@@ -265,7 +265,7 @@ class ExternalPackage(object):
         Assuming the cwd is the extracted python package, execute a simple
         python setup.py bdist_egg.
 
-        @param setup_py - The name of the setup.py file to execute.
+        :param setup_py - The name of the setup.py file to execute.
 
         :return: The relative path to the resulting egg file or '' on failure.
         """
@@ -288,8 +288,8 @@ class ExternalPackage(object):
         Install a module from an egg file by unzipping the necessary parts
         into install_dir.
 
-        @param install_dir - The installation directory.
-        @param egg_path - The pathname of the egg file.
+        :param install_dir - The installation directory.
+        :param egg_path - The pathname of the egg file.
         """
         status = system("unzip -q -o -d '%s' '%s'" % (install_dir, egg_path))
         if status:
@@ -325,8 +325,8 @@ class ExternalPackage(object):
         directory tree that setuptools created and moves all installed
         site-packages directly up into install_dir itself.
 
-        @param install_dir the directory for the install to happen under.
-        @param setup_py - The name of the setup.py file to execute.
+        :param install_dir the directory for the install to happen under.
+        :param setup_py - The name of the setup.py file to execute.
 
         :return: True on success, False otherwise.
         """
@@ -399,7 +399,7 @@ class ExternalPackage(object):
 
         Sets the 'verified_package' attribute with the destination pathname.
 
-        @param dest_dir - The destination directory to save the local file.
+        :param dest_dir - The destination directory to save the local file.
             If it does not exist it will be created.
 
         :return: A boolean indicating if we the package is now in dest_dir.

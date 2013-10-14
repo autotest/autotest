@@ -105,7 +105,7 @@ class LoggingFile(object):
     def __init__(self, prefix='', level=logging.DEBUG,
                  logger=logging.getLogger()):
         """
-        @param prefix - The prefix for each line logged by this object.
+        :param prefix - The prefix for each line logged by this object.
         """
 
         self._prefix = prefix
@@ -118,7 +118,7 @@ class LoggingFile(object):
         """"
         Writes data only if it constitutes a whole line. If it's not the case,
         store it in a buffer and wait until we have a complete line.
-        @param data - Raw data (a string) that will be processed.
+        :param data - Raw data (a string) that will be processed.
         """
         # splitlines() discards a trailing blank line, so use split() instead
         data_lines = data.split('\n')
@@ -196,9 +196,9 @@ class _StreamManager(object):
 
     def __init__(self, stream, level, stream_setter):
         """
-        @param stream: stream object to manage
-        @param level: level at which data written to the stream will be logged
-        @param stream_setter: function accepting a stream object that will
+        :param stream: stream object to manage
+        :param level: level at which data written to the stream will be logged
+        :param stream_setter: function accepting a stream object that will
                 replace the given stream in its original location.
         """
         self._stream = stream
@@ -274,9 +274,9 @@ class LoggingManager(object):
         stream will be directed to the logging module instead.  Must be called
         before start_logging().
 
-        @param stream: stream to manage
-        @param level: level to log data written to this stream
-        @param stream_setter: function to set the stream to a new object
+        :param stream: stream to manage
+        :param level: level to log data written to this stream
+        :param stream_setter: function to set the stream to a new object
         """
         if self._started:
             raise RuntimeError('You must call this before start_logging()')
@@ -338,7 +338,7 @@ class LoggingManager(object):
         """
         Modify the logging module's registered handlers and push a new context
         onto the stack.
-        @param add_handlers_fn: function to modify the registered logging
+        :param add_handlers_fn: function to modify the registered logging
         handlers. Accepts a context dictionary which may be modified.
         """
         self._flush_all_streams()
@@ -370,7 +370,7 @@ class LoggingManager(object):
     def _do_redirect(self, stream=None, filename=None, level=None,
                      clear_other_handlers=False):
         """
-        @param clear_other_handlers - if true, clear out all other logging
+        :param clear_other_handlers - if true, clear out all other logging
         handlers.
         """
         assert bool(stream) != bool(filename)  # xor

@@ -390,8 +390,8 @@ class DroneManager(object):
         """
         Return the maximum number of processes that can be run (in a single
         execution) given the current load on drones.
-        @param username: login of user to run a process.  may be None.
-        @param drone_hostnames_allowed: list of drones that can be used. May be
+        :param username: login of user to run a process.  may be None.
+        :param drone_hostnames_allowed: list of drones that can be used. May be
                                         None
         """
         usable_drone_wrappers = [wrapper for wrapper in self._drone_queue
@@ -470,21 +470,21 @@ class DroneManager(object):
         """
         Execute the given command, taken as an argv list.
 
-        @param command: command to execute as a list.  if any item is
+        :param command: command to execute as a list.  if any item is
                 WORKING_DIRECTORY, the absolute path to the working directory
                 will be substituted for it.
-        @param working_directory: directory in which the pidfile will be written
-        @param pidfile_name: name of the pidfile this process will write
-        @param num_processes: number of processes to account for from this
+        :param working_directory: directory in which the pidfile will be written
+        :param pidfile_name: name of the pidfile this process will write
+        :param num_processes: number of processes to account for from this
                 execution
-        @param log_file (optional): path (in the results repository) to hold
+        :param log_file (optional): path (in the results repository) to hold
                 command output.
-        @param paired_with_pidfile (optional): a PidfileId for an
+        :param paired_with_pidfile (optional): a PidfileId for an
                 already-executed process; the new process will execute on the
                 same drone as the previous process.
-        @param username (optional): login of the user responsible for this
+        :param username (optional): login of the user responsible for this
                 process.
-        @param drone_hostnames_allowed (optional): hostnames of the drones that
+        :param drone_hostnames_allowed (optional): hostnames of the drones that
                                                    this command is allowed to
                                                    execute on
         """

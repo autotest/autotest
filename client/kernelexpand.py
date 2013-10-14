@@ -102,7 +102,7 @@ def decompose_kernel_2x_once(kernel):
     major        => 2.n
     minor-prev   => 2.n.m-1
 
-    @param kernel: String representing a kernel version to be expanded.
+    :param kernel: String representing a kernel version to be expanded.
     """
     for mapping in get_mappings_2x():
         (suffix, becomes, is_full, patch_templates) = mapping
@@ -145,7 +145,7 @@ def decompose_kernel_post_2x_once(kernel):
     major        => o.n
     minor-prev   => o.n.m-1
 
-    @param kernel: String representing a kernel version to be expanded.
+    :param kernel: String representing a kernel version to be expanded.
     """
     for mapping in get_mappings_post_2x():
         (suffix, becomes, is_full, patch_templates) = mapping

@@ -75,9 +75,9 @@ def context(s="", log=None):
     """
     Set the context for the currently executing function and optionally log it.
 
-    @param s: A string.  If not provided, the context for the current function
+    :param s: A string.  If not provided, the context for the current function
             will be cleared.
-    @param log: A logging function to pass the context message to.  If None, no
+    :param log: A logging function to pass the context message to.  If None, no
             function will be called.
     """
     ctx.contexts[-1] = s
@@ -92,9 +92,9 @@ def base_context(s="", log=None):
     default.  Functions that require a single context level should not use
     base_context().
 
-    @param s: A string.  If not provided, the base context for the current
+    :param s: A string.  If not provided, the base context for the current
             function will be cleared.
-    @param log: A logging function to pass the context message to.  If None, no
+    :param log: A logging function to pass the context message to.  If None, no
             function will be called.
     """
     ctx.contexts[-1] = ""

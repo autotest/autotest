@@ -158,21 +158,21 @@ class base_server_job(base_job.base_job):
         """
         Create a server side job object.
 
-        @param control: The pathname of the control file.
-        @param args: Passed to the control file.
-        @param resultdir: Where to throw the results.
-        @param label: Description of the job.
-        @param user: Username for the job (email address).
-        @param client: True if this is a client-side control file.
-        @param parse_job: string, if supplied it is the job execution tag that
+        :param control: The pathname of the control file.
+        :param args: Passed to the control file.
+        :param resultdir: Where to throw the results.
+        :param label: Description of the job.
+        :param user: Username for the job (email address).
+        :param client: True if this is a client-side control file.
+        :param parse_job: string, if supplied it is the job execution tag that
                 the results will be passed through to the TKO parser with.
-        @param ssh_user: The SSH username.  [root]
-        @param ssh_port: The SSH port number.  [22]
-        @param ssh_pass: The SSH passphrase, if needed.
-        @param group_name: If supplied, this will be written out as
+        :param ssh_user: The SSH username.  [root]
+        :param ssh_port: The SSH port number.  [22]
+        :param ssh_pass: The SSH passphrase, if needed.
+        :param group_name: If supplied, this will be written out as
                 host_group_name in the keyvals file for the parser.
-        @param tag: The job execution tag from the scheduler.  [optional]
-        @param control_filename: The filename where the server control file
+        :param tag: The job execution tag from the scheduler.  [optional]
+        :param control_filename: The filename where the server control file
                 should be written in the results directory.
         """
         super(base_server_job, self).__init__(resultdir=resultdir)
@@ -421,13 +421,13 @@ class base_server_job(base_job.base_job):
         the necessary setup for continuous parsing, if possible. If continuous
         parsing is already properly initialized then this should just work.
 
-        @param function: A callable to run in parallel given each machine.
-        @param machines: A list of machine names to be passed one per subcommand
+        :param function: A callable to run in parallel given each machine.
+        :param machines: A list of machine names to be passed one per subcommand
                 invocation of function.
-        @param log: If True, output will be written to output in a subdirectory
+        :param log: If True, output will be written to output in a subdirectory
                 named after each machine.
-        @param timeout: Seconds after which the function call should timeout.
-        @param return_results: If True instead of an AutoServError being raised
+        :param timeout: Seconds after which the function call should timeout.
+        :param return_results: If True instead of an AutoServError being raised
                 on any error a list of the results|exceptions from the function
                 called on each arg is returned.  [default: False]
 
@@ -440,9 +440,9 @@ class base_server_job(base_job.base_job):
 
     def parallel_on_machines(self, function, machines, timeout=None):
         """
-        @param function: Called in parallel with one machine as its argument.
-        @param machines: A list of machines to call function(machine) on.
-        @param timeout: Seconds after which the function call should timeout.
+        :param function: Called in parallel with one machine as its argument.
+        :param machines: A list of machines to call function(machine) on.
+        :param timeout: Seconds after which the function call should timeout.
 
         :return: A list of machines on which function(machine) returned
                 without raising an exception.
@@ -755,19 +755,19 @@ class base_server_job(base_job.base_job):
                        distinguishing_attributes=(), child_test_ids=None):
         """Record a summary test result.
 
-        @param status_code: status code string, see
+        :param status_code: status code string, see
                 shared.log.is_valid_status()
-        @param test_name: name of the test
-        @param reason: (optional) string providing detailed reason for test
+        :param test_name: name of the test
+        :param reason: (optional) string providing detailed reason for test
                 outcome
-        @param attributes: (optional) dict of string keyvals to associate with
+        :param attributes: (optional) dict of string keyvals to associate with
                 this result
-        @param distinguishing_attributes: (optional) list of attribute names
+        :param distinguishing_attributes: (optional) list of attribute names
                 that should be used to distinguish identically-named test
                 results.  These attributes should be present in the attributes
                 parameter.  This is used to generate user-friendly subdirectory
                 names.
-        @param child_test_ids: (optional) list of test indices for test results
+        :param child_test_ids: (optional) list of test indices for test results
                 used in generating this result.
         """
         subdirectory_name_parts = [test_name]
@@ -809,7 +809,7 @@ class base_server_job(base_job.base_job):
     def get_status_log_path(self, subdir=None):
         """Return the path to the job status log.
 
-        @param subdir - Optional parameter indicating that you want the path
+        :param subdir - Optional parameter indicating that you want the path
             to a subdirectory status log.
 
         :return: The path where the status log should be.
@@ -825,7 +825,7 @@ class base_server_job(base_job.base_job):
     def _update_uncollected_logs_list(self, update_func):
         """Updates the uncollected logs list in a multi-process safe manner.
 
-        @param update_func - a function that updates the list of uncollected
+        :param update_func - a function that updates the list of uncollected
             logs. Should take one parameter, the list to be updated.
         """
         if self._uncollected_log_file:
@@ -846,9 +846,9 @@ class base_server_job(base_job.base_job):
         """Adds a new set of client logs to the list of uncollected logs,
         to allow for future log recovery.
 
-        @param host - the hostname of the machine holding the logs
-        @param remote_path - the directory on the remote machine holding logs
-        @param local_path - the local directory to copy the logs into
+        :param host - the hostname of the machine holding the logs
+        :param remote_path - the directory on the remote machine holding logs
+        :param local_path - the local directory to copy the logs into
         """
         def update_func(logs_list):
             logs_list.append((hostname, remote_path, local_path))
@@ -858,9 +858,9 @@ class base_server_job(base_job.base_job):
         """Removes a set of client logs from the list of uncollected logs,
         to allow for future log recovery.
 
-        @param host - the hostname of the machine holding the logs
-        @param remote_path - the directory on the remote machine holding logs
-        @param local_path - the local directory to copy the logs into
+        :param host - the hostname of the machine holding the logs
+        :param remote_path - the directory on the remote machine holding logs
+        :param local_path - the local directory to copy the logs into
         """
         def update_func(logs_list):
             logs_list.remove((hostname, remote_path, local_path))
@@ -1049,7 +1049,7 @@ class base_server_job(base_job.base_job):
         pulls in some specific bits from the client-specific state, and then
         discards the rest. Removes the state file afterwards
 
-        @param state_file A path to the state file from the client.
+        :param state_file A path to the state file from the client.
         """
         # update the on-disk state
         try:

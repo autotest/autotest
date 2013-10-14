@@ -294,7 +294,7 @@ class directory_source_unittest(common_source):
         """
         Build an os.stat_result() instance with many default values.
 
-        @param mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime:
+        :param mode, ino, dev, nlink, uid, gid, size, atime, mtime, ctime:
                 See help(os.stat_result).
         """
         return os.stat_result((mode, ino, dev, nlink, uid, gid, size, atime,

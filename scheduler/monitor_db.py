@@ -93,25 +93,25 @@ def _autoserv_command_line(machines, profiles, extra_args, job=None,
     """
     Builds an autoserv command line composed of the executable and parameters
 
-    @type machines: list
-    @param machines: List of machines for the (-m) flag
+    :type machines: list
+    :param machines: List of machines for the (-m) flag
 
-    @type profiles: list
-    @param profiles: List of profiles to set for machines (will be added to
+    :type profiles: list
+    :param profiles: List of profiles to set for machines (will be added to
                      machine names with the machine#host syntax)
 
-    @type extra_args: list
-    @param extra_args: Additional arguments to pass to autoserv.
+    :type extra_args: list
+    :param extra_args: Additional arguments to pass to autoserv.
 
-    @type job: Job object
-    @param job: If supplied, -u owner and -l name parameters will be added.
+    :type job: Job object
+    :param job: If supplied, -u owner and -l name parameters will be added.
 
-    @type queue_entry: HostQueueEntry object
-    @param queue_entry: If supplied and no Job object was supplied, this will
+    :type queue_entry: HostQueueEntry object
+    :param queue_entry: If supplied and no Job object was supplied, this will
                         be used to lookup the Job object.
 
-    @type verbose: boolean
-    @param verbose: Add the '--verbose' argument to the autoserv command line
+    :type verbose: boolean
+    :param verbose: Add the '--verbose' argument to the autoserv command line
 
     :return: The autoserv command line as a list of executable + parameters.
     """
@@ -446,7 +446,7 @@ class Dispatcher(object):
         """
         Construct an AgentTask instance for the given active HostQueueEntry,
         if one can currently run it.
-        @param queue_entry: a HostQueueEntry
+        :param queue_entry: a HostQueueEntry
         :return: an AgentTask to run the queue entry
         """
         task_entries = queue_entry.job.get_group_entries(queue_entry)
@@ -479,7 +479,7 @@ class Dispatcher(object):
 
     def _assert_host_has_no_agent(self, entry):
         """
-        @param entry: a HostQueueEntry or a SpecialTask
+        :param entry: a HostQueueEntry or a SpecialTask
         """
         if self.host_has_agent(entry.host):
             agent = tuple(self._host_agents.get(entry.host.id))[0]
@@ -491,7 +491,7 @@ class Dispatcher(object):
         """
         Construct an AgentTask class to run the given SpecialTask and add it
         to this dispatcher.
-        @param special_task: a models.SpecialTask instance
+        :param special_task: a models.SpecialTask instance
         :return: an AgentTask to run this SpecialTask
         """
         self._assert_host_has_no_agent(special_task)
@@ -1008,7 +1008,7 @@ class Agent(object):
 
     def __init__(self, task):
         """
-        @param task: A task as described in the class docstring.
+        :param task: A task as described in the class docstring.
         """
         self.task = task
 
@@ -1049,7 +1049,7 @@ class AgentTask(object):
 
     def __init__(self, log_file_name=None):
         """
-        @param log_file_name: (optional) name of file to log command output to
+        :param log_file_name: (optional) name of file to log command output to
         """
         self.done = False
         self.started = False
@@ -1146,7 +1146,7 @@ class AgentTask(object):
 
     def _copy_results(self, execution_entries, use_monitor=None):
         """
-        @param execution_entries: list of objects with execution_path() method
+        :param execution_entries: list of objects with execution_path() method
         """
         if use_monitor is not None and not use_monitor.has_process():
             return

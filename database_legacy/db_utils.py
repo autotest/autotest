@@ -13,8 +13,8 @@ def drop_views(manager, views):
     If a specified view does not exist in the database, this method fails
     without modification
 
-    @param manager the migration manager
-    @param views the views to drop
+    :param manager the migration manager
+    :param views the views to drop
     """
     check_exists(manager, views, VIEW_TYPE)
     for view in views:
@@ -28,8 +28,8 @@ def rename(manager, mapping):
     Use this to rename a specified set of tables in a database. If a source in
     the mapping does not exist, this method fails without modification.
 
-    @param manager the migration manager
-    @param mapping a dictionary of orig_name => new_name. Any table not matching
+    :param manager the migration manager
+    :param mapping a dictionary of orig_name => new_name. Any table not matching
                    an entry in this dictionary will not be renamed
     """
     check_exists(manager, (table for table, _ in mapping.iteritems()),
@@ -45,9 +45,9 @@ def move_tables(manager, src_manager, tables):
     If a table does not exist in the source database, this method fails without
     modification
 
-    @param manager the migration manager
-    @param src_manager a migration manager that handles the source database
-    @param tables a list of tables to move
+    :param manager the migration manager
+    :param src_manager a migration manager that handles the source database
+    :param tables a list of tables to move
     """
     check_exists(src_manager, tables, TABLE_TYPE)
     for table in tables:
@@ -59,7 +59,7 @@ def drop_database(manager):
     """
     Drops the database that the specified manager controls
 
-    @param manager the migration manager
+    :param manager the migration manager
     """
     manager.execute('DROP DATABASE `%s`' % manager.get_db_name())
 
@@ -70,9 +70,9 @@ def check_exists(manager, names, type):
 
     Raise an Exception if any of the names do not exist
 
-    @param manager the migration manager
-    @param names the table/view names
-    @param type one of 'TABLE' or 'VIEW'
+    :param manager the migration manager
+    :param names the table/view names
+    :param type one of 'TABLE' or 'VIEW'
     """
     if type == TABLE_TYPE:
         info_table = 'TABLES'
@@ -96,9 +96,9 @@ def check_index_exists(manager, table_name, index_name):
     """
     Checks if a particular index exists on the table
 
-    @param manager the migration manager
-    @param table_name the table to check
-    @param index_name the index to check
+    :param manager the migration manager
+    :param table_name the table to check
+    :param index_name the index to check
     """
     query = ('SELECT 1 FROM information_schema.statistics '
              'WHERE table_schema = %s AND table_name = %s AND index_name = %s')

@@ -68,10 +68,10 @@ def update_all(autotest_dir, add_noncompliant, add_experimental):
     from the db.  The base test directories are hard-coded to client/tests,
     client/site_tests, server/tests and server/site_tests.
 
-    @param autotest_dir: prepended to path strings
+    :param autotest_dir: prepended to path strings
             (see global_config.ini, COMMON, autotest_top_path).
-    @param add_noncompliant: attempt adding test with invalid control files.
-    @param add_experimental: add tests with experimental attribute set.
+    :param add_noncompliant: attempt adding test with invalid control files.
+    :param add_experimental: add tests with experimental attribute set.
     """
     for path in ['server/tests', 'server/site_tests', 'client/tests',
                  'client/site_tests', 'client/samples']:
@@ -112,10 +112,10 @@ def update_samples(autotest_dir, add_noncompliant, add_experimental):
     Only adds tests to the database - does not delete any.
     Samples tests are formatted slightly differently than other tests.
 
-    @param autotest_dir: prepended to path strings
+    :param autotest_dir: prepended to path strings
             (see global_config.ini, COMMON, autotest_top_path).
-    @param add_noncompliant: attempt adding test with invalid control files.
-    @param add_experimental: add tests with experimental attribute set.
+    :param add_noncompliant: attempt adding test with invalid control files.
+    :param add_experimental: add tests with experimental attribute set.
     """
     sample_path = os.path.join(autotest_dir, 'server/samples')
     if os.path.exists(sample_path):
@@ -136,7 +136,7 @@ def db_clean_broken(autotest_dir):
     found in the filesystem.  Also removes profilers which are just
     a special case of tests.
 
-    @param autotest_dir: prepended to path strings
+    :param autotest_dir: prepended to path strings
             (see global_config.ini, COMMON, autotest_top_path).
     """
     for test in models.Test.objects.all():
@@ -161,7 +161,7 @@ def db_clean_all(autotest_dir):
     This function invoked when -C supplied on the command line.
     Removes ALL tests from the database.
 
-    @param autotest_dir: prepended to path strings
+    :param autotest_dir: prepended to path strings
             (see global_config.ini, COMMON, autotest_top_path).
     """
     for test in models.Test.objects.all():
@@ -186,9 +186,9 @@ def update_profilers_in_db(profilers, description='NA',
     Only adds profilers to the database - does not delete any.
     Profilers are formatted slightly differently than tests.
 
-    @param profilers: list of profilers found in the file system.
-    @param description: simple text to satisfy docstring.
-    @param add_noncompliant: attempt adding test with invalid control files.
+    :param profilers: list of profilers found in the file system.
+    :param description: simple text to satisfy docstring.
+    :param add_noncompliant: attempt adding test with invalid control files.
     """
     for profiler in profilers:
         name = os.path.basename(profiler)
@@ -216,11 +216,11 @@ def update_tests_in_db(tests, dry_run=False, add_experimental=False,
     This function invoked when -t supplied and for update_all.
     When test code is discovered in the file system new tests may be added
 
-    @param tests: list of tests found in the filesystem.
-    @param dry_run: not used at this time.
-    @param add_experimental: add tests with experimental attribute set.
-    @param add_noncompliant: attempt adding test with invalid control files.
-    @param autotest_dir: prepended to path strings
+    :param tests: list of tests found in the filesystem.
+    :param dry_run: not used at this time.
+    :param add_experimental: add tests with experimental attribute set.
+    :param add_noncompliant: attempt adding test with invalid control files.
+    :param autotest_dir: prepended to path strings
             (see global_config.ini, COMMON, autotest_top_path).
     """
     site_set_attributes_module = utils.import_site_module(
@@ -275,8 +275,8 @@ def _set_attributes_clean(test, data):
     """
     First pass sets the attributes of the Test object from file system.
 
-    @param test: a test object to be populated for the database.
-    @param data: object with test data from the file system.
+    :param test: a test object to be populated for the database.
+    :param data: object with test data from the file system.
     """
     test_type = {'client': 1,
                  'server': 2}
@@ -305,7 +305,7 @@ def add_label_dependencies(test):
     """
     Add proper many-to-many relationships from DEPENDENCIES field.
 
-    @param test: test object for the database.
+    :param test: test object for the database.
     """
 
     # clear out old relationships
@@ -331,7 +331,7 @@ def log_dependency_not_found(label_name):
     """
     Exception processing when label not found in database.
 
-    @param label_name: from test dependencies.
+    :param label_name: from test dependencies.
     """
     if label_name in DEPENDENCIES_NOT_FOUND:
         return
@@ -343,9 +343,9 @@ def get_tests_from_fs(parent_dir, control_pattern, add_noncompliant=False):
     """
     Find control files in file system and load a list with their info.
 
-    @param parent_dir: directory to search recursively.
-    @param control_pattern: name format of control file.
-    @param add_noncompliant: ignore control file parse errors.
+    :param parent_dir: directory to search recursively.
+    :param control_pattern: name format of control file.
+    :param add_noncompliant: ignore control file parse errors.
 
     :return: dictionary of the form: tests[file_path] = parsed_object
     """
@@ -382,8 +382,8 @@ def recursive_walk(path, wildcard):
 
     This function invoked by get_tests_from_fs().
 
-    @param path: base directory to start search.
-    @param wildcard: name format to match.
+    :param path: base directory to start search.
+    :param wildcard: name format to match.
 
     :return: A list of files that match wildcard
     """
@@ -408,9 +408,9 @@ def _log_or_execute(content, func, *args, **kwargs):
 
     Relies on the DRY_RUN global variable.
 
-    @param content: the actual log message.
-    @param func: function to execute if dry_run is not enabled.
-    @param subject: (Optional) The type of log being written. Defaults to
+    :param content: the actual log message.
+    :param func: function to execute if dry_run is not enabled.
+    :param subject: (Optional) The type of log being written. Defaults to
                      the name of the provided function.
     """
     subject = kwargs.get('subject', func.__name__)
@@ -425,7 +425,7 @@ def _create_whitelist_set(whitelist_path):
     """
     Create a set with contents from a whitelist file for membership testing.
 
-    @param whitelist_path: full path to the whitelist file.
+    :param whitelist_path: full path to the whitelist file.
 
     :return: set with files listed one/line - newlines included.
     """
@@ -442,10 +442,10 @@ def update_from_whitelist(whitelist_set, add_experimental, add_noncompliant,
 
     This function invoked when -w supplied.
 
-    @param whitelist_set: set of tests in full-path form from a whitelist.
-    @param add_experimental: add tests with experimental attribute set.
-    @param add_noncompliant: attempt adding test with invalid control files.
-    @param autotest_dir: prepended to path strings
+    :param whitelist_set: set of tests in full-path form from a whitelist.
+    :param add_experimental: add tests with experimental attribute set.
+    :param add_noncompliant: attempt adding test with invalid control files.
+    :param autotest_dir: prepended to path strings
             (see global_config.ini, COMMON, autotest_top_path).
     """
     tests = {}

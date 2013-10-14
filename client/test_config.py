@@ -25,12 +25,12 @@ class config_loader:
         """
         Instantiate ConfigParser and provide the file like object that we'll
         use to read configuration data from.
-        @param cfg: Where we'll get configuration data. It can be either:
+        :param cfg: Where we'll get configuration data. It can be either:
                 * A URL containing the file
                 * A valid file path inside the filesystem
                 * A string containing configuration data
-        @param tmpdir: Where we'll dump the temporary conf files.
-        @param raise_errors: Whether config value absences will raise
+        :param tmpdir: Where we'll dump the temporary conf files.
+        :param raise_errors: Whether config value absences will raise
                 ValueError exceptions.
         """
         # Base Parser
@@ -68,8 +68,8 @@ class config_loader:
         Section of the config file and the option name.
         You can pass a default value if the option doesn't exist.
 
-        @param section: Configuration file section.
-        @param option: Option we're looking after.
+        :param section: Configuration file section.
+        :param option: Option we're looking after.
         @default: In case the option is not available and raise_errors is set
                 to False, return the default.
         """
@@ -152,7 +152,7 @@ class config_loader:
         """
         Verify if the ip address is valid
 
-        @param ip String: IP Address
+        :param ip String: IP Address
         :return: True if a valid IP Address or False
         """
         octet1 = "([1-9][0-9]{,1}|1[0-9]{2}|2[0-4][0-9]|25[0-5])"

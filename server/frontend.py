@@ -268,8 +268,8 @@ class AFE(RpcClient):
         Given a test name, fetch the appropriate control file from the server
         and submit it.
 
-        @param kernel: A comma separated list of kernel versions to boot.
-        @param kernel_cmdline: The command line used to boot all kernels listed
+        :param kernel: A comma separated list of kernel versions to boot.
+        :param kernel_cmdline: The command line used to boot all kernels listed
                 in the kernel parameter.
 
         Returns a list of job objects
@@ -317,17 +317,17 @@ class AFE(RpcClient):
 
         Poll for them to complete, and return whether they worked or not.
 
-        @param pairings: List of MachineTestPairing objects to invoke.
-        @param kernel: Name of the kernel to run.
-        @param kernel_label: Label (string) of the kernel to run such as
+        :param pairings: List of MachineTestPairing objects to invoke.
+        :param kernel: Name of the kernel to run.
+        :param kernel_label: Label (string) of the kernel to run such as
                     '<kernel-version> : <config> : <date>'
                     If any pairing object has its job_label attribute set it
                     will override this value for that particular job.
-        @param kernel_cmdline: The command line to boot the kernel(s) with.
-        @param wait: boolean - Wait for the results to come back?
-        @param poll_interval: Interval between polling for job results (in mins)
-        @param email_from: Send notification email upon completion from here.
-        @param email_from: Send notification email upon completion to here.
+        :param kernel_cmdline: The command line to boot the kernel(s) with.
+        :param wait: boolean - Wait for the results to come back?
+        :param poll_interval: Interval between polling for job results (in mins)
+        :param email_from: Send notification email upon completion from here.
+        :param email_from: Send notification email upon completion to here.
         """
         jobs = []
         for pairing in pairings:
@@ -476,7 +476,7 @@ class AFE(RpcClient):
         Given a pairing of a control file to a machine label, find all machines
         with that label, and submit that control file to them.
 
-        @param kernel_label: Label (string) of the kernel to run such as
+        :param kernel_label: Label (string) of the kernel to run such as
                 '<kernel-version> : <config> : <date>'
                 If any pairing object has its job_label attribute set it
                 will override this value for that particular job.
