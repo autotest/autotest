@@ -34,13 +34,13 @@ def _add_kernel_to_bootloader(bootloader, base_args, tag, args, image, initrd):
     by removing all root= options and give the last root= option value to
     the bootloader as a root device.
 
-    @param bootloader: bootloader object
-    @param base_args: base cmdline kernel arguments
-    @param tag: kernel tag
-    @param args: kernel cmdline arguments that are merged with base_args; a
+    :param bootloader: bootloader object
+    :param base_args: base cmdline kernel arguments
+    :param tag: kernel tag
+    :param args: kernel cmdline arguments that are merged with base_args; a
             root= option in "args" will override any from base_args
-    @param image: kernel image file
-    @param initrd: initrd file
+    :param image: kernel image file
+    :param initrd: initrd file
     """
     # remove existing entry if present
     bootloader.remove_kernel(tag)
@@ -66,11 +66,11 @@ class BootableKernel(object):
         """
         Boot a kernel, with post-boot kernel id check
 
-        @param args:  kernel cmdline arguments
-        @param ident_check: check kernel id after boot
-        @param expected_ident:
-        @param subdir: job-step qualifier in status log
-        @param notes:  additional comment in status log
+        :param args:  kernel cmdline arguments
+        :param ident_check: check kernel id after boot
+        :param expected_ident:
+        :param subdir: job-step qualifier in status log
+        :param notes:  additional comment in status log
         """
         # If we can check the kernel identity do so.
         if ident_check:

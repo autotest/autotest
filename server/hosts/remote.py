@@ -87,7 +87,7 @@ class RemoteHost(base_classes.Host):
         """
         Install a profile using the install server.
 
-        @param profile: Profile name inside the install server database.
+        :param profile: Profile name inside the install server database.
         """
         if timeout is None:
             timeout = settings.get_value('INSTALL_SERVER',
@@ -131,13 +131,13 @@ class RemoteHost(base_classes.Host):
         """
         Reboot the machine using the install server.
 
-        @params timeout: timelimit in seconds before the machine is
+        :params timeout: timelimit in seconds before the machine is
                          considered unreachable
-        @params wait: Whether or not to wait for the machine to reboot
-        @params num_attempts: Number of times to attempt hard reset erroring
+        :params wait: Whether or not to wait for the machine to reboot
+        :params num_attempts: Number of times to attempt hard reset erroring
                               on the last attempt.
-        @params halt: Halts the machine before hardresetting.
-        @params **wait_for_restart_kwargs: keyword arguments passed to
+        :params halt: Halts the machine before hardresetting.
+        :params **wait_for_restart_kwargs: keyword arguments passed to
                 wait_for_restart()
         """
         server_info = get_install_server_info()

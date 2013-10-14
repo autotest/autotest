@@ -91,16 +91,16 @@ class Host(object):
         """
         Run a command on this host.
 
-        @param command: the command line string
-        @param timeout: time limit in seconds before attempting to
+        :param command: the command line string
+        :param timeout: time limit in seconds before attempting to
                 kill the running process. The run() function
                 will take a few seconds longer than 'timeout'
                 to complete if it has to kill the process.
-        @param ignore_status: do not raise an exception, no matter
+        :param ignore_status: do not raise an exception, no matter
                 what the exit code of the command is.
-        @param stdout_tee/stderr_tee: where to tee the stdout/stderr
-        @param stdin: stdin to pass (a string) to the executed command
-        @param args: sequence of strings to pass as arguments to command by
+        :param stdout_tee/stderr_tee: where to tee the stdout/stderr
+        :param stdin: stdin to pass (a string) to the executed command
+        :param args: sequence of strings to pass as arguments to command by
                 quoting them in " and escaping their contents if necessary
 
         :return: a utils.CmdResult object
@@ -162,7 +162,7 @@ class Host(object):
         not reboot between the two calls, and two different strings if it
         has rebooted at least once between the two calls.
 
-        @param timeout The number of seconds to wait before timing out.
+        :param timeout The number of seconds to wait before timing out.
 
         :return: A string unique to this boot or None if not available."""
         BOOT_ID_FILE = '/proc/sys/kernel/random/boot_id'
@@ -218,8 +218,8 @@ class Host(object):
     def check_diskspace(self, path, gb):
         """Raises an error if path does not have at least gb GB free.
 
-        @param path The path to check for free disk space.
-        @param gb A floating point number to compare with a granularity
+        :param path The path to check for free disk space.
+        :param gb A floating point number to compare with a granularity
             of 1 MB.
 
         1000 based SI units are used.
@@ -245,7 +245,7 @@ class Host(object):
         by using self.run('cat <file>') and may cache the results for the same
         filename.
 
-        @param use_cache Cache results of self.run('cat <filename>') for the
+        :param use_cache Cache results of self.run('cat <filename>') for the
             same filename
 
         :return: a function that can be used instead of built-in open()
@@ -414,7 +414,7 @@ class Host(object):
         """Perform the maximal amount of repair within the specified
         protection level.
 
-        @param protection_level: the protection level to use for limiting
+        :param protection_level: the protection level to use for limiting
                                  repairs, a host_protections.Protection
         """
         protection = host_protections.Protection
@@ -568,7 +568,7 @@ class Host(object):
         Given a sequence of path strings, return the set of all paths that
         can be reached from the initial set by following symlinks.
 
-        @param paths: sequence of path strings.
+        :param paths: sequence of path strings.
         :return: a sequence of path strings that are all the unique paths that
                 can be reached from the given ones after following symlinks.
         """
@@ -598,7 +598,7 @@ class Host(object):
         modules) for any image found in the boot directory that is not
         referenced by entries in the bootloader configuration.
 
-        @param boot_dir: boot directory path string, default '/boot'
+        :param boot_dir: boot directory path string, default '/boot'
         """
         # find all the vmlinuz images referenced by the bootloader
         boot_info = self.bootloader.get_entries()

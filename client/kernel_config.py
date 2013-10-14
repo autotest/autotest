@@ -46,8 +46,8 @@ def feature_enabled(feature, config):
     """
     Verify whether a given kernel option is enabled.
 
-    @param feature: Kernel feature, such as "CONFIG_DEFAULT_UIMAGE".
-    @param config: Config file path, such as /tmp/config.
+    :param feature: Kernel feature, such as "CONFIG_DEFAULT_UIMAGE".
+    :param config: Config file path, such as /tmp/config.
     """
     return utils.grep('^%s=y' % feature, config)
 

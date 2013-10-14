@@ -69,7 +69,7 @@ class JobSerializer(object):
         job object and then converts the job object into a tko job
         object.
 
-        @param
+        :param
         infile: the name of the binary file that will be deserialized.
 
         :return: a tko job that is represented by the binary file will
@@ -99,7 +99,7 @@ class JobSerializer(object):
         is already in the job object. Any fields that is None will be
         provided a default value.
 
-        @param
+        :param
         the_job: the tko job object that will be serialized.
         tag: contains the job name and the afe_job_id
         binaryfilename: the name of the file that will be written to
@@ -120,7 +120,7 @@ class JobSerializer(object):
     def set_afe_job_id_and_tag(self, pb_job, tag):
         """Sets the pb job's afe_job_id and tag field.
 
-        @param
+        :param
         pb_job: the pb job that will have it's fields set.
         tag: used to set pb_job.tag and pb_job.afe_job_id.
         """
@@ -135,7 +135,7 @@ class JobSerializer(object):
         attributes and finally constructs a tko job object using the
         models.job constructor.
 
-        @param
+        :param
         job: a pb job where data is being extracted from.
 
         :return: a tko job object.
@@ -171,7 +171,7 @@ class JobSerializer(object):
         object.  Then safely sets all the appropriate field by first
         testing if the value in the original object is None.
 
-        @param
+        :param
         tko_job: a tko job instance that will have it's values
         transferred to the new job
         pb_job: a new instance of the job class provided in the
@@ -197,7 +197,7 @@ class JobSerializer(object):
         Extracts data from pb_test by calling helper methods and
         creates a tko test using the models.test constructor.
 
-        @param:
+        :param:
         test: a pb_test where fields will be extracted from.
 
         :return: a new instance of models.test
@@ -232,7 +232,7 @@ class JobSerializer(object):
         Method takes a tko test and a new test of the protocol buffer and
         transfers the values in the tko test to the new test.
 
-        @param
+        :param
         tko_test: a tko test instance.
         pb_test: an empty protocol buffer test instance.
 
@@ -261,7 +261,7 @@ class JobSerializer(object):
         the attributes and constructs a new tko kernel object using
         the model.kernel constructor.
 
-        @param
+        :param
         kernel: a pb kernel object where data will be extracted.
 
         :return: a new tko kernel object.
@@ -278,7 +278,7 @@ class JobSerializer(object):
         separates the string variables from the int variables and set
         them safely.
 
-        @param
+        :param
         tko_kernel: a tko kernel.
         pb_kernel: an empty protocol buffer kernel.
 
@@ -293,7 +293,7 @@ class JobSerializer(object):
         Uses the data in the pb iteration and the models.iteration
         constructor to create a new tko iterations
 
-        @param
+        :param
         iteration: a pb iteration instance
 
         :return: a tko iteration instance with the same data.
@@ -318,7 +318,7 @@ class JobSerializer(object):
         Takes same form as all the other setting methods. Sets int,
         str and datetime variables safely.
 
-        @param
+        :param
         tko_iteration: a tko test iteration.
         pb_iteration: an empty pb test iteration.
 
@@ -344,7 +344,7 @@ class JobSerializer(object):
         dictionary specifies the types of each attribute in each tko
         class.
 
-        @param
+        :param
         obj: the pb object that is being extracted.
         objdict: the dict that specifies the type.
 
@@ -370,7 +370,7 @@ class JobSerializer(object):
         provided by objdict, the dictionary that specifies the types
         of each attribute in each tko class.
 
-        @param
+        :param
         tko_obj: the original object that has the data being copied.
         pb_obj: the new pb object that is being copied into.
         objdict: specifies the type of each attribute in the class we
@@ -397,7 +397,7 @@ class JobSerializer(object):
         to be the default value. This is necessary for the special
         required fields of the protocol buffer.
 
-        @param
+        :param
         var: the variable of which one of the attribute is being set.
         attr: the attribute that is being set.
         value: the value that is being checked

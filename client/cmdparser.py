@@ -58,8 +58,8 @@ class CommandParser(object):
         """
         Print the list of control files available.
 
-        @param pipe: Pipe opened to an output stream (may be a pager)
-        @param path: Path we'll walk through
+        :param pipe: Pipe opened to an output stream (may be a pager)
+        :param path: Path we'll walk through
         """
         if not os.path.isdir(path):
             pipe.write("Test directory not available\n")
@@ -127,7 +127,7 @@ class CommandParser(object):
         """
         List the commands and their usage strings.
 
-        @param args is not used here.
+        :param args is not used here.
         """
         logging.info("Commands:")
         logging.info("bootstrap [-H <harness>] Use harness to fetch control file")
@@ -198,7 +198,7 @@ class CommandParser(object):
         """
         Process a client side command.
 
-        @param args: Command line args.
+        :param args: Command line args.
         """
         logging_manager.configure_logging(CmdParserLoggingConfig(), verbose=options.verbose)
 

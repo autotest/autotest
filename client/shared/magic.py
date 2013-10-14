@@ -32,7 +32,7 @@ def _str_to_num(n):
     """
     Convert a hex or octal string to a decimal number.
 
-    @param n: Hex or octal string to be converted.
+    :param n: Hex or octal string to be converted.
     :return: Resulting decimal number.
     """
     val = 0
@@ -80,11 +80,11 @@ class MagicTest(object):
         """
         Reads magic database data. Maps the list fields into class attributes.
 
-        @param offset: Offset from start of the file.
-        @param t: Type of the magic data.
-        @param op: Operation to be performed when comparing the data.
-        @param value: Expected value of the magic data for a given data type.
-        @param msg: String representing the file mimetype.
+        :param offset: Offset from start of the file.
+        :param t: Type of the magic data.
+        :param op: Operation to be performed when comparing the data.
+        :param value: Expected value of the magic data for a given data type.
+        :param msg: String representing the file mimetype.
         """
         if t.count('&') > 0:
             mask = _str_to_num(t[t.index('&') + 1:])
@@ -104,7 +104,7 @@ class MagicTest(object):
         """
         Compare data read from file with self.value if operator is '='.
 
-        @param data: Data read from the file.
+        :param data: Data read from the file.
         :return: None if no match between data and expected value string. Else,
                 print matching mime type information.
         """
@@ -128,7 +128,7 @@ class MagicTest(object):
         Compare data read from the file with the expected data for this
         particular mime type register.
 
-        @param data: Data read from the file.
+        :param data: Data read from the file.
         """
         try:
             if self.type == 'string':
@@ -1030,7 +1030,7 @@ def guess_type(filename):
     """
     Guess the mimetype of a file based on its filename.
 
-    @param filename: File name.
+    :param filename: File name.
     :return: Mimetype string or description, when appropriate mime not
             available.
     """

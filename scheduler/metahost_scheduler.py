@@ -37,7 +37,7 @@ class HostSchedulingUtility(object):
     def is_host_eligible_for_job(self, host_id, queue_entry):
         """Determine if the host is eligible specifically for this queue entry.
 
-        @param queue_entry: a HostQueueEntry DBObject
+        :param queue_entry: a HostQueueEntry DBObject
         """
         raise NotImplementedError
 
@@ -49,7 +49,7 @@ class MetahostScheduler(object):
 
         At most one MetahostScheduler should return true for any given entry.
 
-        @param queue_entry: a HostQueueEntry DBObject
+        :param queue_entry: a HostQueueEntry DBObject
         """
         raise NotImplementedError
 
@@ -60,8 +60,8 @@ class MetahostScheduler(object):
         assigning a host to the given queue entry in the database.  It may
         take no action if no host can be assigned currently.
 
-        @param queue_entry: a HostQueueEntry DBObject
-        @param scheduling_utility: a HostSchedulingUtility object
+        :param queue_entry: a HostQueueEntry DBObject
+        :param scheduling_utility: a HostSchedulingUtility object
         """
         raise NotImplementedError
 

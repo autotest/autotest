@@ -103,16 +103,16 @@ class base_client_job(base_job.base_job):
         """
         Prepare a client side job object.
 
-        @param control: The control file (pathname of).
-        @param options: an object which includes:
+        :param control: The control file (pathname of).
+        :param options: an object which includes:
                 jobtag: The job tag string (eg "default").
                 cont: If this is the continuation of this job.
                 harness_type: An alternative server harness.  [None]
                 use_external_logging: If true, the enable_external_logging
                           method will be called during construction.  [False]
-        @param drop_caches: If true, utils.drop_caches() is called before and
+        :param drop_caches: If true, utils.drop_caches() is called before and
                 between all tests.  [True]
-        @param extra_copy_cmdline: list of additional /proc/cmdline arguments to
+        :param extra_copy_cmdline: list of additional /proc/cmdline arguments to
                 copy from the running kernel to all the installed kernels with
                 this job
         """
@@ -529,10 +529,10 @@ class base_client_job(base_job.base_job):
         """
         Prepares arguments and run functions to run_test and run_test_detail.
 
-        @param url A url that identifies the test to run.
-        @param tag An optional keyword argument that will be added to the
+        :param url A url that identifies the test to run.
+        :param tag An optional keyword argument that will be added to the
             test and subdir name.
-        @param subdir_tag An optional keyword argument that will be added
+        :param subdir_tag An optional keyword argument that will be added
             to the subdir name.
 
         :return:
@@ -570,10 +570,10 @@ class base_client_job(base_job.base_job):
         """
         Summon a test object and run it.
 
-        @param url A url that identifies the test to run.
-        @param tag An optional keyword argument that will be added to the
+        :param url A url that identifies the test to run.
+        :param tag An optional keyword argument that will be added to the
             test and subdir name.
-        @param subdir_tag An optional keyword argument that will be added
+        :param subdir_tag An optional keyword argument that will be added
             to the subdir name.
 
         :return: True if the test passes, False otherwise.
@@ -597,10 +597,10 @@ class base_client_job(base_job.base_job):
         """
         Summon a test object and run it, returning test status.
 
-        @param url A url that identifies the test to run.
-        @param tag An optional keyword argument that will be added to the
+        :param url A url that identifies the test to run.
+        :param tag An optional keyword argument that will be added to the
             test and subdir name.
-        @param subdir_tag An optional keyword argument that will be added
+        :param subdir_tag An optional keyword argument that will be added
             to the subdir name.
 
         :return: Test status
@@ -706,8 +706,8 @@ class base_client_job(base_job.base_job):
         Function to perform post boot checks such as if the system configuration
         has changed across reboots (specifically, CPUs and partitions).
 
-        @param subdir: The subdir to use in the job.record call.
-        @param running_id: An optional running_id to include in the reboot
+        :param subdir: The subdir to use in the job.record call.
+        :param running_id: An optional running_id to include in the reboot
             failure log message
 
         :raise JobError: Raised if the current configuration does not match the
@@ -807,10 +807,10 @@ class base_client_job(base_job.base_job):
         """
         Work with a machine partition
 
-            @param device: e.g. /dev/sda2, /dev/sdb1 etc...
-            @param mountpoint: Specify a directory to mount to. If not specified
+            :param device: e.g. /dev/sda2, /dev/sdb1 etc...
+            :param mountpoint: Specify a directory to mount to. If not specified
                                autotest tmp directory will be used.
-            @param loop_size: Size of loopback device (in MB). Defaults to 0.
+            :param loop_size: Size of loopback device (in MB). Defaults to 0.
 
             :return: A L{client.partition.partition} object
         """

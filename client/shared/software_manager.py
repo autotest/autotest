@@ -150,7 +150,7 @@ class BaseBackend(object):
         """
         Installs package that provides [path].
 
-        @param path: Path to file.
+        :param path: Path to file.
         """
         provides = self.provides(path)
         if provides is not None:
@@ -176,8 +176,8 @@ class RpmBackend(BaseBackend):
         """
         Helper for the check_installed public method.
 
-        @param name: Package name.
-        @param version: Package version.
+        :param name: Package name.
+        :param version: Package version.
         """
         cmd = (self.lowlevel_base_cmd + ' -q --qf %{VERSION} ' + name +
                ' 2> /dev/null')
@@ -195,9 +195,9 @@ class RpmBackend(BaseBackend):
         """
         Check if package [name] is installed.
 
-        @param name: Package name.
-        @param version: Package version.
-        @param arch: Package architecture.
+        :param name: Package name.
+        :param version: Package version.
+        :param arch: Package architecture.
         """
         if arch:
             cmd = (self.lowlevel_base_cmd + ' -q --qf %{ARCH} ' + name +
@@ -234,7 +234,7 @@ class RpmBackend(BaseBackend):
         """
         List files installed on the system by package [name].
 
-        @param name: Package name.
+        :param name: Package name.
         """
         path = os.path.abspath(name)
         if os.path.isfile(path):
@@ -300,7 +300,7 @@ class DpkgBackend(BaseBackend):
         """
         List files installed by package [package].
 
-        @param package: Package name.
+        :param package: Package name.
         :return: List of paths installed by package.
         """
         if os.path.isfile(package):
@@ -372,7 +372,7 @@ class YumBackend(RpmBackend):
         """
         Removes package [name].
 
-        @param name: Package name (eg. 'ipython').
+        :param name: Package name (eg. 'ipython').
         """
         r_cmd = self.base_command + ' ' + 'erase' + ' ' + name
         try:
@@ -385,7 +385,7 @@ class YumBackend(RpmBackend):
         """
         Adds package repository located on [url].
 
-        @param url: Universal Resource Locator of the repository.
+        :param url: Universal Resource Locator of the repository.
         """
         # Check if we URL is already set
         for section in self.cfgparser.sections():
@@ -410,7 +410,7 @@ class YumBackend(RpmBackend):
         """
         Removes package repository located on [url].
 
-        @param url: Universal Resource Locator of the repository.
+        :param url: Universal Resource Locator of the repository.
         """
         for section in self.cfgparser.sections():
             for option, value in self.cfgparser.items(section):
@@ -433,7 +433,7 @@ class YumBackend(RpmBackend):
         """
         Returns a list of packages that provides a given capability.
 
-        @param name: Capability name (eg, 'foo').
+        :param name: Capability name (eg, 'foo').
         """
         try:
             d_provides = self.yum_base.searchPackageProvides(args=[name])
@@ -478,7 +478,7 @@ class ZypperBackend(RpmBackend):
         """
         Installs package [name]. Handles local installs.
 
-        @param name: Package Name.
+        :param name: Package Name.
         """
         i_cmd = self.base_command + ' install -l ' + name
         try:
@@ -491,7 +491,7 @@ class ZypperBackend(RpmBackend):
         """
         Adds repository [url].
 
-        @param url: URL for the package repository.
+        :param url: URL for the package repository.
         """
         ar_cmd = self.base_command + ' addrepo ' + url
         try:
@@ -504,7 +504,7 @@ class ZypperBackend(RpmBackend):
         """
         Removes repository [url].
 
-        @param url: URL for the package repository.
+        :param url: URL for the package repository.
         """
         rr_cmd = self.base_command + ' removerepo ' + url
         try:
@@ -541,7 +541,7 @@ class ZypperBackend(RpmBackend):
         """
         Searches for what provides a given file.
 
-        @param name: File path.
+        :param name: File path.
         """
         p_cmd = self.base_command + ' what-provides ' + name
         list_provides = []
@@ -600,7 +600,7 @@ class AptBackend(DpkgBackend):
         """
         Installs package [name].
 
-        @param name: Package name.
+        :param name: Package name.
         """
         command = 'install'
         i_cmd = self.base_command + ' ' + command + ' ' + name
@@ -615,7 +615,7 @@ class AptBackend(DpkgBackend):
         """
         Remove package [name].
 
-        @param name: Package name.
+        :param name: Package name.
         """
         command = 'remove'
         flag = '--purge'
@@ -631,7 +631,7 @@ class AptBackend(DpkgBackend):
         """
         Add an apt repository.
 
-        @param repo: Repository string. Example:
+        :param repo: Repository string. Example:
                 'deb http://archive.ubuntu.com/ubuntu/ maverick universe'
         """
         repo_file = open(self.repo_file_path, 'a')
@@ -643,7 +643,7 @@ class AptBackend(DpkgBackend):
         """
         Remove an apt repository.
 
-        @param repo: Repository string. Example:
+        :param repo: Repository string. Example:
                 'deb http://archive.ubuntu.com/ubuntu/ maverick universe'
         """
         repo_file = open(self.repo_file_path, 'r')
@@ -679,7 +679,7 @@ class AptBackend(DpkgBackend):
         """
         Return a list of packages that provide [path].
 
-        @param path: File path.
+        :param path: File path.
         """
         try:
             command = os_dep.command('apt-file')
@@ -729,8 +729,8 @@ def install_distro_packages(distro_pkg_map, interactive=False):
     software manager interface, thus the native packaging system if the
     currenlty running distro.
 
-    @type disto_pkg_map: dict
-    @param distro_pkg_map: mapping of distro name, as returned by
+    :type disto_pkg_map: dict
+    :param distro_pkg_map: mapping of distro name, as returned by
         utils.get_os_vendor(), to a list of package names
     :return: True if any packages were actually installed, False otherwise
     '''

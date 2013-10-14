@@ -58,7 +58,7 @@ class LocalHost(hosts.Host):
         Given a sequence of path strings, return the set of all paths that
         can be reached from the initial set by following symlinks.
 
-        @param paths: sequence of path strings.
+        :param paths: sequence of path strings.
         :return: a sequence of path strings that are all the unique paths that
                 can be reached from the given ones after following symlinks.
         """

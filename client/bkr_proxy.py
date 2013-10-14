@@ -49,7 +49,7 @@ def make_path_cmdlog(r):
     """
     Converts a recipe id into an internal path for logging purposes
 
-    @param r: recipe id
+    :param r: recipe id
 
     :return: a path to the internal command log
     """
@@ -66,7 +66,7 @@ def make_path_bkrcache(r):
     """
     Converts a recipe id into an internal path for cache'ing recipe
 
-    @param r: recipe id
+    :param r: recipe id
 
     :return: a path to the internal recipe cache file
     """
@@ -85,7 +85,7 @@ def make_path_recipe(r):
     """
     Converts a recipe id into a beaker path
 
-    @param r: recipe id
+    :param r: recipe id
 
     :return: a beaker path to the recipe id
     """
@@ -97,7 +97,7 @@ def make_path_watchdog(r):
     """
     Converts a recipe id into a beaker path for the watchdog
 
-    @param r: recipe id
+    :param r: recipe id
 
     :return: a beaker path of the recipe's watchdog file
     """
@@ -114,8 +114,8 @@ def make_path_status(r, t=None):
     the path to the recipe's status, whereas including a task returns
     the path to the task's status.
 
-    @param r: recipe id
-    @param t: task id
+    :param r: recipe id
+    :param t: task id
 
     :return: a beaker path of the recipe's/task's status file
     """
@@ -133,8 +133,8 @@ def make_path_result(r, t):
     Given a recipe id and a task id, translate them into
     the proper beaker path to the result file.
 
-    @param r: recipe id
-    @param t: task id
+    :param r: recipe id
+    :param t: task id
 
     :return: a beaker path of the task's result file
     """
@@ -155,9 +155,9 @@ def make_path_log(r, t=None, i=None):
     Note the dependency, a result id needs a task id and recipe id,
     while a task id needs a recipe id.
 
-    @param r: recipe id
-    @param t: task id
-    @param i: result id
+    :param r: recipe id
+    :param t: task id
+    :param i: result id
 
     :return: a beaker path of the task's result file
     """
@@ -182,9 +182,9 @@ def copy_remote(data, dest, use_put=None):
 
     Traps on HTTPError 500 and 400
 
-    @param data: encoded data string to copy remotely
-    @param dest: remote server URL
-    @param use_put: dictionary of items if using PUT method
+    :param data: encoded data string to copy remotely
+    :param dest: remote server URL
+    :param use_put: dictionary of items if using PUT method
 
     :return: html header info for post processing
     """
@@ -220,9 +220,9 @@ def copy_local(data, dest, use_put=None):
     Attempts to write the same data that would otherwise be sent
     remotely.
 
-    @param data: encoded data string to copy locally
-    @param dest: local file path
-    @param use_put: chooses to write in binary or text
+    :param data: encoded data string to copy locally
+    :param dest: local file path
+    :param use_put: chooses to write in binary or text
 
     :return: nothing
     """
@@ -244,10 +244,10 @@ def copy_data(data, dest, header=None, use_put=None):
     Attempts to write the same data that would otherwise be sent
     remotely.
 
-    @param data: data string to copy
-    @param dest: destination path
-    @param header: header info item to return
-    @param use_put: dictionary of items for PUT method
+    :param data: data string to copy
+    :param dest: destination path
+    :param header: header info item to return
+    :param use_put: dictionary of items for PUT method
 
     :return: nothing or header info if requested
     """

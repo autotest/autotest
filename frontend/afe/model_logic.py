@@ -166,17 +166,17 @@ class ExtendedManager(dbmodels.Manager):
                     ON (<this table>.<join_from_key> = <join_table>.<join_key>
                         and <join_condition>)
 
-        @param join_table table to join to
-        @param join_key field referencing back to this model to use for the join
-        @param join_condition extra condition for the ON clause of the join
-        @param join_condition_values values to substitute into join_condition
-        @param join_from_key column on this model to join from.
-        @param alias alias to use for for join
-        @param suffix suffix to add to join_table for the join alias, if no
+        :param join_table table to join to
+        :param join_key field referencing back to this model to use for the join
+        :param join_condition extra condition for the ON clause of the join
+        :param join_condition_values values to substitute into join_condition
+        :param join_from_key column on this model to join from.
+        :param alias alias to use for for join
+        :param suffix suffix to add to join_table for the join alias, if no
                 alias is provided
-        @param exclude if true, exclude rows that match this join (will use a
+        :param exclude if true, exclude rows that match this join (will use a
         LEFT OUTER JOIN and an appropriate WHERE condition)
-        @param force_left_join - if true, a LEFT OUTER JOIN will be used
+        :param force_left_join - if true, a LEFT OUTER JOIN will be used
         instead of an INNER JOIN regardless of other options
         """
         join_from_table = query_set.model._meta.db_table
@@ -209,10 +209,10 @@ class ExtendedManager(dbmodels.Manager):
 
     def _info_for_many_to_one_join(self, field, join_to_query, alias):
         """
-        @param field: the ForeignKey field on the related model
-        @param join_to_query: the query over the related model that we're
+        :param field: the ForeignKey field on the related model
+        :param join_to_query: the query over the related model that we're
                 joining to
-        @param alias: alias of joined table
+        :param alias: alias of joined table
         """
         info = {}
         rhs_table = join_to_query.model._meta.db_table
@@ -232,12 +232,12 @@ class ExtendedManager(dbmodels.Manager):
     def _info_for_many_to_many_join(self, m2m_field, join_to_query, alias,
                                     m2m_is_on_this_model):
         """
-        @param m2m_field: a Django field representing the M2M relationship.
+        :param m2m_field: a Django field representing the M2M relationship.
                 It uses a pivot table with the following structure:
                 this model table <---> M2M pivot table <---> joined model table
-        @param join_to_query: the query over the related model that we're
+        :param join_to_query: the query over the related model that we're
                 joining to.
-        @param alias: alias of joined table
+        :param alias: alias of joined table
         """
         if m2m_is_on_this_model:
             # referenced field on this model
@@ -393,7 +393,7 @@ class ExtendedManager(dbmodels.Manager):
         """
         Determine the relationship between this model and related_model, and
         return a pivot iterator.
-        @param base_objects_by_id: dict of instances of this model indexed by
+        :param base_objects_by_id: dict of instances of this model indexed by
         their IDs
         :return: a pivot iterator, which yields a tuple (base_object,
         related_object) for each relationship between a base object and a
@@ -433,11 +433,11 @@ class ExtendedManager(dbmodels.Manager):
     def _query_pivot_table(self, base_objects_by_id, pivot_table,
                            pivot_from_field, pivot_to_field):
         """
-        @param id_list list of IDs of self.model objects to include
-        @param pivot_table the name of the pivot table
-        @param pivot_from_field a field name on pivot_table referencing
+        :param id_list list of IDs of self.model objects to include
+        :param pivot_table the name of the pivot table
+        :param pivot_from_field a field name on pivot_table referencing
         self.model
-        @param pivot_to_field a field name on pivot_table referencing the
+        :param pivot_to_field a field name on pivot_table referencing the
         related model.
         :return: pivot list of IDs (base_id, related_id)
         """
@@ -457,9 +457,9 @@ class ExtendedManager(dbmodels.Manager):
     def _many_to_many_pivot(self, base_objects_by_id, related_model,
                             pivot_table, pivot_from_field, pivot_to_field):
         """
-        @param pivot_table: see _query_pivot_table
-        @param pivot_from_field: see _query_pivot_table
-        @param pivot_to_field: see _query_pivot_table
+        :param pivot_table: see _query_pivot_table
+        :param pivot_from_field: see _query_pivot_table
+        :param pivot_to_field: see _query_pivot_table
         :return: a pivot iterator - see _get_pivot_iterator()
         """
         id_pivot = self._query_pivot_table(base_objects_by_id, pivot_table,
@@ -479,9 +479,9 @@ class ExtendedManager(dbmodels.Manager):
         related_list_name listing all the related objects of type related_model.
         related_model must be in a many-to-one or many-to-many relationship with
         this model.
-        @param base_objects - list of instances of this model
-        @param related_model - model class related to this model
-        @param related_list_name - attribute name in which to store the related
+        :param base_objects - list of instances of this model
+        :param related_model - model class related to this model
+        :param related_list_name - attribute name in which to store the related
         object list.
         """
         if not base_objects:
@@ -926,7 +926,7 @@ class ModelExtensions(object):
 
     def get_object_dict(self, extra_fields=None):
         """
-        Return a dictionary mapping fields to this object's values.  @param
+        Return a dictionary mapping fields to this object's values.  :param
         extra_fields: list of extra attribute names to include, in addition to
         the fields defined on this object.
         """

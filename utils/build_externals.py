@@ -105,8 +105,8 @@ def fetch_necessary_packages(dest_dir, install_dir):
     """
     Fetches all ExternalPackages into dest_dir.
 
-    @param dest_dir: Directory the packages should be fetched into.
-    @param install_dir: Directory where packages will later installed.
+    :param dest_dir: Directory the packages should be fetched into.
+    :param install_dir: Directory where packages will later installed.
 
     :return: A tuple containing two lists:
              * A list of ExternalPackage instances that were fetched and
@@ -141,8 +141,8 @@ def build_and_install_packages(packages, install_dir):
     """
     Builds and installs all packages into install_dir.
 
-    @param packages - A list of already fetched ExternalPackage instances.
-    @param install_dir - Directory the packages should be installed into.
+    :param packages - A list of already fetched ExternalPackage instances.
+    :param install_dir - Directory the packages should be installed into.
 
     :return: A list of error messages for any installs that failed.
     """

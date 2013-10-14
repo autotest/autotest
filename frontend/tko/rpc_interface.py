@@ -99,7 +99,7 @@ def get_latest_tests(group_by, header_groups=[], fixed_headers={},
     group.  It still returns the same information (i.e. with pass count etc.)
     for compatibility.  It includes an additional field "test_idx" with each
     group.
-    @param extra_info a list containing the field names that should be returned
+    :param extra_info a list containing the field names that should be returned
                       with each cell. The fields are returned in the extra_info
                       field of the return dictionary.
     """

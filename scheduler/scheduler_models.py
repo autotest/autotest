@@ -114,12 +114,12 @@ class DelayedCallTask(object):
 
     def __init__(self, delay_seconds, callback, now_func=None):
         """
-        @param delay_seconds: The delay in seconds from now that this task
+        :param delay_seconds: The delay in seconds from now that this task
                 will call the supplied callback and be done.
-        @param callback: A callable to be called by this task once after at
+        :param callback: A callable to be called by this task once after at
                 least delay_seconds time has elapsed.  It must return None
                 or a new Agent instance.
-        @param now_func: A time.time like function.  Default: time.time.
+        :param now_func: A time.time like function.  Default: time.time.
                 Used for testing.
         """
         assert delay_seconds > 0
@@ -246,7 +246,7 @@ class DBObject(object):
         memory fields.  Fractional seconds are stripped from datetime values
         before comparison.
 
-        @param row - A sequence of values corresponding to fields named in
+        :param row - A sequence of values corresponding to fields named in
                 The class attribute _fields.
 
         :return: A dictionary listing the differences keyed by field name
@@ -269,7 +269,7 @@ class DBObject(object):
         """
         Update our field attributes using a single row returned by SELECT.
 
-        @param row - A sequence of values corresponding to fields named in
+        :param row - A sequence of values corresponding to fields named in
                 the class fields list.
         """
         self._assert_row_length(row)
@@ -618,9 +618,9 @@ class HostQueueEntry(DBObject):
         the subject and the e-mail body, but that doesn't seem necessary right
         now.
 
-        @param status: Job status text. Mandatory.
-        @param summary: Job summary text. Optional.
-        @param hostname: A hostname for the job. Optional.
+        :param status: Job status text. Mandatory.
+        :param summary: Job summary text. Optional.
+        :param hostname: A hostname for the job. Optional.
 
         :return: Tuple (subject, body) for the notification e-mail.
         """
@@ -901,7 +901,7 @@ class Job(DBObject):
             Those are autotest 'internal job' tests, so they should not be
             counted when evaluating the test stats.
 
-            @param rows: List of rows (matrix) with database results.
+            :param rows: List of rows (matrix) with database results.
             """
             job_test_pattern = re.compile('SERVER|CLIENT\\_JOB\.[\d]')
             test_jobs = []
@@ -916,9 +916,9 @@ class Job(DBObject):
             """
             Format failure rows, so they are legible on the resulting email.
 
-            @param rows: List of rows (matrix) with database results.
-            @param field: Field of the stats dict we want to fill.
-            @param max_length: Int with maximum length of a line printed.
+            :param rows: List of rows (matrix) with database results.
+            :param field: Field of the stats dict we want to fill.
+            :param max_length: Int with maximum length of a line printed.
             """
             formatted_row = ""
             status_translate = {"GOOD": "PASS", "TEST_NA": "SKIP"}
@@ -1094,7 +1094,7 @@ class Job(DBObject):
 
     def _max_hosts_needed_to_run(self, atomic_group):
         """
-        @param atomic_group: The AtomicGroup associated with this job that we
+        :param atomic_group: The AtomicGroup associated with this job that we
                 are using to set an upper bound on the threshold.
         :return: The maximum number of HostQueueEntries assigned a Host before
                 this job can run.
@@ -1198,7 +1198,7 @@ class Job(DBObject):
 
     def get_group_entries(self, queue_entry_from_group):
         """
-        @param queue_entry_from_group: A HostQueueEntry instance to find other
+        :param queue_entry_from_group: A HostQueueEntry instance to find other
                 group entries on this job for.
 
         :return: A list of HostQueueEntry objects all executing this job as
@@ -1319,7 +1319,7 @@ class Job(DBObject):
         Start a delay to wait for more hosts to enter Pending state before
         launching an atomic group job.  Once set, the a delay cannot be reset.
 
-        @param queue_entry: The HostQueueEntry object to get atomic group
+        :param queue_entry: The HostQueueEntry object to get atomic group
                 info from and pass to run_if_ready when the delay is up.
 
         :return: An Agent to run the job as appropriate or None if a delay
@@ -1370,7 +1370,7 @@ class Job(DBObject):
 
     def run(self, queue_entry):
         """
-        @param queue_entry: The HostQueueEntry instance calling this method.
+        :param queue_entry: The HostQueueEntry instance calling this method.
         """
         if queue_entry.atomic_group and self._atomic_and_has_started():
             logging.error('Job.run() called on running atomic Job %d '

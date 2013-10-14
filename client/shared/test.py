@@ -159,7 +159,7 @@ class base_test(object):
         This adds the method to the list of hooks which are executed
         before each iteration.
 
-        @param iteration_hook: Method to run before each iteration. A valid
+        :param iteration_hook: Method to run before each iteration. A valid
                                hook accepts a single argument which is the
                                test object.
         """
@@ -171,7 +171,7 @@ class base_test(object):
         This adds the method to the list of hooks which are executed
         after each iteration.
 
-        @param iteration_hook: Method to run after each iteration. A valid
+        :param iteration_hook: Method to run after each iteration. A valid
                                hook accepts a single argument which is the
                                test object.
         """
@@ -227,21 +227,21 @@ class base_test(object):
         the run_once function, to cope with the profiling infrastructure. For
         other tests, you can just override the default implementation.
 
-        @param test_length: The minimum test length in seconds. We'll run the
+        :param test_length: The minimum test length in seconds. We'll run the
             run_once function for a number of times large enough to cover the
             minimum test length.
 
-        @param iterations: A number of iterations that we'll run the run_once
+        :param iterations: A number of iterations that we'll run the run_once
             function. This parameter is incompatible with test_length and will
             be silently ignored if you specify both.
 
-        @param profile_only: If true run X iterations with profilers enabled.
+        :param profile_only: If true run X iterations with profilers enabled.
             If false run X iterations and one with profiling if profiles are
             enabled. If None, default to the value of job.default_profile_only.
 
-        @param _get_time: [time.time] Used for unit test time injection.
+        :param _get_time: [time.time] Used for unit test time injection.
 
-        @param postprocess_profiled_run: Run the postprocessing for the
+        :param postprocess_profiled_run: Run the postprocessing for the
             profiled run.
         """
 
@@ -596,7 +596,7 @@ class Subtest(object):
     @staticmethod
     def result_to_string_debug(result):
         """
-        @param result: Result of test.
+        :param result: Result of test.
         """
         sargs = ""
         for arg in result['args']:
@@ -619,7 +619,7 @@ class Subtest(object):
                'output' : return of test function,
               }
 
-        @param result: Result of test.
+        :param result: Result of test.
         """
         return ("Subtest (%(name)s): --> %(result)s") % (result)
 
@@ -628,7 +628,7 @@ class Subtest(object):
         """
         Add log_append to result output.
 
-        @param msg: Test of log_append
+        :param msg: Test of log_append
         """
         cls.result.append([msg])
 
@@ -637,7 +637,7 @@ class Subtest(object):
         """
         Format result with formatting function
 
-        @param format_func: Func for formating result.
+        :param format_func: Func for formating result.
         """
         result = ""
         for res in cls.result:
@@ -669,11 +669,11 @@ class Subtest(object):
         """
         Execute another autotest test from inside the current test's scope.
 
-        @param test: Parent test.
-        @param url: Url of new test.
-        @param tag: Tag added to test name.
-        @param args: Args for subtest.
-        @param dargs: Dictionary with args for subtest.
+        :param test: Parent test.
+        :param url: Url of new test.
+        :param tag: Tag added to test name.
+        :param args: Args for subtest.
+        :param dargs: Dictionary with args for subtest.
         @iterations: Number of subtest iterations.
         @profile_only: If true execute one profiled run.
         """
@@ -689,7 +689,7 @@ def _get_nonstar_args(func):
     Given a function, returns a tuple of parameter names, specifically
     excluding the * and ** parameters, if the function accepts them.
 
-    @param func: A callable that we want to chose arguments for.
+    :param func: A callable that we want to chose arguments for.
 
     :return: A tuple of parameters accepted by the function.
     """

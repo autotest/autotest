@@ -106,9 +106,9 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
         Run a command on the remote host.
         @see shared.hosts.host.run()
 
-        @param connect_timeout: connection timeout (in seconds)
-        @param options: string with additional ssh command options
-        @param verbose: log the commands
+        :param connect_timeout: connection timeout (in seconds)
+        :param options: string with additional ssh command options
+        :param verbose: log the commands
 
         :raise AutoservRunError: if the command failed
         :raise AutoservSSHTimeout: ssh connection has timed out

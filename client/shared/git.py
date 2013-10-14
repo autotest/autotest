@@ -23,18 +23,18 @@ class GitRepoHelper(object):
         '''
         Instantiates a new GitRepoHelper
 
-        @type uri: string
-        @param uri: git repository url
-        @type branch: string
-        @param branch: git remote branch
-        @type destination_dir: string
-        @param destination_dir: path of a dir where to save downloaded code
-        @type commit: string
-        @param commit: specific commit to download
-        @type lbranch: string
-        @param lbranch: git local branch name, if different from remote
-        @type base_uri: string
-        @param base_uri: a closer, usually local, git repository url from where to
+        :type uri: string
+        :param uri: git repository url
+        :type branch: string
+        :param branch: git remote branch
+        :type destination_dir: string
+        :param destination_dir: path of a dir where to save downloaded code
+        :type commit: string
+        :param commit: specific commit to download
+        :type lbranch: string
+        :param lbranch: git local branch name, if different from remote
+        :type base_uri: string
+        :param base_uri: a closer, usually local, git repository url from where to
                     fetch content first
         '''
         self.uri = uri
@@ -82,8 +82,8 @@ class GitRepoHelper(object):
         '''
         Wraps git commands.
 
-        @param cmd: Command to be executed.
-        @param ignore_status: Whether we should suppress error.CmdError
+        :param cmd: Command to be executed.
+        :param ignore_status: Whether we should suppress error.CmdError
                 exceptions if the command did return exit code !=0 (True), or
                 not suppress them (False).
         '''
@@ -123,8 +123,8 @@ class GitRepoHelper(object):
         '''
         Performs a git checkout for a given branch and start point (commit)
 
-        @param branch: Remote branch name.
-        @param commit: Specific commit hash.
+        :param branch: Remote branch name.
+        :param commit: Specific commit hash.
         '''
         if branch is None:
             branch = self.branch
@@ -168,18 +168,18 @@ def get_repo(uri, branch='master', lbranch='master', commit=None,
     """
     Utility function that retrieves a given git code repository.
 
-    @type uri: string
-    @param uri: git repository url
-    @type branch: string
-    @param branch: git remote branch
-    @type destination_dir: string
-    @param destination_dir: path of a dir where to save downloaded code
-    @type commit: string
-    @param commit: specific commit to download
-    @type lbranch: string
-    @param lbranch: git local branch name, if different from remote
-    @type base_uri: string
-    @param uri: a closer, usually local, git repository url from where to
+    :type uri: string
+    :param uri: git repository url
+    :type branch: string
+    :param branch: git remote branch
+    :type destination_dir: string
+    :param destination_dir: path of a dir where to save downloaded code
+    :type commit: string
+    :param commit: specific commit to download
+    :type lbranch: string
+    :param lbranch: git local branch name, if different from remote
+    :type base_uri: string
+    :param uri: a closer, usually local, git repository url from where to
                 fetch content first from
     """
     repo = GitRepoHelper(uri, branch, lbranch, commit, destination_dir,

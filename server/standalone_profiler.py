@@ -36,19 +36,19 @@ def generate_test(machines, hostname, profilers, timeout_start, timeout_stop,
     """
     Generate a control file that enables profilers and starts profiler_sync.
 
-    @param machines: sequence of all the hostnames involved in the barrier
+    :param machines: sequence of all the hostnames involved in the barrier
             synchronization
-    @param hostname: hostname of the machine running the generated control file
-    @param profilers: a sequence of 3 items tuples where the first item is a
+    :param hostname: hostname of the machine running the generated control file
+    :param profilers: a sequence of 3 items tuples where the first item is a
             string (the profiler name), second argument is a tuple with the
             non keyword arguments to give to the profiler when being added
             with "job.profilers.add()" in the control file, third item is
             a dictionary of the keyword arguments to give it
-    @param timeout_start: how many seconds to wait in profiler_sync for the
+    :param timeout_start: how many seconds to wait in profiler_sync for the
             profilers to start (None means no timeout)
-    @param timeout_stop: how many seconds to wait in profiler_sync for the
+    :param timeout_stop: how many seconds to wait in profiler_sync for the
             profilers to stop (None means no timeout)
-    @param timeout_sync: how many seconds to wait in profiler_sync for other
+    :param timeout_sync: how many seconds to wait in profiler_sync for other
             machines to reach the start of the profiler_sync (None means no
             timeout)
     """

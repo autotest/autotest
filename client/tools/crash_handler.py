@@ -35,7 +35,7 @@ def get_parent_pid(pid):
     """
     Returns the parent PID for a given PID, converted to an integer.
 
-    @param pid: Process ID.
+    :param pid: Process ID.
     """
     try:
         ppid = int(open('/proc/%s/stat' % pid).read().split()[3])
@@ -52,9 +52,9 @@ def write_to_file(filename, data, report=False):
     Write contents to a given file path specified. If not specified, the file
     will be created.
 
-    @param file_path: Path to a given file.
-    @param data: File contents.
-    @param report: Whether we'll use GDB to get a backtrace report of the
+    :param file_path: Path to a given file.
+    :param data: File contents.
+    :param report: Whether we'll use GDB to get a backtrace report of the
                    file.
     """
     f = open(filename, 'w')
@@ -79,8 +79,8 @@ def get_results_dir_list(pid, core_dir_basename):
     of all tests currently being executed. If there are no active autotest
     tests at a particular moment, it will return a list with ['/tmp'].
 
-    @param pid: PID for the process that generated the core
-    @param core_dir_basename: Basename for the directory that will hold both
+    :param pid: PID for the process that generated the core
+    :param core_dir_basename: Basename for the directory that will hold both
             the core dump and the crash report.
     """
     pid_dir_dict = {}
@@ -111,7 +111,7 @@ def get_info_from_core(path):
 
     Right now, the only information extracted is the full executable name.
 
-    @param path: Path to core file.
+    :param path: Path to core file.
     """
     full_exe_path = None
     output = commands.getoutput('gdb -c %s batch' % path)
@@ -135,7 +135,7 @@ def gdb_report(path):
     """
     Use GDB to produce a report with information about a given core.
 
-    @param path: Path to core file.
+    :param path: Path to core file.
     """
     # Get full command path
     exe_path = get_info_from_core(path)['full_exe_path']
@@ -178,9 +178,9 @@ def write_cores(core_data, dir_list):
     """
     Write core files to all directories, optionally providing reports.
 
-    @param core_data: Contents of the core file.
-    @param dir_list: List of directories the cores have to be written.
-    @param report: Whether reports are to be generated for those core files.
+    :param core_data: Contents of the core file.
+    :param dir_list: List of directories the cores have to be written.
+    :param report: Whether reports are to be generated for those core files.
     """
     syslog.syslog("Writing core files to %s" % dir_list)
     for result_dir in dir_list:

@@ -46,8 +46,8 @@ HOURS_TO_WAIT = settings.settings.get_value(
 def wait_for_machine_to_recover(host, hours_to_wait=HOURS_TO_WAIT):
     """Wait for a machine (possibly down) to become accessible again.
 
-    @param host: A RemoteHost instance to wait on
-    @param hours_to_wait: Number of hours to wait before giving up
+    :param host: A RemoteHost instance to wait on
+    :param hours_to_wait: Number of hours to wait before giving up
 
     :return: True if the machine comes back up, False otherwise
     """
@@ -74,7 +74,7 @@ def wait_for_machine_to_recover(host, hours_to_wait=HOURS_TO_WAIT):
 def get_crashinfo_dir(host):
     """Find and if necessary create a directory to store crashinfo in.
 
-    @param host: The RemoteHost object that crashinfo will be collected from
+    :param host: The RemoteHost object that crashinfo will be collected from
 
     :return: The path to an existing directory for writing crashinfo into
     """
@@ -96,9 +96,9 @@ def collect_log_file(host, log_path, dest_path):
     destination path. If dest_path is a directory, the log file will be named
     using the basename of the remote log path.
 
-    @param host: The RemoteHost to collect logs from
-    @param log_path: The remote path to collect the log file from
-    @param dest_path: A path (file or directory) to write the copies logs into
+    :param host: The RemoteHost to collect logs from
+    :param log_path: The remote path to collect the log file from
+    :param dest_path: A path (file or directory) to write the copies logs into
     """
     logging.info("Collecting %s...", log_path)
     try:
@@ -114,10 +114,10 @@ def collect_command(host, command, dest_path):
     desitionation path. The destination path is assumed to be filename and
     not a directory.
 
-    @param host: The RemoteHost to collect from
-    @param command: A shell command to run on the remote machine and capture
+    :param host: The RemoteHost to collect from
+    :param command: A shell command to run on the remote machine and capture
         the output from.
-    @param dest_path: A file path to write the results of the log into
+    :param dest_path: A file path to write the results of the log into
     """
     logging.info("Collecting '%s' ...", command)
     devnull = open("/dev/null", "w")
@@ -134,7 +134,7 @@ def collect_command(host, command, dest_path):
 def collect_uncollected_logs(host):
     """Collects any leftover uncollected logs from the client.
 
-    @param host: The RemoteHost to collect from
+    :param host: The RemoteHost to collect from
     """
     if host.job:
         try:
@@ -157,7 +157,7 @@ def collect_messages(host):
     are already present in host.VAR_LOG_MESSAGE_COPY_PATH. If it is not
     present, simply collects the entire contents of /var/log/messages.
 
-    @param host: The RemoteHost to collect from
+    :param host: The RemoteHost to collect from
     """
     crashinfo_dir = get_crashinfo_dir(host)
 

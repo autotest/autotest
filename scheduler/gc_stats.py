@@ -25,7 +25,7 @@ def _log_garbage_collector_stats(minimum_count=10):
     Log statistics about how many of what type of Python object exist in this
     process.
 
-    @param minimum_count: The minimum number of instances of a type for it
+    :param minimum_count: The minimum number of instances of a type for it
             to be considered worthy of logging.
     """
     global _previous_obj_type_map

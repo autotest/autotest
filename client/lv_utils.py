@@ -6,17 +6,17 @@ or creates such.
 :copyright: Intra2net AG 2012
 @license: GPL v2
 
-@param vg_name: Name of the volume group.
-@param lv_name: Name of the logical volume.
-@param lv_size: Size of the logical volume as string in the form "#G"
+:param vg_name: Name of the volume group.
+:param lv_name: Name of the logical volume.
+:param lv_size: Size of the logical volume as string in the form "#G"
         (for example 30G).
-@param lv_snapshot_name: Name of the snapshot with origin the logical
+:param lv_snapshot_name: Name of the snapshot with origin the logical
         volume.
-@param lv_snapshot_size: Size of the snapshot with origin the logical
+:param lv_snapshot_size: Size of the snapshot with origin the logical
         volume also as "#G".
-@param ramdisk_vg_size: Size of the ramdisk virtual group.
-@param ramdisk_basedir: Base directory for the ramdisk sparse file.
-@param ramdisk_sparse_filename: Name of the ramdisk sparse file.
+:param ramdisk_vg_size: Size of the ramdisk virtual group.
+:param ramdisk_basedir: Base directory for the ramdisk sparse file.
+:param ramdisk_sparse_filename: Name of the ramdisk sparse file.
 
 Sample ramdisk params:
     ramdisk_vg_size = "40000"

@@ -83,7 +83,7 @@ class ServiceHandler(object):
     def dispatchRequest(self, request):
         """
         Invoke a json RPC call from a decoded json request.
-        @param request: a decoded json_request
+        :param request: a decoded json_request
         :return: a dictionary with keys id, result, err and err_traceback
         """
         results = self.blank_result_dict()
@@ -137,7 +137,7 @@ class ServiceHandler(object):
     @staticmethod
     def translateResult(result_dict):
         """
-        @param result_dict: a dictionary containing the result, error, traceback
+        :param result_dict: a dictionary containing the result, error, traceback
                             and id.
         :return: translated json result
         """

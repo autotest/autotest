@@ -1021,12 +1021,12 @@ class test_status_logger(unittest.TestCase):
         the rendered text and so it doesn't depend on the exact formatting
         of a "real" status log entry.
 
-        @param rendred_text: The value to return when rendering the entry.
-        @param start: An optional value indicating if this should be the start
+        :param rendred_text: The value to return when rendering the entry.
+        :param start: An optional value indicating if this should be the start
             of a nested group.
-        @param end: An optional value indicating if this should be the end
+        :param end: An optional value indicating if this should be the end
             of a nested group.
-        @param subdir: An optional value to use for the entry subdir field.
+        :param subdir: An optional value to use for the entry subdir field.
 
         :return: A dummy status log entry object with the given subdir field
             and a render implementation that returns rendered_text.

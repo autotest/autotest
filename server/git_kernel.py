@@ -23,24 +23,24 @@ class GitKernel(git.GitRepoHelper):
         '''
         Instantiates a new GitRepoHelper
 
-        @type uri: string
-        @param uri: git repository url
-        @type branch: string
-        @param branch: git remote branch
-        @type destination_dir: string
-        @param destination_dir: path of a dir where to save downloaded code
-        @type commit: string
-        @param commit: specific commit to download
-        @type lbranch: string
-        @param lbranch: git local branch name, if different from remote
-        @type base_uri: string
-        @param base_uri: a closer, usually local, git repository url from where
+        :type uri: string
+        :param uri: git repository url
+        :type branch: string
+        :param branch: git remote branch
+        :type destination_dir: string
+        :param destination_dir: path of a dir where to save downloaded code
+        :type commit: string
+        :param commit: specific commit to download
+        :type lbranch: string
+        :param lbranch: git local branch name, if different from remote
+        :type base_uri: string
+        :param base_uri: a closer, usually local, git repository url from where
                          to fetch content first from.
 
-        @param remote_destination_dir: To where the source code will be copied
+        :param remote_destination_dir: To where the source code will be copied
                     on the client
-        @param patches: List of patches to be applied on top of this kernel
-        @param config: Config to pass to the kernel
+        :param patches: List of patches to be applied on top of this kernel
+        :param config: Config to pass to the kernel
         '''
         super(GitKernel, self).__init__(uri=uri, branch=branch, lbranch=lbranch,
                                         commit=commit,
@@ -58,10 +58,10 @@ class GitKernel(git.GitRepoHelper):
         """
         Install the git tree in a host.
 
-        @param host: Host object.
-        @param build: Whether to build the source tree.
-        @param branch: Check out this specific branch before building.
-        @param commit: Check out this specific commit before building.
+        :param host: Host object.
+        :param build: Whether to build the source tree.
+        :param branch: Check out this specific branch before building.
+        :param commit: Check out this specific commit before building.
         """
         self.execute()
         if (branch is not None) or (commit is not None):
