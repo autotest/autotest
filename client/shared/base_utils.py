@@ -79,7 +79,7 @@ def get_stream_tee_file(stream, level, prefix=''):
 class BgJob(object):
 
     def __init__(self, command, stdout_tee=None, stderr_tee=None, verbose=True,
-                 stdin=None, stderr_level=DEFAULT_STDERR_LEVEL):
+                 stdin=None, stderr_level=DEFAULT_STDERR_LEVEL, cwd=None):
         self.command = command
         self.stdout_tee = get_stream_tee_file(stdout_tee, DEFAULT_STDOUT_LEVEL,
                                               prefix=STDOUT_PREFIX)
@@ -106,7 +106,8 @@ class BgJob(object):
                                    stderr=subprocess.PIPE,
                                    preexec_fn=self._reset_sigpipe, shell=True,
                                    executable=shell,
-                                   stdin=stdin)
+                                   stdin=stdin,
+                                   cwd=cwd)
 
     def output_prepare(self, stdout_file=None, stderr_file=None):
         self.stdout_file = stdout_file
@@ -835,7 +836,7 @@ def get_stderr_level(stderr_is_expected):
 
 def run(command, timeout=None, ignore_status=False,
         stdout_tee=None, stderr_tee=None, verbose=True, stdin=None,
-        stderr_is_expected=None, args=()):
+        stderr_is_expected=None, cwd=None, args=()):
     """
     Run a command on the host.
 
@@ -852,6 +853,9 @@ def run(command, timeout=None, ignore_status=False,
     @param verbose: if True, log the command being run.
     @param stdin: stdin to pass to the executed process (can be a file
             descriptor, a file object of a real file or a string).
+    @param cwd: param for subprocess.Popen. If cwd is None, os.getcwd() in child
+            process will fail. So if we run a autotest command with utils.run,
+            we will get a shell-init error.
     @param args: sequence of strings of arguments to be given to the command
             inside " quotes after they have been escaped for that; each
             element in the sequence will be given as a separate command
@@ -872,7 +876,7 @@ def run(command, timeout=None, ignore_status=False,
 
     bg_job = join_bg_jobs(
         (BgJob(command, stdout_tee, stderr_tee, verbose, stdin=stdin,
-               stderr_level=get_stderr_level(stderr_is_expected)),),
+               stderr_level=get_stderr_level(stderr_is_expected), cwd=cwd),),
         timeout)[0]
     if not ignore_status and bg_job.result.exit_status:
         raise error.CmdError(command, bg_job.result,
