@@ -69,5 +69,6 @@ except ImportError:
     pass
 else:
     for x in __all__:
-        globals()['c_%s' % x] = globals()[x] = getattr(_functools, x)
+        if hasattr(_functools, x):
+            globals()['c_%s' % x] = globals()[x] = getattr(_functools, x)
     del x
