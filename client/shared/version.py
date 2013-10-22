@@ -92,7 +92,7 @@ def get_version(abbrev=4):
         version = release_version
 
     if version is None:
-        raise ValueError("Cannot find the version number!")
+        version = "unreleased"
 
     if version != release_version:
         write_release_version(version)
