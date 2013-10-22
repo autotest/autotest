@@ -14,7 +14,7 @@ Contents:
 
    client/index
    frontend/index
-
+   api/autotest.client
 
 Indices and tables
 ==================
