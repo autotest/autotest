@@ -17,14 +17,6 @@ hosts Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`base_classes_unittest` Module
------------------------------------
-
-.. automodule:: autotest.client.shared.hosts.base_classes_unittest
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`common` Module
 --------------------
 
