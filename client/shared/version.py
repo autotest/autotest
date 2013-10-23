@@ -37,6 +37,7 @@ __all__ = ("get_version",)
 import os
 import sys
 import common
+import datetime
 from autotest.client import utils
 from autotest.client.shared import error
 
@@ -92,7 +93,8 @@ def get_version(abbrev=4):
         version = release_version
 
     if version is None:
-        version = "unreleased"
+        now = datetime.datetime.now()
+        version = "%s.%s.%s" % (now.year, now.month, now.day)
 
     if version != release_version:
         write_release_version(version)
