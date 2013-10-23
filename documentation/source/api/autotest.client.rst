@@ -89,14 +89,6 @@ client Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`fsdev_disks_unittest` Module
-----------------------------------
-
-.. automodule:: autotest.client.fsdev_disks_unittest
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`fsdev_mgr` Module
 -----------------------
 
@@ -109,14 +101,6 @@ client Package
 --------------------
 
 .. automodule:: autotest.client.fsinfo
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`fsinfo_unittest` Module
------------------------------
-
-.. automodule:: autotest.client.fsinfo_unittest
     :members:
     :undoc-members:
     :show-inheritance:
@@ -169,26 +153,10 @@ client Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`harness_unittest` Module
-------------------------------
-
-.. automodule:: autotest.client.harness_unittest
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`job` Module
 -----------------
 
 .. automodule:: autotest.client.job
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`job_unittest` Module
---------------------------
-
-.. automodule:: autotest.client.job_unittest
     :members:
     :undoc-members:
     :show-inheritance:
@@ -209,34 +177,10 @@ client Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`kernel_config_unittest` Module
-------------------------------------
-
-.. automodule:: autotest.client.kernel_config_unittest
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`kernel_unittest` Module
------------------------------
-
-.. automodule:: autotest.client.kernel_unittest
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`kernel_versions` Module
 -----------------------------
 
 .. automodule:: autotest.client.kernel_versions
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`kernel_versions_unittest` Module
---------------------------------------
-
-.. automodule:: autotest.client.kernel_versions_unittest
     :members:
     :undoc-members:
     :show-inheritance:
@@ -249,14 +193,6 @@ client Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`kernelexpand_unittest` Module
------------------------------------
-
-.. automodule:: autotest.client.kernelexpand_unittest
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`kvm_control` Module
 -------------------------
 
@@ -265,26 +201,10 @@ client Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`kvm_control_unittest` Module
-----------------------------------
-
-.. automodule:: autotest.client.kvm_control_unittest
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`local_host` Module
 ------------------------
 
 .. automodule:: autotest.client.local_host
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`local_host_unittest` Module
----------------------------------
-
-.. automodule:: autotest.client.local_host_unittest
     :members:
     :undoc-members:
     :show-inheritance:
@@ -329,14 +249,6 @@ client Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`partition_unittest` Module
---------------------------------
-
-.. automodule:: autotest.client.partition_unittest
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`profiler` Module
 ----------------------
 
@@ -357,14 +269,6 @@ client Package
 -----------------------
 
 .. automodule:: autotest.client.setup_job
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`setup_job_unittest` Module
---------------------------------
-
-.. automodule:: autotest.client.setup_job_unittest
     :members:
     :undoc-members:
     :show-inheritance:
