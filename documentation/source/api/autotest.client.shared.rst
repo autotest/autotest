@@ -9,22 +9,6 @@ shared Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`autotemp_unittest` Module
--------------------------------
-
-.. automodule:: autotest.client.shared.autotemp_unittest
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`backports_unittest` Module
---------------------------------
-
-.. automodule:: autotest.client.shared.backports_unittest
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`barrier` Module
 ---------------------
 
@@ -37,14 +21,6 @@ shared Package
 --------------------------
 
 .. automodule:: autotest.client.shared.base_barrier
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`base_barrier_unittest` Module
------------------------------------
-
-.. automodule:: autotest.client.shared.base_barrier_unittest
     :members:
     :undoc-members:
     :show-inheritance:
@@ -65,26 +41,10 @@ shared Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`base_job_unittest` Module
--------------------------------
-
-.. automodule:: autotest.client.shared.base_job_unittest
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`base_packages` Module
 ---------------------------
 
 .. automodule:: autotest.client.shared.base_packages
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`base_packages_unittest` Module
-------------------------------------
-
-.. automodule:: autotest.client.shared.base_packages_unittest
     :members:
     :undoc-members:
     :show-inheritance:
@@ -97,26 +57,10 @@ shared Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`base_syncdata_unittest` Module
-------------------------------------
-
-.. automodule:: autotest.client.shared.base_syncdata_unittest
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`boottool` Module
 ----------------------
 
 .. automodule:: autotest.client.shared.boottool
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`boottool_unittest` Module
--------------------------------
-
-.. automodule:: autotest.client.shared.boottool_unittest
     :members:
     :undoc-members:
     :show-inheritance:
@@ -145,14 +89,6 @@ shared Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`control_data_unittest` Module
------------------------------------
-
-.. automodule:: autotest.client.shared.control_data_unittest
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`distro` Module
 --------------------
 
@@ -165,14 +101,6 @@ shared Package
 ------------------------
 
 .. automodule:: autotest.client.shared.distro_def
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`distro_unittest` Module
------------------------------
-
-.. automodule:: autotest.client.shared.distro_unittest
     :members:
     :undoc-members:
     :show-inheritance:
@@ -225,14 +153,6 @@ shared Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`iscsi_unittest` Module
-----------------------------
-
-.. automodule:: autotest.client.shared.iscsi_unittest
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`iso9660` Module
 ---------------------
 
@@ -281,14 +201,6 @@ shared Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`logging_manager_unittest` Module
---------------------------------------
-
-.. automodule:: autotest.client.shared.logging_manager_unittest
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`magic` Module
 -------------------
 
@@ -301,14 +213,6 @@ shared Package
 ------------------
 
 .. automodule:: autotest.client.shared.mail
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`mail_unittest` Module
----------------------------
-
-.. automodule:: autotest.client.shared.mail_unittest
     :members:
     :undoc-members:
     :show-inheritance:
@@ -361,14 +265,6 @@ shared Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`profiler_manager_unittest` Module
----------------------------------------
-
-.. automodule:: autotest.client.shared.profiler_manager_unittest
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`progressbar` Module
 -------------------------
 
@@ -401,26 +297,10 @@ shared Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`service_unittest` Module
-------------------------------
-
-.. automodule:: autotest.client.shared.service_unittest
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`settings` Module
 ----------------------
 
 .. automodule:: autotest.client.shared.settings
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`settings_unittest` Module
--------------------------------
-
-.. automodule:: autotest.client.shared.settings_unittest
     :members:
     :undoc-members:
     :show-inheritance:
@@ -457,14 +337,6 @@ shared Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`test_unittest` Module
----------------------------
-
-.. automodule:: autotest.client.shared.test_unittest
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`utils` Module
 -------------------
 
@@ -493,14 +365,6 @@ shared Package
 --------------------------
 
 .. automodule:: autotest.client.shared.utils_memory
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`utils_unittest` Module
-----------------------------
-
-.. automodule:: autotest.client.shared.utils_unittest
     :members:
     :undoc-members:
     :show-inheritance:

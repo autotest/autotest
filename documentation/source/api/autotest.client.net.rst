@@ -25,14 +25,6 @@ net Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`net_tc_unittest` Module
------------------------------
-
-.. automodule:: autotest.client.net.net_tc_unittest
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`net_utils` Module
 -----------------------
 
@@ -45,14 +37,6 @@ net Package
 ----------------------------
 
 .. automodule:: autotest.client.net.net_utils_mock
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`net_utils_unittest` Module
---------------------------------
-
-.. automodule:: autotest.client.net.net_utils_unittest
     :members:
     :undoc-members:
     :show-inheritance:
