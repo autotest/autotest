@@ -8,12 +8,29 @@ the same. With added distro-independant pixie dust.
 """
 
 
+def _find_cmd_in_dir(cmd, directory):
+    """
+    Find a command in directory recursively.
+
+    :return: Full path of command if cmd is in directory,
+        None if cmd is not found in directory.
+    """
+    for root, _, _ in os.walk(directory):
+        path = os.path.join(root, cmd)
+        if os.access(path, os.X_OK):
+            return path
+    return None
+
+
 def command(cmd):
-    # this could use '/usr/bin/which', I suppose. But this seems simpler
     for dir in os.environ['PATH'].split(':'):
-        file = os.path.join(dir, cmd)
-        if os.path.exists(file):
-            return file
+        path = _find_cmd_in_dir(cmd, dir)
+        if path is not None:
+            return path
+    # check '/usr/libexec' in case that it is not in PATH.
+    path = _find_cmd_in_dir(cmd, '/usr/libexec')
+    if path is not None:
+        return path
     raise ValueError('Missing command: %s' % cmd)
 
 
