@@ -870,6 +870,7 @@ class base_job(object):
     @property pkgdir: The job packages directory. [WRITABLE]
     @property tmpdir: The job temporary directory. [WRITABLE]
     @property testdir: The job test directory. [WRITABLE]
+    @property customtestdir: The custom test directory. [WRITABLE]
     @property site_testdir: The job site test directory. [WRITABLE]
 
     @property bindir: The client bin/ directory.
@@ -950,6 +951,7 @@ class base_job(object):
     pkgdir = _job_directory.property_factory('pkgdir')
     tmpdir = _job_directory.property_factory('tmpdir')
     testdir = _job_directory.property_factory('testdir')
+    customtestdir = _job_directory.property_factory('customtestdir')
     site_testdir = _job_directory.property_factory('site_testdir')
     bindir = _job_directory.property_factory('bindir')
     configdir = _job_directory.property_factory('configdir')
@@ -1060,6 +1062,10 @@ class base_job(object):
 
         # Now tests are read-only modules
         self._testdir = readonly_dir(test_dir)
+        if 'CUSTOM_DIR' in os.environ:
+            self._customtestdir = readonly_dir(os.environ['CUSTOM_DIR'])
+        else:
+            self._customtestdir = readonly_dir(test_dir)
         self._site_testdir = readwrite_dir(test_out_dir, 'site_tests')
 
         # various server-specific directories

@@ -867,7 +867,7 @@ def runtest(job, url, tag, args, dargs,
                 # already exists on the machine
                 pass
 
-        testdir_list = [job.testdir, getattr(job, 'site_testdir', None)]
+        testdir_list = [job.testdir, getattr(job, 'site_testdir', None), job.customtestdir]
         bindir_config = settings.get_value('COMMON', 'test_dir', default="")
         if bindir_config:
             testdir_list.extend(bindir_config.strip().split(','))

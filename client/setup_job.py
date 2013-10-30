@@ -117,6 +117,14 @@ def load_all_client_tests(options):
                 all_tests.append(client_test)
             else:
                 broken_tests.append(test_name)
+    if 'CUSTOM_DIR' in os.environ:
+        testdir = os.environ['CUSTOM_DIR']
+        for test_name in os.listdir(testdir):
+            client_test = init_test(options, os.path.join(testdir, test_name))
+            if client_test:
+                all_tests.append(client_test)
+            else:
+                broken_tests.append(test_name)
     return all_tests, broken_tests
 
 

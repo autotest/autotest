@@ -55,6 +55,9 @@ class AutotestLocalOptionParser(optparse.OptionParser):
                            help=('a comma separated list of client tests to '
                                  'prebuild on the server. Use all to prebuild '
                                  'all of them.'))
+        general.add_option("-d",'--test_directory', dest='test_directory',
+                           type='string', default=None, action='store',
+                           help=('Specify a custom test directory '))
         self.add_option_group(general)
 
         job_id = optparse.OptionGroup(self, 'JOB IDENTIFICATION')

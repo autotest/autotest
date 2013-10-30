@@ -179,6 +179,13 @@ class CommandParser(object):
             cls._print_control_list(pipe, dirtest)
             pipe.write("\n")
 
+        # Walk customtest directory
+        if 'CUSTOM_DIR' in os.environ:
+            dirtest = os.environ['CUSTOM_DIR']
+            pipe.write("Custom Test Directory (%s)\n" % dirtest)
+            cls._print_control_list(pipe, dirtest)
+            pipe.write("\n")
+
         # Walk autodirtest directory
         dirtest = os.environ['AUTODIRTEST']
         pipe.write("Autotest prepackaged tests (%s)\n" % dirtest)
@@ -238,12 +245,17 @@ class CommandParser(object):
         fetchdir = FETCHDIRTEST
         globaldir = GLOBALDIRTEST
         autodir = os.environ['AUTODIRTEST']
+        if 'CUSTOM_DIR' in os.environ:
+            customtestdir = os.environ['CUSTOM_DIR']
+        else:
+            customtestdir = ""
 
-        for dirtest in [localdir, fetchdir, globaldir, autodir]:
-            d = os.path.join(dirtest, test)
-            if os.path.isfile(d):
-                args.insert(0, d)
-                return args
+        for dirtest in [localdir, fetchdir, globaldir, autodir, customtestdir]:
+            if dirtest:
+                d = os.path.join(dirtest, test)
+                if os.path.isfile(d):
+                    args.insert(0, d)
+                    return args
 
         logging.error("Can not find test %s", test)
         raise SystemExit(1)
