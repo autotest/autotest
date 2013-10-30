@@ -46,6 +46,12 @@ class AutotestLocalApp:
         self.options, args = self.opt_parser.parse_args()
         self.args = self.cmd_parser.parse_args(args, self.options)
 
+        if self.options.test_directory is not None:
+            if os.path.isdir(self.options.test_directory):
+                os.environ['CUSTOM_DIR'] = self.options.test_directory
+            else:
+                print "The custom directory specifed does not exist, ignoring it..."
+
         # Check for a control file if not in prebuild mode.
         if len(args) != 1 and self.options.client_test_setup is None:
             print "Missing control file!"

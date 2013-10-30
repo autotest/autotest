@@ -89,7 +89,7 @@ class test_init(unittest.TestCase):
             # standard directories
             'autodir', 'clientdir', 'serverdir', 'resultdir', 'pkgdir',
             'tmpdir', 'testdir', 'site_testdir', 'bindir',
-            'configdir', 'profdir', 'toolsdir', 'conmuxdir',
+            'configdir', 'profdir', 'toolsdir', 'conmuxdir', 'customtestdir',
 
             # other special attributes
             'args', 'automatic_test_tag', 'bootloader', 'control',
