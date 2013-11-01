@@ -2246,6 +2246,51 @@ def generate_random_string(length, ignore_str=string.punctuation,
     return str
 
 
+def safe_rmdir(path, timeout=10):
+    """
+    Try to remove a directory safely, even on NFS filesystems.
+
+    Sometimes, when running an autotest client test on an NFS filesystem, when
+    not all filedescriptors are closed, NFS will create some temporary files,
+    that will make shutil.rmtree to fail with error 39 (directory not empty).
+    So let's keep trying for a reasonable amount of time before giving up.
+
+    :param path: Path to a directory to be removed.
+    :type path: string
+    :param timeout: Time that the function will try to remove the dir before
+                    giving up (seconds)
+    :type timeout: int
+    :raises: OSError, with errno 39 in case after the timeout
+             shutil.rmtree could not successfuly complete. If any attempt
+             to rmtree fails with errno different than 39, that exception
+             will be just raised.
+    """
+    assert os.path.isdir(path), "Invalid directory to remove %s" % path
+    step = int(timeout / 10)
+    start_time = time.time()
+    success = False
+    attempts = 0
+    while int(time.time() - start_time) < timeout:
+        attempts += 1
+        try:
+            shutil.rmtree(path)
+            success = True
+            break
+        except OSError, err_info:
+            # We are only going to try if the error happened due to
+            # directory not empty (errno 39). Otherwise, raise the
+            # original exception.
+            if err_info.errno != 39:
+                raise
+            time.sleep(step)
+
+    if not success:
+        raise OSError(39,
+                      "Could not delete directory %s "
+                      "after %d s and %d attempts." %
+                      (path, timeout, attempts))
+
+
 class VersionableClass(object):
 
     """
