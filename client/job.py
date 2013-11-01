@@ -324,12 +324,8 @@ class base_client_job(base_job.base_job):
     def _cleanup_results_dir(self):
         """Delete everything in resultsdir"""
         assert os.path.exists(self.resultdir)
-        list_files = glob.glob('%s/*' % self.resultdir)
-        for f in list_files:
-            if os.path.isdir(f):
-                shutil.rmtree(f)
-            elif os.path.isfile(f):
-                os.remove(f)
+        utils.safe_rmdir(self.resultdir)
+        os.mkdir(self.resultdir)
 
     def _cleanup_debugdir_files(self):
         """
