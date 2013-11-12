@@ -418,11 +418,13 @@ class YumBackend(RpmBackend):
                     self.cfgparser.remove_section(section)
                     self.cfgparser.write(open(self.repo_file_path, "w"))
 
-    def upgrade(self):
+    def upgrade(self, pkg=''):
         """
         Upgrade all available packages.
+        :param pkg: optional parameter wildcard spec to upgrade
+        :type pkg: str
         """
-        r_cmd = self.base_command + ' ' + 'update'
+        r_cmd = ' '.join([self.base_command, 'update', pkg])
         try:
             utils.system(r_cmd)
             return True
