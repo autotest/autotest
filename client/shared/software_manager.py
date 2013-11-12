@@ -418,11 +418,20 @@ class YumBackend(RpmBackend):
                     self.cfgparser.remove_section(section)
                     self.cfgparser.write(open(self.repo_file_path, "w"))
 
-    def upgrade(self):
+    def upgrade(self, name=None):
         """
         Upgrade all available packages.
+
+        Optionally, upgrade individual packages.
+
+        :param name: optional parameter wildcard spec to upgrade
+        :type name: str
         """
-        r_cmd = self.base_command + ' ' + 'update'
+        if not name:
+            r_cmd = self.base_command + ' ' + 'update'
+        else:
+            r_cmd = self.base_command + ' ' + 'update' + ' ' + name
+
         try:
             utils.system(r_cmd)
             return True
@@ -525,11 +534,19 @@ class ZypperBackend(RpmBackend):
         except error.CmdError:
             return False
 
-    def upgrade(self):
+    def upgrade(self, name=None):
         """
         Upgrades all packages of the system.
+
+        Optionally, upgrade individual packages.
+
+        :param name: Optional parameter wildcard spec to upgrade
+        :type name: str
         """
-        u_cmd = self.base_command + ' update -l'
+        if not name:
+            u_cmd = self.base_command + ' update -l'
+        else:
+            u_cmd = self.base_command + ' ' + 'update' + ' ' + name
 
         try:
             utils.system(u_cmd)
@@ -657,9 +674,14 @@ class AptBackend(DpkgBackend):
         repo_file.write(new_file_contents)
         repo_file.close()
 
-    def upgrade(self):
+    def upgrade(self, name=None):
         """
         Upgrade all packages of the system with eventual new versions.
+
+        Optionally, upgrade individual packages.
+
+        :param name: optional parameter wildcard spec to upgrade
+        :type name: str
         """
         ud_command = 'update'
         ud_cmd = self.base_command + ' ' + ud_command
@@ -667,8 +689,14 @@ class AptBackend(DpkgBackend):
             utils.system(ud_cmd)
         except error.CmdError:
             logging.error("Apt package update failed")
-        up_command = 'upgrade'
-        up_cmd = self.base_command + ' ' + up_command
+
+        if not name:
+            up_command = 'install --only-upgrade'
+            up_cmd = self.base_command + ' ' + up_command + ' ' + name
+        else:
+            up_command = 'upgrade'
+            up_cmd = self.base_command + ' ' + up_command
+
         try:
             utils.system(up_cmd)
             return True
