@@ -29,8 +29,9 @@ class systemtap(profiler.profiler):
         if stap_installed:
             self.is_enabled = True
             self.script_name = dargs.get('stap_script_file')
-            stap_support_cmd = "stap -e 'probe begin { log(\"Support\") exit() }'"
-            if not re.findall("Support", utils.system_output(stap_support_cmd)):
+            stap_check_cmd = "stap -e 'probe begin { log(\"Support\") exit() }'"
+            output = utils.system_output(stap_check_cmd, ignore_status=True)
+            if not re.findall("Support", output):
                 logging.warning("Seems your host does not support systemtap")
                 self.is_enabled = False
             if not self.script_name:
