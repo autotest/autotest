@@ -71,6 +71,7 @@ class test_init_minimal_options(abstract_test_init, setup_job_test_case):
         # stub out countless random APIs
         self.god.stub_function_to_return(setup_job.os, 'mkdir', None)
         self.god.stub_function_to_return(setup_job.os.path, 'exists', True)
+        self.god.stub_function_to_return(utils, 'safe_rmdir', None)
         self.god.stub_function_to_return(self.job, '_load_state', None)
         self.god.stub_function_to_return(logging_manager,
                                          'configure_logging', None)
