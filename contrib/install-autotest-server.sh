@@ -421,6 +421,7 @@ then
     /usr/local/bin/substitute $ATHOME_DEFAULT $ATHOME $ATHOME/apache/conf/new-tko-directives
     /usr/local/bin/substitute $ATHOME_DEFAULT $ATHOME $ATHOME/apache/conf/tko-directives
     /usr/local/bin/substitute $ATHOME_DEFAULT $ATHOME $ATHOME/apache/apache-conf
+    /usr/local/bin/substitute $ATHOME_DEFAULT $ATHOME $ATHOME/apache/apache-web-conf
     /usr/local/bin/substitute $ATHOME_DEFAULT $ATHOME $ATHOME/apache/drone-conf
 fi
 }
