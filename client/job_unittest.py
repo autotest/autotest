@@ -73,7 +73,7 @@ class test_init_minimal_options(abstract_test_init, job_test_case):
         self.god.stub_function_to_return(job.shutil, 'copyfile', None)
         self.god.stub_function_to_return(job.logging_manager,
                                          'configure_logging', None)
-
+        self.god.stub_function_to_return(utils, 'safe_rmdir', None)
         class manager:
 
             def start_logging(self):
