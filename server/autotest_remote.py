@@ -444,9 +444,6 @@ class BaseAutotest(installable_object.InstallableObject):
         # build up the initialization prologue for the control file
         prologue_lines = []
 
-        # to preserve PEP 0263 source encoding it must be in the first two lines
-        prologue_lines.append("# coding=utf-8")
-
         # Add the additional user arguments
         prologue_lines.append("args = %r\n" % self.job.args)
 
