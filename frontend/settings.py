@@ -52,11 +52,6 @@ SOUTH_DATABASE_ADAPTERS = {
 
 DATABASES = {'default': AUTOTEST_DEFAULT}
 
-# prefix applied to all URLs - useful if requests are coming through apache,
-# and you need this app to coexist with others
-URL_PREFIX = 'afe/server/'
-TKO_URL_PREFIX = 'new_tko/server/'
-
 # Local time zone for this installation. Choices can be found here:
 # http://www.postgresql.org/docs/8.1/static/datetime-keywords.html#DATETIME-TIMEZONE-SET-TABLE
 # although not all variations may be possible on all operating systems.

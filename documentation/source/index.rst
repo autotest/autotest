@@ -13,6 +13,7 @@ Contents:
    :maxdepth: 2
 
    client/index
+   shared/index
    frontend/index
    api/autotest.client
 
