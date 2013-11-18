@@ -9,7 +9,7 @@ except ImportError:
     import common
 from autotest.client import utils, os_dep
 from autotest.client.shared import error
-from autotest.client.shared.base_utils import VersionableClass
+from autotest.client.shared.utils import VersionableClass
 
 
 class ServiceManagerInterface(VersionableClass):
