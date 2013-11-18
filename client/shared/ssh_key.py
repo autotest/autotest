@@ -1,7 +1,7 @@
 import os
 import logging
 from autotest.client.shared import pxssh
-from autotest.client.shared import base_utils as utils
+from autotest.client.shared import utils
 
 
 def get_public_key():
