@@ -763,7 +763,9 @@ def install_distro_packages(distro_pkg_map, interactive=False):
         break
 
     if not pkgs:
-        pkgs = distro_pkg_map.get(detected_distro.name, None)
+        logging.info("No specific distro release package list")
+        pkgs = distro_pkg_map.get(detected_distro.name.lower(), None)
+        logging.error("No generic distro package list")
 
     if pkgs:
         needed_pkgs = []
@@ -775,6 +777,10 @@ def install_distro_packages(distro_pkg_map, interactive=False):
             text = ' '.join(needed_pkgs)
             logging.info('Installing packages "%s"', text)
             result = software_manager.install(text)
+    else:
+        logging.error("No packages found for %s %s %s %s" % 
+                      (detected_distro.name, detected_distro.arch,
+                       detected_distro.version, detected_distro.release))
     return result
 
 
