@@ -792,8 +792,15 @@ def install_distro_packages(distro_pkg_map, interactive=False):
 
     if not pkgs:
         logging.info("No specific distro release package list")
-        pkgs = distro_pkg_map.get(detected_distro.name.lower(), None)
-        logging.error("No generic distro package list")
+
+        # when comparing distro names only, fallback to a lowercase version
+        # of the distro name is it's more common than the case as detected
+        pkgs = distro_pkg_map.get(detected_distro.name, None)
+        if not pkgs:
+            pkgs = distro_pkg_map.get(detected_distro.name.lower(), None)
+
+        if not pkgs:
+            logging.error("No generic distro package list")
 
     if pkgs:
         needed_pkgs = []
