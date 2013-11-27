@@ -358,7 +358,7 @@ class GitBackend(object):
 
         :param patch: Path to the patch file.
         """
-        utils.run("git checkout next")
+        utils.run("git checkout master")
         utils.run("git checkout -b %s" %
                   os.path.basename(patch).rstrip(".patch"))
         try:
