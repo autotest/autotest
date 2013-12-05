@@ -17,6 +17,8 @@ import os
 import logging
 import tempfile as module_tempfile
 
+from autotest.client import utils
+
 _TEMPLATE = '_autotmp_'
 
 
@@ -97,7 +99,7 @@ class tempdir(object):
         This is also called by the destructor.
         """
         if self.name and os.path.exists(self.name):
-            shutil.rmtree(self.name)
+            utils.safe_rmdir(self.name)
 
         self.name = None
 
