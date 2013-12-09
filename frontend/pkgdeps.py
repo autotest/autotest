@@ -95,6 +95,7 @@ UBUNTU_PKGS = [
 
 PKG_DEPS = {'fedora': FEDORA_REDHAT_PKGS,
             'redhat': FEDORA_REDHAT_PKGS,
+            'centos': FEDORA_REDHAT_PKGS,
             'debian': UBUNTU_PKGS,
             'ubuntu': UBUNTU_PKGS,
             distro.Spec('fedora', 19): FEDORA_19_PKGS}
