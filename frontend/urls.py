@@ -1,4 +1,10 @@
 import os
+try:
+    import autotest.common as common
+except ImportError:
+    import common
+from autotest.shared import rpc
+from autotest.shared import frontend
 from django.conf.urls import defaults
 from django.conf import settings
 
@@ -6,20 +12,23 @@ from django.conf import settings
 from django.contrib import admin
 admin.autodiscover()
 
-RE_PREFIX = '^' + settings.URL_PREFIX
-TKO_RE_PREFIX = '^' + settings.TKO_URL_PREFIX
-
-handler404 = 'django.views.defaults.page_not_found'
-handler500 = 'autotest.frontend.afe.views.handler500'
+# Prefixes as regexes, ready to be consumed by django's url dispatch mechanism
+AFE_RE_PREFIX = '^%s' % frontend.AFE_URL_PREFIX
+AFE_RE_ADMIN_PREFIX = '%sadmin/' % AFE_RE_PREFIX
+AFE_RE_STATIC_PREFIX = '%sstatic/(?P<path>.*)' % AFE_RE_PREFIX
+TKO_RE_PREFIX = '^%s' % frontend.TKO_URL_PREFIX
 
 urlpatterns = defaults.patterns(
     '',
-    (RE_PREFIX + r'admin/', defaults.include(admin.site.urls)),
-    (RE_PREFIX, defaults.include('autotest.frontend.afe.urls')),
-    (TKO_RE_PREFIX, defaults.include('autotest.frontend.tko.urls')),
-    (RE_PREFIX + r'static/(?P<path>.*)', 'django.views.static.serve',
+    (AFE_RE_ADMIN_PREFIX, defaults.include(admin.site.urls)),
+    (AFE_RE_PREFIX, defaults.include('autotest.frontend.afe.urls')),
+    (AFE_RE_STATIC_PREFIX, 'django.views.static.serve',
      {'document_root': os.path.join(os.path.dirname(__file__), 'static')}),
+    (TKO_RE_PREFIX, defaults.include('autotest.frontend.tko.urls'))
 )
+
+handler404 = 'django.views.defaults.page_not_found'
+handler500 = 'autotest.frontend.afe.views.handler500'
 
 if os.path.exists(os.path.join(os.path.dirname(__file__),
                                'tko', 'site_urls.py')):
