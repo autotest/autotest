@@ -113,7 +113,7 @@ class SpecialTaskUnittest(unittest.TestCase,
         self.assertTrue(task.success)
 
     def test_requested_by_from_queue_entry(self):
-        job = self._create_job(hosts=[0])
+        job = self._create_job(hosts=[self.hosts[0].pk])
         task = models.SpecialTask.objects.create(
             host=self.hosts[0], task=models.SpecialTask.Task.VERIFY,
             queue_entry=job.hostqueueentry_set.all()[0])
