@@ -183,6 +183,36 @@ def vg_list():
     return vgroups
 
 
+@error.context_aware
+def vg_create(vg_name, pv_list):
+    """
+    Create a volume group by using the block special devices
+    """
+    error.context(
+        "Creating volume group '%s' by using '%s'" %
+        (vg_name, pv_list), logging.info)
+
+    if vg_check(vg_name):
+        raise error.TestError("Volume group '%s' already exist" % vg_name)
+    cmd = "vgcreate %s %s" % (vg_name, pv_list)
+    result = utils.run(cmd)
+    logging.info(result.stdout.rstrip())
+
+
+@error.context_aware
+def vg_remove(vg_name):
+    """
+    Remove a volume group.
+    """
+    error.context("Removing volume '%s'" % vg_name, logging.info)
+
+    if not vg_check(vg_name):
+        raise error.TestError("Volume group '%s' could not be found" % vg_name)
+    cmd = "vgremove -f %s" % vg_name
+    result = utils.run(cmd)
+    logging.info(result.stdout.rstrip())
+
+
 def lv_check(vg_name, lv_name):
     """
     Check whether provided logical volume exists.
