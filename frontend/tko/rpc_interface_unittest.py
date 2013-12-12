@@ -34,12 +34,12 @@ CREATE TABLE tko_iteration_result (
 """
 
 
-def get_create_test_view_sql():
+def get_create_test_view_sql(filename):
     """
     Returns the SQL code that creates the test view
     """
     dir_path = os.path.dirname(os.path.abspath(__file__))
-    sql_path = os.path.join(dir_path, 'sql', 'tko-test-view-2.sql')
+    sql_path = os.path.join(dir_path, 'sql', filename)
     return open(sql_path).read()
 
 
@@ -49,8 +49,10 @@ def setup_test_view():
     TestView. So manually create the view.
     """
     cursor = connection.cursor()
+    cursor.execute('DROP VIEW IF EXISTS tko_test_view')
+    cursor.execute(get_create_test_view_sql('tko-test-view.sql'))
     cursor.execute('DROP VIEW IF EXISTS tko_test_view_2')
-    cursor.execute(get_create_test_view_sql())
+    cursor.execute(get_create_test_view_sql('tko-test-view-2.sql'))
 
 
 def fix_iteration_tables():
