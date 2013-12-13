@@ -5,7 +5,7 @@ try:
 except ImportError:
     import common
 from autotest.client.shared.test_utils import mock
-from autotest.client import harness, harness_standalone, harness_ABAT
+from autotest.client import harness, harness_standalone
 
 
 class harness_unittest(unittest.TestCase):
@@ -32,15 +32,6 @@ class harness_unittest(unittest.TestCase):
         harness_args = ''
         harness_standalone.harness_standalone.expect_new(job, harness_args)
         harness.select('standalone', job, harness_args)
-        self.god.check_playback()
-
-    def test_select_ABAT(self):
-        job = object()
-        self.god.stub_class(harness_ABAT, "harness_ABAT")
-
-        harness_args = ''
-        harness_ABAT.harness_ABAT.expect_new(job, harness_args)
-        harness.select('ABAT', job, harness_args)
         self.god.check_playback()
 
 

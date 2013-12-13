@@ -70,15 +70,18 @@ class job_directory(object):
         Instantiate a job directory.
 
         :param path: The path of the directory. If None a temporary directory
-            will be created instead.
-        :param is_writable: If True, expect the directory to be writable.
+                     will be created instead.
+        :type path: string
 
-        :raise MissingDirectoryException: raised if is_writable=False and the
-            directory does not exist.
-        :raise UnwritableDirectoryException: raised if is_writable=True and
-            the directory exists but is not writable.
-        :raise UncreatableDirectoryException: raised if is_writable=True, the
-            directory does not exist and it cannot be created.
+        :param is_writable: If True, expect the directory to be writable.
+        :type is_writable: bool
+
+        :raises: :class:`MissingDirectoryException` if ``is_writable=False``
+                 and the directory does not exist.
+        :raises: :class:`UnwritableDirectoryException` if ``is_writable=True``
+                 and the directory exists but is not writable.
+        :raises: :class:`UncreatableDirectoryException` if ``is_writable=True``
+                 the directory does not exist and it cannot be created.
         """
         if path is None:
             if is_writable:
@@ -100,16 +103,16 @@ class job_directory(object):
         will still fail if the path is rooted in a non-writable directory, or
         if a file already exists at the given location.
 
-        :param dir_path A path where a directory should be located
-        :param is_writable A boolean indicating that the directory should
-            not only exist, but also be writable.
+        :param is_writable: A boolean indicating that the directory should
+                            not only exist, but also be writable.
+        :type is_writable: bool
 
-        :raise MissingDirectoryException raised if is_writable=False and the
-            directory does not exist.
-        :raise UnwritableDirectoryException raised if is_writable=True and
-            the directory is not wrtiable.
-        :raise UncreatableDirectoryException raised if is_writable=True, the
-            directory does not exist and it cannot be created
+        :raises: :class:`MissingDirectoryException` if ``is_writable=False``
+                 and the directory does not exist.
+        :raises: :class:`UnwritableDirectoryException` if ``is_writable=True``
+                 and the directory is not wrtiable.
+        :raises: :class:`UncreatableDirectoryException` if ``is_writable=True``
+                 the directory does not exist and it cannot be created
         """
         # ensure the directory exists
         if is_writable:
@@ -130,11 +133,11 @@ class job_directory(object):
         """
         Create a job.*dir -> job._*dir.path property accessor.
 
-        :param attribute A string with the name of the attribute this is
-            exposed as. '_'+attribute must then be attribute that holds
-            either None or a job_directory-like object.
+        :param attribute: A string with the name of the attribute this is
+                          exposed as. '_'+attribute must then be attribute
+                          that holds either None or a job_directory-like object
 
-        :return: A read-only property object that exposes a job_directory path
+        :returns: A read-only property object that exposes a job_directory path
         """
         @property
         def dir_property(self):
@@ -148,7 +151,8 @@ class job_directory(object):
 
 # decorator for use with job_state methods
 def with_backing_lock(method):
-    """A decorator to perform a lock-*-unlock cycle.
+    """
+    A decorator to perform a lock-*-unlock cycle.
 
     When applied to a method, this decorator will automatically wrap
     calls to the method in a backing file lock and before the call
@@ -171,7 +175,8 @@ def with_backing_lock(method):
 
 # decorator for use with job_state methods
 def with_backing_file(method):
-    """A decorator to perform a lock-read-*-write-unlock cycle.
+    """
+    A decorator to perform a lock-read-*-write-unlock cycle.
 
     When applied to a method, this decorator will automatically wrap
     calls to the method in a lock-and-read before the call followed by a
@@ -192,8 +197,8 @@ def with_backing_file(method):
 
 
 class job_state(object):
-
-    """A class for managing explicit job and user state, optionally persistent.
+    """
+    A class for managing explicit job and user state, optionally persistent.
 
     The class allows you to save state by name (like a dictionary). Any state
     stored in this class should be picklable and deep copyable. While this is
@@ -227,20 +232,24 @@ class job_state(object):
             self._backing_file_lock = None
 
     def read_from_file(self, file_path, merge=True):
-        """Read in any state from the file at file_path.
+        """
+        Read in any state from the file at file_path.
 
-        When merge=True, any state specified only in-memory will be preserved.
-        Any state specified on-disk will be set in-memory, even if an in-memory
-        setting already exists.
+        When ``merge=True``, any state specified only in-memory will be
+        preserved. Any state specified on-disk will be set in-memory, even if an
+        in-memory setting already exists.
 
         :param file_path: The path where the state should be read from. It must
-            exist but it can be empty.
-        :param merge: If true, merge the on-disk state with the in-memory
-            state. If false, replace the in-memory state with the on-disk
-            state.
+                          exist but it can be empty.
+        :type file_path: string
 
-        @warning: This method is intentionally concurrency-unsafe. It makes no
-            attempt to control concurrent access to the file at file_path.
+        :param merge: If true, merge the on-disk state with the in-memory
+                      state. If false, replace the in-memory state with the
+                      on-disk state.
+        :type merge: bool
+
+        Warning: This method is intentionally concurrency-unsafe. It makes no
+        attempt to control concurrent access to the file at ``file_path``.
         """
 
         # we can assume that the file exists
@@ -275,13 +284,15 @@ class job_state(object):
         with_backing_lock(self.__class__._write_to_backing_file)(self)
 
     def write_to_file(self, file_path):
-        """Write out the current state to the given path.
+        """
+        Write out the current state to the given path.
+
+        Warning: This method is intentionally concurrency-unsafe. It makes no
+        attempt to control concurrent access to the file at file_path.
 
         :param file_path: The path where the state should be written out to.
-            Must be writable.
-
-        @warning: This method is intentionally concurrency-unsafe. It makes no
-            attempt to control concurrent access to the file at file_path.
+                          Must be writable.
+        :type file_path: string
         """
         outfile = open(file_path, 'w')
         try:
@@ -290,7 +301,8 @@ class job_state(object):
             outfile.close()
 
     def _read_from_backing_file(self):
-        """Refresh the current state from the backing file.
+        """
+        Refresh the current state from the backing file.
 
         If the backing file has never been read before (indicated by checking
         self._backing_file_initialized) it will merge the file with the
@@ -308,12 +320,15 @@ class job_state(object):
 
     @with_backing_file
     def _synchronize_backing_file(self):
-        """Synchronizes the contents of the in-memory and on-disk state."""
+        """
+        Synchronizes the contents of the in-memory and on-disk state.
+        """
         # state is implicitly synchronized in _with_backing_file methods
         pass
 
     def set_backing_file(self, file_path):
-        """Change the path used as the backing file for the persistent state.
+        """
+        Change the path used as the backing file for the persistent state.
 
         When a new backing file is specified if a file already exists then
         its contents will be added into the current state, with conflicts
@@ -322,7 +337,8 @@ class job_state(object):
         in-memory state. The syncing can be disabled by setting this to None.
 
         :param file_path: A path on the filesystem that can be read from and
-            written to, or None to turn off the backing store.
+                          written to, or None to turn off the backing store.
+        :type file_path: string
         """
         self._synchronize_backing_file()
         self._backing_file = file_path
@@ -331,18 +347,25 @@ class job_state(object):
 
     @with_backing_file
     def get(self, namespace, name, default=NO_DEFAULT):
-        """Returns the value associated with a particular name.
+        """
+        Returns the value associated with a particular name.
 
         :param namespace: The namespace that the property should be stored in.
-        :param name: The name the value was saved with.
-        :param default: A default value to return if no state is currently
-            associated with var.
+        :type namespace: string
 
-        :return: A deep copy of the value associated with name. Note that this
-            explicitly returns a deep copy to avoid problems with mutable
-            values; mutations are not persisted or shared.
-        :raise KeyError: raised when no state is associated with var and a
-            default value is not provided.
+        :param name: The name the value was saved with.
+        :type name: string
+
+        :param default: A default value to return if no state is currently
+                        associated with var.
+        :type default: object
+
+        :returns: A deep copy of the value associated with name. Note that this
+                  explicitly returns a deep copy to avoid problems with mutable
+                  values; mutations are not persisted or shared.
+
+        :raises: :class:`KeyError` raised when no state is associated with var
+                 and a default value is not provided.
         """
         if self.has(namespace, name):
             return copy.deepcopy(self._state[namespace][name])
@@ -353,10 +376,15 @@ class job_state(object):
 
     @with_backing_file
     def set(self, namespace, name, value):
-        """Saves the value given with the provided name.
+        """
+        Saves the value given with the provided name.
 
         :param namespace: The namespace that the property should be stored in.
-        :param name: The name the value should be saved with.
+        :type namespace: string
+
+        :param name: The name the value was saved with.
+        :type name: string
+
         :param value: The value to save.
         """
         namespace_dict = self._state.setdefault(namespace, {})
@@ -366,22 +394,31 @@ class job_state(object):
 
     @with_backing_file
     def has(self, namespace, name):
-        """Return a boolean indicating if namespace.name is defined.
+        """
+        Return a boolean indicating if namespace.name is defined.
 
-        :param namespace: The namespace to check for a definition.
-        :param name: The name to check for a definition.
+        :param namespace: The namespace that the property should be stored in.
+        :type namespace: string
 
-        :return: True if the given name is defined in the given namespace and
-            False otherwise.
+        :param name: The name the value was saved with.
+        :type name: string
+
+        :returns: True if the given name is defined in the given namespace and
+                  False otherwise.
+        :rtype: bool
         """
         return namespace in self._state and name in self._state[namespace]
 
     @with_backing_file
     def discard(self, namespace, name):
-        """If namespace.name is a defined value, deletes it.
+        """
+        If namespace.name is a defined value, deletes it.
 
-        :param namespace: The namespace that the property is stored in.
-        :param name: The name the value is saved with.
+        :param namespace: The namespace that the property should be stored in.
+        :type namespace: string
+
+        :param name: The name the value was saved with.
+        :type name: string
         """
         if self.has(namespace, name):
             del self._state[namespace][name]
@@ -395,9 +432,11 @@ class job_state(object):
 
     @with_backing_file
     def discard_namespace(self, namespace):
-        """Delete all defined namespace.* names.
+        """
+        Delete all defined namespace.* names.
 
         :param namespace: The namespace to be cleared.
+        :type namespace: string
         """
         if namespace in self._state:
             del self._state[namespace]
@@ -410,15 +449,18 @@ class job_state(object):
         Create a property object for an attribute using self.get and self.set.
 
         :param state_attribute: A string with the name of the attribute on
-            job that contains the job_state instance.
+                                job that contains the job_state instance.
+
         :param property_attribute: A string with the name of the attribute
-            this property is exposed as.
+                                   this property is exposed as.
+
         :param default: A default value that should be used for this property
-            if it is not set.
+                        if it is not set.
+
         :param namespace: The namespace to store the attribute value in.
 
-        :return: A read-write property object that performs self.get calls
-            to read the value and self.set calls to set it.
+        :returns: A read-write property object that performs self.get calls
+                  to read the value and self.set calls to set it.
         """
         def getter(job):
             state = getattr(job, state_attribute)
@@ -431,8 +473,9 @@ class job_state(object):
 
 
 class status_log_entry(object):
-
-    """Represents a single status log entry."""
+    """
+    Represents a single status log entry.
+    """
 
     RENDERED_NONE_VALUE = '----'
     TIMESTAMP_FIELD = 'timestamp'
@@ -443,22 +486,27 @@ class status_log_entry(object):
 
     def __init__(self, status_code, subdir, operation, message, fields,
                  timestamp=None):
-        """Construct a status.log entry.
+        """
+        Construct a status.log entry.
 
         :param status_code: A message status code. Must match the codes
-            accepted by autotest.shared.log.is_valid_status.
+                            accepted by autotest.shared.log.is_valid_status.
+
         :param subdir: A valid job subdirectory, or None.
+
         :param operation: Description of the operation, or None.
+
         :param message: A printable string describing event to be recorded.
+
         :param fields: A dictionary of arbitrary alphanumeric key=value pairs
-            to be included in the log, or None.
+                       to be included in the log, or None.
+
         :param timestamp: An optional integer timestamp, in the same format
-            as a time.time() timestamp. If unspecified, the current time is
-            used.
+                          as a time.time() timestamp. If unspecified, the
+                          current time is used.
 
-        :raise ValueError: if any of the parameters are invalid
+        :raises: :class:`ValueError` if any of the parameters are invalid
         """
-
         if not log.is_valid_status(status_code):
             raise ValueError('status code %r is not valid' % status_code)
         self.status_code = status_code
@@ -499,23 +547,26 @@ class status_log_entry(object):
             '%b %d %H:%M:%S', time.localtime(timestamp))
 
     def is_start(self):
-        """Indicates if this status log is the start of a new nested block.
+        """
+        Indicates if this status log is the start of a new nested block.
 
-        :return: A boolean indicating if this entry starts a new nested block.
+        :returns: A boolean indicating if this entry starts a new nested block.
         """
         return self.status_code == 'START'
 
     def is_end(self):
-        """Indicates if this status log is the end of a nested block.
+        """
+        Indicates if this status log is the end of a nested block.
 
-        :return: A boolean indicating if this entry ends a nested block.
+        :returns: A boolean indicating if this entry ends a nested block.
         """
         return self.status_code.startswith('END ')
 
     def render(self):
-        """Render the status log entry into a text string.
+        """
+        Render the status log entry into a text string.
 
-        :return: A text string suitable for writing into a status log file.
+        :returns: A text string suitable for writing into a status log file.
         """
         # combine all the log line data into a tab-delimited string
         subdir = self.subdir or self.RENDERED_NONE_VALUE
@@ -532,15 +583,16 @@ class status_log_entry(object):
 
     @classmethod
     def parse(cls, line):
-        """Parse a status log entry from a text string.
+        """
+        Parse a status log entry from a text string.
 
         This method is the inverse of render; it should always be true that
         parse(entry.render()) produces a new status_log_entry equivalent to
         entry.
 
-        :return: A new status_log_entry instance with fields extracted from the
-            given status line. If the line is an extra message line then None
-            is returned.
+        :returns: A new status_log_entry instance with fields extracted from
+                  the given status line. If the line is an extra message line
+                  then None is returned.
         """
         # extra message lines are always prepended with two spaces
         if line.startswith('  '):
@@ -565,9 +617,9 @@ class status_log_entry(object):
 
 
 class status_indenter(object):
-
-    """Abstract interface that a status log indenter should use."""
-
+    """
+    Abstract interface that a status log indenter should use.
+    """
     @property
     def indent(self):
         raise NotImplementedError
@@ -581,33 +633,39 @@ class status_indenter(object):
 
 
 class status_logger(object):
-
-    """Represents a status log file. Responsible for translating messages
+    """
+    Represents a status log file. Responsible for translating messages
     into on-disk status log lines.
 
-    @property global_filename: The filename to write top-level logs to.
-    @property subdir_filename: The filename to write subdir-level logs to.
+    :property global_filename: The filename to write top-level logs to.
+    :property subdir_filename: The filename to write subdir-level logs to.
     """
 
     def __init__(self, job, indenter, global_filename='status',
                  subdir_filename='status', record_hook=None,
                  tap_writer=None):
-        """Construct a logger instance.
+        """
+        Construct a logger instance.
 
         :param job: A reference to the job object this is logging for. Only a
-            weak reference to the job is held, to avoid a
-            status_logger <-> job circular reference.
+                    weak reference to the job is held, to avoid a status_logger
+                    <-> job circular reference.
+
         :param indenter: A status_indenter instance, for tracking the
-            indentation level.
+                         indentation level.
+
         :param global_filename: An optional filename to initialize the
-            self.global_filename attribute.
+                                ``self.global_filename`` attribute.
+
         :param subdir_filename: An optional filename to initialize the
-            self.subdir_filename attribute.
+                                ``self.subdir_filename`` attribute.
+
         :param record_hook: An optional function to be called before an entry
-            is logged. The function should expect a single parameter, a
-            copy of the status_log_entry object.
+                            is logged. The function should expect a single
+                            parameter, a copy of the status_log_entry object.
+
         :param tap_writer: An instance of the class TAPReport for addionally
-            writing TAP files
+                           writing TAP files
         """
         self._jobref = weakref.ref(job)
         self._indenter = indenter
@@ -620,12 +678,13 @@ class status_logger(object):
             self._tap_writer = tap_writer
 
     def render_entry(self, log_entry):
-        """Render a status_log_entry as it would be written to a log file.
+        """
+        Render a status_log_entry as it would be written to a log file.
 
         :param log_entry: A status_log_entry instance to be rendered.
 
-        :return: The status log entry, rendered as it would be written to the
-            logs (including indentation).
+        :returns: The status log entry, rendered as it would be written to the
+                  logs (including indentation).
         """
         if log_entry.is_end():
             indent = self._indenter.indent - 1
@@ -634,12 +693,14 @@ class status_logger(object):
         return '\t' * indent + log_entry.render().rstrip('\n')
 
     def record_entry(self, log_entry, log_in_subdir=True):
-        """Record a status_log_entry into the appropriate status log files.
+        """
+        Record a status_log_entry into the appropriate status log files.
 
         :param log_entry: A status_log_entry instance to be recorded into the
-                status logs.
+                          status logs.
         :param log_in_subdir: A boolean that indicates (when true) that subdir
-                logs should be written into the subdirectory status log file.
+                              logs should be written into the subdirectory status
+                              log file.
         """
         # acquire a strong reference for the duration of the method
         job = self._jobref()
@@ -680,7 +741,6 @@ class status_logger(object):
 
 
 class TAPReport(object):
-
     """
     Deal with TAP reporting for the Autotest client.
     """
@@ -704,7 +764,7 @@ class TAPReport(object):
         :param enable: Set self.do_tap_report to trigger TAP reporting.
         :param resultdir: Path where the TAP report files will be written.
         :param global_filename: File name of the status files .tap extensions
-                will be appended.
+                                will be appended.
         """
         self.do_tap_report = enable
         if resultdir is not None:
@@ -858,73 +918,79 @@ class TAPReport(object):
 
 
 class base_job(object):
+    """
+    An abstract base class for the various autotest job classes.
 
-    """An abstract base class for the various autotest job classes.
+    :property autodir: The top level autotest directory.
+    :property clientdir: The autotest client directory.
+    :property serverdir: The autotest server directory. [OPTIONAL]
+    :property resultdir: The directory where results should be written out.
+                         [WRITABLE]
 
-    @property autodir: The top level autotest directory.
-    @property clientdir: The autotest client directory.
-    @property serverdir: The autotest server directory. [OPTIONAL]
-    @property resultdir: The directory where results should be written out.
-        [WRITABLE]
+    :property pkgdir: The job packages directory. [WRITABLE]
+    :property tmpdir: The job temporary directory. [WRITABLE]
+    :property testdir: The job test directory. [WRITABLE]
+    :property customtestdir: The custom test directory. [WRITABLE]
+    :property site_testdir: The job site test directory. [WRITABLE]
 
-    @property pkgdir: The job packages directory. [WRITABLE]
-    @property tmpdir: The job temporary directory. [WRITABLE]
-    @property testdir: The job test directory. [WRITABLE]
-    @property customtestdir: The custom test directory. [WRITABLE]
-    @property site_testdir: The job site test directory. [WRITABLE]
+    :property bindir: The client bin/ directory.
+    :property configdir: The client config/ directory.
+    :property profdir: The client profilers/ directory.
+    :property toolsdir: The client tools/ directory.
 
-    @property bindir: The client bin/ directory.
-    @property configdir: The client config/ directory.
-    @property profdir: The client profilers/ directory.
-    @property toolsdir: The client tools/ directory.
+    :property conmuxdir: The conmux directory. [OPTIONAL]
 
-    @property conmuxdir: The conmux directory. [OPTIONAL]
+    :property control: A path to the control file to be executed. [OPTIONAL]
+    :property hosts: A set of all live Host objects currently in use by the
+                     job. Code running in the context of a local client can
+                     safely assume that this set contains only a single entry.
+    :property machines: A list of the machine names associated with the job.
+    :property user: The user executing the job.
+    :property tag: A tag identifying the job. Often used by the scheduler to
+                   give a name of the form NUMBER-USERNAME/HOSTNAME.
+    :property args: A list of additional miscellaneous command-line arguments
+                    provided when starting the job.
 
-    @property control: A path to the control file to be executed. [OPTIONAL]
-    @property hosts: A set of all live Host objects currently in use by the
-        job. Code running in the context of a local client can safely assume
-        that this set contains only a single entry.
-    @property machines: A list of the machine names associated with the job.
-    @property user: The user executing the job.
-    @property tag: A tag identifying the job. Often used by the scheduler to
-        give a name of the form NUMBER-USERNAME/HOSTNAME.
-    @property args: A list of additional miscellaneous command-line arguments
-        provided when starting the job.
+    :property last_boot_tag: The label of the kernel from the last reboot.
+                             [OPTIONAL,PERSISTENT]
+    :property automatic_test_tag: A string which, if set, will be automatically
+                                  added to the test name when running tests.
 
-    @property last_boot_tag: The label of the kernel from the last reboot.
-        [OPTIONAL,PERSISTENT]
-    @property automatic_test_tag: A string which, if set, will be automatically
-        added to the test name when running tests.
+    :property default_profile_only: A boolean indicating the default value of
+                                    profile_only used by test.execute.
+                                    [PERSISTENT]
+    :property drop_caches: A boolean indicating if caches should be dropped
+                           before each test is executed.
+    :property drop_caches_between_iterations: A boolean indicating if caches
+                                              should be dropped before each
+                                              test iteration is executed.
+    :property run_test_cleanup: A boolean indicating if test.cleanup should be
+                                run by default after a test completes, if the
+                                run_cleanup argument is not specified.
+                                [PERSISTENT]
 
-    @property default_profile_only: A boolean indicating the default value of
-        profile_only used by test.execute. [PERSISTENT]
-    @property drop_caches: A boolean indicating if caches should be dropped
-        before each test is executed.
-    @property drop_caches_between_iterations: A boolean indicating if caches
-        should be dropped before each test iteration is executed.
-    @property run_test_cleanup: A boolean indicating if test.cleanup should be
-        run by default after a test completes, if the run_cleanup argument is
-        not specified. [PERSISTENT]
+    :property num_tests_run: The number of tests run during the job. [OPTIONAL]
+    :property num_tests_failed: The number of tests failed during the job.
+                                [OPTIONAL]
 
-    @property num_tests_run: The number of tests run during the job. [OPTIONAL]
-    @property num_tests_failed: The number of tests failed during the job.
-        [OPTIONAL]
-
-    @property bootloader: An instance of the boottool class. May not be
-        available on job instances where access to the bootloader is not
-        available (e.g. on the server running a server job). [OPTIONAL]
-    @property harness: An instance of the client test harness. Only available
-        in contexts where client test execution happens. [OPTIONAL]
-    @property logging: An instance of the logging manager associated with the
-        job.
-    @property profilers: An instance of the profiler manager associated with
-        the job.
-    @property sysinfo: An instance of the sysinfo object. Only available in
-        contexts where it's possible to collect sysinfo.
-    @property warning_manager: A class for managing which types of WARN
-        messages should be logged and which should be suppressed. [OPTIONAL]
-    @property warning_loggers: A set of readable streams that will be monitored
-        for WARN messages to be logged. [OPTIONAL]
+    :property bootloader: An instance of the boottool class. May not be
+                          available on job instances where access to the
+                          bootloader is not available (e.g. on the server
+                          running a server job). [OPTIONAL]
+    :property harness: An instance of the client test harness. Only available
+                       in contexts where client test execution happens.
+                       [OPTIONAL]
+    :property logging: An instance of the logging manager associated with the
+                       job.
+    :property profilers: An instance of the profiler manager associated with
+                         the job.
+    :property sysinfo: An instance of the sysinfo object. Only available in
+                       contexts where it's possible to collect sysinfo.
+    :property warning_manager: A class for managing which types of WARN
+                               messages should be logged and which should be
+                               suppressed. [OPTIONAL]
+    :property warning_loggers: A set of readable streams that will be monitored
+                               for WARN messages to be logged. [OPTIONAL]
 
     Abstract methods:
         _find_base_directories [CLASSMETHOD]
@@ -1107,24 +1173,25 @@ class base_job(object):
         """
         Reverse the effects of the previous push_execution_context call.
 
-        :raise IndexError: raised when the stack of contexts is empty.
+        :raises: :class:`IndexError` when the stack of contexts is empty.
         """
         if not self._execution_contexts:
             raise IndexError('No old execution context to restore')
         self._resultdir = self._execution_contexts.pop()
 
     def get_state(self, name, default=_job_state.NO_DEFAULT):
-        """Returns the value associated with a particular name.
+        """
+        Returns the value associated with a particular name.
 
         :param name: The name the value was saved with.
         :param default: A default value to return if no state is currently
             associated with var.
 
-        :return: A deep copy of the value associated with name. Note that this
-            explicitly returns a deep copy to avoid problems with mutable
-            values; mutations are not persisted or shared.
-        :raise KeyError: raised when no state is associated with var and a
-            default value is not provided.
+        :returns: A deep copy of the value associated with name. Note that this
+                  explicitly returns a deep copy to avoid problems with mutable
+                  values; mutations are not persisted or shared.
+        :raises: :class:`KeyError` when no state is associated with var and a
+                 default value is not provided.
         """
         try:
             return self._state.get('public', name, default=default)
@@ -1132,7 +1199,8 @@ class base_job(object):
             raise KeyError(name)
 
     def set_state(self, name, value):
-        """Saves the value given with the provided name.
+        """
+        Saves the value given with the provided name.
 
         :param name: The name the value should be saved with.
         :param value: The value to save.
@@ -1140,14 +1208,16 @@ class base_job(object):
         self._state.set('public', name, value)
 
     def _build_tagged_test_name(self, testname, dargs):
-        """Builds the fully tagged testname and subdirectory for job.run_test.
+        """
+        Builds the fully tagged testname and subdirectory for job.run_test.
 
         :param testname: The base name of the test
         :param dargs: The ** arguments passed to run_test. And arguments
-            consumed by this method will be removed from the dictionary.
+                      consumed by this method will be removed from the
+                      dictionary.
 
-        :return: A 3-tuple of the full name of the test, the subdirectory it
-            should be stored in, and the full tag of the subdir.
+        :returns: A 3-tuple of the full name of the test, the subdirectory it
+                  should be stored in, and the full tag of the subdir.
         """
         tag_parts = []
 
@@ -1174,14 +1244,15 @@ class base_job(object):
         return full_testname, subdir, tag
 
     def _make_test_outputdir(self, subdir):
-        """Creates an output directory for a test to run it.
+        """
+        Creates an output directory for a test to run it.
 
         :param subdir: The subdirectory of the test. Generally computed by
-            _build_tagged_test_name.
+                       _build_tagged_test_name.
 
-        :return: A job_directory instance corresponding to the outputdir of
-            the test.
-        :raise TestError: If the output directory is invalid.
+        :returns: A job_directory instance corresponding to the outputdir of
+                  the test.
+        :raises: class:`TestError` If the output directory is invalid.
         """
         # explicitly check that this subdirectory is new
         path = os.path.join(self.resultdir, subdir)
@@ -1200,43 +1271,49 @@ class base_job(object):
             raise error.TestError('%s directory creation failed' % subdir)
 
     def _tap_init(self, enable):
-        """Initialize TAP reporting
+        """
+        Initialize TAP reporting
         """
         return TAPReport(enable, resultdir=self.resultdir)
 
     def record(self, status_code, subdir, operation, status='',
                optional_fields=None):
-        """Record a job-level status event.
+        """
+        Record a job-level status event.
 
         Logs an event noteworthy to the Autotest job as a whole. Messages will
         be written into a global status log file, as well as a subdir-local
         status log file (if subdir is specified).
 
         :param status_code: A string status code describing the type of status
-            entry being recorded. It must pass log.is_valid_status to be
-            considered valid.
+                            entry being recorded. It must pass
+                            log.is_valid_status to be considered valid.
         :param subdir: A specific results subdirectory this also applies to, or
-            None. If not None the subdirectory must exist.
+                       None. If not None the subdirectory must exist.
         :param operation: A string describing the operation that was run.
         :param status: An optional human-readable message describing the status
-            entry, for example an error message or "completed successfully".
-        :param optional_fields: An optional dictionary of additional named fields
-            to be included with the status message. Every time timestamp and
-            localtime entries are generated with the current time and added
-            to this dictionary.
+                       entry, for example an error message or "completed
+                       successfully".
+        :param optional_fields: An optional dictionary of additional named
+                                fields to be included with the status message.
+                                Every time timestamp and localtime entries are
+                                generated with the current time and added to
+                                this dictionary.
         """
         entry = status_log_entry(status_code, subdir, operation, status,
                                  optional_fields)
         self.record_entry(entry)
 
     def record_entry(self, entry, log_in_subdir=True):
-        """Record a job-level status event, using a status_log_entry.
+        """
+        Record a job-level status event, using a status_log_entry.
 
         This is the same as self.record but using an existing status log
         entry object rather than constructing one for you.
 
         :param entry: A status_log_entry object
         :param log_in_subdir: A boolean that indicates (when true) that subdir
-                logs should be written into the subdirectory status log file.
+                              logs should be written into the subdirectory
+                              status log file.
         """
         self._get_status_logger().record_entry(entry, log_in_subdir)

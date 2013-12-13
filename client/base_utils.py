@@ -232,6 +232,9 @@ def get_os_vendor():
     """
     Try to guess what's the os vendor.
     """
+    logging.warn('utils.get_os_vendor() is deprecated, please use '
+                 'autotest.client.shared.distro.detect() instead')
+
     vendor = 'Unknown'
     if os.path.isfile('/etc/SuSE-release'):
         return 'SUSE'
