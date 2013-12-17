@@ -185,6 +185,10 @@ REQUIRES_PROTOBUFS = set((
     'job_serializer_unittest.py',
 ))
 
+REQUIRES_XML_ETREE = set((
+    'autotest_firewalld_add_service_unittest.py',
+))
+
 LONG_RUNTIME = set((
     'base_barrier_unittest.py',
     'logging_manager_unittest.py',
@@ -197,6 +201,7 @@ LONG_TESTS = (REQUIRES_DJANGO |
               REQUIRES_SIMPLEJSON |
               REQUIRES_AUTH |
               REQUIRES_PROTOBUFS |
+              REQUIRES_XML_ETREE |
               LONG_RUNTIME)
 
 
