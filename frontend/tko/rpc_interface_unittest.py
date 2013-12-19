@@ -69,48 +69,6 @@ def fix_iteration_tables():
 
 class TkoTestMixin(object):
 
-    def _patch_sqlite_stuff(self):
-        self.god.stub_with(models.TempManager, '_get_column_names',
-                           self._get_column_names_for_sqlite3)
-        self.god.stub_with(models.TempManager, '_cursor_rowcount',
-                           self._cursor_rowcount_for_sqlite3)
-
-        connection.cursor()  # ensure connection is alive
-        # add some functions to SQLite for MySQL compatibility
-        if hasattr(connection.connection, "create_function"):
-            connection.connection.create_function('if', 3, self._sqlite_if)
-            connection.connection.create_function('find_in_set', 2,
-                                                  self._sqlite_find_in_set)
-
-        fix_iteration_tables()
-
-    def _cursor_rowcount_for_sqlite3(self, cursor):
-        return len(cursor.fetchall())
-
-    def _sqlite_find_in_set(self, needle, haystack):
-        return needle in haystack.split(',')
-
-    def _sqlite_if(self, condition, true_result, false_result):
-        if condition:
-            return true_result
-        return false_result
-
-    # sqlite takes any columns that don't have aliases and names them
-    # "table_name"."column_name".  we map these to just column_name.
-    _SQLITE_AUTO_COLUMN_ALIAS_RE = re.compile(r'".+"\."(.+)"')
-
-    def _get_column_names_for_sqlite3(self, cursor):
-        names = [column_info[0] for column_info in cursor.description]
-
-        # replace all "table_name"."column_name" constructs with just
-        # column_name
-        for i, name in enumerate(names):
-            match = self._SQLITE_AUTO_COLUMN_ALIAS_RE.match(name)
-            if match:
-                names[i] = match.group(1)
-
-        return names
-
     def _create_initial_data(self):
         machine = models.Machine.objects.create(hostname='myhost')
 
@@ -196,7 +154,6 @@ class RpcInterfaceTest(unittest.TestCase, TkoTestMixin):
         self.god = mock.mock_god()
 
         setup_test_environment.set_up()
-        self._patch_sqlite_stuff()
         setup_test_view()
         self._create_initial_data()
 
