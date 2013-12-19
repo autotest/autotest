@@ -9,6 +9,9 @@ implement.
 """
 
 
+import os
+
+
 class BaseDatabaseManager(object):
 
     '''
@@ -93,3 +96,29 @@ class BaseDatabaseManager(object):
         Performs all the steps neede to completely setup a database instance
         '''
         raise NotImplementedError
+
+
+    def create_views(self):
+        '''
+        Create views that are not created by default
+
+        South does not run the initial SQL file. This could be added as an
+        extension to Django's management commands but let's KISS
+
+        :returns: True if all view commands were executed successfully, False
+                  otherwise
+        '''
+        this_path = os.path.dirname(os.path.abspath(__file__))
+        top_path = os.path.dirname(os.path.dirname(this_path))
+
+        sql_files = ['tko-test-view.sql', 'tko-test-view-2.sql']
+        for sql in sql_files:
+            full_path = os.path.join(top_path, 'frontend', 'tko', 'sql', sql)
+            if not os.path.exists(full_path):
+                return False
+
+            query = open(full_path).read()
+            if not (self.run_sql(query)):
+                return False
+
+        return True
