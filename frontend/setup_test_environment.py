@@ -5,16 +5,6 @@ try:
 except ImportError:
     import common
 
-# we need to set DATABASE_ENGINE now, at import time, before the Django database
-# system gets initialized.
-# django.conf.settings.LazySettings is buggy and requires us to get something
-# from it before we set stuff on it.
-getattr(settings, 'DATABASES')
-settings.DATABASES['default']['ENGINE'] = (
-    'autotest.frontend.db.backends.afe_sqlite')
-settings.DATABASES['default']['NAME'] = ':memory:'
-
-
 #
 # Enabling the DEBUG setting is the most straightforward way to prevent Django
 # from enforcing conditions that should be enforced during production, but not
@@ -85,13 +75,14 @@ def setup_database_via_manager():
     manager = database_manager.get_manager_from_config(rdbms_type=rdbms_type)
     manager.create_instance()
     manager.grant_privileges()
+    run_syncdb()
+    manager.create_views()
 
 
 def set_up():
     if COMPLETELY_DESTROY_THE_DATABASE:
         setup_database_via_manager()
 
-    run_syncdb()
     readonly_connection.ReadOnlyConnection.set_globally_disabled(True)
 
 
