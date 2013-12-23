@@ -682,7 +682,7 @@ class AptBackend(DpkgBackend):
         """
         repo_file = open(self.repo_file_path, 'r')
         new_file_contents = []
-        for line in repo_file.readlines:
+        for line in repo_file:
             if not line == repo:
                 new_file_contents.append(line)
         repo_file.close()
