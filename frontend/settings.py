@@ -26,7 +26,7 @@ def _get_config(config_key, default=None):
     return settings.get_value(_section, config_key, default=default)
 
 AUTOTEST_DEFAULT = {
-    'ENGINE': 'autotest.frontend.db.backends.afe',
+    'ENGINE': 'django.db.backends.%s' % _get_config("db_type"),
     'PORT': '',
     'HOST': _get_config("host"),
     'NAME': _get_config("database"),
@@ -40,15 +40,6 @@ if AUTOTEST_DEFAULT['READONLY_USER'] != AUTOTEST_DEFAULT['USER']:
                                                         default='')
 else:
     AUTOTEST_DEFAULT['READONLY_PASSWORD'] = AUTOTEST_DEFAULT['PASSWORD']
-
-SOUTH_BACKENDS = {
-    'autotest.frontend.db.backends.afe': 'south.db.mysql',
-    'autotest.frontend.db.backends.afe_sqlite': 'south.db.sqlite3'
-}
-
-SOUTH_DATABASE_ADAPTERS = {
-    'default': SOUTH_BACKENDS[AUTOTEST_DEFAULT['ENGINE']]
-}
 
 DATABASES = {'default': AUTOTEST_DEFAULT}
 

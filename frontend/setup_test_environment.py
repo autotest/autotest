@@ -20,10 +20,6 @@ settings.DATABASES['default']['NAME'] = DATABASE_TEST_NAME
 settings.DEBUG = True
 
 
-# We have to update the south backend since the engine also gets changed here
-south_backend = settings.SOUTH_BACKENDS[settings.AUTOTEST_DEFAULT['ENGINE']]
-settings.SOUTH_DATABASE_ADAPTERS['default'] = south_backend
-
 from django.db import connection
 from autotest.frontend.afe import readonly_connection
 from autotest.installation_support import database_manager
