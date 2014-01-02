@@ -120,7 +120,9 @@ test_path = os.path.dirname(os.path.realpath(__file__))
 
 # Mock out argparse
 class MockArgParse(object):
+
     class ArgumentParser(object):
+
         def add_argument(self, *args, **kwargs):
             pass
 sys.modules['argparse'] = MockArgParse
