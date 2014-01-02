@@ -112,8 +112,9 @@ def load_module_from_file(module_file_path):
 
 MODULE_FILE = "autotest-firewalld-add-service"
 
-ETC_PATH = "/etc/firewalld/zones/public.xml"
-USR_LIB_PATH = "/usr/lib/firewalld/zones/public.xml"
+ETC_PATH = os.path.join(os.sep, "etc", "firewalld", "zones", "public.xml")
+USR_LIB_PATH = os.path.join(
+    os.sep, "usr", "lib", "firewalld", "zones", "public.xml")
 
 test_path = os.path.dirname(os.path.realpath(__file__))
 

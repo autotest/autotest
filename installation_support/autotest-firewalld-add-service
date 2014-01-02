@@ -16,8 +16,8 @@ from subprocess import Popen, PIPE
 import xml.etree.ElementTree
 
 
-DEFAULT_ZONE_DEFAULT_BASE_PATH = '/usr/lib/firewalld/zones'
-DEFAULT_ZONE_SYSTEM_BASE_PATH = '/etc/firewalld/zones'
+DEFAULT_ZONE_DEFAULT_BASE_PATH = os.path.join(os.sep, "usr", "lib", "firewalld", "zones")
+DEFAULT_ZONE_SYSTEM_BASE_PATH =  os.path.join(os.sep, "etc", "firewalld", "zones")
 
 
 class ArgumentParser(argparse.ArgumentParser):
