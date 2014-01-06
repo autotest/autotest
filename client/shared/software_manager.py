@@ -774,7 +774,7 @@ def install_distro_packages(distro_pkg_map, interactive=False):
     software manager interface, thus the native packaging system if the
     currenlty running distro.
 
-    :type disto_pkg_map: dict
+    :type distro_pkg_map: dict
     :param distro_pkg_map: mapping of distro name, as returned by
         utils.get_os_vendor(), to a list of package names
     :return: True if any packages were actually installed, False otherwise
