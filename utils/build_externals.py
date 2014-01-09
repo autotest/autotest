@@ -83,16 +83,17 @@ def main():
                                                               install_dir)
     install_errors = build_and_install_packages(fetched_packages, install_dir)
 
-    # Byte compile the code after it has been installed in its final
-    # location as .pyc files contain the path passed to compile_dir().
-    # When printing exception tracebacks, python uses that path first to look
-    # for the source code before checking the directory of the .pyc file.
-    # Don't leave references to our temporary build dir in the files.
-    logging.info('compiling .py files in %s to .pyc', install_dir)
-    compileall.compile_dir(install_dir, quiet=True)
+    if os.path.isdir(install_dir):
+        # Byte compile the code after it has been installed in its final
+        # location as .pyc files contain the path passed to compile_dir().
+        # When printing exception tracebacks, python uses that path first to look
+        # for the source code before checking the directory of the .pyc file.
+        # Don't leave references to our temporary build dir in the files.
+        logging.info('compiling .py files in %s to .pyc', install_dir)
+        compileall.compile_dir(install_dir, quiet=True)
 
-    # Some things install with whacky permissions, fix that.
-    external_packages.system("chmod -R a+rX '%s'" % install_dir)
+        # Some things install with whacky permissions, fix that.
+        utils.run("chmod -R a+rX '%s'" % install_dir, verbose=True)
 
     errors = fetch_errors + install_errors
     for error_msg in errors:
