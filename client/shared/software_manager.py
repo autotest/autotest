@@ -823,6 +823,9 @@ def install_distro_packages(distro_pkg_map, interactive=False):
             text = ' '.join(needed_pkgs)
             logging.info('Installing packages "%s"', text)
             result = software_manager.install(text)
+        else:
+            # no packages were needed, consider this a success
+            result = True
     else:
         logging.error("No packages found for %s %s %s %s",
                       detected_distro.name, detected_distro.arch,
