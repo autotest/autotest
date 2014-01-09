@@ -114,7 +114,15 @@ def fetch_necessary_packages(dest_dir, install_dir):
                need to be installed.
              * A list of error messages for any failed fetches.
     """
+    # This is an ugly hack. OK, this wans't intended to be used as a library
+    # but still this should be put at the script/module entry point
     names_to_check = sys.argv[1:]
+
+    # To "fix" the hack above, another hack: strip command line options that
+    # could have been passed to the script and keep only possible package names
+    # as originally intended
+    names_to_check = [n for n in names_to_check if not n.startswith('-')]
+
     errors = []
     fetched_packages = []
     for package_class in external_packages.ExternalPackage.subclasses:
