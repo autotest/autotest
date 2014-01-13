@@ -58,61 +58,6 @@ class _GenericBackend(object):
         return self._cursor.fetchall()
 
 
-class _MySqlBackend(_GenericBackend):
-
-    def __init__(self):
-        import MySQLdb
-        super(_MySqlBackend, self).__init__(MySQLdb)
-
-    @staticmethod
-    def convert_boolean(boolean, conversion_dict):
-        'Convert booleans to integer strings'
-        return str(int(boolean))
-
-    def connect(self, host=None, username=None, password=None, db_name=None):
-        import MySQLdb.converters
-        convert_dict = MySQLdb.converters.conversions
-        convert_dict.setdefault(bool, self.convert_boolean)
-
-        self._connection = self._database_module.connect(
-            host=host, user=username, passwd=password, db=db_name,
-            conv=convert_dict)
-        self._connection.autocommit(True)
-        self._cursor = self._connection.cursor()
-
-
-class _SqliteBackend(_GenericBackend):
-
-    def __init__(self):
-        try:
-            from pysqlite2 import dbapi2
-        except ImportError:
-            from sqlite3 import dbapi2
-
-        super(_SqliteBackend, self).__init__(dbapi2)
-        self._last_insert_id_re = re.compile(r'\sLAST_INSERT_ID\(\)',
-                                             re.IGNORECASE)
-
-    def connect(self, host=None, username=None, password=None, db_name=None):
-        self._connection = self._database_module.connect(db_name)
-        self._connection.isolation_level = None  # enable autocommit
-        self._cursor = self._connection.cursor()
-
-    def execute(self, query, parameters=None):
-        # pysqlite2 uses paramstyle=qmark
-        # TODO: make this more sophisticated if necessary
-        query = query.replace('%s', '?')
-        # pysqlite2 can't handle parameters=None (it throws a nonsense
-        # exception)
-        if parameters is None:
-            parameters = ()
-        # sqlite3 doesn't support MySQL's LAST_INSERT_ID().  Instead it has
-        # something similar called LAST_INSERT_ROWID() that will do enough of
-        # what we want (for our non-concurrent unittest use case).
-        query = self._last_insert_id_re.sub(' LAST_INSERT_ROWID()', query)
-        return super(_SqliteBackend, self).execute(query, parameters)
-
-
 class _DjangoBackend(_GenericBackend):
 
     def __init__(self):
@@ -135,8 +80,6 @@ class _DjangoBackend(_GenericBackend):
 
 
 _BACKEND_MAP = {
-    'mysql': _MySqlBackend,
-    'sqlite': _SqliteBackend,
     'django': _DjangoBackend,
 }
 
@@ -259,7 +202,7 @@ class DatabaseConnection(object):
             if not self._is_reconnect_enabled(try_reconnecting):
                 raise
             traceback.print_exc()
-            print ("MYSQL connection died; reconnecting")
+            print ("Connection died; reconnecting")
             self.disconnect()
             self._connect_backend(try_reconnecting)
             results = self._backend.execute(query, parameters)
