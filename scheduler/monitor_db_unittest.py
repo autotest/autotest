@@ -1,14 +1,13 @@
 #!/usr/bin/python
 
 import gc
-import logging
 import time
 try:
     import autotest.common as common
 except ImportError:
     import common
 from autotest.frontend import setup_django_environment
-from autotest.frontend import test_utils
+
 from autotest.client.shared import mail
 from autotest.client.shared.test_utils import mock
 from autotest.client.shared.test_utils import unittest
@@ -18,6 +17,7 @@ from autotest.scheduler import monitor_db, drone_manager
 from autotest.scheduler import scheduler_config, gc_stats, host_scheduler
 from autotest.scheduler import monitor_db_functional_unittest
 from autotest.scheduler import scheduler_models
+from autotest.scheduler import test_utils
 
 _DEBUG = False
 
@@ -81,50 +81,7 @@ def _set_host_and_qe_ids(agent_or_task, id_list=None):
     agent_or_task.host_ids = agent_or_task.queue_entry_ids = id_list
 
 
-class BaseSchedulerTest(unittest.TestCase,
-                        test_utils.FrontendTestMixin):
-    _config_section = 'AUTOTEST_WEB'
-
-    def _do_query(self, sql):
-        self._database.execute(sql)
-
-    def _set_monitor_stubs(self):
-        # Clear the instance cache as this is a brand new database.
-        scheduler_models.DBObject._clear_instance_cache()
-
-        self._database = (
-            database_connection.TranslatingDatabase.get_test_database(
-                translators=monitor_db_functional_unittest._DB_TRANSLATORS))
-        self._database.connect(db_type='django')
-        self._database.debug = _DEBUG
-
-        self.god.stub_with(monitor_db, '_db', self._database)
-        self.god.stub_with(scheduler_models, '_db', self._database)
-        self.god.stub_with(drone_manager.instance(), '_results_dir',
-                           '/test/path')
-        self.god.stub_with(drone_manager.instance(), '_temporary_directory',
-                           '/test/path/tmp')
-
-        monitor_db.initialize_globals()
-        scheduler_models.initialize_globals()
-
-    def setUp(self):
-        self._frontend_common_setup()
-        self._set_monitor_stubs()
-        self._dispatcher = monitor_db.Dispatcher()
-
-    def tearDown(self):
-        self._database.disconnect()
-        self._frontend_common_teardown()
-
-    def _update_hqe(self, set, where=''):
-        query = 'UPDATE afe_host_queue_entries SET ' + set
-        if where:
-            query += ' WHERE ' + where
-        self._do_query(query)
-
-
-class DispatcherSchedulingTest(BaseSchedulerTest):
+class DispatcherSchedulingTest(test_utils.BaseSchedulerTest):
     _jobs_scheduled = []
 
     def tearDown(self):
@@ -659,7 +616,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._dispatcher._garbage_collection()
 
 
-class DispatcherThrottlingTest(BaseSchedulerTest):
+class DispatcherThrottlingTest(test_utils.BaseSchedulerTest):
 
     """
     Test that the dispatcher throttles:
@@ -963,7 +920,7 @@ class AgentTest(unittest.TestCase):
         self._test_agent_abort_before_started_helper(True)
 
 
-class JobSchedulingTest(BaseSchedulerTest):
+class JobSchedulingTest(test_utils.BaseSchedulerTest):
 
     def _test_run_helper(self, expect_agent=True, expect_starting=False,
                          expect_pending=False):
@@ -1286,8 +1243,7 @@ class TopLevelFunctionsTest(unittest.TestCase):
         self.assertEqual(ecl_profiles, cl_profiles)
 
 
-class AgentTaskTest(unittest.TestCase,
-                    test_utils.FrontendTestMixin):
+class AgentTaskTest(test_utils.BaseSchedulerTest):
 
     def setUp(self):
         self._frontend_common_setup()
