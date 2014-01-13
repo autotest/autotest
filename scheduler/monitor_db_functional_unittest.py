@@ -2,20 +2,20 @@
 
 import logging
 import os
-import unittest
 try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.shared import enum, settings, host_protections, mail
-from autotest.database_legacy import database_connection
+
 from autotest.frontend import setup_django_environment
-from autotest.frontend import test_utils
+from autotest.client.shared import enum, settings, host_protections, mail
+from autotest.client.shared.test_utils import unittest
+from autotest.database_legacy import database_connection
 from autotest.frontend.afe import models
 from autotest.frontend.afe import model_attributes
 from autotest.scheduler import drone_manager, host_scheduler
 from autotest.scheduler import monitor_db, scheduler_models
-
+from autotest.scheduler import test_utils
 
 HqeStatus = models.HostQueueEntry.Status
 HostStatus = models.Host.Status
@@ -268,8 +268,7 @@ class MockEmailManager(NullMethodObject):
         logging.warn(message)
 
 
-class SchedulerFunctionalTest(unittest.TestCase,
-                              test_utils.FrontendTestMixin):
+class SchedulerFunctionalTest(test_utils.BaseSchedulerTest):
     # some number of ticks after which the scheduler is presumed to have
     # stabilized, given no external changes
     _A_LOT_OF_TICKS = 10
