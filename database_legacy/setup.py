@@ -19,16 +19,8 @@ def get_package_dir():
     return {'autotest.database_legacy': db_dir}
 
 
-def get_package_data():
-    return {'autotest.database_legacy': ['*.sql']}
-
-
 def get_packages():
     return ['autotest.database_legacy']
-
-
-def get_scripts():
-    return [db_dir + '/autotest-upgrade-db']
 
 
 def run():
@@ -39,9 +31,7 @@ def run():
           version=version.get_version(),
           url='http://autotest.github.com',
           package_dir=get_package_dir(),
-          package_data=get_package_data(),
-          packages=get_packages(),
-          scripts=get_scripts())
+          packages=get_packages())
 
 
 if __name__ == '__main__':
