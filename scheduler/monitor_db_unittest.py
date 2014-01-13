@@ -444,7 +444,7 @@ class DispatcherSchedulingTest(test_utils.BaseSchedulerTest):
 
     def test_atomic_group_scheduling_metahost_works(self):
         # Test that atomic group scheduling also obeys metahosts.
-        self._create_job(metahosts=[0], atomic_group=1)
+        self._create_job(metahosts=[1], atomic_group=1)
         self._run_scheduler()
         # There are no atomic group hosts that also have that metahost.
         self._check_for_extra_schedulings()

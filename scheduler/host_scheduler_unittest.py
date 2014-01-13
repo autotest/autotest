@@ -1,8 +1,6 @@
 #!/usr/bin/python
 
-import gc
 import logging
-import time
 try:
     import autotest.common as common
 except ImportError:
@@ -18,7 +16,11 @@ from autotest.scheduler import test_utils
 class HostSchedulerTest(test_utils.BaseSchedulerTest):
 
     def test_check_atomic_group_labels(self):
-        normal_job = self._create_job(metahosts=[0])
+        # Either point to a valid meta host specification here (label) or
+        # set it to None so that the job will not be assigned based on labels.
+        # Previous approach (passing 0) assumed django would map it to NULL
+        # at the database type/dialect handling layer.
+        normal_job = self._create_job(metahosts=[1])
         atomic_job = self._create_job(atomic_group=1)
         # Indirectly initialize the internal state of the host scheduler.
         self._dispatcher._refresh_pending_queue_entries()
