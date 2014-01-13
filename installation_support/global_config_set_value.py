@@ -45,7 +45,7 @@ def set_value(path, section, key, value):
 class OptionParser(optparse.OptionParser):
     def __init__(self):
         optparse.OptionParser.__init__(self, usage='Usage: %prog [options]')
-    
+
         self.add_option('-p', '--path',
                         help=('Path to the configuration file'))
 
