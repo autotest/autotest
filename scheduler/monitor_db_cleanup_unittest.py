@@ -4,7 +4,6 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-import logging
 import unittest
 from autotest.frontend import setup_django_environment
 from autotest.database_legacy import database_connection
@@ -17,7 +16,6 @@ from autotest.client.shared import host_protections
 class UserCleanupTest(unittest.TestCase, test_utils.FrontendTestMixin):
 
     def setUp(self):
-        logging.basicConfig(level=logging.DEBUG)
         self._frontend_common_setup()
         self._database = (
             database_connection.DatabaseConnection('AUTOTEST_WEB'))
