@@ -66,8 +66,10 @@ class MigrateManagerTest(unittest.TestCase):
 
     def setUp(self):
         self._database = (
-            database_connection.DatabaseConnection.get_test_database())
-        self._database.connect()
+            database_connection.DatabaseConnection('AUTOTEST_WEB'))
+        self._database.connect(db_type='django',
+                               db_name='autotest_web_unittest_run')
+
         self.manager = TestableMigrationManager(self._database)
         DummyMigration.clear_migrations_done()
 

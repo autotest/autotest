@@ -14,8 +14,6 @@ from autotest.frontend.afe import models, model_attributes
 from autotest.scheduler import monitor_db_functional_unittest
 from autotest.scheduler import scheduler_models
 
-_DEBUG = False
-
 
 class BaseSchedulerModelsTest(unittest.TestCase,
                               test_utils.FrontendTestMixin):
@@ -29,11 +27,9 @@ class BaseSchedulerModelsTest(unittest.TestCase,
         scheduler_models.DBObject._clear_instance_cache()
 
         self._database = (
-            database_connection.TranslatingDatabase.get_test_database(
-                translators=monitor_db_functional_unittest._DB_TRANSLATORS))
-        self._database.connect(db_type='django')
-        self._database.debug = _DEBUG
-
+            database_connection.DatabaseConnection('AUTOTEST_WEB'))
+        self._database.connect(db_type='django',
+                               db_name='autotest_web_unittest_run')
         self.god.stub_with(scheduler_models, '_db', self._database)
 
     def setUp(self):

@@ -20,8 +20,9 @@ class UserCleanupTest(unittest.TestCase, test_utils.FrontendTestMixin):
         logging.basicConfig(level=logging.DEBUG)
         self._frontend_common_setup()
         self._database = (
-            database_connection.DatabaseConnection.get_test_database())
-        self._database.connect(db_type='django')
+            database_connection.DatabaseConnection('AUTOTEST_WEB'))
+        self._database.connect(db_type='django',
+                               db_name='autotest_web_unittest_run')
         self.cleanup = monitor_db_cleanup.UserCleanup(self._database, 1)
 
     def tearDown(self):

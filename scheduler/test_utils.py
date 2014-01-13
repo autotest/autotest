@@ -3,11 +3,9 @@ from autotest.database_legacy import database_connection
 from autotest.frontend import test_utils
 from autotest.scheduler import monitor_db, scheduler_models
 from autotest.scheduler import drone_manager
-from autotest.scheduler import monitor_db_functional_unittest
 
 class BaseSchedulerTest(unittest.TestCase,
                         test_utils.FrontendTestMixin):
-    _config_section = 'AUTOTEST_WEB'
 
     def _do_query(self, sql):
         self._database.execute(sql)
@@ -17,9 +15,9 @@ class BaseSchedulerTest(unittest.TestCase,
         scheduler_models.DBObject._clear_instance_cache()
 
         self._database = (
-            database_connection.TranslatingDatabase.get_test_database(
-                translators=monitor_db_functional_unittest._DB_TRANSLATORS))
-        self._database.connect(db_type='django')
+            database_connection.DatabaseConnection('AUTOTEST_WEB'))
+        self._database.connect(db_type='django',
+                               db_name='autotest_web_unittest_run')
 
         self.god.stub_with(monitor_db, '_db', self._database)
         self.god.stub_with(scheduler_models, '_db', self._database)
