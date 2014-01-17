@@ -670,6 +670,9 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
     name_field = 'name'
     objects = model_logic.ExtendedManager()
 
+    def get_control_file(self):
+        return open(os.path.join(common.autotest_dir, self.path)).read()
+
     def admin_description(self):
         escaped_description = saxutils.escape(self.description)
         return '<span style="white-space:pre">%s</span>' % escaped_description
