@@ -31,6 +31,66 @@ except ImportError:
 from autotest.client.shared.mock import patch
 
 
+def preserve_value(namespace, name):
+    """
+    Function decorator to wrap a function that sets a namespace item.
+    In particular if we modify a global namespace and want to restore the value after
+    we have finished, use this function.
+
+    This is decorator version of the context manager from http://stackoverflow.com/a/6811921
+    We use a decorator since Python 2.4 doesn't have context managers.
+
+    :param namespace: namespace to modify, e.g. sys
+    :type namespace: object
+    :param name: attribute in the namespace, e.g. dont_write_bytecode
+    :type name: str
+    :return: New function decorator that wraps the attribute modification
+    :rtype: function
+    """
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            try:
+                saved_value = getattr(namespace, name)
+                resetter = lambda: setattr(namespace, name, saved_value)
+            except AttributeError:
+                # the attribute didn't exist before, so delete it when we are
+                # done
+                resetter = lambda: delattr(namespace, name)
+            try:
+                return func(*args, **kwargs)
+            finally:
+                resetter()
+
+        return wrapper
+
+    return decorator
+
+
+# WARNING: dont_write_bytecode doesn't exist in Python 2.4 so it won't do
+# anything.
+@preserve_value(sys, 'dont_write_bytecode')
+def _load_module_no_bytecode(filename, module_file, module_file_path, py_source_description):
+    """
+    Helper function to load a module while setting sys.dont_write_bytecode to prevent bytecode files from being
+    generator.
+
+    For example, if the module name is 'foo', then python will write 'fooc' as the bytecode.  This is not desirable.
+
+    :type filename: str
+    :type module_file: open
+    :type module_file_path: str
+    :type py_source_description: tuple
+    :return: imported module
+    :rtype: module
+    """
+    sys.dont_write_bytecode = 1
+    new_module = imp.load_module(
+        os.path.splitext(filename)[0].replace("-", "_"),
+        module_file, module_file_path, py_source_description)
+    return new_module
+
+
 def load_module_from_file(module_file_path):
     """
     Load module from any filename, modified from by http://stackoverflow.com/a/6811925
@@ -40,29 +100,30 @@ def load_module_from_file(module_file_path):
     :rtype: module
     """
     filename = os.path.basename(module_file_path)
-    sys.dont_write_bytecode = 1
     py_source_open_mode = "U"
     py_source_description = (".py", py_source_open_mode, imp.PY_SOURCE)
     module_file = open(module_file_path, py_source_open_mode)
     try:
-        new_module = imp.load_module(
-            os.path.splitext(filename)[0].replace("-", "_"),
-            module_file, module_file_path, py_source_description)
+        new_module = _load_module_no_bytecode(
+            filename, module_file, module_file_path, py_source_description)
     finally:
         module_file.close()
     return new_module
 
 MODULE_FILE = "autotest-firewalld-add-service"
 
-ETC_PATH = "/etc/firewalld/zones/public.xml"
-USR_LIB_PATH = "/usr/lib/firewalld/zones/public.xml"
+ETC_PATH = os.path.join(os.sep, "etc", "firewalld", "zones", "public.xml")
+USR_LIB_PATH = os.path.join(
+    os.sep, "usr", "lib", "firewalld", "zones", "public.xml")
 
 test_path = os.path.dirname(os.path.realpath(__file__))
 
 
 # Mock out argparse
 class MockArgParse(object):
+
     class ArgumentParser(object):
+
         def add_argument(self, *args, **kwargs):
             pass
 sys.modules['argparse'] = MockArgParse
