@@ -47,10 +47,14 @@ _COMPLETE_COUNT_NAME = 'complete_count'
 _INCOMPLETE_COUNT_NAME = 'incomplete_count'
 # Using COUNT instead of SUM here ensures the resulting row has the right type
 # (i.e. numeric, not string).  I don't know why.
-_PASS_COUNT_SQL = 'COUNT(IF(status="GOOD", 1, NULL))'
-_COMPLETE_COUNT_SQL = ('COUNT(IF(status NOT IN ("TEST_NA", "RUNNING", '
-                       '"NOSTATUS"), 1, NULL))')
-_INCOMPLETE_COUNT_SQL = 'COUNT(IF(status="RUNNING", 1, NULL))'
+_PASS_COUNT_SQL = 'COUNT(CASE ("status") WHEN "GOOD" THEN 1 ELSE NULL END)'
+_COMPLETE_COUNT_SQL = ('COUNT(CASE ("status") '
+                       'WHEN "TEST_NA" THEN NULL '
+                       'WHEN "RUNNING" THEN NULL '
+                       'WHEN "NOSTATUS" THEN NULL '
+                       'ELSE 1 END)')
+_INCOMPLETE_COUNT_SQL = ('COUNT(CASE ("status") WHEN "RUNNING" THEN 1 '
+                         'ELSE NULL END)')
 STATUS_FIELDS = {_PASS_COUNT_NAME: _PASS_COUNT_SQL,
                  _COMPLETE_COUNT_NAME: _COMPLETE_COUNT_SQL,
                  _INCOMPLETE_COUNT_NAME: _INCOMPLETE_COUNT_SQL}

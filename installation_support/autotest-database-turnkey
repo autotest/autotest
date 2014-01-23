@@ -168,28 +168,17 @@ class App(object):
                 return -1
 
             # Finally run Django's syncdb, yes, twice
-            # The current method is suboptimal, we may need to fetch the syncdb command module
+            # The current method is suboptimal, we may need to fetch the syncdb
+            # command module
             argv = ['manage.py', 'syncdb', '-v0', '--noinput']
             django.core.management.execute_from_command_line(argv)
             argv = ['manage.py', 'migrate', '-v0', '--noinput']
             django.core.management.execute_from_command_line(argv)
 
-            # South does not run the initial SQL file. This could be added as an
-            # extension to Django's management commands, but for now, let's KISS
-            this_path = os.path.dirname(os.path.abspath(__file__))
-            base_path = os.path.dirname(this_path)
-            tko_view_sql_path = os.path.join(base_path, 'frontend', 'tko',
-                                             'sql', 'tko-test-view.sql')
-            tko_view_2_sql_path = os.path.join(base_path, 'frontend', 'tko',
-                                               'sql', 'tko-test-view-2.sql')
-            if os.path.exists(tko_view_sql_path):
-                sql = open(tko_view_sql_path).read()
-                if not (mngr.run_sql(sql)):
-                    return -1
-            if os.path.exists(tko_view_2_sql_path):
-                sql = open(tko_view_2_sql_path).read()
-                if not (mngr.run_sql(sql)):
-                    return -1
+            if not mngr.create_views():
+                logging.error("Failure while creating the database views")
+                return -1
+
             return 0
 
         else:

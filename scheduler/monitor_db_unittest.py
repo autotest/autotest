@@ -1,14 +1,13 @@
 #!/usr/bin/python
 
 import gc
-import logging
 import time
 try:
     import autotest.common as common
 except ImportError:
     import common
 from autotest.frontend import setup_django_environment
-from autotest.frontend import test_utils
+
 from autotest.client.shared import mail
 from autotest.client.shared.test_utils import mock
 from autotest.client.shared.test_utils import unittest
@@ -18,6 +17,7 @@ from autotest.scheduler import monitor_db, drone_manager
 from autotest.scheduler import scheduler_config, gc_stats, host_scheduler
 from autotest.scheduler import monitor_db_functional_unittest
 from autotest.scheduler import scheduler_models
+from autotest.scheduler import test_utils
 
 _DEBUG = False
 
@@ -81,50 +81,7 @@ def _set_host_and_qe_ids(agent_or_task, id_list=None):
     agent_or_task.host_ids = agent_or_task.queue_entry_ids = id_list
 
 
-class BaseSchedulerTest(unittest.TestCase,
-                        test_utils.FrontendTestMixin):
-    _config_section = 'AUTOTEST_WEB'
-
-    def _do_query(self, sql):
-        self._database.execute(sql)
-
-    def _set_monitor_stubs(self):
-        # Clear the instance cache as this is a brand new database.
-        scheduler_models.DBObject._clear_instance_cache()
-
-        self._database = (
-            database_connection.TranslatingDatabase.get_test_database(
-                translators=monitor_db_functional_unittest._DB_TRANSLATORS))
-        self._database.connect(db_type='django')
-        self._database.debug = _DEBUG
-
-        self.god.stub_with(monitor_db, '_db', self._database)
-        self.god.stub_with(scheduler_models, '_db', self._database)
-        self.god.stub_with(drone_manager.instance(), '_results_dir',
-                           '/test/path')
-        self.god.stub_with(drone_manager.instance(), '_temporary_directory',
-                           '/test/path/tmp')
-
-        monitor_db.initialize_globals()
-        scheduler_models.initialize_globals()
-
-    def setUp(self):
-        self._frontend_common_setup()
-        self._set_monitor_stubs()
-        self._dispatcher = monitor_db.Dispatcher()
-
-    def tearDown(self):
-        self._database.disconnect()
-        self._frontend_common_teardown()
-
-    def _update_hqe(self, set, where=''):
-        query = 'UPDATE afe_host_queue_entries SET ' + set
-        if where:
-            query += ' WHERE ' + where
-        self._do_query(query)
-
-
-class DispatcherSchedulingTest(BaseSchedulerTest):
+class DispatcherSchedulingTest(test_utils.BaseSchedulerTest):
     _jobs_scheduled = []
 
     def tearDown(self):
@@ -356,71 +313,6 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._run_scheduler()
         self._check_for_extra_schedulings()
 
-    # TODO(gps): These should probably live in their own TestCase class
-    # specific to testing HostScheduler methods directly.  It was convenient
-    # to put it here for now to share existing test environment setup code.
-    def test_HostScheduler_check_atomic_group_labels(self):
-        normal_job = self._create_job(metahosts=[0])
-        atomic_job = self._create_job(atomic_group=1)
-        # Indirectly initialize the internal state of the host scheduler.
-        self._dispatcher._refresh_pending_queue_entries()
-
-        atomic_hqe = scheduler_models.HostQueueEntry.fetch(where='job_id=%d' %
-                                                           atomic_job.id)[0]
-        normal_hqe = scheduler_models.HostQueueEntry.fetch(where='job_id=%d' %
-                                                           normal_job.id)[0]
-
-        host_scheduler = self._dispatcher._host_scheduler
-        self.assertTrue(host_scheduler._check_atomic_group_labels(
-            [self.label4.id], atomic_hqe))
-        self.assertFalse(host_scheduler._check_atomic_group_labels(
-            [self.label4.id], normal_hqe))
-        self.assertFalse(host_scheduler._check_atomic_group_labels(
-            [self.label5.id, self.label6.id, self.label7.id], normal_hqe))
-        self.assertTrue(host_scheduler._check_atomic_group_labels(
-            [self.label4.id, self.label6.id], atomic_hqe))
-        self.assertTrue(host_scheduler._check_atomic_group_labels(
-                        [self.label4.id, self.label5.id],
-                        atomic_hqe))
-
-    def test_HostScheduler_get_host_atomic_group_id(self):
-        job = self._create_job(metahosts=[self.label6.id])
-        queue_entry = scheduler_models.HostQueueEntry.fetch(
-            where='job_id=%d' % job.id)[0]
-        # Indirectly initialize the internal state of the host scheduler.
-        self._dispatcher._refresh_pending_queue_entries()
-
-        # Test the host scheduler
-        host_scheduler = self._dispatcher._host_scheduler
-
-        # Two labels each in a different atomic group.  This should log an
-        # error and continue.
-        orig_logging_error = logging.error
-
-        def mock_logging_error(message, *args):
-            mock_logging_error._num_calls += 1
-            # Test the logging call itself, we just wrapped it to count it.
-            orig_logging_error(message, *args)
-        mock_logging_error._num_calls = 0
-        self.god.stub_with(logging, 'error', mock_logging_error)
-        self.assertNotEquals(None, host_scheduler._get_host_atomic_group_id(
-            [self.label4.id, self.label8.id], queue_entry))
-        self.assertTrue(mock_logging_error._num_calls > 0)
-        self.god.unstub(logging, 'error')
-
-        # Two labels both in the same atomic group, this should not raise an
-        # error, it will merely cause the job to schedule on the intersection.
-        self.assertEquals(1, host_scheduler._get_host_atomic_group_id(
-            [self.label4.id, self.label5.id]))
-
-        self.assertEquals(None, host_scheduler._get_host_atomic_group_id([]))
-        self.assertEquals(None, host_scheduler._get_host_atomic_group_id(
-            [self.label3.id, self.label7.id, self.label6.id]))
-        self.assertEquals(1, host_scheduler._get_host_atomic_group_id(
-            [self.label4.id, self.label7.id, self.label6.id]))
-        self.assertEquals(1, host_scheduler._get_host_atomic_group_id(
-            [self.label7.id, self.label5.id]))
-
     def test_atomic_group_hosts_blocked_from_non_atomic_jobs(self):
         # Create a job scheduled to run on label6.
         self._create_job(metahosts=[self.label6.id])
@@ -552,7 +444,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
 
     def test_atomic_group_scheduling_metahost_works(self):
         # Test that atomic group scheduling also obeys metahosts.
-        self._create_job(metahosts=[0], atomic_group=1)
+        self._create_job(metahosts=[1], atomic_group=1)
         self._run_scheduler()
         # There are no atomic group hosts that also have that metahost.
         self._check_for_extra_schedulings()
@@ -659,7 +551,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._dispatcher._garbage_collection()
 
 
-class DispatcherThrottlingTest(BaseSchedulerTest):
+class DispatcherThrottlingTest(test_utils.BaseSchedulerTest):
 
     """
     Test that the dispatcher throttles:
@@ -963,7 +855,7 @@ class AgentTest(unittest.TestCase):
         self._test_agent_abort_before_started_helper(True)
 
 
-class JobSchedulingTest(BaseSchedulerTest):
+class JobSchedulingTest(test_utils.BaseSchedulerTest):
 
     def _test_run_helper(self, expect_agent=True, expect_starting=False,
                          expect_pending=False):
@@ -1286,8 +1178,7 @@ class TopLevelFunctionsTest(unittest.TestCase):
         self.assertEqual(ecl_profiles, cl_profiles)
 
 
-class AgentTaskTest(unittest.TestCase,
-                    test_utils.FrontendTestMixin):
+class AgentTaskTest(test_utils.BaseSchedulerTest):
 
     def setUp(self):
         self._frontend_common_setup()

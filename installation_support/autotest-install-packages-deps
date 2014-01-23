@@ -7,7 +7,7 @@ needed for the operation of an Autotest server
 """
 
 import sys
-
+import logging
 
 try:
     import autotest.common as common
@@ -15,6 +15,7 @@ except ImportError:
     import common
 
 
+from autotest.utils import build_externals
 from autotest.client.shared import software_manager
 from autotest.frontend.pkgdeps import PKG_DEPS
 from autotest.client.shared import logging_manager, logging_config
@@ -31,11 +32,24 @@ if __name__ == '__main__':
     option_parser.add_option("-v", "--verbose",
                       action="store_true", dest="verbose",
                       help="Exhibit debug messages")
+    option_parser.add_option("-s", "--skip-build-externals",
+                      action="store_true", default=False,
+                      help="Do do run the build externals script")
+
     options, args = option_parser.parse_args()
     logging_manager.configure_logging(AutotestInstallConfig(),
                                       verbose=options.verbose)
-    install_successful = software_manager.install_distro_packages(PKG_DEPS)
-    if install_successful:
+    install_ok = software_manager.install_distro_packages(PKG_DEPS)
+
+    build_externals_ok = True
+    if install_ok and not options.skip_build_externals:
+        logging.info('Running "build externals" script to install '
+                     'software not available as package files')
+        build_externals_errors = build_externals.main()
+        if build_externals_errors > 0:
+            build_externals_ok = False
+
+    if install_ok and build_externals_ok:
         sys.exit(0)
     else:
         sys.exit(-1)

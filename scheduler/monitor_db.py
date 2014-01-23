@@ -30,7 +30,7 @@ from autotest.frontend.afe import models, rpc_utils, readonly_connection
 from autotest.frontend.afe import model_attributes
 from autotest.scheduler import drone_manager, drones
 from autotest.scheduler import gc_stats, host_scheduler, monitor_db_cleanup
-from autotest.scheduler import status_server, scheduler_config
+from autotest.scheduler import scheduler_config
 from autotest.scheduler import scheduler_models
 
 WATCHER_PID_FILE_PREFIX = 'autotest-scheduler-watcher'
@@ -252,15 +252,12 @@ def main_without_exception_handling():
         global _testing_mode
         _testing_mode = True
 
-    server = status_server.StatusServer()
-    server.start()
-
     try:
         initialize()
         dispatcher = Dispatcher()
         dispatcher.initialize(recover_hosts=options.recover_hosts)
 
-        while not _shutdown and not server._shutdown_scheduler:
+        while not _shutdown:
             dispatcher.tick()
             time.sleep(scheduler_config.config.tick_pause_sec)
     except:
@@ -268,7 +265,6 @@ def main_without_exception_handling():
         mail.manager.enqueue_exception_admin(e_msg)
 
     mail.manager.send_queued_admin()
-    server.shutdown()
     _drone_manager.shutdown()
     _db.disconnect()
 

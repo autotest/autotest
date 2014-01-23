@@ -344,7 +344,7 @@ class YumBackend(RpmBackend):
         super(YumBackend, self).__init__()
         executable = os_dep.command('yum')
         base_arguments = '-y'
-        self.base_command = executable + ' ' + base_arguments
+        self.base_command = '%s %s' % (executable, base_arguments)
         self.repo_file_path = '/etc/yum.repos.d/autotest.repo'
         self.cfgparser = ConfigParser.ConfigParser()
         self.cfgparser.read(self.repo_file_path)
@@ -371,13 +371,7 @@ class YumBackend(RpmBackend):
         """
         Installs package [name]. Handles local installs.
         """
-        if os.path.isfile(name):
-            name = os.path.abspath(name)
-            command = 'localinstall'
-        else:
-            command = 'install'
-
-        i_cmd = self.base_command + ' ' + command + ' ' + name
+        i_cmd = '%s install %s ' % (self.base_command, name)
 
         try:
             utils.system(i_cmd)
@@ -829,6 +823,9 @@ def install_distro_packages(distro_pkg_map, interactive=False):
             text = ' '.join(needed_pkgs)
             logging.info('Installing packages "%s"', text)
             result = software_manager.install(text)
+        else:
+            # no packages were needed, consider this a success
+            result = True
     else:
         logging.error("No packages found for %s %s %s %s",
                       detected_distro.name, detected_distro.arch,

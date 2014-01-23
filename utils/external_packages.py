@@ -59,21 +59,21 @@ class ExternalPackage(object):
     Base Class.  Subclass this to define packages.
 
     Attributes:
-      @attribute urls - A tuple of URLs to try fetching the package from.
-      @attribute local_filename - A local filename to use when saving the
-              fetched package.
-      @attribute hex_sum - The hex digest (currently SHA1) of this package
-              to be used to verify its contents.
-      @attribute module_name - The installed python module name to be used for
-              for a version check.  Defaults to the lower case class name with
-              the word Package stripped off.
-      @attribute version - The desired minimum package version.
-      @attribute os_requirements - A dictionary mapping a file pathname on the
-              the OS distribution to a likely name of a package the user
-              needs to install on their system in order to get this file.
-      @attribute name - Read only, the printable name of the package.
-      @attribute subclasses - This class attribute holds a list of all defined
-              subclasses.  It is constructed dynamically using the metaclass.
+      urls - A tuple of URLs to try fetching the package from.
+      local_filename - A local filename to use when saving the fetched package.
+      hex_sum - The hex digest (currently SHA1) of this package to be used to
+                verify its contents.
+      module_name - The installed python module name to be used for for a
+                    version check.  Defaults to the lower case class name with
+                    the word Package stripped off.
+      version - The desired minimum package version.
+      os_requirements - A dictionary mapping a file pathname on the the OS
+                        distribution to a likely name of a package the user
+                        needs to install on their system in order to get this
+                        file.
+      name - Read only, the printable name of the package.
+      subclasses - This class attribute holds a list of all defined subclasses.
+                   It is constructed dynamically using the metaclass.
     """
     subclasses = []
     urls = ()

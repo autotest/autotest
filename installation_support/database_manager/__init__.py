@@ -38,11 +38,6 @@ def engine_to_rdbms_type(django_engine):
     Returns a RDBMS type for a given django engine name
     '''
     rdbms_type = django_engine.split('.')[-1]
-
-    if rdbms_type == 'afe':
-        rdbms_type = 'mysql'
-    elif rdbms_type.startswith('afe_'):
-        rdbms_type = rdbms_type[4:]
     return rdbms_type
 
 

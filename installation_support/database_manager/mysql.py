@@ -15,8 +15,8 @@ class MySQLDatabaseManager(base.BaseDatabaseManager):
     Class that manages MySQL database instances
     '''
 
-    def __init__(self, name, admin=None, admin_password=None, user=None,
-                 password=None, host=None):
+    def __init__(self, name, admin='root', admin_password='', user=None,
+                 password=None, host='localhost'):
         '''
         Creates a new instance
         '''

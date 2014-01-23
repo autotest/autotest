@@ -2,29 +2,20 @@
 
 import logging
 import os
-import unittest
 try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.client.shared import enum, settings, host_protections, mail
-from autotest.database_legacy import database_connection
+
 from autotest.frontend import setup_django_environment
-from autotest.frontend import test_utils
+from autotest.client.shared import enum, settings, host_protections, mail
+from autotest.client.shared.test_utils import unittest
+from autotest.database_legacy import database_connection
 from autotest.frontend.afe import models
 from autotest.frontend.afe import model_attributes
 from autotest.scheduler import drone_manager, host_scheduler
 from autotest.scheduler import monitor_db, scheduler_models
-
-# translations necessary for scheduler queries to work with SQLite
-_re_translator = database_connection.TranslatingDatabase.make_regexp_translator
-_DB_TRANSLATORS = (
-    _re_translator(r'NOW\(\)', 'time("now")'),
-    _re_translator(r'LAST_INSERT_ID\(\)', 'LAST_INSERT_ROWID()'),
-    # older SQLite doesn't support group_concat, so just don't bother until
-    # it arises in an important query
-    _re_translator(r'GROUP_CONCAT\((.*?)\)', r'\1'),
-)
+from autotest.scheduler import test_utils
 
 HqeStatus = models.HostQueueEntry.Status
 HostStatus = models.Host.Status
@@ -277,8 +268,7 @@ class MockEmailManager(NullMethodObject):
         logging.warn(message)
 
 
-class SchedulerFunctionalTest(unittest.TestCase,
-                              test_utils.FrontendTestMixin):
+class SchedulerFunctionalTest(test_utils.BaseSchedulerTest):
     # some number of ticks after which the scheduler is presumed to have
     # stabilized, given no external changes
     _A_LOT_OF_TICKS = 10
@@ -309,9 +299,10 @@ class SchedulerFunctionalTest(unittest.TestCase,
         self.god.stub_with(mail, "manager", self.mock_email_manager)
 
         self._database = (
-            database_connection.TranslatingDatabase.get_test_database(
-                translators=_DB_TRANSLATORS))
-        self._database.connect(db_type='django')
+            database_connection.DatabaseConnection('AUTOTEST_WEB'))
+        self._database.connect(db_type='django',
+                               db_name='autotest_web_unittest_run')
+
         self.god.stub_with(monitor_db, '_db', self._database)
         self.god.stub_with(scheduler_models, '_db', self._database)
 

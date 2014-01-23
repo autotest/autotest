@@ -112,9 +112,11 @@ class FrontendTestMixin(object):
         assert not (atomic_group and active)  # TODO(gps): support this
         synch_count = synchronous and 2 or 1
         created_on = datetime.datetime(2008, 1, 1)
-        status = models.HostQueueEntry.Status.QUEUED
         if active:
             status = models.HostQueueEntry.Status.RUNNING
+        else:
+            status = models.HostQueueEntry.Status.QUEUED
+
         job = models.Job.objects.create(
             name='test', owner='autotest_system', priority=priority,
             synch_count=synch_count, created_on=created_on,

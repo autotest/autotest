@@ -34,25 +34,6 @@ CREATE TABLE tko_iteration_result (
 """
 
 
-def get_create_test_view_sql():
-    """
-    Returns the SQL code that creates the test view
-    """
-    dir_path = os.path.dirname(os.path.abspath(__file__))
-    sql_path = os.path.join(dir_path, 'sql', 'tko-test-view-2.sql')
-    return open(sql_path).read()
-
-
-def setup_test_view():
-    """
-    Django has no way to actually represent a view; we simply create a model for
-    TestView. So manually create the view.
-    """
-    cursor = connection.cursor()
-    cursor.execute('DROP VIEW IF EXISTS tko_test_view_2')
-    cursor.execute(get_create_test_view_sql())
-
-
 def fix_iteration_tables():
     """
     Since iteration tables don't have any real primary key, we "fake" one in the
@@ -66,48 +47,6 @@ def fix_iteration_tables():
 
 
 class TkoTestMixin(object):
-
-    def _patch_sqlite_stuff(self):
-        self.god.stub_with(models.TempManager, '_get_column_names',
-                           self._get_column_names_for_sqlite3)
-        self.god.stub_with(models.TempManager, '_cursor_rowcount',
-                           self._cursor_rowcount_for_sqlite3)
-
-        connection.cursor()  # ensure connection is alive
-        # add some functions to SQLite for MySQL compatibility
-        if hasattr(connection.connection, "create_function"):
-            connection.connection.create_function('if', 3, self._sqlite_if)
-            connection.connection.create_function('find_in_set', 2,
-                                                  self._sqlite_find_in_set)
-
-        fix_iteration_tables()
-
-    def _cursor_rowcount_for_sqlite3(self, cursor):
-        return len(cursor.fetchall())
-
-    def _sqlite_find_in_set(self, needle, haystack):
-        return needle in haystack.split(',')
-
-    def _sqlite_if(self, condition, true_result, false_result):
-        if condition:
-            return true_result
-        return false_result
-
-    # sqlite takes any columns that don't have aliases and names them
-    # "table_name"."column_name".  we map these to just column_name.
-    _SQLITE_AUTO_COLUMN_ALIAS_RE = re.compile(r'".+"\."(.+)"')
-
-    def _get_column_names_for_sqlite3(self, cursor):
-        names = [column_info[0] for column_info in cursor.description]
-
-        # replace all "table_name"."column_name" constructs with just
-        # column_name
-        for i, name in enumerate(names):
-            match = self._SQLITE_AUTO_COLUMN_ALIAS_RE.match(name)
-            if match:
-                names[i] = match.group(1)
-
-        return names
 
     def _create_initial_data(self):
         machine = models.Machine.objects.create(hostname='myhost')
@@ -194,8 +133,7 @@ class RpcInterfaceTest(unittest.TestCase, TkoTestMixin):
         self.god = mock.mock_god()
 
         setup_test_environment.set_up()
-        self._patch_sqlite_stuff()
-        setup_test_view()
+        fix_iteration_tables()
         self._create_initial_data()
 
     def tearDown(self):

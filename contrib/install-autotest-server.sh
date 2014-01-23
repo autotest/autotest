@@ -387,13 +387,6 @@ then
 fi
 }
 
-build_external_packages() {
-print_log "INFO" "Running autotest dependencies build (may take a while since it might download files)"
-cat << EOF | su - autotest >> $LOG 2>&1
-$ATHOME/utils/build_externals.py
-EOF
-}
-
 relocate_global_config() {
 if [ $ATHOME != $ATHOME_DEFAULT ]
 then
@@ -654,7 +647,6 @@ full_install() {
             restart_mysql_rh
             check_mysql_password
             create_autotest_database
-            build_external_packages
             relocate_global_config
             relocate_frontend_wsgi
             relocate_webserver
@@ -678,7 +670,6 @@ full_install() {
             restart_mysql_deb
             check_mysql_password
             create_autotest_database
-            build_external_packages
             relocate_global_config
             relocate_frontend_wsgi
             relocate_webserver
