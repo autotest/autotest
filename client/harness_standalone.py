@@ -8,7 +8,7 @@ __author__ = """Copyright Andy Whitcroft 2007"""
 import os
 import shutil
 import logging
-from autotest.client.shared import error
+from autotest.client.shared import error, distro
 from autotest.client.shared.settings import settings
 from autotest.client import utils
 import harness
@@ -83,7 +83,7 @@ class harness_standalone(harness.harness):
         else:
             initdefault = yield_default_initlevel()
 
-        vendor = utils.get_os_vendor()
+        vendor = distro.detect()
         service = '/etc/init.d/autotest'
         if vendor == 'SUSE':
             service_link = '/etc/init.d/rc%s.d/S99autotest' % initdefault
