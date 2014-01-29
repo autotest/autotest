@@ -83,7 +83,7 @@ class harness_standalone(harness.harness):
         else:
             initdefault = yield_default_initlevel()
 
-        vendor = distro.detect()
+        vendor = distro.detect().name
         service = '/etc/init.d/autotest'
         if vendor == 'SUSE':
             service_link = '/etc/init.d/rc%s.d/S99autotest' % initdefault
