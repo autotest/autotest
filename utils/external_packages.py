@@ -575,7 +575,7 @@ class NumpyPackage(ExternalPackage):
 
 
 class PsUtilPackage(ExternalPackage):
-    minimum_version = '0.6.0'
+    minimum_version = '0.4.0'
     version = '1.0.1'
     local_filename = 'psutil-%s.tar.gz' % version
     urls = ("https://psutil.googlecode.com/files/%s" % local_filename,)
