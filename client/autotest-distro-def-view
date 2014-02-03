@@ -3,6 +3,11 @@
 import sys
 import optparse
 
+try:
+    import autotest.common as common
+except ImportError:
+    import common
+
 from autotest.client.shared import distro_def
 
 
