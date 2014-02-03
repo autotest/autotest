@@ -33,7 +33,7 @@ try:
     monitor_db_path = os_dep.command('autotest-scheduler')
     results_dir = os.path.join(output_dir, 'results')
 except ValueError:
-    monitor_db_path = os.path.join(autodir, 'scheduler/autotest-scheduler')
+    monitor_db_path = os.path.join(autodir, 'scheduler', 'autotest-scheduler')
     results_dir = os.path.join(autodir, 'results')
 
 

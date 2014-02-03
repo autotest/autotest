@@ -63,7 +63,7 @@ _shutdown = False
 try:
     _autoserv_path = os_dep.command("autotest-remote")
 except ValueError:
-    _autoserv_path = os.path.join(drones.AUTOTEST_INSTALL_DIR, 'server', 'autoserv')
+    _autoserv_path = os.path.join(drones.AUTOTEST_INSTALL_DIR, 'server', 'autotest-remote')
 _testing_mode = False
 _drone_manager = None
 

@@ -601,7 +601,8 @@ class _BaseRun(object):
         if self.server_system_wide_install:
             cmd = ['nohup', system_wide_client_path]
         else:
-            cmd = ['nohup', os.path.join(self.autodir, 'autotest_client')]
+            cmd = ['nohup', os.path.join(self.autodir,
+                                         'autotest-local-streamhandler')]
         cmd += self.get_base_cmd_args(section)
         cmd += ['>/dev/null', '2>/dev/null', '&']
         return ' '.join(cmd)
@@ -612,7 +613,7 @@ class _BaseRun(object):
             cmd = ['nohup', system_wide_client_path,
                    monitor_dir, '-H autoserv']
         else:
-            cmd = ['nohup', os.path.join(self.autodir, 'autotestd'),
+            cmd = ['nohup', os.path.join(self.autodir, 'autotest-daemon'),
                    monitor_dir, '-H autoserv']
 
         cmd += self.get_base_cmd_args(section)
@@ -625,7 +626,7 @@ class _BaseRun(object):
             cmd = [system_wide_client_path,
                    monitor_dir, str(stdout_read), str(stderr_read)]
         else:
-            cmd = [os.path.join(self.autodir, 'autotestd_monitor'),
+            cmd = [os.path.join(self.autodir, 'autotest-daemon-monitor'),
                    monitor_dir, str(stdout_read), str(stderr_read)]
         return ' '.join(cmd)
 
@@ -730,7 +731,7 @@ class _BaseRun(object):
         stderr_lines = stderr.split("\n")[1:]
         if not stderr_lines:
             return ""
-        elif stderr_lines[0].startswith("NOTE: autotestd_monitor"):
+        elif stderr_lines[0].startswith("NOTE: autotest-daemon-monitor"):
             del stderr_lines[0]
         return "\n".join(stderr_lines)
 
