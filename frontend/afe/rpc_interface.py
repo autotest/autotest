@@ -60,9 +60,9 @@ def add_label(name, kernel_config=None, platform=None, only_if_needed=None):
     Add (create) label.
 
     :param name: The name of the label.
-    :param kernel_config (optional): Kernel configuration.
-    :param platform (optional): Platform.
-    :param only_if_need (optional): Only if needed.
+    :param kernel_config: Kernel configuration (optional).
+    :param platform: Platform (optional).
+    :param only_if_need: Only if needed (optional).
     :return: ID.
     """
     return models.Label.add_object(
@@ -137,8 +137,8 @@ def add_atomic_group(name, max_number_of_machines=None, description=None):
     Add (create) atomic group.
 
     :param name: Name of the atomic group.
-    :param max_number_of_machines (optional): Maximum number of machines.
-    :param description (optional): Description.
+    :param max_number_of_machines: Maximum number of machines (optional).
+    :param description: Description (optional).
     :return: ID.
     """
     return models.AtomicGroup.add_object(
@@ -208,9 +208,9 @@ def add_host(hostname, status=None, locked=None, protection=None):
     Add (create) host.
 
     :param hostname: The hostname.
-    :param status (optional): Status.
-    :param locked (optional): Locked.
-    :param protection (optional): Protection.
+    :param status: Status (optional).
+    :param locked: Locked (optional).
+    :param protection: Protection (optional).
     :return: ID.
     """
     return models.Host.add_object(hostname=hostname, status=status,
@@ -311,13 +311,13 @@ def get_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
     """
     Get hosts.
 
-    :param multiple_labels (optional): match hosts in all of the labels given.
+    :param multiple_labels: match hosts in all of the labels given (optional).
     Should be a list of label names.
-    :param exclude_only_if_needed_labels (optional): Exclude hosts with
-    at least one "only_if_needed" label applied.
+    :param exclude_only_if_needed_labels: Exclude hosts with
+    at least one "only_if_needed" label applied (optional).
     :param exclude_atomic_group_hosts: Exclude hosts that have one or more
             atomic group labels associated with them.
-    :param valid_only (optional): Filter valid hosts.
+    :param valid_only: Filter valid hosts (optional).
     :param filter_data: Filters out which hosts to get.
     :return: Sequence of hosts.
     """
@@ -519,15 +519,15 @@ def add_test(name, test_type, path, author=None, dependencies=None,
     :param name: Test name.
     :param test_type: Test type (Client or Server).
     :param path: Relative path to the test.
-    :param author: (optional) The author of the test.
-    :param dependencies: (optional) Dependencies.
-    :param experimental: (optional) Experimental? (True or False).
-    :param run_verify: (optional) Run verify? (True or False).
-    :param test_class: (optional) Test class.
-    :param test_time: (optional) Test time.
-    :param test_category: (optional) Test category.
-    :param description: (optional) Description.
-    :param sync_count: (optional) Sync count.
+    :param author: The author of the test (optional).
+    :param dependencies: Dependencies (optional).
+    :param experimental: Experimental? (True or False) (optional).
+    :param run_verify: Run verify? (True or False) (optional).
+    :param test_class: Test class (optional).
+    :param test_time: Test time (optional).
+    :param test_category: Test category (optional).
+    :param description: Description (optional).
+    :param sync_count: Sync count (optional).
     :return: ID.
     """
     return models.Test.add_object(name=name, test_type=test_type, path=path,
@@ -579,7 +579,7 @@ def add_profiler(name, description=None):
     Add (create) profiler.
 
     :param name: The name of the profiler.
-    :param description (optional): Description.
+    :param description: Description (optional).
     :return: ID.
     """
     return models.Profiler.add_object(name=name, description=description).id
@@ -624,7 +624,7 @@ def add_user(login, access_level=None):
     Add (create) user.
 
     :param login: The login name.
-    :param acess_level (optional): Access level.
+    :param acess_level: Access level (optional).
     :return: ID.
     """
     return models.User.add_object(login=login, access_level=access_level).id
@@ -669,7 +669,7 @@ def add_acl_group(name, description=None):
     Add (create) ACL group.
 
     :param name: The name of the ACL group.
-    :param description (optional): Description.
+    :param description: Description (optional).
     :return: ID.
     """
     group = models.AclGroup.add_object(name=name, description=description)
