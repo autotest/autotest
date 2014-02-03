@@ -19,6 +19,8 @@ from autotest.client.shared.settings import settings, SettingsError
 autoserv_prebuild = settings.get_value('AUTOSERV', 'enable_server_prebuild',
                                        type=bool, default=False)
 
+CLIENT_BINARY = 'autotest-local-streamhandler'
+
 
 class AutodirNotFoundError(Exception):
 
@@ -110,7 +112,7 @@ class BaseAutotest(installable_object.InstallableObject):
         if not _server_system_wide_install():
             for path in Autotest.get_client_autodir_paths(host):
                 try:
-                    autotest_binary = os.path.join(path, 'autotest')
+                    autotest_binary = os.path.join(path, CLIENT_BINARY)
                     host.run('test -x %s' % utils.sh_escape(autotest_binary))
                     host.run('test -w %s' % utils.sh_escape(path))
                     logging.debug('Found existing autodir at %s', path)
@@ -563,7 +565,7 @@ class _BaseRun(object):
                                              "to be installed")
 
     def _verify_machine_local(self):
-        binary = os.path.join(self.autodir, 'autotest')
+        binary = os.path.join(self.autodir, CLIENT_BINARY)
         try:
             self.host.run('test -x %s' % binary)
         except:
