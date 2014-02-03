@@ -22,7 +22,7 @@ try:
     autotest = os_dep.command('autotest-local')
 except ValueError:
     autodir = os.path.dirname(sys.argv[0])
-    autotest = os.path.join(autodir, 'autotest')
+    autotest = os.path.join(autodir, 'autotest-local')
 
 args = [autotest] + sys.argv[1:]
 if '-H' not in args:

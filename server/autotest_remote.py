@@ -19,6 +19,8 @@ from autotest.client.shared.settings import settings, SettingsError
 autoserv_prebuild = settings.get_value('AUTOSERV', 'enable_server_prebuild',
                                        type=bool, default=False)
 
+CLIENT_BINARY = 'autotest-local-streamhandler'
+
 
 class AutodirNotFoundError(Exception):
 
@@ -110,7 +112,7 @@ class BaseAutotest(installable_object.InstallableObject):
         if not _server_system_wide_install():
             for path in Autotest.get_client_autodir_paths(host):
                 try:
-                    autotest_binary = os.path.join(path, 'autotest')
+                    autotest_binary = os.path.join(path, CLIENT_BINARY)
                     host.run('test -x %s' % utils.sh_escape(autotest_binary))
                     host.run('test -w %s' % utils.sh_escape(path))
                     logging.debug('Found existing autodir at %s', path)
@@ -563,7 +565,7 @@ class _BaseRun(object):
                                              "to be installed")
 
     def _verify_machine_local(self):
-        binary = os.path.join(self.autodir, 'autotest')
+        binary = os.path.join(self.autodir, CLIENT_BINARY)
         try:
             self.host.run('test -x %s' % binary)
         except:
@@ -601,7 +603,8 @@ class _BaseRun(object):
         if self.server_system_wide_install:
             cmd = ['nohup', system_wide_client_path]
         else:
-            cmd = ['nohup', os.path.join(self.autodir, 'autotest_client')]
+            cmd = ['nohup', os.path.join(self.autodir,
+                                         'autotest-local-streamhandler')]
         cmd += self.get_base_cmd_args(section)
         cmd += ['>/dev/null', '2>/dev/null', '&']
         return ' '.join(cmd)
@@ -612,7 +615,7 @@ class _BaseRun(object):
             cmd = ['nohup', system_wide_client_path,
                    monitor_dir, '-H autoserv']
         else:
-            cmd = ['nohup', os.path.join(self.autodir, 'autotestd'),
+            cmd = ['nohup', os.path.join(self.autodir, 'autotest-daemon'),
                    monitor_dir, '-H autoserv']
 
         cmd += self.get_base_cmd_args(section)
@@ -625,7 +628,7 @@ class _BaseRun(object):
             cmd = [system_wide_client_path,
                    monitor_dir, str(stdout_read), str(stderr_read)]
         else:
-            cmd = [os.path.join(self.autodir, 'autotestd_monitor'),
+            cmd = [os.path.join(self.autodir, 'autotest-daemon-monitor'),
                    monitor_dir, str(stdout_read), str(stderr_read)]
         return ' '.join(cmd)
 
@@ -730,7 +733,7 @@ class _BaseRun(object):
         stderr_lines = stderr.split("\n")[1:]
         if not stderr_lines:
             return ""
-        elif stderr_lines[0].startswith("NOTE: autotestd_monitor"):
+        elif stderr_lines[0].startswith("NOTE: autotest-daemon-monitor"):
             del stderr_lines[0]
         return "\n".join(stderr_lines)
 
