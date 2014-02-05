@@ -2,13 +2,14 @@
 %{!?python_sitelib: %global python_sitelib %(%{__python} -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")}
 %endif
 
-%global commit 0c2ab5b5306f6ccf5b47ff8b989faa2ad412c3d6
+%define shortname autotest
+%global commit 539bd797305b310d255e539001178671b9b79b23
 %global shortcommit %(c=%{commit}; echo ${c:0:7})
 
 %bcond_with gwt
 
 Name: autotest-framework
-Version: 0.15.1.next.git%{shortcommit}
+Version: 0.16.0
 Release: 1%{?dist}
 Summary: Framework for fully automated testing
 Group: Applications/System
@@ -20,11 +21,13 @@ Group: Applications/System
 License: GPLv2 and BSD and LGPLv2+ and MIT
 URL: http://autotest.github.com/
 BuildArch: noarch
-Source0: https://github.com/downloads/autotest/autotest/autotest-%{version}.tar.gz
+Source0: https://github.com/autotest/%{shortname}/archive/%{commit}/%{shortname}-%{version}-%{shortcommit}.tar.gz
 BuildRoot: %(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 
+Patch1: 0001-__init__.py-Fix-virt-test-issue-275.patch
+
 Requires: grubby
-Requires: python >= 2.4
+Requires: python
 Requires: openssh-clients
 Requires: openssh-server
 Requires: rsync
@@ -33,7 +36,7 @@ Requires: tar, gzip, bzip2, unzip
 Requires(post): openssh
 Requires(pre): shadow-utils
 
-BuildRequires: python >= 2.4, python-sphinx
+BuildRequires: python2-devel, python-sphinx
 
 %description
 Autotest is a framework for fully automated testing. It is designed primarily
@@ -67,6 +70,8 @@ Requires: python-paramiko
 Requires: python-simplejson
 Requires: python-setuptools
 Requires: python-httplib2
+Requires: python-psutil
+
 
 %if 0%{?fedora} >= 10 || 0%{?rhel} >= 6
 Requires(post): policycoreutils-python
@@ -114,7 +119,9 @@ Web frontend for server using GWT
 
 
 %prep
-%setup -q -n autotest-%{version}
+%setup -q -n %{shortname}-%{commit}
+
+%patch1 -p1
 
 sed -i -e "s|DocumentRoot /usr/local/autotest/apache/www|DocumentRoot %{_datadir}/autotest/www|" apache/apache-web-conf
 ./installation_support/global_config_set_value.py -p global_config.ini -s COMMON -k autotest_top_path -v %{python_sitelib}/autotest
@@ -135,10 +142,10 @@ echo "%{version}" > RELEASE-VERSION
 
 
 %build
-python setup.py build
+%{__python2} setup.py build
 # GWT is not packaged in Fedora, build web frontend that uses it only when --with gwt
 %if %{with gwt}
-python utils/compile_gwt_clients.py -c 'autotest.EmbeddedSpreadsheetClient autotest.AfeClient autotest.TkoClient autotest.EmbeddedTkoClient'
+%{__python2} utils/compile_gwt_clients.py -c 'autotest.EmbeddedSpreadsheetClient autotest.AfeClient autotest.TkoClient autotest.EmbeddedTkoClient'
 %endif
 
 
@@ -374,9 +381,10 @@ fi
 
 
 %changelog
-* Wed Sep 25 2013 Cleber Rosa <cleber@redhat> - 0.15.1-next-22be0ca7f4c32b80fc42efe96086a4d01d4d7a4c-1
-- Make SPEC file handle the latest upstream release
-- Substitute systemd location on scripts
+* Wed Jan 29 2014 Cleber Rosa <cleber@redhat.com> - 0.16.0-1
+- Package 0.16.0 release
+- Fixed bogus date on ancient (0.11.0-2) release
+- Added patch in upstream 0.16.0 branch but still not on released tarball
 
 * Wed Feb 13 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.14.4-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_19_Mass_Rebuild
@@ -484,7 +492,7 @@ fi
 * Fri Nov 13 2009 James Laska <jlaska@redhat.com> - 0.11.0-3
 - Moved autotest user creation into autotest-client package
 
-* Tue Oct 30 2009 James Laska <jlaska@redhat.com> - 0.11.0-2
+* Fri Oct 30 2009 James Laska <jlaska@redhat.com> - 0.11.0-2
 - Updated patch2 - new_tko/tko/graphing.py uses simplejson also
 - Updated patch3 - correct http log paths
 - Updated patch5 - background patch to work against monitor_db_babysitter
