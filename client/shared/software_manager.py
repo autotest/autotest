@@ -707,7 +707,7 @@ class AptBackend(DpkgBackend):
         except error.CmdError:
             logging.error("Apt package update failed")
 
-        if not name:
+        if name:
             up_command = 'install --only-upgrade'
             up_cmd = self.base_command + ' ' + up_command + ' ' + name
         else:
