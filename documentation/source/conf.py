@@ -18,7 +18,9 @@ except ImportError:
 setup_modules.setup(base_path=autotest_dir, root_module_name="autotest")
 
 from autotest.client.shared.version import get_version
-from autotest.frontend import setup_django_environment
+os.environ.setdefault("DJANGO_SETTINGS_MODULE",
+                      "autotest.documentation.source.settings")
+
 
 extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.doctest',
@@ -67,3 +69,26 @@ intersphinx_mapping = {
     'django': ('http://docs.djangoproject.com/en/dev/',
                'http://docs.djangoproject.com/en/dev/_objects/')
 }
+
+
+class Mock(object):
+    #__all__ = []
+    version_info = (1,2,3, 'final', 0)
+    def __init__(self, *args, **kwargs):
+        pass
+    def __call__(self, *args, **kwargs):
+        return Mock()
+    @classmethod
+    def __getattr__(cls, name):
+        if name in ('__file__', '__path__'):
+            return '/dev/null'
+        elif name[0] == name[0].upper():
+            mockType = type(name, (), {})
+            mockType.__module__ = __name__
+            return mockType
+        else:
+            return Mock()
+
+MOCK_MODULES = ['MySQLdb', 'psutil']
+for mod_name in MOCK_MODULES:
+    sys.modules[mod_name] = Mock()
