@@ -110,5 +110,3 @@ def load_module_from_file(module_file_path):
     finally:
         module_file.close()
     return new_module
-
-
