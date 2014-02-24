@@ -4,7 +4,7 @@ or creates such.
 
 :author: Plamen Dimitrov
 :copyright: Intra2net AG 2012
-@license: GPL v2
+:license: GPL v2
 
 :param vg_name: Name of the volume group.
 :param lv_name: Name of the logical volume.
@@ -19,16 +19,16 @@ or creates such.
 :param ramdisk_sparse_filename: Name of the ramdisk sparse file.
 
 Sample ramdisk params:
-    ramdisk_vg_size = "40000"
-    ramdisk_basedir = "/tmp"
-    ramdisk_sparse_filename = "virtual_hdd"
+- ramdisk_vg_size = "40000"
+- ramdisk_basedir = "/tmp"
+- ramdisk_sparse_filename = "virtual_hdd"
 
 Sample general params:
-    vg_name='autotest_vg',
-    lv_name='autotest_lv',
-    lv_size='1G',
-    lv_snapshot_name='autotest_sn',
-    lv_snapshot_size='1G'
+- vg_name='autotest_vg',
+- lv_name='autotest_lv',
+- lv_size='1G',
+- lv_snapshot_name='autotest_sn',
+- lv_snapshot_size='1G'
 The ramdisk volume group size is in MB.
 """
 

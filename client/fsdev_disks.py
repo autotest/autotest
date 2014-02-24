@@ -20,11 +20,9 @@ def get_disk_list(std_mounts_only=True, get_all_disks=False):
     :param std_mounts_only: Whether the function should return only disks that
             have a mount point defined (True) or even devices that doesn't
             (False).
-
     :param get_all_disks: Whether the function should return only partitioned
             disks (False) or return every disk, regardless of being partitioned
             or not (True).
-
     :return: List of dictionaries with disk information (see more below).
 
     The 'disk_list' array returned by get_disk_list() has an entry for each

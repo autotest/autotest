@@ -319,8 +319,7 @@ def cpu_has_flags(flags):
     """
     Check if a list of flags are available on current CPU info
 
-    :param flags: A `list` of cpu flags that must exists
-    on the current CPU.
+    :param flags: A `list` of cpu flags that must exists on the current CPU.
     :type flags: `list`
     :returns: `bool` True if all the flags were found or False if not
     :rtype: `list`
@@ -340,8 +339,7 @@ def get_cpu_vendor_name():
     """
     Get the current cpu vendor name
 
-    :returns: string 'intel' or 'amd' or 'power7' depending
-    on the current CPU architecture.
+    :returns: string 'intel' or 'amd' or 'power7' depending on the current CPU architecture.
     :rtype: `string`
     """
     vendors_map = {
@@ -495,7 +493,7 @@ def avgtime_print(dir):
         Input is a directory containing a file called 'time'.
         File contains one-per-line results of /usr/bin/time.
         Output is average Elapsed, User, and System time in seconds,
-          and average CPU percentage.
+        and average CPU percentage.
     """
     f = open(dir + "/time")
     user = system = elapsed = cpu = count = 0
@@ -811,8 +809,7 @@ def get_cpu_stat(key):
 
 def get_uptime():
     """
-    :return: return the uptime of system in secs in float
-    in error case return 'None'
+    :return: return the uptime of system in secs in float in error case return 'None'
     """
 
     cmd = "/bin/cat /proc/uptime"

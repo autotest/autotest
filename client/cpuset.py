@@ -508,15 +508,13 @@ def create_container_with_mbytes_and_specific_cpus(name, mbytes,
     Create a cpuset container and move job's current pid into it
     Allocate the list "cpus" of cpus to that container
 
-            name = arbitrary string tag
-            mbytes = reqested memory for job in megabytes
-            cpus = list of cpu indices to associate with the cpuset
-                  defaults to all cpus avail with given root
-            root = the parent cpuset to nest this new set within
-                   '': unnested top-level container
-            io = arguments for proportional IO containers
-            move_in = True: Move current process into the new container now.
-            timeout = must be 0: persist until explicitly deleted.
+    :param name: arbitrary string tag
+    :param mbytes: reqested memory for job in megabytes
+    :param cpus (None): list of cpu indices to associate with the cpuset defaults to all cpus avail with given root
+    :param root: the parent cpuset to nest this new set within, '' unnested top-level container
+    :param io: arguments for proportional IO containers
+    :param move_in (True): Move current process into the new container now.
+    :param timeout (must be 0): persist until explicitly deleted.
     """
     need_mem_containers()
     if not container_exists(root):
