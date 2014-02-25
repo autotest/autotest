@@ -31,7 +31,7 @@ class LocalHost(hosts.Host):
             stdout_tee=utils.TEE_TO_LOGS, stderr_tee=utils.TEE_TO_LOGS,
             stdin=None, args=()):
         """
-        @see shared.hosts.Host.run()
+        :see: shared.hosts.Host.run()
         """
         try:
             result = utils.run(

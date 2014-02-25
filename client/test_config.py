@@ -70,7 +70,7 @@ class config_loader:
 
         :param section: Configuration file section.
         :param option: Option we're looking after.
-        @default: In case the option is not available and raise_errors is set
+        :default: In case the option is not available and raise_errors is set
                 to False, return the default.
         """
         if not self.parser.has_option(section, option):

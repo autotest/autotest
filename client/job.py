@@ -813,7 +813,7 @@ class base_client_job(base_job.base_job):
     def filesystem(self, device, mountpoint=None, loop_size=0):
         """ Same as partition
 
-        @deprecated: Use partition method instead
+        :deprecated: Use partition method instead
         """
         return self.partition(device, loop_size, mountpoint)
 
@@ -1225,7 +1225,7 @@ def runjob(control, drop_caches, options):
 
     This is the main interface to this module.
 
-    @see base_job.__init__ for parameter info.
+    :see: base_job.__init__ for parameter info.
     """
     control = os.path.abspath(control)
 
