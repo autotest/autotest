@@ -113,14 +113,6 @@ client Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`harness_ABAT` Module
---------------------------
-
-.. automodule:: autotest.client.harness_ABAT
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`harness_autoserv` Module
 ------------------------------
 

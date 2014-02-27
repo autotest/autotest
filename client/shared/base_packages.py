@@ -460,25 +460,25 @@ class BasePackageManager(object):
 
         :type pkgmgr_dir: string
         :param pkgmgr_dir: A directory that can be used by the package manager
-                 to dump stuff (like checksum files of the repositories etc)
+        to dump stuff (like checksum files of the repositories etc)
         :type hostname: string
         :param hostname: hostname from where to fetch a list of package repos
         :type repo_urls: list of strings
         :param repo_urls: The list of the repository urls which is consulted
-                 whilst fetching the package
+        whilst fetching the package
         :type upload_paths: list of strings
         :param upload_paths: The list of the upload of repositories to which
-                 the package is uploaded to
+        the package is uploaded to
         :type do_locking: boolean
         :param do_locking: Enable locking when the packages are installed.
         :type run_function: function
         :param run_function: function used to execute commands.
         :type run_function_args: tuple
         :param run_function_args: positional (tuple-like) arguments to
-                 run_function
+        run_function
         :param run_function_dargs: dictionary
         :param run_function_dargs: named (dictionary-like) arguments to
-                 run_function
+        run_function
         '''
         # In memory dictionary that stores the checksum's of packages
         self._checksum_dict = {}
@@ -976,9 +976,9 @@ class BasePackageManager(object):
         Calculate the checksum of the file specified in pkg_path and
         compare it with the checksum in the checksum file
         Return True if both match else return False.
-        pkg_path : The full path to the package file for which the
-                   checksum is being compared
-        repo_url : The URL to fetch the checksum from
+        :param pkg_path: The full path to the package file for which the
+        checksum is being compared
+        :param repo_url: The URL to fetch the checksum from
         '''
         checksum_dict = self._get_checksum_dict()
         package_name = os.path.basename(pkg_path)
