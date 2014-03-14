@@ -16,7 +16,8 @@ _LOG_INSTALLED_PACKAGES = settings.get_value('CLIENT', 'log_installed_packages',
 _DEFAULT_COMMANDS_TO_LOG_PER_TEST = []
 _DEFAULT_COMMANDS_TO_LOG_PER_BOOT = [
     "lspci -vvnn", "gcc --version", "ld --version", "mount", "hostname",
-    "uptime", "dmidecode",
+    "uptime", "dmidecode", "ifconfig -a", "brctl show", "ip link",
+    "numactl --hardware show", "lscpu", "fdisk -l",
 ]
 _DEFAULT_COMMANDS_TO_LOG_BEFORE_ITERATION = []
 _DEFAULT_COMMANDS_TO_LOG_AFTER_ITERATION = []
@@ -25,6 +26,9 @@ _DEFAULT_FILES_TO_LOG_PER_TEST = []
 _DEFAULT_FILES_TO_LOG_PER_BOOT = [
     "/proc/pci", "/proc/meminfo", "/proc/slabinfo", "/proc/version",
     "/proc/cpuinfo", "/proc/modules", "/proc/interrupts", "/proc/partitions",
+    "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor",
+    "/sys/kernel/debug/sched_features",
+    "/sys/devices/system/clocksource/clocksource0/current_clocksource"
 ]
 _DEFAULT_FILES_TO_LOG_BEFORE_ITERATION = [
     "/proc/schedstat", "/proc/meminfo", "/proc/slabinfo", "/proc/interrupts",
