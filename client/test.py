@@ -25,6 +25,7 @@ import resource
 import glob
 
 from autotest.client.shared import utils
+from autotest.client.shared import settings
 from autotest.client.shared import test as common_test
 from autotest.client import os_dep
 
@@ -62,6 +63,8 @@ class test(common_test.base_test):
         major, minor = [int(x) for x in result.stdout.strip().split()]
         if (major, minor) < (2, 4):
             logging.warning('System python is too old, crash handling disabled')
+            return
+        if not settings.settings.get_value('COMMON', 'crash_handling_enabled', type=bool):
             return
 
         self.pattern_file = '/proc/sys/kernel/core_pattern'
