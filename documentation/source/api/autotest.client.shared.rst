@@ -241,14 +241,6 @@ shared Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`pexpect` Module
----------------------
-
-.. automodule:: autotest.client.shared.pexpect
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`pidfile` Module
 ---------------------
 
@@ -269,14 +261,6 @@ shared Package
 -------------------------
 
 .. automodule:: autotest.client.shared.progressbar
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`pxssh` Module
--------------------
-
-.. automodule:: autotest.client.shared.pxssh
     :members:
     :undoc-members:
     :show-inheritance:

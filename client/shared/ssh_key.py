@@ -1,7 +1,8 @@
 import os
 import logging
-from autotest.client.shared import pxssh
-from autotest.client.shared import utils
+
+import remote
+import utils
 
 
 def get_public_key():
@@ -47,7 +48,7 @@ def get_public_key():
     return public_key_str
 
 
-def setup_ssh_key(hostname, user, password, port):
+def setup_ssh_key(hostname, user, password, port=22):
     '''
     Setup up remote login in another server by using public key
 
@@ -64,26 +65,19 @@ def setup_ssh_key(hostname, user, password, port):
                   (hostname, port, user))
 
     try:
-        host = pxssh.pxssh()
-        host.login(hostname, user, password, port=port)
         public_key = get_public_key()
-
-        host.sendline('mkdir -p ~/.ssh')
-        host.prompt()
-        host.sendline('chmod 700 ~/.ssh')
-        host.prompt()
-        host.sendline("echo '%s' >> ~/.ssh/authorized_keys; " %
-                      public_key)
-        host.prompt()
-        host.sendline('chmod 600 ~/.ssh/authorized_keys')
-        host.prompt()
-        host.logout()
-
+        session = remote.remote_login(client='ssh', host=hostname, port=port,
+                                      username=user, password=password,
+                                      prompt=r'[$#%]')
+        session.cmd_output('mkdir -p ~/.ssh')
+        session.cmd_output('chmod 700 ~/.ssh')
+        session.cmd_output("echo '%s' >> ~/.ssh/authorized_keys; " %
+                           public_key)
+        session.cmd_output('chmod 600 ~/.ssh/authorized_keys')
         logging.debug('SSH key setup complete.')
-
-    except:
-        logging.debug('SSH key setup has failed.')
+    except Exception as err:
+        logging.debug('SSH key setup has failed: %s', err)
         try:
-            host.logout()
+            session.close()
         except:
             pass
