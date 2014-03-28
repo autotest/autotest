@@ -25,15 +25,15 @@ prepare-source:
 
 build-deb-src: prepare-source
 	# build the source package
-	dpkg-buildpackage -S -rfakeroot
+	dpkg-buildpackage -S -rfakeroot -i.git
 
 build-deb-bin: prepare-source
 	# build binary package
-	dpkg-buildpackage -b -rfakeroot
+	dpkg-buildpackage -b -rfakeroot -i.git
 
 build-deb-all: prepare-source
 	# build both source and binary packages
-	dpkg-buildpackage -i -I -rfakeroot
+	dpkg-buildpackage -i.git -I -rfakeroot
 
 clean:
 	$(PYTHON) setup.py clean
