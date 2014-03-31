@@ -3377,3 +3377,31 @@ def selinux_enforcing():
     cmdresult = run('getenforce', ignore_status=True, verbose=False)
     mobj = re.search('Enforcing', cmdresult.stdout)
     return mobj is not None
+
+
+def get_unique_name(check, prefix="", suffix="", length=None, skip=None):
+    """
+    Get unique name according to check function, use only 1000 iterations.
+    :param cmp: Function called to discover name uniqueness
+    :param prefix: Name prefix
+    :param suffix: Name suffix
+    :param length: Length of random string, when None use numbers (0,1,2)
+    :param skip: skip n numbers (only when length=None
+
+    :raise StopIteration: In case no unique name obtained in 1000 iterations
+    :return: Unique name according to check function
+    """
+    if length:
+        _name = "_".join([_ for _ in (prefix, '%s', suffix) if _])
+        for _ in xrange(1000):
+            name = _name % generate_random_string(length)
+            if check(name):
+                return name
+    else:
+        _name = "_".join([_ for _ in (prefix, '%s', suffix) if _])
+        for i in xrange(skip, skip + 1000):
+            name = _name % i
+            if check(name):
+                return name
+    raise StopIteration("Fail to get unique name in 1000 iterations. (%s)"
+                        % _name)
