@@ -114,6 +114,7 @@ class network_interface(object):
     def __init__(self, name):
         self.ethtool = 'ethtool'
         self._name = name
+        self.exists = self.exists()
         self.was_down = self.is_down()
         self.orig_ipaddr = self.get_ipaddr()
         self.was_loopback_enabled = self.is_loopback_enabled()
@@ -309,6 +310,9 @@ class network_interface(object):
 
     def set_ipaddr(self, ipaddr):
         utils.system('ifconfig %s %s' % (self._name, ipaddr))
+
+    def exists(self):
+        return not utils.system('ifconfig %s' % self._name, ignore_status=True)
 
     def is_down(self):
         output = utils.system_output('ifconfig %s' % self._name)
