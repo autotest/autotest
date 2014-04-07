@@ -617,6 +617,7 @@ class AptBackend(DpkgBackend):
         super(AptBackend, self).__init__()
         executable = os_dep.command('apt-get')
         self.base_command = executable + ' -y'
+        self.dpkg_force_confdef = '-o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold"'
         self.repo_file_path = '/etc/apt/sources.list.d/autotest'
         cmd_result = utils.run('apt-get -v | head -1',
                                ignore_status=True,
@@ -628,7 +629,8 @@ class AptBackend(DpkgBackend):
             ver = out
         self.pm_version = ver
 
-        logging.debug('apt-get version: %s' % self.pm_version)
+        logging.debug('apt-get version: %s', self.pm_version)
+        os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
 
     def install(self, name):
         """
@@ -637,7 +639,7 @@ class AptBackend(DpkgBackend):
         :param name: Package name.
         """
         command = 'install'
-        i_cmd = self.base_command + ' ' + command + ' ' + name
+        i_cmd = " ".join([self.base_command, self.dpkg_force_confdef, command, name])
 
         try:
             utils.system(i_cmd)
@@ -709,10 +711,10 @@ class AptBackend(DpkgBackend):
 
         if name:
             up_command = 'install --only-upgrade'
-            up_cmd = self.base_command + ' ' + up_command + ' ' + name
+            up_cmd = " ".join([self.base_command, self.dpkg_force_confdef, up_command, name])
         else:
             up_command = 'upgrade'
-            up_cmd = self.base_command + ' ' + up_command
+            up_cmd = " ".join([self.base_command, self.dpkg_force_confdef, up_command])
 
         try:
             utils.system(up_cmd)
