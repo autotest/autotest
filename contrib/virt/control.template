@@ -32,7 +32,7 @@ def step_test():
 
 def run(machine):
     parser = cartesian_config.Parser()
-    parser.parse_file(os.path.join(virt_test_dir, "qemu", "cfg", "site-config.cfg"))
+    parser.parse_file(os.path.join(virt_test_dir, "backends", "qemu", "cfg", "site-config.cfg"))
     custom_cfg = $custom_job_cfg
     for line in custom_cfg:
         parser.parse_string(line)
