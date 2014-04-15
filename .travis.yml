@@ -9,7 +9,6 @@ branches:
 install:
     - pip install sphinx tox
     - pip install -r requirements.txt --use-mirrors
-    - AUTOTEST_TOP_PATH=. python setup.py install
 
 script:
     AUTOTEST_DIR=. ./utils/unittest_suite_nose.py -c .nose.cfg
