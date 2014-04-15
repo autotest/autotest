@@ -10,18 +10,21 @@ from nose.plugins.attrib import AttributeSelector
 from nose.plugins.xunit import Xunit
 from nose.plugins.cover import Coverage
 
-import unittest
 import logging
 import os
 import nose
 import sys
 
 # we can replace this with a @attr(duration='long') on each test
+try:
+    import autotest.common as common
+except ImportError:
+    import common
+
 from autotest.utils.unittest_suite import LONG_TESTS
 
 
 logger = logging.getLogger(__name__)
-
 
 class AutoTestSelector(Selector):
 
@@ -35,7 +38,8 @@ class AutoTestSelector(Selector):
         if not filename.endswith('_unittest.py'):
             return False
 
-        if not self.config.options.full and filename in LONG_TESTS:
+        if not self.config.options.full and os.path.basename(filename) in LONG_TESTS:
+            logger.debug('Skipping test: %s' % filename)
             return False
 
         skip_tests = []

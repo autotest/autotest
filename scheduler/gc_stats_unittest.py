@@ -1,13 +1,13 @@
 #!/usr/bin/python
 
 import logging
+import unittest
 
 try:
     import autotest.common as common
 except ImportError:
     import common
 from autotest.client.shared.test_utils import mock
-from autotest.client.shared.test_utils import unittest
 from autotest.scheduler import gc_stats
 
 
