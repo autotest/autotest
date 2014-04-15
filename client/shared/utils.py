@@ -90,7 +90,8 @@ def get_stream_tee_file(stream, level, prefix=''):
 class BgJob(object):
 
     def __init__(self, command, stdout_tee=None, stderr_tee=None, verbose=True,
-                 stdin=None, stderr_level=DEFAULT_STDERR_LEVEL):
+                 stdin=None, stderr_level=DEFAULT_STDERR_LEVEL,
+                 close_fds=False):
         self.command = command
         self.stdout_tee = get_stream_tee_file(stdout_tee, DEFAULT_STDOUT_LEVEL,
                                               prefix=STDOUT_PREFIX)
@@ -115,7 +116,9 @@ class BgJob(object):
             shell = '/bin/sh'
         self.sp = subprocess.Popen(command, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE,
-                                   preexec_fn=self._reset_sigpipe, shell=True,
+                                   preexec_fn=self._reset_sigpipe,
+                                   close_fds=close_fds,
+                                   shell=True,
                                    executable=shell,
                                    stdin=stdin)
 
@@ -159,10 +162,11 @@ class BgJob(object):
 class AsyncJob(BgJob):
 
     def __init__(self, command, stdout_tee=None, stderr_tee=None, verbose=True,
-                 stdin=None, stderr_level=DEFAULT_STDERR_LEVEL, kill_func=None):
+                 stdin=None, stderr_level=DEFAULT_STDERR_LEVEL, kill_func=None,
+                 close_fds=False):
         super(AsyncJob, self).__init__(command, stdout_tee=stdout_tee,
                                        stderr_tee=stderr_tee, verbose=verbose, stdin=stdin,
-                                       stderr_level=stderr_level)
+                                       stderr_level=stderr_level, close_fds=close_fds)
 
         # start time for CmdResult
         self.start_time = time.time()
