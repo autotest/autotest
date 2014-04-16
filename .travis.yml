@@ -9,6 +9,10 @@ branches:
 git:
     submodules: false
 
+before_script:
+    - sudo apt-get install -y --force-yes protobuf-compiler python-protobuf
+    - make -C tko
+
 install:
     - pip install sphinx tox simplejson MySQL-python pylint autopep8
     - pip install inspektor
