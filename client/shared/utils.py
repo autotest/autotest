@@ -215,9 +215,9 @@ class AsyncJob(BgJob):
         """
         try:
             while True:
-                # we can write PIPE_BUF bytes without blocking after a poll or select
-                # we aren't doing either but let's write small chunks anyway.
-                # POSIX requires PIPE_BUF is >= 512
+                # we can write PIPE_BUF bytes without blocking after a poll or
+                # select we aren't doing either but let's write small chunks
+                # anyway. POSIX requires PIPE_BUF is >= 512
                 # 512 should be replaced with select.PIPE_BUF in Python 2.7+
                 tmp = input_string[:512]
                 if tmp == '':
@@ -258,7 +258,8 @@ class AsyncJob(BgJob):
 
     def process_output(self, stdout=True, final_read=False):
         raise NotImplementedError("This object has background threads "
-                                  "automatically polling the process. Use the locked accessors")
+                                  "automatically polling the process. Use the "
+                                  "locked accessors")
 
     def get_stdout(self):
         self.stdout_lock.acquire()
@@ -279,9 +280,15 @@ class AsyncJob(BgJob):
         try:
             os.kill(self.sp.pid, signal.SIGTERM)
         except OSError:
-            pass  # don't care if the process is already gone, since that was the goal
+            pass  # don't care if the process is already gone
 
     def wait_for(self, timeout=None):
+        """
+        Wait for the process to finish. When timeout is provided, process is
+        safely destroyed after timeout.
+        :param timeout: Acceptable timeout
+        :return: results of this command
+        """
         if timeout is None:
             self.sp.wait()
 
@@ -291,13 +298,25 @@ class AsyncJob(BgJob):
                 self.result.exit_status = self.sp.poll()
                 if self.result.exit_status is not None:
                     break
+        else:
+            timeout = 1     # Increase the timeout to check if it really died
         # first need to kill the threads and process, then no more locking
         # issues for superclass's cleanup function
         self.kill_func()
-
+        # Verify it was really killed with provided kill function
+        stop_time = time.time() + timeout
+        while time.time() < stop_time:
+            self.result.exit_status = self.sp.poll()
+            if self.result.exit_status is not None:
+                break
+        else:   # Process is immune against self.kill_func() use -9
+            try:
+                os.kill(self.sp.pid, signal.SIGKILL)
+            except OSError:
+                pass  # don't care if the process is already gone
         # we need to fill in parts of the result that aren't done automatically
         try:
-            pid, self.result.exit_status = os.waitpid(self.sp.pid, 0)
+            _, self.result.exit_status = os.waitpid(self.sp.pid, 0)
         except OSError:
             self.result.exit_status = self.sp.poll()
         self.result.duration = time.time() - self.start_time
