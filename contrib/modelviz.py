@@ -47,6 +47,7 @@ from django.db.models.fields.related import \
     ForeignKey, OneToOneField, ManyToManyField
 
 try:
+    # pylint: disable=E0611
     from django.db.models.fields.generic import GenericRelation
 except ImportError:
     from django.contrib.contenttypes.generic import GenericRelation
