@@ -311,6 +311,7 @@ class network_interface(object):
     def set_ipaddr(self, ipaddr):
         utils.system('ifconfig %s %s' % (self._name, ipaddr))
 
+    # pylint: disable=E0202
     def exists(self):
         return not utils.system('ifconfig %s' % self._name, ignore_status=True)
 
