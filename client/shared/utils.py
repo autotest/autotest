@@ -215,9 +215,9 @@ class AsyncJob(BgJob):
         """
         try:
             while True:
-                # we can write PIPE_BUF bytes without blocking after a poll or select
-                # we aren't doing either but let's write small chunks anyway.
-                # POSIX requires PIPE_BUF is >= 512
+                # we can write PIPE_BUF bytes without blocking after a poll or
+                # select we aren't doing either but let's write small chunks
+                # anyway. POSIX requires PIPE_BUF is >= 512
                 # 512 should be replaced with select.PIPE_BUF in Python 2.7+
                 tmp = input_string[:512]
                 if tmp == '':
@@ -258,7 +258,8 @@ class AsyncJob(BgJob):
 
     def process_output(self, stdout=True, final_read=False):
         raise NotImplementedError("This object has background threads "
-                                  "automatically polling the process. Use the locked accessors")
+                                  "automatically polling the process. Use the "
+                                  "locked accessors")
 
     def get_stdout(self):
         self.stdout_lock.acquire()
@@ -279,7 +280,7 @@ class AsyncJob(BgJob):
         try:
             os.kill(self.sp.pid, signal.SIGTERM)
         except OSError:
-            pass  # don't care if the process is already gone, since that was the goal
+            pass  # don't care if the process is already gone
 
     def wait_for(self, timeout=None):
         if timeout is None:
@@ -297,7 +298,7 @@ class AsyncJob(BgJob):
 
         # we need to fill in parts of the result that aren't done automatically
         try:
-            pid, self.result.exit_status = os.waitpid(self.sp.pid, 0)
+            _, self.result.exit_status = os.waitpid(self.sp.pid, 0)
         except OSError:
             self.result.exit_status = self.sp.poll()
         self.result.duration = time.time() - self.start_time
