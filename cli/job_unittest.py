@@ -15,7 +15,11 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.cli import cli_mock, topic_common, job, rpc
+from autotest.cli import cli_mock
+# pylint: disable=E0611
+from autotest.cli import job
+from autotest.cli import rpc
+from autotest.cli import topic_common
 from autotest.client.shared.test_utils import mock
 
 

@@ -17,6 +17,7 @@ import utils.setup
 import mirror.setup
 import installation_support.setup
 
+# pylint: disable=E0611
 from distutils.core import setup
 
 from sphinx.setup_command import BuildDoc

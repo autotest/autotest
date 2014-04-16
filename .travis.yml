@@ -6,9 +6,18 @@ branches:
     only:
         - master
 
+git:
+    submodules: false
+
+before_script:
+    - sudo apt-get install -y --force-yes protobuf-compiler python-protobuf
+    - make -C tko
+
 install:
-    - pip install sphinx tox simplejson MySQL-python
+    - pip install sphinx tox simplejson MySQL-python pylint autopep8
+    - pip install inspektor
     - pip install -r requirements.txt --use-mirrors
 
 script:
-    AUTOTEST_DIR=. ./utils/unittest_suite_nose.py -c .nose.cfg
+    - ./utils/unittest_suite_nose.py -c .nose.cfg
+    - inspekt lint

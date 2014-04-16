@@ -25,6 +25,7 @@ def main():
         os.environ['DJANGO_SETTINGS_MODULE'] = settings
 
         # import after setting DJANGO_SETTINGS_MODULE
+        # pylint: disable=E0611
         from autotest.contrib import modelviz
 
         # hack to force reload of settings and app list

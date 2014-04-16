@@ -1,5 +1,6 @@
 # Please keep this code python 2.4 compatible and stand alone.
 
+# pylint: disable=E0611
 import distutils.version
 import logging
 import os

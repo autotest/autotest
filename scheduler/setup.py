@@ -1,3 +1,4 @@
+# pylint: disable=E0611
 from distutils.core import setup
 import os
 

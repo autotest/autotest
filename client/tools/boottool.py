@@ -1422,6 +1422,7 @@ class Grubby(object):
         except:
             try:
                 # then the autotest source directory
+                # pylint: disable=E0611
                 from autotest.client.shared.settings import settings
                 top_path = settings.get_value('COMMON', 'autotest_top_path')
                 tarball = os.path.join(top_path, tarball_name)
