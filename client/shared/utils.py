@@ -283,6 +283,12 @@ class AsyncJob(BgJob):
             pass  # don't care if the process is already gone
 
     def wait_for(self, timeout=None):
+        """
+        Wait for the process to finish. When timeout is provided, process is
+        safely destroyed after timeout.
+        :param timeout: Acceptable timeout
+        :return: results of this command
+        """
         if timeout is None:
             self.sp.wait()
 
@@ -292,10 +298,22 @@ class AsyncJob(BgJob):
                 self.result.exit_status = self.sp.poll()
                 if self.result.exit_status is not None:
                     break
+        else:
+            timeout = 1     # Increase the timeout to check if it really died
         # first need to kill the threads and process, then no more locking
         # issues for superclass's cleanup function
         self.kill_func()
-
+        # Verify it was really killed with provided kill function
+        stop_time = time.time() + timeout
+        while time.time() < stop_time:
+            self.result.exit_status = self.sp.poll()
+            if self.result.exit_status is not None:
+                break
+        else:   # Process is immune against self.kill_func() use -9
+            try:
+                os.kill(self.sp.pid, signal.SIGKILL)
+            except OSError:
+                pass  # don't care if the process is already gone
         # we need to fill in parts of the result that aren't done automatically
         try:
             _, self.result.exit_status = os.waitpid(self.sp.pid, 0)
