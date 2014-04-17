@@ -34,6 +34,7 @@ def get_filelist():
     pd_filelist = ['config/*']
     pd_filelist.extend(_get_files(os.path.join(client_dir, 'profilers')))
     pd_filelist.extend(_get_files(os.path.join(client_dir, 'tools')))
+    pd_filelist.extend(_get_files(os.path.join(client_dir, 'shared', 'templates')))
     return pd_filelist
 
 
