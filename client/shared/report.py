@@ -236,10 +236,16 @@ def generate_html_report(results_dir, relative_links=True):
     job_data = json.load(json_fo)
 
     templates_path = settings.settings.get_value("CLIENT", "job_templates_dir",
-                                                 default="")
+                                                 default=None)
 
     if not templates_path:
-        templates_path = os.path.join(common.client_dir, "shared", "templates")
+        if hasattr(common, 'autotest_dir'):
+            templates_path = os.path.join(common.autotest_dir, "client", "shared", "templates")
+        elif hasattr(common, 'client_dir'):
+            templates_path = os.path.join(common.client_dir, "shared", "templates")
+
+    if templates_path is None:
+        raise ValueError('Could not find json templates directory to create report')
 
     base_template_path = os.path.join(templates_path, "report.jsont")
     base_template = open(base_template_path, "r").read()
