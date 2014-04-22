@@ -67,6 +67,7 @@ class OrderedDict(dict, DictMixin):
         # Modified from original to support Python 2.4, see
         # http://code.google.com/p/simplejson/issues/detail?id=53
         if last:
+            # pylint: disable=E0111
             key = reversed(self).next()
         else:
             key = iter(self).next()
