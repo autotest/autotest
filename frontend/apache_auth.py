@@ -21,6 +21,7 @@ class SimpleAuthBackend(backends.ModelBackend):
             user = User.objects.get(username=username)
         except User.DoesNotExist:
             # password is meaningless
+            # pylint: disable=E1123
             user = User(username=username,
                         password='apache authentication')
             user.is_staff = True
