@@ -1,7 +1,6 @@
-from django.contrib.auth.models import User, Group, check_password
+from django.contrib.auth.models import User, Group
 from django.contrib.auth import backends
 from django.contrib import auth
-from django import http
 
 from autotest.frontend import thread_local
 from autotest.frontend.afe import models, management
