@@ -279,6 +279,7 @@ def get_embedding_id(url_token, graph_type, params):
     except models.EmbeddedGraphingQuery.DoesNotExist:
         params_str = pickle.dumps(params)
         now = datetime.datetime.now()
+        # pylint: disable=E1123
         model = models.EmbeddedGraphingQuery(url_token=url_token,
                                              graph_type=graph_type,
                                              params=params_str,

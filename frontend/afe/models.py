@@ -537,6 +537,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
             self.save()
         queue_entry.save()
 
+        # pylint: disable=E1123
         block = IneligibleHostQueue(job=job, host=self)
         block.save()
 
@@ -1244,6 +1245,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
                              is_template=is_template)
 
     def create_recurring_job(self, start_date, loop_period, loop_count, owner):
+        # pylint: disable=E1123
         rec = RecurringRun(job=self, start_date=start_date,
                            loop_period=loop_period,
                            loop_count=loop_count,
@@ -1326,6 +1328,7 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
         super(HostQueueEntry, self).__init__(*args, **kwargs)
         self._record_attributes(['status'])
 
+    # pylint: disable=E1123
     @classmethod
     def create(cls, job, host=None, profile='', meta_host=None, atomic_group=None,
                is_template=False):
@@ -1375,6 +1378,7 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
         return self.host is None and self.meta_host is not None
 
     def log_abort(self, user):
+        # pylint: disable=E1123
         abort_log = AbortedHostQueueEntry(queue_entry=self, aborted_by=user)
         abort_log.save()
 
@@ -1525,6 +1529,7 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
         if existing_tasks:
             return existing_tasks[0]
 
+        # pylint: disable=E1123
         special_task = SpecialTask(host=host, task=task,
                                    requested_by=User.current_user())
         special_task.save()
