@@ -74,7 +74,7 @@ class AutotestLocalOptionParser(optparse.OptionParser):
         self.add_option_group(job_id)
 
         verbosity = optparse.OptionGroup(self, 'VERBOSITY')
-        verbosity.add_option('--verbose', dest='verbose', action='store_true',
+        verbosity.add_option('-v', '--verbose', dest='verbose', action='store_true',
                              default=False,
                              help='Include DEBUG messages in console output. '
                              'If omitted, only informational messages will be '
