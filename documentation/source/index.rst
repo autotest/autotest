@@ -10,13 +10,12 @@ It is designed primarily to test the Linux kernel, though it is useful for many 
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
    client/index
    shared/index
    frontend/index
-   api/autotest.client
-   api/autotest.frontend
+   api/modules
 
 Indices and tables
 ==================
