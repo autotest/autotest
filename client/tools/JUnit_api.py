@@ -363,15 +363,15 @@ class MixedContainer:
         if self.category == MixedContainer.CategoryText:
             showIndent(outfile, level)
             outfile.write('model_.MixedContainer(%d, %d, "%s", "%s"),\n' %
-                         (self.category, self.content_type, self.name, self.value))
+                          (self.category, self.content_type, self.name, self.value))
         elif self.category == MixedContainer.CategorySimple:
             showIndent(outfile, level)
             outfile.write('model_.MixedContainer(%d, %d, "%s", "%s"),\n' %
-                         (self.category, self.content_type, self.name, self.value))
+                          (self.category, self.content_type, self.name, self.value))
         else:    # category == MixedContainer.CategoryComplex
             showIndent(outfile, level)
             outfile.write('model_.MixedContainer(%d, %d, "%s",\n' %
-                         (self.category, self.content_type, self.name,))
+                          (self.category, self.content_type, self.name,))
             self.value.exportLiteral(outfile, level + 1)
             showIndent(outfile, level)
             outfile.write(')\n')

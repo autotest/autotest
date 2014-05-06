@@ -164,7 +164,7 @@ class harness_beaker(harness.harness):
                                                       testname, score, '')
 
                 if (logfile and os.path.isfile(logfile) and
-                   os.path.getsize(logfile) != 0):
+                        os.path.getsize(logfile) != 0):
                     self.bkr_proxy.result_upload_file(task_id, resultid, logfile)
 
                 # save the dmesg file
@@ -208,7 +208,7 @@ class harness_beaker(harness.harness):
         # sanity check
         if self.recipe_id != recipe.id:
             raise error.HarnessError('Recipe mismatch: machine %s.. != XML %s..' %
-                                    (self.recipe_id, recipe.id))
+                                     (self.recipe_id, recipe.id))
 
         # create unique name
         control_file_name = recipe.job_id + '_' + recipe.id + '.control'

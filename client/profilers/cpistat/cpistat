@@ -13,14 +13,19 @@ Depends on libpfm4: http://perfmon2.sf.net/
 git://perfmon2.git.sourceforge.net/gitroot/perfmon2/libpfm4
 """
 
-import sys, os, optparse, time, struct, perfmon
+import sys
+import os
+import optparse
+import time
+import struct
+import perfmon
 
 if __name__ == '__main__':
     parser = optparse.OptionParser()
     parser.add_option('-e', '--events', help='Events to use',
-                       action='store', dest='events')
+                      action='store', dest='events')
     parser.add_option('-c', '--cpulist', help='CPUs to monitor',
-                       action='store', dest='cpulist')
+                      action='store', dest='cpulist')
     parser.set_defaults(events='PERF_COUNT_HW_CPU_CYCLES,' +
                                'PERF_COUNT_HW_INSTRUCTIONS')
     (options, args) = parser.parse_args()
@@ -31,7 +36,7 @@ if __name__ == '__main__':
         cpus = range(0, ncpus)
     else:
         cpus = options.cpulist.split(',')
-        cpus = [ int(c) for c in cpus ]
+        cpus = [int(c) for c in cpus]
         show_per_cpu = True
 
     if options.events:
@@ -76,7 +81,7 @@ if __name__ == '__main__':
 
         cycles = sum['PERF_COUNT_HW_CPU_CYCLES']
         instructions = sum['PERF_COUNT_HW_INSTRUCTIONS']
-        CPI = cycles * 1.0/instructions
+        CPI = cycles * 1.0 / instructions
         print ('cycles: %12lu, instructions: %12lu, CPI: %2.4f'
                % (cycles, instructions, CPI))
         sys.stdout.flush()

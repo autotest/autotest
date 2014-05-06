@@ -204,7 +204,7 @@ class job_stat(job_list_stat):
                 if self.status_list:
                     statuses = set(s.lower() for s in self.status_list)
                     all_hosts = [s for s in host_per_status if s.split('=',
-                                 1)[0].lower() in statuses]
+                                                                       1)[0].lower() in statuses]
                     job['hosts_selected_status'] = '\n'.join(all_hosts)
             else:
                 job['hosts_status'] = ''

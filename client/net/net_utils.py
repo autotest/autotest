@@ -242,7 +242,7 @@ class network_interface(object):
 
     def _set_loopback(self, mode, enable_disable):
         return utils.system('%s -L %s %s %s' %
-                           (self.ethtool, self._name, mode, enable_disable),
+                            (self.ethtool, self._name, mode, enable_disable),
                             ignore_status=True)
 
     def enable_loopback(self):

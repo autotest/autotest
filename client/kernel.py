@@ -151,7 +151,7 @@ class kernel(BootableKernel):
 
         self.src_dir = os.path.join(tmp_dir, 'src')
         self.build_dir = os.path.join(tmp_dir, build_dir)
-                # created by get_kernel_tree
+        # created by get_kernel_tree
         self.config_dir = os.path.join(subdir, 'config')
         self.log_dir = os.path.join(subdir, 'debug')
         self.results_dir = os.path.join(subdir, 'results')
@@ -351,7 +351,7 @@ class kernel(BootableKernel):
         threads = 2 * utils.count_cpus()
         build_string = 'make -j %d %s %s' % (threads, make_opts,
                                              self.build_target)
-                                # eg make bzImage, or make zImage
+        # eg make bzImage, or make zImage
         print build_string
         utils.system(build_string)
         if kernel_config.modules_needed('.config'):
@@ -818,7 +818,7 @@ def auto_kernel(job, path, subdir, tmp_dir, build_dir, leave=False):
     """
     kernel_paths = [preprocess_path(path)]
     if kernel_paths[0].endswith('.list'):
-    # Fetch the list of packages to install
+        # Fetch the list of packages to install
         kernel_list = os.path.join(tmp_dir, 'kernel.list')
         utils.get_file(kernel_paths[0], kernel_list)
         kernel_paths = [p.strip() for p in open(kernel_list).readlines()]

@@ -411,7 +411,7 @@ def set_io_controls(container_name, disks=[], ioprio_classes=[PROPIO_NORMAL],
     service_level = io_attr(container_name, 'io_service_level')
     if not os.path.exists(service_level):
         return  # kernel predates propio features
-            # or io cgroup is mounted separately from cpusets
+        # or io cgroup is mounted separately from cpusets
     disk_infos = []
     for disk, ioclass, limit, share in zip(disks, ioprio_classes,
                                            io_limits, io_shares):

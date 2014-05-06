@@ -26,6 +26,7 @@ from autotest.utils.unittest_suite import LONG_TESTS
 
 logger = logging.getLogger(__name__)
 
+
 class AutoTestSelector(Selector):
 
     def wantDirectory(self, dirname):

@@ -189,7 +189,7 @@ def main(basedir, resfiles):
             tc.time = int(r[2])
             tests = tests + 1
             if r[1] == 'GOOD':
-            # success, we append the testcase without an error or fail
+                # success, we append the testcase without an error or fail
                 pass
             # Count NA as fails, disable them if you don't want them
             elif r[1] == 'TEST_NA':

@@ -949,7 +949,7 @@ def CompileTemplate(
 
     if balance_counter != 0:
         raise TemplateSyntaxError('Got too few %send%s statements' %
-                                 (meta_left, meta_right))
+                                  (meta_left, meta_right))
 
     return builder.Root()
 

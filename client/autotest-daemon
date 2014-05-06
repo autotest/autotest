@@ -4,7 +4,10 @@ try:
     import autotest.common
 except ImportError:
     import common
-import sys, os, subprocess, fcntl
+import sys
+import os
+import subprocess
+import fcntl
 
 from autotest.client import os_dep
 

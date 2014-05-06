@@ -24,7 +24,7 @@ except Exception, e:
     print
     print "Specific error:"
     print '\n'.join(textwrap.wrap(str(e), initial_indent='    ',
-                    subsequent_indent='    '))
+                                  subsequent_indent='    '))
     sys.exit(1)
 
 if cd.experimental:

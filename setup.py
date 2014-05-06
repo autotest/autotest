@@ -65,14 +65,14 @@ def _fix_data_paths(package_data_dict):
 
 def get_package_dir():
     return _combine_dicts([client.setup.get_package_dir(),
-                          frontend.setup.get_package_dir(),
-                          cli.setup.get_package_dir(),
-                          server.setup.get_package_dir(),
-                          scheduler.setup.get_package_dir(),
-                          database_legacy.setup.get_package_dir(),
-                          tko.setup.get_package_dir(),
-                          utils.setup.get_package_dir(),
-                          mirror.setup.get_package_dir()])
+                           frontend.setup.get_package_dir(),
+                           cli.setup.get_package_dir(),
+                           server.setup.get_package_dir(),
+                           scheduler.setup.get_package_dir(),
+                           database_legacy.setup.get_package_dir(),
+                           tko.setup.get_package_dir(),
+                           utils.setup.get_package_dir(),
+                           mirror.setup.get_package_dir()])
 
 
 def get_packages():

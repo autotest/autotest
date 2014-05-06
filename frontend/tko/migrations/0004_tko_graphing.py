@@ -121,11 +121,11 @@ class Migration(SchemaMigration):
         db.execute(create_perf_view_2)
 
     def backwards(self, orm):
-        drop_tko_perf_view="""
+        drop_tko_perf_view = """
         DROP VIEW IF EXISTS tko_perf_view
         """
         db.execute(drop_tko_perf_view)
-        drop_tko_perf_view_2="""
+        drop_tko_perf_view_2 = """
         DROP VIEW IF EXISTS tko_perf_view_2
         """
         db.execute(drop_tko_perf_view_2)

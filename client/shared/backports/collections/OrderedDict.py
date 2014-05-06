@@ -39,6 +39,7 @@ class OrderedDict(dict):
     # The sentinel element never gets deleted (this simplifies the algorithm).
     # Each link is stored as a list of length three:  [PREV, NEXT, KEY].
     # pylint: disable=I0011,W0231
+
     def __init__(self, *args, **kwds):
         '''
         Initialize an ordered dictionary.

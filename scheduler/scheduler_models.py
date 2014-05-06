@@ -694,8 +694,8 @@ class HostQueueEntry(DBObject):
         hosts_queue = HostQueueEntry.fetch('job_id = %s' % self.job.id)
         for queue_entry in hosts_queue:
             summary.append("Host: %s Status: %s" %
-                          (queue_entry._get_hostname(),
-                           queue_entry.status))
+                           (queue_entry._get_hostname(),
+                            queue_entry.status))
 
         summary = "\n".join(summary)
         status_counts = models.Job.objects.get_status_counts(
@@ -961,7 +961,7 @@ class Job(DBObject):
                 for i in test_indexes:
                     rows = db.execute('SELECT value FROM tko_test_attributes '
                                       'WHERE test_idx=%s AND attribute="%s"' %
-                                     (i[0], keyname))
+                                      (i[0], keyname))
                     if rows:
                         for row in rows:
                             line = []

@@ -320,7 +320,7 @@ def get_sync_control_file(control, host_name, host_num,
         print "Please provide a non negative number for the host"
         return None
     s_bar_port = port_base + 1 + host_num  # The set of s_bar_ports are
-                                          # the same for a given machine
+    # the same for a given machine
 
     sc_bar_timeout = 180
     s_bar_timeout = c_bar_timeout = 120

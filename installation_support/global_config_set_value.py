@@ -43,6 +43,7 @@ def set_value(path, section, key, value):
 
 
 class OptionParser(optparse.OptionParser):
+
     def __init__(self):
         optparse.OptionParser.__init__(self, usage='Usage: %prog [options]')
 
@@ -61,6 +62,7 @@ class OptionParser(optparse.OptionParser):
 
 
 class App(object):
+
     def run(self):
         result = False
         self.option_parser = OptionParser()

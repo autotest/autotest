@@ -170,8 +170,8 @@ class SortingLoggingFile(LoggingFile):
     """
 
     def __init__(self, prefix='', level_list=[('ERROR', logging.ERROR),
-                ('WARN', logging.WARN), ('INFO', logging.INFO),
-            ('DEBUG', logging.DEBUG)], logger=logging.getLogger()):
+                                              ('WARN', logging.WARN), ('INFO', logging.INFO),
+                                              ('DEBUG', logging.DEBUG)], logger=logging.getLogger()):
         super(SortingLoggingFile, self).__init__(prefix=prefix, logger=logger)
         self._level_list = [(re.compile(x), y) for x, y in level_list]
 

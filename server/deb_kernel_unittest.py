@@ -39,7 +39,7 @@ class TestDebKernel(unittest.TestCase):
 
         # record
         self.host.run.expect_call('dpkg -i "%s"' %
-                                 (utils.sh_escape(self.remote_filename)))
+                                  (utils.sh_escape(self.remote_filename)))
 
         result = common_utils.CmdResult()
         result.stdout = "1"

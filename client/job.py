@@ -280,8 +280,8 @@ class base_client_job(base_job.base_job):
         Perform the drop caches initialization.
         """
         self.drop_caches_between_iterations = (settings.get_value('CLIENT',
-                                               'drop_caches_between_iterations',
-                                               type=bool, default=True))
+                                                                  'drop_caches_between_iterations',
+                                                                  type=bool, default=True))
         self.drop_caches = drop_caches
         if self.drop_caches:
             utils_memory.drop_caches()
@@ -943,8 +943,8 @@ class base_client_job(base_job.base_job):
         if not os.path.isdir(state_config):
             os.makedirs(state_config)
         init_state_file = os.path.join(state_config,
-                                      ("%s.init.state" %
-                                       os.path.basename(self.control)))
+                                       ("%s.init.state" %
+                                        os.path.basename(self.control)))
         self._state_file = os.path.join(state_config,
                                         ("%s.state" %
                                          os.path.basename(self.control)))

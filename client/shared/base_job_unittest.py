@@ -122,6 +122,7 @@ class test_init(unittest.TestCase):
         self.god.stub_function_to_return(job.logging_manager,
                                          'configure_logging', None)
         self.god.stub_function_to_return(utils, 'safe_rmdir', None)
+
         class manager:
 
             def start_logging(self):

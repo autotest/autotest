@@ -85,7 +85,7 @@ class xen(kernel.kernel):
 
         xen_version = self.get_xen_build_ver()
         self.log('BUILD VERSION: Xen: %s Kernel:%s' %
-                (xen_version, self.kjob.get_kernel_build_ver()))
+                 (xen_version, self.kjob.get_kernel_build_ver()))
 
     def build_timed(self, *args, **kwds):
         raise NotImplementedError('build_timed() not implemented')

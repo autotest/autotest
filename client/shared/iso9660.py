@@ -236,6 +236,7 @@ class Iso9660Mount(BaseIso9660):
     '''
     Represents a mounted ISO9660 filesystem.
     '''
+
     def __init__(self, path):
         '''
         initializes a mounted ISO9660 filesystem

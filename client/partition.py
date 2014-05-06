@@ -266,7 +266,7 @@ def parallel(partitions, method_name, *args, **dargs):
     job = partitions[0].job
     flist = []
     if (not hasattr(partition, method_name) or
-       not callable(getattr(partition, method_name))):
+            not callable(getattr(partition, method_name))):
         err = "partition.parallel got invalid method %s" % method_name
         raise RuntimeError(err)
 
@@ -965,7 +965,7 @@ class virtual_partition:
             utils.run(cmd)
         except error.CmdError, e:
             e_msg = ('Error detaching image %s from loop device %s: %s' %
-                    (self.img, self.loop, e))
+                     (self.img, self.loop, e))
             raise error.AutotestError(e_msg)
 
     def _remove_disk_img(self):
