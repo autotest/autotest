@@ -19,7 +19,7 @@ class Migration(SchemaMigration):
         db.delete_primary_key('tko_iteration_result')
         db.create_index('tko_iteration_result', ['test_idx'])
         create_perf_view = """
-        CREATE OR REPLACE VIEW `tko_perf_view` AS 
+        CREATE OR REPLACE VIEW `tko_perf_view` AS
           SELECT `tko_tests`.`test_idx` AS `test_idx`,
           `tko_tests`.`job_idx` AS `job_idx`,
           `tko_tests`.`test` AS `test`,
@@ -44,8 +44,8 @@ class Migration(SchemaMigration):
           `tko_status`.`word` AS `status_word`,
           `tko_iteration_result`.`iteration` AS `iteration`,
           `tko_iteration_result`.`attribute` AS `iteration_key`,
-          `tko_iteration_result`.`value` AS `iteration_value` 
-          FROM 
+          `tko_iteration_result`.`value` AS `iteration_value`
+          FROM
           (
             (
               (
@@ -55,10 +55,10 @@ class Migration(SchemaMigration):
                     ((`tko_jobs`.`job_idx` = `tko_tests`.`job_idx`)))
                   JOIN `tko_machines` ON
                     ((`tko_machines`.`machine_idx` = `tko_jobs`.`machine_idx`))
-                ) 
+                )
                JOIN `tko_kernels` ON
                 ((`tko_kernels`.`kernel_idx` = `tko_tests`.`kernel_idx`))
-              ) 
+              )
               JOIN `tko_status` on
                 ((`tko_status`.`status_idx` = `tko_tests`.`status`))
             )
@@ -104,16 +104,16 @@ class Migration(SchemaMigration):
                 (
                   `tko_tests` LEFT JOIN `tko_jobs` ON
                     ((`tko_jobs`.`job_idx` = `tko_tests`.`job_idx`))
-                ) 
+                )
                 LEFT JOIN `tko_machines` ON
                   ((`tko_machines`.`machine_idx` = `tko_jobs`.`machine_idx`))
-              ) 
+              )
               LEFT JOIN `tko_kernels` ON
               ((`tko_kernels`.`kernel_idx` = `tko_tests`.`kernel_idx`))
-            ) 
-            LEFT JOIN `tko_status` ON 
+            )
+            LEFT JOIN `tko_status` ON
             ((`tko_status`.`status_idx` = `tko_tests`.`status`))
-          ) 
+          )
           LEFT JOIN `tko_iteration_result` ON
             ((`tko_iteration_result`.`test_idx` = `tko_tests`.`test_idx`))
         )

@@ -979,9 +979,9 @@ class job_create_unittest(cli_mock.cli_unittest):
     def test_execute_create_job_with_kernel_spaces(self):
         data = self.data.copy()
         data['control_file'] = self.kernel_ctrl_file
-        data['name'] = 'test job	with  spaces'
+        data['name'] = 'test job    with  spaces'
         self.run_cmd(argv=['atest', 'job', 'create', '-t', 'sleeptest',
-                           '-k', 'kernel', 'test job	with  spaces',
+                           '-k', 'kernel', 'test job    with  spaces',
                            '-m', 'host0', '--ignore_site_file'],
                      rpcs=[('generate_control_file',
                             {'tests': ['sleeptest'],
@@ -998,7 +998,7 @@ class job_create_unittest(cli_mock.cli_unittest):
                      # to move to the next 8 char boundary which is 7 characters
                      # away. Hence the 7 spaces in out_words_ok.
                      # The tab has been converted by print.
-                     out_words_ok=['test job       with  spaces', 'Created',
+                     out_words_ok=['test job    with  spaces', 'Created',
                                    'id', '180'])
 
     def test_execute_create_job_no_args(self):
