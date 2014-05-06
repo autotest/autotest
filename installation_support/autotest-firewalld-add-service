@@ -17,10 +17,11 @@ import xml.etree.ElementTree
 
 
 DEFAULT_ZONE_DEFAULT_BASE_PATH = os.path.join(os.sep, "usr", "lib", "firewalld", "zones")
-DEFAULT_ZONE_SYSTEM_BASE_PATH =  os.path.join(os.sep, "etc", "firewalld", "zones")
+DEFAULT_ZONE_SYSTEM_BASE_PATH = os.path.join(os.sep, "etc", "firewalld", "zones")
 
 
 class ArgumentParser(argparse.ArgumentParser):
+
     def __init__(self):
         super(ArgumentParser, self).__init__(
             description=("This tool adds a service to firewalld's permanent "
@@ -49,6 +50,7 @@ class ArgumentParser(argparse.ArgumentParser):
 
 
 class App(object):
+
     def __init__(self):
         self.parsed_arguments = None
 

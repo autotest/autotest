@@ -60,8 +60,8 @@ def get_scripts():
 
 def get_data_files():
     return [(os.environ.get('AUTOTEST_TOP_PATH', '/etc/autotest'),
-           [autotest_dir + '/global_config.ini',
-            autotest_dir + '/shadow_config.ini', ]), ]
+             [autotest_dir + '/global_config.ini',
+              autotest_dir + '/shadow_config.ini', ]), ]
 
 
 def get_package_dir():

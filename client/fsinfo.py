@@ -301,7 +301,7 @@ def match_ext_options(fs_type, dev, needed_options):
         if opt in needed_opt_dict:
             del needed_opt_dict[opt]
 
-   # User options override config options.
+    # User options override config options.
     needed_opt = conf_mkfs_opt
     for key, value in needed_opt_dict.iteritems():
         if key == '-N' or key == '-T':

@@ -853,7 +853,7 @@ class BasePackageManager(object):
                 hostline, remote_path = parse_ssh_path(pkg_dir)
                 path = os.path.join(remote_path, filename)
                 utils.run("ssh %s 'rm -rf %s/%s'" % (hostline, remote_path,
-                          path))
+                                                     path))
             else:
                 os.remove(os.path.join(pkg_dir, filename))
         except (IOError, os.error), why:
@@ -1021,7 +1021,7 @@ class BasePackageManager(object):
                 for exc_str in exclude_string:
                     cmd_list.append('--exclude %s' % exc_str)
             else:
-                if not "--exclude" in exclude_string:
+                if "--exclude" not in exclude_string:
                     cmd_list.append('--exclude')
                 cmd_list.append(exclude_string)
 

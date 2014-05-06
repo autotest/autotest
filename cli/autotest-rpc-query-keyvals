@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
-import sys, optparse
+import sys
+import optparse
 try:
     import autotest.common
 except ImportError:

@@ -1013,7 +1013,7 @@ class RemoteRunner(object):
         output = self.session.cmd_output("cat %s;rm -f %s" %
                                          (self.stdout_pipe, self.stdout_pipe))
         errput = self.session.cmd_output("cat %s;rm -f %s" %
-                                        (self.stderr_pipe, self.stderr_pipe))
+                                         (self.stderr_pipe, self.stderr_pipe))
         cmd_result = utils.CmdResult(command=command, exit_status=status,
                                      stdout=output, stderr=errput)
         if (status and (not ignore_status)):

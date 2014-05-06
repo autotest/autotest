@@ -89,7 +89,6 @@ class iscsi_test(unittest.TestCase):
         t_cmd += "--backing-store %s" % iscsi_obj.emulated_image
         utils.system.expect_call(t_cmd)
 
-
     def setup_stubs_get_target_id(self):
         s_cmd = "tgtadm --lld iscsi --mode target --op show"
         s_msg = "Target 1: iqn.iscsitest\nBacking store path: /tmp/iscsitest"

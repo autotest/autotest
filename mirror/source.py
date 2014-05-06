@@ -58,7 +58,7 @@ class rsync_source(source):
             if match:
                 groups = match.groups()
                 timestamp = time.mktime(time.strptime(groups[1],
-                                        '%Y/%m/%d %H:%M:%S'))
+                                                      '%Y/%m/%d %H:%M:%S'))
                 if prefix:
                     fname = '%s/%s' % (prefix, groups[2])
                 else:
@@ -82,7 +82,7 @@ class rsync_source(source):
         files = {}
         for src, prefix in self.sources:
             output = utils.system_output(self._cmd_template %
-                                        (self.exclude, self.prefix, src))
+                                         (self.exclude, self.prefix, src))
             files.update(self._parse_output(output, prefix))
 
         return self._get_new_files(files)

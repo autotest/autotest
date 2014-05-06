@@ -1,5 +1,7 @@
 #!/usr/bin/python
-import re, sys
+import re
+import sys
+
 
 def parse_file(filename):
     data = {}
@@ -16,6 +18,7 @@ data2 = parse_file(sys.argv[2])
 delta = {}
 for symbol in data1.keys() + data2.keys():
     delta[symbol] = data1.get(symbol, 0) - data2.get(symbol, 0)
+
 
 def lookup_delta(symbol):
     return delta[symbol]

@@ -197,6 +197,7 @@ def with_backing_file(method):
 
 
 class job_state(object):
+
     """
     A class for managing explicit job and user state, optionally persistent.
 
@@ -473,6 +474,7 @@ class job_state(object):
 
 
 class status_log_entry(object):
+
     """
     Represents a single status log entry.
     """
@@ -617,6 +619,7 @@ class status_log_entry(object):
 
 
 class status_indenter(object):
+
     """
     Abstract interface that a status log indenter should use.
     """
@@ -633,6 +636,7 @@ class status_indenter(object):
 
 
 class status_logger(object):
+
     """
     Represents a status log file. Responsible for translating messages
     into on-disk status log lines.
@@ -741,6 +745,7 @@ class status_logger(object):
 
 
 class TAPReport(object):
+
     """
     Deal with TAP reporting for the Autotest client.
     """
@@ -918,6 +923,7 @@ class TAPReport(object):
 
 
 class base_job(object):
+
     """
     An abstract base class for the various autotest job classes.
 

@@ -336,7 +336,7 @@ def _setup_func(funcopy, mock):
         funcopy.mock_calls = _CallList()
         mock.reset_mock()
         ret = funcopy.return_value
-        if _is_instance_mock(ret) and not ret is mock:
+        if _is_instance_mock(ret) and ret is not mock:
             ret.reset_mock()
 
     funcopy.called = False
@@ -1025,7 +1025,7 @@ class CallableMixin(Base):
                 ret_val = self.return_value
 
         if (self._mock_wraps is not None and
-           self._mock_return_value is DEFAULT):
+                self._mock_return_value is DEFAULT):
             return self._mock_wraps(*args, **kwargs)
         if ret_val is DEFAULT:
             ret_val = self.return_value
@@ -1620,7 +1620,7 @@ class _patch_dict(object):
         for attr in dir(klass):
             attr_value = getattr(klass, attr)
             if (attr.startswith(patch.TEST_PREFIX) and
-               hasattr(attr_value, "__call__")):
+                    hasattr(attr_value, "__call__")):
                 decorator = _patch_dict(self.in_dict, self.values, self.clear)
                 decorated = decorator(attr_value)
                 setattr(klass, attr, decorated)

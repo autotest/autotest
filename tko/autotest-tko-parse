@@ -1,6 +1,12 @@
 #!/usr/bin/python -u
 
-import os, sys, fcntl, errno, traceback, socket, logging
+import os
+import sys
+import fcntl
+import errno
+import traceback
+import socket
+import logging
 
 try:
     import autotest.common as common
@@ -16,16 +22,19 @@ from autotest.frontend.tko import models_utils as tko_models_utils
 
 
 class ParseLoggingConfig(logging_config.LoggingConfig):
+
     """
     Used with the sole purpose of providing convenient logging setup
     for this program.
     """
+
     def configure_logging(self, results_dir=None, verbose=False):
         super(ParseLoggingConfig, self).configure_logging(use_console=True,
                                                           verbose=verbose)
 
 
 class OptionParser(optparser.OptionParser):
+
     def __init__(self):
         optparser.OptionParser.__init__(self)
 
@@ -34,7 +43,7 @@ class OptionParser(optparser.OptionParser):
         self.add_option("-r", help="Reparse the results of a job",
                         dest="reparse", action="store_true")
         self.add_option("-o", help="Parse a single results directory",
-                          dest="singledir", action="store_true")
+                        dest="singledir", action="store_true")
         self.add_option("-l", help=("Levels of subdirectories to include "
                                     "in the job name"),
                         type="int", dest="level", default=1)
@@ -42,9 +51,9 @@ class OptionParser(optparser.OptionParser):
                         dest="noblock", action="store_true")
 
         self.add_option("--write-pidfile",
-                      help="write pidfile (.parser_execute)",
-                      dest="write_pidfile", action="store_true",
-                      default=False)
+                        help="write pidfile (.parser_execute)",
+                        dest="write_pidfile", action="store_true",
+                        default=False)
 
 
 def parse_args():
@@ -190,6 +199,7 @@ def parse_one(jobname, path, reparse, mail_on_failure):
 def _site_export_dummy(binary_file_name):
     pass
 
+
 def _get_job_subdirs(path):
     """
     Returns a list of job subdirectories at path. Returns None if the test
@@ -275,7 +285,7 @@ def main():
                     lockfile.close()
                     continue
                 else:
-                    raise # something unexpected happened
+                    raise  # something unexpected happened
             try:
                 parse_path(path, options.level, options.reparse,
                            options.mailit)

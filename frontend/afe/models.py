@@ -819,7 +819,7 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
             return
         if self.name == 'Everyone':
             raise AclAccessViolation("You cannot modify 'Everyone'!")
-        if not user in self.users.all():
+        if user not in self.users.all():
             raise AclAccessViolation("You do not have access to %s"
                                      % self.name)
 

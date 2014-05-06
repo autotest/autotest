@@ -14,6 +14,7 @@ from autotest.client.shared import distro_def
 
 
 class OptionParser(optparse.OptionParser):
+
     def __init__(self):
         optparse.OptionParser.__init__(self)
 
@@ -35,9 +36,9 @@ class OptionParser(optparse.OptionParser):
 
 
 class App(object):
+
     def __init__(self):
         self.option_parser = OptionParser()
-
 
     def get_output_file_name(self):
         # It's not uncommon for some distros to not have a release number
@@ -50,7 +51,6 @@ class App(object):
             return '%s-%s-%s.distro' % (self.command_line_opts.name,
                                         self.command_line_opts.version,
                                         self.command_line_opts.arch)
-
 
     def run(self):
         (self.command_line_opts,

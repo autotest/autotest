@@ -4,13 +4,20 @@ try:
     import autotest.common
 except ImportError:
     import common
-import sys, os, signal, time, subprocess, fcntl
+import sys
+import os
+import signal
+import time
+import subprocess
+import fcntl
 
 logdir = sys.argv[1]
 stdout_start = int(sys.argv[2])  # number of bytes we can skip on stdout
 stderr_start = int(sys.argv[3])  # nubmer of bytes we can skip on stderr
 
 # if any of our tail processes die, the monitor should die too
+
+
 def kill_self(signum, frame):
     os.kill(os.getpid(), signal.SIGTERM)
 signal.signal(signal.SIGCHLD, kill_self)
@@ -18,6 +25,8 @@ signal.signal(signal.SIGCHLD, kill_self)
 devnull = open(os.devnull, 'w')
 
 # launch some tail processes to pump the std* streams
+
+
 def launch_tail(filename, outstream, start):
     path = os.path.join(logdir, filename)
     argv = ['tail', '--retry', '--follow=name', '--bytes=+%d' % start, path]

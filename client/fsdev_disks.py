@@ -169,7 +169,7 @@ def mkfs_all_disks(job, disk_list, fs_type, fs_makeopt, fs_mnt_opt):
                 fs.unmount(mnt_path)
             except Exception, info:
                 raise Exception("umount failed: exception = %s, args = %s" %
-                               (sys.exc_info()[0], info.args))
+                                (sys.exc_info()[0], info.args))
             except Exception:
                 raise Exception("Could not unmount device ", dev_path)
 
@@ -194,7 +194,7 @@ def mkfs_all_disks(job, disk_list, fs_type, fs_makeopt, fs_mnt_opt):
             raise Exception("mount name error: %s" % info)
         except Exception, info:
             raise Exception("mount failed: exception = %s, args = %s" %
-                           (type(info), info.args))
+                            (type(info), info.args))
 
         # If we skipped mkfs we need to wipe the partition clean
         if skip_mkfs:

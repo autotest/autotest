@@ -322,7 +322,7 @@ class ReportOptionParser(optparse.OptionParser):
                         dest="encoding",
                         default="utf8",
                         help="Encoding for output. Example of codecs are "
-                              "ascii, latin1 and utf8. Default: %default")
+                        "ascii, latin1 and utf8. Default: %default")
 
 
 class ReportLoggingConfig(logging_config.LoggingConfig):

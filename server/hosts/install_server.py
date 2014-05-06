@@ -87,7 +87,7 @@ class CobblerInterface(object):
             self.server.sync_dhcp(self.token)
         except xmlrpclib.Fault, err:
             # older Cobbler will not recognize the above command
-            if not "unknown remote method" in err.faultString:
+            if "unknown remote method" not in err.faultString:
                 logging.error("DHCP sync failed, error code: %s, error string: %s",
                               err.faultCode, err.faultString)
 

@@ -171,7 +171,7 @@ class SyncListenServer(object):
     def _start_server(self, address, port):
         signal.signal(signal.SIGTERM, self)
         self.server_thread = utils.InterruptedThread(self._server,
-                                                    (address, port))
+                                                     (address, port))
         self.server_thread.start()
 
         while not self.exit_event.is_set():
@@ -195,13 +195,13 @@ class SyncListenServer(object):
                 session_id, hosts, timeout = net_recv_object(connection[0],
                                                              _DEFAULT_TIMEOUT)
                 self._clean_sessions()
-                if not session_id in self.sessions:
+                if session_id not in self.sessions:
                     logging.debug("Add new session")
                     self.sessions[session_id] = SessionData(hosts, timeout)
 
                 logging.debug("Start recv thread.")
                 utils.InterruptedThread(self._recv_data, (connection,
-                                        self.sessions[session_id])).start()
+                                                          self.sessions[session_id])).start()
 
             except (socket.timeout, error.NetCommunicationError):
                 self._clean_sessions()

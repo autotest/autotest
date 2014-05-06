@@ -642,9 +642,9 @@ class FileFieldMonitor(object):
         value = []
         for i in range(self.num_of_params):
             value.append(int(get_field(data,
-                             self.data_to_read[i][1],
-                             self.data_to_read[i][0],
-                             self.separator)))
+                                       self.data_to_read[i][1],
+                                       self.data_to_read[i][0],
+                                       self.separator)))
 
         if logging:
             self.log.append(value)
@@ -2536,7 +2536,7 @@ class VersionableClass(object):
         one subclass.__bases__ after that continue to another class.
         """
         def change_position(ccls):
-            if not VersionableClass in ccls.__bases__:
+            if VersionableClass not in ccls.__bases__:
                 bases = list(ccls.__bases__)
 
                 index = None

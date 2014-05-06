@@ -463,7 +463,7 @@ class AutoservDiskFullHostError(AutoservHostError):
     def __init__(self, path, want_gb, free_space_gb):
         AutoservHostError.__init__(self,
                                    'Not enough free space on %s - %.3fGB free, want %.3fGB' %
-                                  (path, free_space_gb, want_gb))
+                                   (path, free_space_gb, want_gb))
 
         self.path = path
         self.want_gb = want_gb

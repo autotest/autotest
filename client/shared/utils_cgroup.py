@@ -115,7 +115,7 @@ class Cgroup(object):
             if cgroup is None:
                 range = "abcdefghijklmnopqrstuvwxyz0123456789"
                 sub_cgroup = "cgroup-" + "".join(random.sample(range +
-                                                 range.upper(), 6))
+                                                               range.upper(), 6))
             else:
                 sub_cgroup = cgroup
             if parent_cgroup is None:
@@ -172,7 +172,7 @@ class Cgroup(object):
             if len(args):
                 args_str = " ".join(args)
             cgexec_cmd = ("cgexec -g %s:%s %s %s" %
-                         (self.module, cgroup, cmd, args_str))
+                          (self.module, cgroup, cmd, args_str))
             status, output = commands.getstatusoutput(cgexec_cmd)
             return status, output
         except error.CmdError, detail:
@@ -243,7 +243,7 @@ class Cgroup(object):
             if cgroup_pwd not in self.cgroups:
                 raise error.TestError("%s doesn't exist!" % cgroup)
             cgclassify_cmd = ("cgclassify -g %s:%s %d" %
-                             (self.module, cgroup, pid))
+                              (self.module, cgroup, pid))
             utils.run(cgclassify_cmd, ignore_status=False)
         except error.CmdError, detail:
             raise error.TestFail("Classify process to tasks file failed!:%s" %

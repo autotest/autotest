@@ -47,7 +47,7 @@ def parse_unified_diff_output(lines):
     for line in lines:
         # ignore filepaths in the output
         if (len(line) > 2 and
-           (line[:3] == "+++" or
+            (line[:3] == "+++" or
                 line[:3] == "---")):
             continue
         # ignore line range information in the output
