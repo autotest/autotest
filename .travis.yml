@@ -21,3 +21,4 @@ install:
 script:
     - ./utils/unittest_suite_nose.py -c .nose.cfg
     - inspekt lint
+    - inspekt style
