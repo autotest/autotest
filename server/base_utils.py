@@ -117,7 +117,7 @@ def get_tmp_dir():
     """
     dir_name = tempfile.mkdtemp(prefix="autoserv-")
     pid = os.getpid()
-    if not pid in __tmp_dirs:
+    if pid not in __tmp_dirs:
         __tmp_dirs[pid] = []
     __tmp_dirs[pid].append(dir_name)
     return dir_name

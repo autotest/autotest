@@ -2536,7 +2536,7 @@ class VersionableClass(object):
         one subclass.__bases__ after that continue to another class.
         """
         def change_position(ccls):
-            if not VersionableClass in ccls.__bases__:
+            if VersionableClass not in ccls.__bases__:
                 bases = list(ccls.__bases__)
 
                 index = None

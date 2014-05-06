@@ -336,7 +336,7 @@ def _setup_func(funcopy, mock):
         funcopy.mock_calls = _CallList()
         mock.reset_mock()
         ret = funcopy.return_value
-        if _is_instance_mock(ret) and not ret is mock:
+        if _is_instance_mock(ret) and ret is not mock:
             ret.reset_mock()
 
     funcopy.called = False

@@ -1021,7 +1021,7 @@ class BasePackageManager(object):
                 for exc_str in exclude_string:
                     cmd_list.append('--exclude %s' % exc_str)
             else:
-                if not "--exclude" in exclude_string:
+                if "--exclude" not in exclude_string:
                     cmd_list.append('--exclude')
                 cmd_list.append(exclude_string)
 

@@ -581,7 +581,7 @@ class partition(object):
                 args += ' -f'
 
         # If there isn't already a '-t <type>' argument, add one.
-        if not "-t" in args:
+        if "-t" not in args:
             args = "-t %s %s" % (fstype, args)
 
         args = args.strip()

@@ -510,7 +510,7 @@ class harness_beaker(harness.harness):
             # once during the conversion and then again
             # during an update of a test run
             # former has task ids, latter will not
-            if not subdir in tests:
+            if subdir not in tests:
                 tests[subdir] = t_id
         return tests
 

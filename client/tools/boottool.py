@@ -525,7 +525,7 @@ class DebianBuildDeps(object):
                                       stdout=subprocess.PIPE,
                                       stderr=subprocess.PIPE,
                                       close_fds=True).stdout.read()
-            if not output == 'install ok installed':
+            if output != 'install ok installed':
                 result = False
         return result
 

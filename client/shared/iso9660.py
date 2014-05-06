@@ -76,7 +76,7 @@ def can_mount():
         logging.debug('Can not use mount: missing "mount" tool')
         return False
 
-    if not 'iso9660' in open('/proc/filesystems').read():
+    if 'iso9660' not in open('/proc/filesystems').read():
         logging.debug('Can not use mount: lack of iso9660 kernel support')
         return False
 

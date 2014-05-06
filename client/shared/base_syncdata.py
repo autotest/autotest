@@ -195,7 +195,7 @@ class SyncListenServer(object):
                 session_id, hosts, timeout = net_recv_object(connection[0],
                                                              _DEFAULT_TIMEOUT)
                 self._clean_sessions()
-                if not session_id in self.sessions:
+                if session_id not in self.sessions:
                     logging.debug("Add new session")
                     self.sessions[session_id] = SessionData(hosts, timeout)
 

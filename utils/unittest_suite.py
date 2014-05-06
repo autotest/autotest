@@ -78,7 +78,7 @@ class Bcolors(object):
         self.ENDC = '\033[0m'
         allowed_terms = ['linux', 'xterm', 'xterm-256color', 'vt100']
         term = os.environ.get("TERM")
-        if (not os.isatty(1)) or (not term in allowed_terms):
+        if (not os.isatty(1)) or (term not in allowed_terms):
             self.disable()
 
     def disable(self):

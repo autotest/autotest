@@ -159,7 +159,7 @@ def get_data_dir():
 
 
 def get_backend_dir(backend_type):
-    if not backend_type in os.listdir(BASE_BACKEND_DIR):
+    if backend_type not in os.listdir(BASE_BACKEND_DIR):
         raise UnknownBackendError(backend_type)
     return os.path.join(BASE_BACKEND_DIR, backend_type)
 
