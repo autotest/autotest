@@ -5,6 +5,7 @@ import sys
 import re
 import tempfile
 import optparse
+import logging
 
 try:
     import autotest.common as common
@@ -13,6 +14,18 @@ except ImportError:
 
 from autotest.client.shared import utils
 from autotest.database_legacy import database_connection
+from autotest.client.shared import logging_config, logging_manager
+
+class MigrateLoggingConfig(logging_config.LoggingConfig):
+
+    """
+    Used with the sole purpose of providing logging setup for this program.
+    """
+
+    def configure_logging(self, results_dir=None, verbose=False):
+        super(MigrateLoggingConfig, self).configure_logging(
+            use_console=True,
+            verbose=verbose)
 
 MIGRATE_TABLE = 'migrate_info'
 
@@ -148,14 +161,13 @@ class MigrationManager(object):
         return migrations
 
     def do_migration(self, migration, migrate_up=True):
-        print 'Applying migration %s' % migration.name,  # no newline
         if migrate_up:
-            print 'up'
+            logging.info('Applying migration %s up' % migration.name)
             assert self.get_db_version() == migration.version - 1
             migration.migrate_up(self)
             new_version = migration.version
         else:
-            print 'down'
+            logging.info('Applying migration %s down' % migration.name)
             assert self.get_db_version() == migration.version
             migration.migrate_down(self)
             new_version = migration.version - 1
@@ -181,7 +193,7 @@ class MigrationManager(object):
             self.do_migration(migration, migrate_up)
 
         assert self.get_db_version() == version
-        print 'At version', version
+        logging.info('At version %s', version)
 
     def _migrate_from_base(self):
         self.confirm_initialization()
@@ -214,14 +226,14 @@ class MigrationManager(object):
         test_db_name = 'test_' + db_name
         # first, connect to no DB so we can create a test DB
         self._database.connect(db_name='')
-        print 'Creating test DB', test_db_name
+        logging.info('Creating test DB %s', test_db_name)
         self.execute('CREATE DATABASE ' + test_db_name)
         self._database.disconnect()
         # now connect to the test DB
         self._database.connect(db_name=test_db_name)
 
     def remove_test_db(self):
-        print 'Removing test DB'
+        logging.info('Removing test DB')
         self.execute('DROP DATABASE ' + self.get_db_name())
         # reset connection back to real DB
         self._database.disconnect()
@@ -238,9 +250,9 @@ class MigrationManager(object):
             self.migrate_to_version(version)
 
     def do_sync_db(self, version=None):
-        print 'Migration starting for database', self.get_db_name()
+        logging.info('Migration starting for database %s', self.get_db_name())
         self.migrate_to_version_or_latest(version)
-        print 'Migration complete'
+        logging.info('Migration complete')
 
     def test_sync_db(self, version=None):
         """
@@ -248,15 +260,15 @@ class MigrationManager(object):
         """
         self.initialize_test_db()
         try:
-            print 'Starting migration test on DB', self.get_db_name()
+            logging.info('Starting migration test on DB %s', self.get_db_name())
             self.migrate_to_version_or_latest(version)
             # show schema to the user
-            os.system('mysqldump %s --no-data=true '
-                      '--add-drop-table=false' %
-                      self.get_mysql_args())
+            utils.system('mysqldump %s --no-data=true '
+                         '--add-drop-table=false' %
+                         self.get_mysql_args(), ignore_status=True)
+            logging.info('Test finished successfully')
         finally:
             self.remove_test_db()
-        print 'Test finished successfully'
 
     def simulate_sync_db(self, version=None):
         """
@@ -266,26 +278,27 @@ class MigrationManager(object):
         db_version = self.get_db_version()
         # don't do anything if we're already at the latest version
         if db_version == self.get_latest_version():
-            print 'Skipping simulation, already at latest version'
+            logging.info('Skipping simulation, already at latest version')
             return
         # get existing data
         self.initialize_and_fill_test_db()
         try:
-            print 'Starting migration test on DB', self.get_db_name()
+            logging.info('Starting migration test on DB %s', self.get_db_name())
             self.migrate_to_version_or_latest(version)
         finally:
             self.remove_test_db()
-        print 'Test finished successfully'
+        logging.info('Test finished successfully')
 
     def initialize_and_fill_test_db(self):
-        print 'Dumping existing data'
+        logging.info('Dumping existing data')
         dump_fd, dump_file = tempfile.mkstemp('.migrate_dump')
-        os.system('mysqldump %s >%s' %
-                  (self.get_mysql_args(), dump_file))
+        utils.system('mysqldump %s >%s' %
+                     (self.get_mysql_args(), dump_file), ignore_status=True)
         # fill in test DB
         self.initialize_test_db()
-        print 'Filling in test DB'
-        os.system('mysql %s <%s' % (self.get_mysql_args(), dump_file))
+        logging.info('Filling in test DB')
+        utils.system('mysql %s <%s' % (self.get_mysql_args(), dump_file),
+                     ignore_status=True)
         os.close(dump_fd)
         os.remove(dump_file)
 
@@ -328,7 +341,8 @@ def main():
     (options, args) = parser.parse_args()
     manager = get_migration_manager(db_name=options.database,
                                     debug=options.debug, force=options.force)
-
+    logging_manager.configure_logging(MigrateLoggingConfig(),
+                                      verbose=True)
     if len(args) > 0:
         if len(args) > 1:
             version = int(args[1])
@@ -343,10 +357,10 @@ def main():
             manager.simulate = True
             manager.simulate_sync_db(version)
         elif args[0] == 'safesync':
-            print 'Simulating migration'
+            logging.info('Simulating migration')
             manager.simulate = True
             manager.simulate_sync_db(version)
-            print 'Performing real migration'
+            logging.info('Performing real migration')
             manager.simulate = False
             manager.do_sync_db(version)
         else:
