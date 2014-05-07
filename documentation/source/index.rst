@@ -15,8 +15,7 @@ Contents:
    client/index
    shared/index
    frontend/index
-   api/autotest.client
-   api/autotest.frontend
+   api/modules
 
 Indices and tables
 ==================
