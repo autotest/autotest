@@ -23,3 +23,9 @@ script:
     - inspekt lint
     - rm -f tko/tko_pb2.py
     - inspekt style
+
+notifications:
+  irc:
+    channels: "irc.oftc.net#autotest"
+    template:
+      - "%{repository}@%{branch}: %{message} (%{build_url})"
