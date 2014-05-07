@@ -15,8 +15,7 @@ _api_dir = os.path.join(root_path, 'autotest')
 
 if not os.path.isdir(_api_dir):
     raise DocBuildError("API rst auto generation failed: Your base autotest "
-                        "checkout dir is not called 'autotest'. Your parent "
-                        "checkout dir contains: %s" % os.listdir(root_path))
+                        "checkout dir is not called 'autotest'.")
 
 _excluded_paths = []
 _excluded_paths.append('%s/documentation' % _api_dir)
