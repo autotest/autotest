@@ -1,6 +1,8 @@
 import re
 import time
 import traceback
+import logging
+import sys
 try:
     import autotest.common as common
 except ImportError:
@@ -14,6 +16,18 @@ _GLOBAL_CONFIG_NAMES = {
     'username': 'user',
     'db_name': 'database',
 }
+
+
+def _log_exception(msg):
+    exc_type, exc_value, exc_traceback = sys.exc_info()
+    logging.error("")
+    tb_info = traceback.format_exception(exc_type, exc_value,
+                                         exc_traceback.tb_next)
+    tb_info = "".join(tb_info)
+    for e_line in tb_info.splitlines():
+        logging.error(e_line)
+    logging.error("")
+    logging.error(msg)
 
 
 def _copy_exceptions(source, destination):
@@ -221,9 +235,9 @@ class DatabaseConnection(object):
                     raise
                 if self._reached_max_attempts(num_attempts):
                     raise
-                traceback.print_exc()
-                print ("Can't connect to database; reconnecting in %s sec" %
-                       self.reconnect_delay_sec)
+                _log_exception("Can't connect to database, "
+                               "reconnecting in %s sec" %
+                               self.reconnect_delay_sec)
                 time.sleep(self.reconnect_delay_sec)
                 self.disconnect()
 
@@ -251,15 +265,14 @@ class DatabaseConnection(object):
         passed, will override self.reconnect_enabled.
         """
         if self.debug:
-            print 'Executing %s, %s' % (query, parameters)
+            logging.debug('Executing %s, %s', query, parameters)
         # _connect_backend() contains a retry loop, so don't loop here
         try:
             results = self._backend.execute(query, parameters)
         except self._backend.OperationalError:
             if not self._is_reconnect_enabled(try_reconnecting):
                 raise
-            traceback.print_exc()
-            print ("MYSQL connection died; reconnecting")
+            _log_exception("MYSQL connection died; reconnecting")
             self.disconnect()
             self._connect_backend(try_reconnecting)
             results = self._backend.execute(query, parameters)
