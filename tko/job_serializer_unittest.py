@@ -12,10 +12,10 @@ except ImportError:
     import common
 import datetime
 import os
-import re
 import tempfile
 import time
 import sys
+import unittest
 
 # Check the Makefile on this directory
 # for information on how to install the
@@ -39,7 +39,6 @@ except ImportError:
     sys.exit(1)
 from autotest.tko import job_serializer
 from autotest.tko import models
-from autotest.client.shared.test_utils import unittest
 
 NamedTemporaryFile = tempfile.NamedTemporaryFile
 datetime = datetime.datetime

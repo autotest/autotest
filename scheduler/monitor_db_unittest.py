@@ -3,6 +3,7 @@
 import gc
 import logging
 import time
+import unittest
 try:
     import autotest.common as common
 except ImportError:
@@ -11,7 +12,6 @@ from autotest.frontend import setup_django_environment
 from autotest.frontend import test_utils
 from autotest.client.shared import mail
 from autotest.client.shared.test_utils import mock
-from autotest.client.shared.test_utils import unittest
 from autotest.database_legacy import database_connection
 from autotest.frontend.afe import models
 from autotest.scheduler import monitor_db, drone_manager

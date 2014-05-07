@@ -160,7 +160,6 @@ REQUIRES_DJANGO = set((
     'service_proxy_lib_unittest.py',
     'reservations_unittest.py',
     'autotest_remote_unittest.py',
-    'server_job_unittest.py',
 ))
 
 REQUIRES_MYSQLDB = set((

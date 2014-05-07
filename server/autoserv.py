@@ -28,7 +28,10 @@ try:
     # internal locks.  http://code.google.com/p/python-atfork/
     import warnings
     warnings.filterwarnings('ignore', 'logging module already imported')
-    atfork.stdlib_fixer.fix_logging_module()
+    try:
+        atfork.stdlib_fixer.fix_logging_module()
+    except Exception:
+        pass
 except ImportError, e:
     from autotest.client.shared.settings import settings
     if settings.get_value('AUTOSERV', 'require_atfork_module', type=bool,

@@ -92,56 +92,55 @@ class barrier_test(unittest.TestCase):
 
     def test_rendezvous_basic(self):
         # Basic rendezvous testing
-        self.rendezvous_test(60, port=11920)
+        self._rendezvous_test(60, port=11920)
 
     def test_rendezvous_timeout(self):
         # The rendezvous should time out here and throw a
         # BarrierError since we are specifying a timeout of 0
         self.assertRaises(error.BarrierError,
-                          self.rendezvous_test, 0, port=11921)
+                          self._rendezvous_test, 0, port=11921)
 
     def test_rendezvous_abort_ok(self):
         # Test with abort flag set to not abort.
-        self.rendezvous_test(60, port=11920,
-                             test_abort=True, abort=False)
+        self._rendezvous_test(60, port=11920,
+                              test_abort=True, abort=False)
 
     def test_rendezvous_abort(self):
         # The rendezvous should abort here and throw a
         # BarrierError since we are asking to abort
         self.assertRaises(error.BarrierError,
-                          self.rendezvous_test, 0, port=11921,
+                          self._rendezvous_test, 0, port=11921,
                           test_abort=True, abort=True)
 
     def test_rendezvous_servers_basic(self):
         # The rendezvous should time out here and throw a
         # BarrierError since we are specifying a timeout of 0
-        self.rendezvous_test(60, port=11921,
-                             rendezvous_servers=True)
+        self._rendezvous_test(60, port=11921,
+                              rendezvous_servers=True)
 
     def test_rendezvous_servers_timeout(self):
         # The rendezvous should time out here and throw a
         # BarrierError since we are specifying a timeout of 0
         self.assertRaises(error.BarrierError,
-                          self.rendezvous_test, 0, port=11922,
+                          self._rendezvous_test, 0, port=11922,
                           rendezvous_servers=True)
 
     def test_rendezvous_servers_abort_ok(self):
         # Test with abort flag set to not abort.
-        self.rendezvous_test(60, port=11920, rendezvous_servers=True,
-                             test_abort=True, abort=False)
+        self._rendezvous_test(60, port=11920, rendezvous_servers=True,
+                              test_abort=True, abort=False)
 
     def test_rendezvous_servers_abort(self):
         # The rendezvous should abort here and throw a
         # BarrierError since we are asking to abort
         self.assertRaises(error.BarrierError,
-                          self.rendezvous_test, 0, port=11922,
+                          self._rendezvous_test, 0, port=11922,
                           rendezvous_servers=True,
                           test_abort=True, abort=True)
 
-    # Internal utility function (not a unit test)
-    def rendezvous_test(self, timeout, port=11922,
-                        rendezvous_servers=False, test_abort=False,
-                        abort=False, listen_server=None):
+    def _rendezvous_test(self, timeout, port=11922,
+                         rendezvous_servers=False, test_abort=False,
+                         abort=False, listen_server=None):
         if listen_server:
             port = None
 
@@ -178,9 +177,9 @@ class barrier_test(unittest.TestCase):
         Test that reusing the same listen server object works.
         """
         server = barrier.listen_server()
-        self.rendezvous_test(10, listen_server=server)
-        self.rendezvous_test(10, listen_server=server)
-        self.rendezvous_test(10, listen_server=server)
+        self._rendezvous_test(10, listen_server=server)
+        self._rendezvous_test(10, listen_server=server)
+        self._rendezvous_test(10, listen_server=server)
 
 
 if __name__ == "__main__":

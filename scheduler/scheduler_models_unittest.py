@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import datetime
+import unittest
 try:
     import autotest.common as common
 except ImportError:
@@ -8,7 +9,6 @@ except ImportError:
 from autotest.frontend import setup_django_environment
 from autotest.frontend import test_utils
 from autotest.client.shared.test_utils import mock
-from autotest.client.shared.test_utils import unittest
 from autotest.database_legacy import database_connection
 from autotest.frontend.afe import models, model_attributes
 from autotest.scheduler import monitor_db_functional_unittest
