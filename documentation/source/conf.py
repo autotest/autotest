@@ -7,10 +7,10 @@ import os
 class DocBuildError(Exception):
     pass
 
-root_path = os.path.abspath(os.path.join("..", ".."))
+root_path = os.path.abspath(os.path.join("..", "..", ".."))
 import commands
 _sphinx_apidoc = commands.getoutput('which sphinx-apidoc').strip()
-_output_dir = os.path.join(root_path, 'documentation', 'source', 'api')
+_output_dir = os.path.join(root_path, 'autotest', 'documentation', 'source', 'api')
 _api_dir = os.path.join(root_path, 'autotest')
 
 if not os.path.isdir(_api_dir):
