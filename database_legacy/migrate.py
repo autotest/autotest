@@ -16,6 +16,7 @@ from autotest.client.shared import utils
 from autotest.database_legacy import database_connection
 from autotest.client.shared import logging_config, logging_manager
 
+
 class MigrateLoggingConfig(logging_config.LoggingConfig):
 
     """
@@ -206,7 +207,7 @@ class MigrationManager(object):
 
     def confirm_initialization(self):
         if not self.force:
-            response = raw_input(
+            response = utils.ask(
                 'Your %s database does not appear to be initialized.  Do you '
                 'want to recreate it (this will result in loss of any existing '
                 'data) (yes/No)? ' % self.get_db_name())
