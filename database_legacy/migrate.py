@@ -339,11 +339,12 @@ def get_migration_manager(db_name, debug, force):
 def main():
     parser = OptionParser()
     (options, args) = parser.parse_args()
-    manager = get_migration_manager(db_name=options.database,
-                                    debug=options.debug, force=options.force)
     logging_manager.configure_logging(MigrateLoggingConfig(),
                                       verbose=True)
     if len(args) > 0:
+        manager = get_migration_manager(db_name=options.database,
+                                        debug=options.debug,
+                                        force=options.force)
         if len(args) > 1:
             version = int(args[1])
         else:
