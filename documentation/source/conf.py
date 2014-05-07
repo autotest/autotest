@@ -3,21 +3,44 @@
 import sys
 import os
 
-try:
-    import autotest.client.setup_modules as setup_modules
-    dirname = os.path.dirname(setup_modules.__file__)
-    autotest_dir = os.path.join(dirname, "..", "..")
-except ImportError:
-    dirname = os.path.dirname(__file__)
-    autotest_dir = os.path.abspath(os.path.join(dirname, "..", ".."))
-    client_dir = os.path.join(autotest_dir, "client")
-    sys.path.insert(0, client_dir)
-    import setup_modules
-    sys.path.pop(0)
 
-setup_modules.setup(base_path=autotest_dir, root_module_name="autotest")
+class DocBuildError(Exception):
+    pass
 
-from autotest.client.shared.version import get_version
+root_path = os.path.abspath(os.path.join("..", ".."))
+import commands
+_sphinx_apidoc = commands.getoutput('which sphinx-apidoc').strip()
+_output_dir = os.path.join(root_path, 'documentation', 'source', 'api')
+_api_dir = os.path.join(root_path, 'autotest')
+if os.path.exists(_api_dir) and not os.path.islink(_api_dir):
+    raise DocBuildError('Something is wrong with your build directory: %s' %
+                        os.listdir(root_path))
+if not os.path.islink(_api_dir):
+    os.symlink(root_path, _api_dir)
+
+_excluded_paths = []
+_excluded_paths.append('%s/documentation' % _api_dir)
+_excluded_paths.append('%s/database_legacy' % _api_dir)
+_excluded_paths.append('%s/frontend' % _api_dir)
+_excluded_paths.append('%s/contrib' % _api_dir)
+_excluded_paths.append('%s/installation_support' % _api_dir)
+_excluded_paths.append('%s/scheduler' % _api_dir)
+_excluded_paths.append('%s/mirror' % _api_dir)
+_excluded_paths.append('%s/tko' % _api_dir)
+_excluded_paths.append('%s/utils' % _api_dir)
+
+_excluded_paths = " ".join(_excluded_paths)
+
+_sphinx_apidoc = "%s -o %s %s %s" % (_sphinx_apidoc, _output_dir, _api_dir, _excluded_paths)
+print(_sphinx_apidoc)
+_status, _output = commands.getstatusoutput(_sphinx_apidoc)
+if _status:
+    raise DocBuildError("API rst auto generation failed: %s" % _output)
+
+sys.path.insert(0, root_path)
+
+import autotest.client.shared.version
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE",
                       "autotest.documentation.source.settings")
 
@@ -35,11 +58,21 @@ master_doc = 'index'
 project = u'autotest'
 copyright = u'2013, Autotest Team'
 
-v_parts = get_version().split('.')
+v_parts = autotest.client.shared.version.get_version().split('.')
 version = "%s.%s" % (v_parts[0], v_parts[1])
 release = '%s.%s.%s' % (v_parts[0], v_parts[1], v_parts[2])
 
 pygments_style = 'sphinx'
+
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+
+if not on_rtd:  # only import and set the theme if we're building docs locally
+    try:
+        import sphinx_rtd_theme
+        html_theme = 'sphinx_rtd_theme'
+        html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+    except ImportError:
+        html_theme = 'default'
 
 latex_documents = [
     ('index', 'autotest.tex', u'autotest Documentation',
