@@ -791,6 +791,28 @@ class Spawn(object):
         except Exception:
             pass
 
+    def send_control(self, char):
+        """
+        This sends a control character to the child such as Ctrl-C or
+        Ctrl-D. For example, to send a Ctrl-G (ASCII 7)::
+            child.sendcontrol('g')
+        :param char: single character you want to send (ctrl+$char)
+        :raise KeyError: When unable to map char to ctrl+comand
+        """
+        char = char.lower()
+        val = ord(char)
+        if val >= 97 and val <= 122:
+            val = val - 97 + 1  # ctrl+a = '\0x01'
+            return self.send(chr(val))
+        mapping = {'@': 0, '`': 0,
+                   '[': 27, '{': 27,
+                   '\\': 28, '|': 28,
+                   ']': 29, '}': 29,
+                   '^': 30, '~': 30,
+                   '_': 31,
+                   '?': 127}
+        return self.send(chr(mapping[char]))
+
 
 _thread_kill_requested = False
 
@@ -1643,3 +1665,39 @@ class ShellSession(Expect):
         Alias for cmd_status() for backward compatibility.
         """
         return self.cmd_status(cmd, timeout, internal_timeout, print_func)
+
+
+class NoEchoShellSession(ShellSession):
+
+    """
+    This class tweaks the ShellSession to work with non-echo terminals.
+    :note: It requires unix-like shell as it executes echo commands to detect
+           the command end.
+    """
+
+    def read_up_to_prompt(self, timeout=60, internal_timeout=None,
+                          print_func=None):
+        """
+        Executes echo $RANDOM_LINE and waits for it's occurence.
+        :param timeout: The duration (in seconds) to wait until a match is
+                found
+        :param internal_timeout: The timeout to pass to read_nonblocking
+        :param print_func: A function to be used to print the data being
+                read (should take a string parameter)
+
+        :return: The data read so far
+        :raise ExpectTimeoutError: Raised if timeout expires
+        :raise ExpectProcessTerminatedError: Raised if the shell process
+                terminates while waiting for output
+        :raise ExpectError: Raised if an unknown error occurs
+        """
+        prompt = ("--< END OF THE COMMAND %s >--"
+                  % utils.generate_random_string(12))
+        # 2xecho makes sure it's on the new line
+        self.sendline("echo; echo '%s'" % prompt)
+        return super(NoEchoShellSession,
+                     self).read_until_last_line_matches(["^" + self.prompt +
+                                                         prompt + "$"],
+                                                        timeout,
+                                                        internal_timeout,
+                                                        print_func)[1]
