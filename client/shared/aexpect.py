@@ -791,6 +791,28 @@ class Spawn(object):
         except Exception:
             pass
 
+    def send_control(self, char):
+        """
+        This sends a control character to the child such as Ctrl-C or
+        Ctrl-D. For example, to send a Ctrl-G (ASCII 7)::
+            child.sendcontrol('g')
+        :param char: single character you want to send (ctrl+$char)
+        :raise KeyError: When unable to map char to ctrl+comand
+        """
+        char = char.lower()
+        val = ord(char)
+        if val >= 97 and val <= 122:
+            val = val - 97 + 1  # ctrl+a = '\0x01'
+            return self.send(chr(val))
+        mapping = {'@': 0, '`': 0,
+                   '[': 27, '{': 27,
+                   '\\': 28, '|': 28,
+                   ']': 29, '}': 29,
+                   '^': 30, '~': 30,
+                   '_': 31,
+                   '?': 127}
+        return self.send(chr(mapping[char]))
+
 
 _thread_kill_requested = False
 
