@@ -136,7 +136,7 @@ def delete_job_full(tag):
 
         logging.info("Deleting job tag %s" % tag)
         if afe_job is not None:
-            deleted = afe_models_utils.job_delete_by_id(afe_job)
+            deleted = afe_models_utils.job_delete_by_id(afe_job.id)
             if not deleted:
                 logging.error("Failed while deleting AFE job")
 
