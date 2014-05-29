@@ -174,7 +174,7 @@ class SyncListenServer(object):
                                                      (address, port))
         self.server_thread.start()
 
-        while not self.exit_event.is_set():
+        while not self.exit_event.isSet():
             signal.pause()
 
         self.server_thread.join(2 * _DEFAULT_TIMEOUT)
@@ -188,7 +188,7 @@ class SyncListenServer(object):
         self.listen_server = barrier.listen_server(address, port)
         logging.debug("Wait for clients")
         self.listen_server.socket.settimeout(_DEFAULT_TIMEOUT)
-        while not self.exit_event.is_set():
+        while not self.exit_event.isSet():
             try:
                 connection = self.listen_server.socket.accept()
                 logging.debug("Client %s connected.", connection[1][0])
