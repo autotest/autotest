@@ -39,6 +39,17 @@ v_parts = get_version().split('.')
 version = "%s.%s" % (v_parts[0], v_parts[1])
 release = '%s.%s.%s' % (v_parts[0], v_parts[1], v_parts[2])
 
+# on_rtd is whether we are on readthedocs.org, this line of code grabbed from docs.readthedocs.org
+on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+
+if not on_rtd:  # only import and set the theme if we're building docs locally
+    try:
+        import sphinx_rtd_theme
+        html_theme = 'sphinx_rtd_theme'
+        html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
+    except ImportError:
+        html_theme = 'default'
+
 pygments_style = 'sphinx'
 
 latex_documents = [

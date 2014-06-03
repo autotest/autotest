@@ -17,14 +17,6 @@ tools Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`cd_hash` Module
----------------------
-
-.. automodule:: autotest.client.tools.cd_hash
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`common` Module
 --------------------
 
@@ -72,12 +64,3 @@ tools Package
     :members:
     :undoc-members:
     :show-inheritance:
-
-:mod:`virt_disk` Module
------------------------
-
-.. automodule:: autotest.client.tools.virt_disk
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
