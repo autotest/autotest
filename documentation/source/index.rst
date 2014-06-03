@@ -1,20 +1,19 @@
-Welcome to autotest's documentation!
-====================================
+======================
+Autotest Documentation
+======================
 
-Welcome! This is the Autotest documentation.
+Autotest is a framework for fully automated testing. It is designed
+primarily to test the Linux kernel, though it is useful for many other
+purposes such as qualifying new hardware, virtualization testing and
+other general user space program testing under linux platforms. It's an
+open-source project under the GPL and is used and developed by a number
+of organizations, including Google, IBM, Red Hat, and many others.
 
-Autotest is a framework for fully automated testing.
-
-It is designed primarily to test the Linux kernel, though it is useful for many other functions such as qualifying new hardware.
-
-Contents:
 
 .. toctree::
    :maxdepth: 2
 
-   client/index
-   shared/index
-   frontend/index
+   main/index
    api/autotest.client
    api/autotest.frontend
 
