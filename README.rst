@@ -47,7 +47,7 @@ Getting started with autotest client
 
 For the impatient:
 
-https://github.com/autotest/autotest/wiki/ClientQuickStart
+http://autotest.readthedocs.org/en/latest/main/local/ClientQuickStart.html
 
 
 Main project page
@@ -59,15 +59,20 @@ http://autotest.github.com/
 Main project documentation source
 ----------------------------------
 
-You can find plenty of information on the autotest wiki
+You can find plenty of information on the online instance of the autotest in tree documentation.
+The latest version (master) can be seen here:
 
-http://github.com/autotest/autotest/wiki
+http://autotest.readthedocs.org/en/latest/index.html
+
+It is possible to consult the docs of released versions, such as:
+
+http://autotest.readthedocs.org/en/0.16.0/
 
 
 Mailing list and IRC info
 -------------------------
 
-https://github.com/autotest/autotest/wiki/ContactInfo
+http://autotest.readthedocs.org/en/latest/main/general/ContactInfo.html
 
 
 Grabbing the latest source
@@ -79,12 +84,12 @@ https://github.com/autotest/autotest
 Hacking and submitting patches
 ------------------------------
 
-https://github.com/autotest/autotest/wiki/SubmissionChecklist
+http://autotest.readthedocs.org/en/latest/main/developer/SubmissionChecklist.html
 
 
 Downloading stable versions
 ---------------------------
 
-https://github.com/autotest/autotest/downloads
+https://github.com/autotest/autotest/releases
 
 
