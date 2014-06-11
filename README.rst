@@ -56,17 +56,41 @@ Main project page
 http://autotest.github.com/
 
 
-Main project documentation source
-----------------------------------
+Documentation
+-------------
 
-You can find plenty of information on the online instance of the autotest in tree documentation.
-The latest version (master) can be seen here:
+Autotest comes with in tree documentation, that can be built with ``sphinx``.
+A publicly available build of the latest master branch documentation and
+releases can be seen on `read the docs <https://readthedocs.org/>`__:
 
 http://autotest.readthedocs.org/en/latest/index.html
 
 It is possible to consult the docs of released versions, such as:
 
 http://autotest.readthedocs.org/en/0.16.0/
+
+If you want to build the documentation, here are the instructions:
+
+1) Make sure you have the package ``python-sphinx`` installed. For Fedora::
+
+    $ sudo yum install python-sphinx
+
+2) For Ubuntu/Debian::
+
+    $ sudo apt-get install python-sphinx
+
+3) Optionally, you can install the read the docs theme, that will make your
+   in-tree documentation to look just like in the online version::
+
+    $ sudo pip install sphinx_rtd_theme
+
+4) Build the docs::
+
+    $ make -C documentation html
+
+5) Once done, point your browser to::
+
+    $ [your-browser] docs/build/html/index.html
 
 
 Mailing list and IRC info
