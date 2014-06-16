@@ -2975,7 +2975,7 @@ def generate_tmp_file_name(file_name, ext=None, directory='/tmp/'):
     return file_name
 
 
-def format_str_for_message(sr):
+def format_str_for_message(str):
     """
     Format str so that it can be appended to a message.
     If str consists of one line, prefix it with a space.
