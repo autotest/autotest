@@ -2975,15 +2975,15 @@ def generate_tmp_file_name(file_name, ext=None, directory='/tmp/'):
     return file_name
 
 
-def format_str_for_message(str):
+def format_str_for_message(msg_str):
     """
-    Format str so that it can be appended to a message.
-    If str consists of one line, prefix it with a space.
-    If str consists of multiple lines, prefix it with a newline.
+    Format msg_str so that it can be appended to a message.
+    If msg_str consists of one line, prefix it with a space.
+    If msg_str consists of multiple lines, prefix it with a newline.
 
-    :param str: string that will be formatted.
+    :param msg_str: string that will be formatted.
     """
-    lines = str.splitlines()
+    lines = msg_str.splitlines()
     num_lines = len(lines)
     sr = "\n".join(lines)
     if num_lines == 0:
