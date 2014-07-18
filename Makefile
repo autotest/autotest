@@ -19,13 +19,13 @@ install:
 prepare-source:
 	# build the source package in the parent directory
 	# then rename it to project_version.orig.tar.gz
-	dch -M -D "saucy" -v "$(VERSION)" "Automated (make builddeb) build."
+	dch -M -D "trusty" -b -v "$(VERSION)" "Automated (make builddeb) build."
 	$(PYTHON) setup.py sdist $(COMPILE) --dist-dir=../ --prune
 	rename -f 's/$(PROJECT)-(.*)\.tar\.gz/$(PROJECT)_$$1\.orig\.tar\.gz/' ../*
 
 build-deb-src: prepare-source
 	# build the source package
-	dpkg-buildpackage -S -rfakeroot -i.git
+	dpkg-buildpackage -S -elookkas@gmail.com -rfakeroot -i.git
 
 build-deb-bin: prepare-source
 	# build binary package
