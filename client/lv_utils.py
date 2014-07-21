@@ -405,7 +405,7 @@ def lv_revert(vg_name, lv_name, lv_snapshot_name):
                                                                  lv_name)):
             raise error.TestError("Snapshot origin could not be found")
 
-        cmd = ("lvconvert --merge /dev/%s/%s" % (vg_name, lv_snapshot_name))
+        cmd = ("lvconvert --merge --interval 1 /dev/%s/%s" % (vg_name, lv_snapshot_name))
         result = utils.run(cmd)
         if (("Merging of snapshot %s will start next activation." %
              lv_snapshot_name) in result.stdout):
