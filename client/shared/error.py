@@ -6,6 +6,7 @@ import sys
 import traceback
 import threading
 import logging
+import cgitb
 from traceback import format_exception
 
 # Add names you want to be imported by 'from errors import *' to this list.
@@ -201,7 +202,7 @@ class UnhandledJobError(JobError):
                     unhandled_exception)
             if not isinstance(unhandled_exception, AutotestError):
                 msg += _context_message(unhandled_exception)
-            msg += "\n" + traceback.format_exc()
+            msg += "\n" + cgitb.text(sys.exc_info())
             JobError.__init__(self, msg)
 
 
