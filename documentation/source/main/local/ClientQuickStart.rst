@@ -34,7 +34,7 @@ You can also run tests by providing the control file
 
     client/autotest-local client/tests/sleeptest/control
 
-Some tests may require that you run them as root. For example, if you try to run the rtc test as normal user, you will get ``/dev/rtc0: Permission denied error`` in your test result. So you must have to run the test as root.
+Some tests may require that you run them as root. For example, if you try to run the rtc test as normal user, you will get ``/dev/rtc0: Permission denied error`` in your test result. So you must run the test as root.
 
 **In case you run the client as root, then switch back to a regular
 user, some important directories will be owned by root and the next
