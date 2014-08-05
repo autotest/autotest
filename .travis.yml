@@ -14,9 +14,9 @@ before_script:
     - make -C tko
 
 install:
-    - pip install sphinx tox simplejson MySQL-python pylint autopep8
-    - pip install inspektor
+    - pip install sphinx tox simplejson MySQL-python autopep8
     - pip install -r requirements.txt
+    - pip install inspektor
 
 script:
     - ./utils/unittest_suite_nose.py -c .nose.cfg
