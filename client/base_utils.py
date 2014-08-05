@@ -54,7 +54,10 @@ def cat_file_to_cmd(file, command, ignore_status=0, return_output=False):
         run_cmd = utils.system
 
     if magic.guess_type(file) == 'application/x-bzip2':
-        cat = 'bzcat'
+        if base_packages.has_pbzip2():
+            cat = 'pbzip2 -d -c'
+        else:
+            cat = 'bzcat'
     elif magic.guess_type(file) == 'application/x-gzip':
         cat = 'zcat'
     else:
