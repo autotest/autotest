@@ -15,7 +15,7 @@ import re
 import fnmatch
 import logging
 import platform
-from autotest.client.shared import error, utils, magic
+from autotest.client.shared import error, utils, magic, base_packages
 
 
 def grep(pattern, file):
