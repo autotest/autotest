@@ -5,4 +5,5 @@ nosexcover==1.0.8
 tox==1.5.0
 virtualenv==1.9.1
 django==1.5.1
+astroid==1.1.0
 pylint==1.2.0
