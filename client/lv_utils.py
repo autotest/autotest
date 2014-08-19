@@ -268,7 +268,7 @@ def lv_remove(vg_name, lv_name):
     Remove a logical volume.
     """
     error.context("Removing volume /dev/%s/%s" %
-                  (vg_name, lv_name), logging.info)
+                  (vg_name, lv_name), logging.debug)
 
     if not vg_check(vg_name):
         raise error.TestError("Volume group could not be found")
@@ -288,7 +288,7 @@ def lv_create(vg_name, lv_name, lv_size):
     The volume group must already exist.
     """
     error.context("Creating original lv to take a snapshot from",
-                  logging.info)
+                  logging.debug)
 
     if not vg_check(vg_name):
         raise error.TestError("Volume group could not be found")
@@ -372,7 +372,7 @@ def lv_create_thin(vg_name, pool_name, lv_name, lv_size):
     The volume group must already exist.
     """
     error.context("Creating original thin lv to take a snapshot from",
-                  logging.info)
+                  logging.debug)
 
     if not vg_check(vg_name):
         raise error.TestError("The volume group could not be found")
@@ -393,8 +393,8 @@ def lv_take_snapshot(vg_name, lv_name,
     """
     Take a snapshot of the original logical volume.
     """
-    error.context("Taking snapshot from original logical volume",
-                  logging.info)
+    error.context("Taking a snapshot from original logical volume",
+                  logging.debug)
 
     if not vg_check(vg_name):
         raise error.TestError("Volume group could not be found")
@@ -473,7 +473,7 @@ def lv_revert(vg_name, lv_name, lv_snapshot_name):
     Revert the origin to a snapshot.
     """
     error.context("Reverting original logical volume to snapshot",
-                  logging.info)
+                  logging.debug)
     try:
         if not vg_check(vg_name):
             raise error.TestError("Volume group could not be found")
@@ -521,7 +521,7 @@ def lv_revert_with_snapshot(vg_name, lv_name,
     Perform logical volume merge with snapshot and take a new snapshot.
     """
     error.context("Reverting to snapshot and taking a new one",
-                  logging.info)
+                  logging.debug)
 
     lv_revert(vg_name, lv_name, lv_snapshot_name)
     lv_take_snapshot(vg_name, lv_name, lv_snapshot_name, lv_snapshot_size)
@@ -554,7 +554,7 @@ def lv_mount(vg_name, lv_name, mount_loc, create_filesystem=""):
     if the filesystem was already created and the mkfs process is skipped.
     """
     error.context("Mounting the logical volume",
-                  logging.info)
+                  logging.debug)
 
     try:
         if create_filesystem:
@@ -574,7 +574,7 @@ def lv_umount(vg_name, lv_name, mount_loc):
     Unmount a logical volume from a mount location.
     """
     error.context("Unmounting the logical volume",
-                  logging.info)
+                  logging.debug)
 
     try:
         utils.run("umount /dev/%s/%s" % (vg_name, lv_name))
