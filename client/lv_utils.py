@@ -104,14 +104,14 @@ def vg_ramdisk_cleanup(ramdisk_filename=None, vg_ramdisk_dir=None,
         if loop_device is not None:
             loop_device = loop_device.group(1)
 
-        result = utils.run("vgremove %s" % vg_name, ignore_status=True)
+        result = utils.run("vgremove -f %s" % vg_name, ignore_status=True)
         if result.exit_status == 0:
             logging.info(result.stdout.rstrip())
         else:
             logging.debug("%s -> %s", result.command, result.stderr)
 
     if loop_device is not None:
-        result = utils.run("pvremove %s" % loop_device, ignore_status=True)
+        result = utils.run("pvremove -f %s" % loop_device, ignore_status=True)
         if result.exit_status == 0:
             logging.info(result.stdout.rstrip())
         else:
