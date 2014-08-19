@@ -93,6 +93,21 @@ def vg_ramdisk(vg_name, ramdisk_vg_size,
     logging.info(result.stdout.rstrip())
 
 
+@error.context_aware
+def lv_ramdisk(vg_name, pool_name, pool_size):
+    error.context("Creating thin pool for thinly provisioned volumes",
+                  logging.info)
+
+    if not vg_check(vg_name):
+        raise error.TestError("Volume group could not be found")
+    if lv_check(vg_name, pool_name):
+        raise error.TestError("Thin pool already exists")
+
+    cmd = "lvcreate -L %s --thin %s/%s" % (pool_size, vg_name, pool_name)
+    result = utils.run(cmd)
+    logging.info(result.stdout.rstrip())
+
+
 def vg_ramdisk_cleanup(ramdisk_filename=None, vg_ramdisk_dir=None,
                        vg_name=None, loop_device=None):
     """
@@ -234,11 +249,11 @@ def lv_check(vg_name, lv_name):
     """
     Check whether provided logical volume exists.
     """
-    cmd = "lvdisplay"
+    cmd = "lvdisplay %s" % vg_name
     result = utils.run(cmd, ignore_status=True)
 
     # unstable approach but currently works
-    lvpattern = r"LV Path\s+/dev/%s/%s\s+" % (vg_name, lv_name)
+    lvpattern = r"LV Name\s+%s\s+" % lv_name
     match = re.search(lvpattern, result.stdout.rstrip())
     if match:
         logging.debug("Provided logical volume %s exists in %s", lv_name, vg_name)
@@ -352,6 +367,29 @@ def thin_lv_create(vg_name, thinpool_name="lvthinpool", thinpool_size="1.5G",
 
 
 @error.context_aware
+def lv_create_thin(vg_name, pool_name, lv_name, lv_size):
+    """
+    Create a thinly provisioned logical volume in a volume group.
+
+    The volume group must already exist.
+    """
+    error.context("Creating original thin lv to take a snapshot from",
+                  logging.info)
+
+    if not vg_check(vg_name):
+        raise error.TestError("The volume group could not be found")
+    if not lv_check(vg_name, pool_name):
+        raise error.TestError("The thin pool could not be found")
+    if lv_check(vg_name, lv_name):
+        raise error.TestError("The logical volume already exists")
+
+    cmd = "lvcreate --virtualsize %s --thin %s/%s --name %s" % (lv_size, vg_name,
+                                                                pool_name, lv_name)
+    result = utils.run(cmd)
+    logging.info(result.stdout.rstrip())
+
+
+@error.context_aware
 def lv_take_snapshot(vg_name, lv_name,
                      lv_snapshot_name, lv_snapshot_size):
     """
@@ -367,8 +405,8 @@ def lv_take_snapshot(vg_name, lv_name,
     if not lv_check(vg_name, lv_name):
         raise error.TestError("Snapshot's origin could not be found")
 
-    cmd = ("lvcreate --size %s --snapshot --name %s /dev/%s/%s" %
-           (lv_snapshot_size, lv_snapshot_name, vg_name, lv_name))
+    cmd = ("lvcreate -s --name %s /dev/%s/%s --size %s" %
+           (lv_snapshot_name, vg_name, lv_name, lv_snapshot_size))
     try:
         result = utils.run(cmd)
     except error.CmdError, ex:
@@ -383,6 +421,51 @@ def lv_take_snapshot(vg_name, lv_name,
             result = utils.run(cmd)
         else:
             raise ex
+    logging.info(result.stdout.rstrip())
+
+
+@error.context_aware
+def lv_take_thin_snapshot(vg_name, lv_name, lv_snapshot_name):
+    """
+    Take a thinly provisioned snapshot of a thin logical volume.
+    """
+    error.context("Taking a thin snapshot from a thin logical volume",
+                  logging.debug)
+
+    if not vg_check(vg_name):
+        raise error.TestError("Volume group could not be found")
+    if lv_check(vg_name, lv_snapshot_name):
+        raise error.TestError("Snapshot already exists")
+    if not lv_check(vg_name, lv_name):
+        raise error.TestError("Snapshot's origin could not be found")
+
+    cmd = ("lvcreate -s --name %s /dev/%s/%s --ignoreactivationskip" %
+           (lv_snapshot_name, vg_name, lv_name))
+    # lvcreate -s --thinpool vg001/pool origin_volume --name mythinsnap
+    result = utils.run(cmd)
+    logging.info(result.stdout.rstrip())
+
+
+@error.context_aware
+def lv_take_thin_snapshot_from_external(vg_name, pool_name, lv_name, lv_snapshot_name):
+    """
+    Take a thinly provisioned snapshot of external logical volume.
+    """
+    error.context("Taking a thin snapshot from an external logical volume",
+                  logging.debug)
+
+    if not vg_check(vg_name):
+        raise error.TestError("Volume group could not be found")
+    if not lv_check(vg_name, pool_name):
+        raise error.TestError("Snapshot's thin pool could not be found")
+    if lv_check(vg_name, lv_snapshot_name):
+        raise error.TestError("Snapshot already exists")
+    if not lv_check(vg_name, lv_name):
+        raise error.TestError("Snapshot's origin could not be found")
+
+    cmd = ("lvcreate -s --thinpool %s/%s %s --name %s --ignoreactivationskip" %
+           (vg_name, pool_name, lv_name, lv_snapshot_name))
+    result = utils.run(cmd)
     logging.info(result.stdout.rstrip())
 
 
