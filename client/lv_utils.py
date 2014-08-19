@@ -281,7 +281,7 @@ def lv_remove(vg_name, lv_name):
 
 
 @error.context_aware
-def lv_create(vg_name, lv_name, lv_size, force_flag=True):
+def lv_create(vg_name, lv_name, lv_size):
     """
     Create a logical volume in a volume group.
 
@@ -292,10 +292,8 @@ def lv_create(vg_name, lv_name, lv_size, force_flag=True):
 
     if not vg_check(vg_name):
         raise error.TestError("Volume group could not be found")
-    if lv_check(vg_name, lv_name) and not force_flag:
+    if lv_check(vg_name, lv_name):
         raise error.TestError("Logical volume already exists")
-    elif lv_check(vg_name, lv_name) and force_flag:
-        lv_remove(vg_name, lv_name)
 
     cmd = "lvcreate --size %s --name %s %s" % (lv_size, lv_name, vg_name)
     result = utils.run(cmd)
