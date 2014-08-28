@@ -9,6 +9,7 @@ LOG="/tmp/$BASENAME-$DATETIMESTAMP.log"
 ATPASSWD=
 MYSQLPW=
 INSTALL_PACKAGES_ONLY=0
+DJANGO_SUPPORTED_VERSION="1.5"
 export LANG=en_US.utf8
 
 print_log() {
@@ -29,6 +30,8 @@ Currently tested systems - Up to date versions of:
  * RHEL 6.2
  * Ubuntu 12.04
  * Ubuntu 12.10
+
+Current version of Django supported by autotest: 1.5
 
 GENERAL OPTIONS:
    -h      Show this message
@@ -248,6 +251,9 @@ install_basic_pkgs_deb() {
 
 install_packages() {
     print_log "INFO" "Installing packages dependencies"
+    print_log "INFO" "Please note that autotest is compatible with Django $DJANGO_SUPPORTED_VERSION"
+    print_log "INFO" "If your distro/local install is different, you WILL have problems"
+    print log "INFO" "Please stick with $DJANGO_SUPPORTED_VERSION for the time being"
     $ATHOME/installation_support/autotest-install-packages-deps >> $LOG 2>&1
     if [ $? != 0 ]
     then

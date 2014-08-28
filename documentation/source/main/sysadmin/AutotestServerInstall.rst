@@ -23,6 +23,15 @@ Server/Scheduler/Web UI Installation Steps
 Install required packages
 -------------------------
 
+Autotest is a complex project and requires a number of dependencies to
+be installed.
+
+.. note::
+
+  Currently autotest is compatible with Django 1.5, so if your
+  distribution has anything lower or higher than this version, you
+  will have problems and are advised to use a compatible version.
+
 We have automated this step on recent Ubuntu (12.04/12.10), although
 it should work on Debian too:
 
