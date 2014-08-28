@@ -49,6 +49,19 @@ For the impatient:
 
 http://autotest.readthedocs.org/en/latest/main/local/ClientQuickStart.html
 
+Installing the autotest server
+------------------------------
+
+For the impatient using Red Hat:
+
+http://autotest.readthedocs.org/en/latest/main/sysadmin/AutotestServerInstallRedHat.html
+
+For the impatient using Ubuntu/Debian:
+
+http://autotest.readthedocs.org/en/latest/main/sysadmin/AutotestServerInstall.html
+
+You are advised to read the documentation carefully, specially with details
+regarding appropriate versions of Django autotest is compatible with.
 
 Main project page
 -----------------

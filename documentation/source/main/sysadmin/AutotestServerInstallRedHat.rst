@@ -33,8 +33,14 @@ it should work on Debian too:
 If you want to install it manually here it goes. Keep in mind this can be
 outdated, if so we kindly ask your help with keeping it up to date.
 
-If the distro you are running has Django >= 1.3 packaged (such as
-Fedora 15 onwards), you can install the django that your distro ships:
+.. note::
+
+  Currently autotest is compatible with Django 1.5, so if your
+  distribution has anything lower or higher than this version, you
+  will have problems and are advised to use a compatible version.
+
+If the distro you are running has Django 1.5 packaged,
+you can install the django that your distro ships:
 
 ::
 
