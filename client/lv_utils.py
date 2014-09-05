@@ -283,6 +283,70 @@ def lv_create(vg_name, lv_name, lv_size, force_flag=True):
     logging.info(result.stdout.rstrip())
 
 
+def lv_list():
+    """
+    List available group volumes.
+    """
+    cmd = "lvs --all"
+    volumes = {}
+    result = utils.run(cmd)
+
+    lines = result.stdout.strip().splitlines()
+    if len(lines) > 1:
+        columns = lines[0].split()
+        lines = lines[1:]
+    else:
+        return volumes
+
+    for line in lines:
+        details = line.split()
+        length = len(details)
+        details_dict = {}
+        lv_name = details[0]
+        details_dict["VG"] = details[1]
+        details_dict["Attr"] = details[2]
+        details_dict["LSize"] = details[3]
+        if length == 5:
+            details_dict["Origin_Data"] = details[4]
+        elif length > 5:
+            details_dict["Origin_Data"] = details[5]
+            details_dict["Pool"] = details[4]
+        volumes[lv_name] = details_dict
+    return volumes
+
+
+def thin_lv_create(vg_name, thinpool_name="lvthinpool", thinpool_size="1.5G",
+                   thinlv_name="lvthin", thinlv_size="1G"):
+    """
+    Create a thin volume from given volume group.
+
+    :param vg_name: An exist volume group
+    :param thinpool_name: The name of thin pool
+    :param thinpool_size: The size of thin pool to be created
+    :param thinlv_name: The name of thin volume
+    :param thinlv_size: The size of thin volume
+    """
+    tp_cmd = "lvcreate --thinpool %s --size %s %s" % (thinpool_name,
+                                                      thinpool_size,
+                                                      vg_name)
+    try:
+        utils.run(tp_cmd)
+    except error.CmdError, detail:
+        logging.debug(detail)
+        raise error.TestError("Create thin volume pool failed.")
+    logging.debug("Created thin volume pool: %s", thinpool_name)
+    lv_cmd = ("lvcreate --name %s --virtualsize %s "
+              "--thin %s/%s" % (thinlv_name, thinlv_size,
+                                vg_name, thinpool_name))
+    try:
+        utils.run(lv_cmd)
+    except error.CmdError, detail:
+        logging.debug(detail)
+        raise error.TestError("Create thin volume failed.")
+    logging.debug("Created thin volume:%s", thinlv_name)
+    return (thinpool_name, thinlv_name)
+
+
 @error.context_aware
 def lv_take_snapshot(vg_name, lv_name,
                      lv_snapshot_name, lv_snapshot_size):
