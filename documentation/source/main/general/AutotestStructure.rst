@@ -8,7 +8,7 @@ project structure. We try to be brief and show the high level diagrams.
 Simplified block diagram
 ------------------------
 
-For the same of clarity, some things are simplified here, but it gives
+For the sake of clarity, some things are simplified here, but it gives
 you a good idea of the overall layout.
 
 .. figure:: AutotestStructure/block_structure.png

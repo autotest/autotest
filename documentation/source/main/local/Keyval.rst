@@ -31,7 +31,7 @@ composed of data from the "uppermost" of the keyval files (i.e. the
 single job level keyval in the root dir). The single exception to this
 is the hostname field - this is taken from the machine directory.
 
-Test kevel keyval
+Test level keyval
 -----------------
 
 This contains the version of the test, and some per-test system
