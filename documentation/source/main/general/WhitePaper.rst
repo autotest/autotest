@@ -11,7 +11,7 @@ automated testing, that is designed primarily to test the Linux kernel,
 though is useful for many other functions too. Test.kernel.org is a
 framework for communicating, sharing, and analysing test results.
 
-In a traditional corporate systems software development enviroment,
+In a traditional corporate systems software development environment,
 there is normally a large test team responsible for assuring the quality
 of the final product. Open source projects do not have that luxury, and
 we need to find another way to run testing. We feel that the only
@@ -25,8 +25,8 @@ this also solves several other critical problems with testing.
    in one person, but within a system.
 -  Sharing - you can easily share tests with vendors, partners, and
    across a wide community.
--  Reproducability - they say 90% of fixing a bug is to get an easily
-   reproducable test case.
+-  Reproducibility - they say 90% of fixing a bug is to get an easily
+   reproducible test case.
 
 Testing is not about running tests ... testing is about finding and
 fixing bugs. We have to:
@@ -73,7 +73,7 @@ thousands of patches to weed out dysfunctional changes.
 
 It's critical that when operating in an open community, we can share and
 compare test results - that necessitates consistency of results formats.
-The easiest way to acheive this is to share one common test harness.
+The easiest way to achieve this is to share one common test harness.
 
 Introduction
 ------------
@@ -212,7 +212,7 @@ with a wide-ranging, high-frequency regression testing regime. The
 \`release early, release often' development philosophy provides us with
 a constant stream of test candidates; for example the -git snapshots
 which are produced twice daily, and Andrew Morton's collecting of the
-specialised maintainer trees into a bleeding-edge -mm development tree.
+specialized maintainer trees into a bleeding-edge -mm development tree.
 
 In an ideal world we would be regression testing at least daily
 snapshots of all development trees, the -mm tree and mainline on all
