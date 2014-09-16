@@ -1,7 +1,6 @@
 ==========================
 Control file specification
 ==========================
-
 This document will go over what is required to be in a control file for
 it to be accepted into git. The goal of this is to have control files
 that contain all necessary information for the frontend/the user to
@@ -9,17 +8,14 @@ ascertain what the test does and in what ways it can be modified.
 
 Naming your control files
 -------------------------
-
-Control files should always start with control.XXXXX. XXXXX is up to you
+Control files should always start with **control.XXXXX**, where **XXXXX** is up to you
 and the code reviewer, the idea is for it to be short sweet and
-descriptive. e.g. For the hard reboot test 500 iterations test a decent
-name would be control.hard500.
+descriptive. For example, for 500 iterations of hard reboot test a decent
+name would be ``control.hard500``.
 
 Variables
 ---------
-
-An overview of variables that should be considered required in any
-control file submitted to our repo.
+An overview of variables that should be considered required in any control file submitted to our repo.
 
 +--------------------+--------------------------------------------------------------------------------+
 | **Name**           | **Description**                                                                |
@@ -50,47 +46,73 @@ control file submitted to our repo.
 \* **Are required for test to be considered valid**
 
 If you'd like to verify that your control file defines these variables
-correctly, try the utils/check\_control\_file\_vars.py utility.
+correctly, try the ``utils/check_control_file_vars.py`` utility.
 
 AUTHOR (Required)
 ~~~~~~~~~~~~~~~~~
-The name of either a group or a person who will be able to answer questions pertaining to the test should the development team not be able to fix bugs. **With email address included**
+The name of either a group or a person who will be able to answer questions pertaining to the test should the 
+development team not be able to fix bugs. **With email address included**
 
-DEPENDENCIES (Optional, default None)
+DEPENDENCIES (Optional, default: None)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Dependencies are a way to describe what type of hardware you need to find to run a test on. Dependencies are just a fancy way of saying if this machine has this label on it then it is eligible for this test. 
+Dependencies are a way to describe what type of hardware you need to find to run a test on. Dependencies are 
+just a fancy way of saying if this machine has this label on it then it is eligible for this test. 
 
-An example usecase for this would be if you need to run a test on a device that has bluetooth you would add the following to your control file:
+An example usecase for this would be if you need to run a test on a device that has bluetooth you would add 
+the following to your control file::
 
    DEPENDENCY = "Bluetooth"
 
-Where "Bluetooth" is the exact label that was created in Autotest and has been added to a machine in Autotest either via the CLI or the Django admin interface. 
+Where ``Bluetooth`` is the exact label that was created in Autotest and has been added to a machine in
+Autotest either via the CLI or the Django admin interface. 
 
 DOC (Required)
 ~~~~~~~~~~~~~~
-The doc string should be fairly verbose describing what is required for the test to be run successfully and any modifications that can be done to the test. Any arguments in your def execute() that can change the behavior of the test need to be listed here with their defaults and a description of what they do.
+The doc string should be fairly verbose describing what is required for the test to be run successfully and
+any modifications that can be done to the test. Any arguments in your ``def execute()`` that can change the 
+behavior of the test need to be listed here with their defaults and a description of what they do.
 
 EXPERIMENTAL (Optional, default: False)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-If this field is set the test import process for the frontend will ignore these tests for production Autotest servers. This is useful for gettings tests checked in and tested in development servers without having to worry about them sneaking into production servers.
+If this field is set the test import process for the frontend will ignore these tests for production
+Autotest servers. This is useful for gettings tests checked in and tested in development servers
+without having to worry about them sneaking into production servers.
 
 NAME (Required)
 ~~~~~~~~~~~~~~~
-The name that the frontend will display, this is useful when you have multiple control files for the same test but with slight variations
+The name that the frontend will display, this is useful when you have multiple control files for the same
+test but with slight variations.
 
 RUN\_VERIFY (Optional, default: True)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-RUN\_VERIFY is used to have the scheduler not run verify on a particular job when it is scheduling it.
+It is used to have the scheduler not run verify on a particular job when it is scheduling it.
 
 SYNC\_COUNT (Optional, default: 1)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-SYNC\_COUNT accepts a number >=1 (1 being the default). If it's 1, then it's a async test. If it's >1 it's sync.
+It accepts a number >=1 (1 being the default). If it's 1, then it's a async test. If it's >1 it's sync.
 
-For example if I have a test that requires exactly two machines SYNC\_COUNT = 2. The scheduler will then find the maximum amount of machines from the job submitted that will run that fit the SYNC\_COUNT evenly. For example if I submit a job with 23 machines, 22 machines will run the test in that job and one will fail to run becase it doesn't have a pair. 
+For example, if I have a test that requires exactly two machines ``SYNC_COUNT = 2``. The scheduler will
+then find the maximum amount of machines from the job submitted that will run that fit the ``SYNC_COUNT``
+evenly.
+
+For example, if I submit a job with 23 machines, 22 machines will run the test in that job and
+one will fail to run becase it doesn't have a pair. 
 
 TIME (Required)
 ~~~~~~~~~~~~~~~
-How long the test generally takes to run. This does not include the autotest setup time but just your individual test's time. TIME Description SHORT Test runs for a maximum of 15 minutes MEDIUM Test runs for less four hours LONG Test runs for longer four hours
+How long the test generally takes to run. This does not include the autotest setup time but just your
+individual test's time.
+
++--------+--------------------------------------+
+| TIME   | Description                          |
++========+======================================+
+| SHORT  | Test runs for a maximum of 15 minutes|
++--------+--------------------------------------+
+| MEDIUM | Test runs for less four hours        |
++--------+--------------------------------------+
+| LONG   | Test runs for longer four hours      |
++--------+--------------------------------------+
+
 
 TEST\_CATEGORY (Required)
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -103,7 +125,8 @@ Examples of categories:
 
 TEST\_CLASS (Required)
 ~~~~~~~~~~~~~~~~~~~~~~
-This****describes the class type of tests. This is useful if you have different different types of tests you want to filter on. If a test is added with a TEST\_CLASS that does not exist the frontend should add that class.
+This****describes the class type of tests. This is useful if you have different different types of tests you 
+want to filter on. If a test is added with a ``TEST_CLASS`` that does not exist the frontend should add that class.
 
 Example tests classes
 
@@ -112,11 +135,11 @@ Example tests classes
 
 TEST\_TYPE (Required)
 ~~~~~~~~~~~~~~~~~~~~~
-This will tell the frontend what type of test it is. Valid values are **server** and **client**. Although server\_async jobs are also a type of job in correlation with SYNC\_COUNT this is taken care of.
+This will tell the frontend what type of test it is. Valid values are **server** and **client**.
+Although ``server_async`` jobs are also a type of job in correlation with ``SYNC_COUNT`` this is taken care of.
 
 Example
 -------
-
 ::
 
     TIME ='MEDIUM'
