@@ -1,171 +1,148 @@
+Diagnosing failures in your results
 ===================================
-Diagnosing Failures in Your Results
-===================================
-
-This document will describe how to go about triaging your Autotest
-results and finding out what went wrong.
+This document will describe how to go about triaging your Autotest results and finding out what went wrong.
 
 Basics
 ------
+A lot of times when tests fail there are a number of things that could have come into play. Below are a few
+things that should be considered.
 
-A lot of times when tests fail there are a number of things that could
-have come into play. Below are a few things that should be considered.
+- Baseline
+- What changed between tests
+- Look at the raw results
 
--  Baseline
--  What changed between tests
--  Look at the raw results
+Having a baseline is an absolute **must**:
 
-Having a baseline is an absolute must. Have you run these tests on this
-particular system before? Did it pass without any issues? These are
-questions you should be asking yourself. If you do not have a baseline
-that is the first thing to establish. It really is as simple as running
-a job and making note of the results.
+- Have you run these tests on this particular system before?
+- Did it pass without any issues?
 
-A lot of the time that people have tests fail they do not consider what
-changed in between tests. Any change what so ever is important to make
-note of. From something big like, did I change the kernel? To something
-small like did I move my system to a different area which may have
-impacted the cooling of the system?
+These are questions you should be asking yourself. If you do not have a baseline that is the first thing to establish.
+It really is as simple as running a job and making note of the results.
+
+A lot of the time that people have tests fail they do not consider what changed in between tests. Any change what so
+ever is important to make note of. From something big like, did I change the kernel? To something small like did I
+move my system to a different area which may have impacted the cooling of the system?
 
 Lastly if nothing has changed and you have established a baseline for
 your machines it is time to delve into the results.
 
-Looking at Raw Results
+Looking at raw results
 ----------------------
+There are a few key areas worth looking at when evaluating what could have went wrong with your job. From the 
+*View Job* tab click on *raw results log*. Here you will be presented with a directory structure that represents
+your job flat files. If you created a job with multiple machines there will be individual directories for each machine.
+Navigate to the machine you want to investigate.
 
-There are a few key areas worth looking at when evaluating what could
-have went wrong with your job. From the*View Job*tab click on *raw
-results log.*Here you will be presented with a directory structure that
-represents your job flat files. If you created a job with multiple
-machines there will be individual directories for each machine. Navigate
-to the machine you want to investigate.
+The ``debug`` directory
+----------------------
+All tests run including the main Autotest job will have a ``debug`` directory. Here you will find the majority of the
+information you need to diagnose issues with tests.
 
-The debug Directory
--------------------
+The following files in ``debug`` directory will give you insight into what Autotest was doing at the time::
 
-All tests run including the main autotest job will have a debug
-directory. Here you will find the majority of the information you need
-to diagnose issues with tests.
+    debug/
+    ├── build_log.gz
+    ├── client.DEBUG
+    ├── client.ERROR
+    ├── client.INFO
+    └── client.WARNING
 
-The following files will give you insight into what autotest was doing
-at the time.
+If you have console support (via ``conmux``) you should also take a look at ``conmux.log``.
 
--  debug/autoserv.ERROR
--  debug/autoserv.DEBUG
--  debug/client.log.\*
+If at any point Autotest produced a stacktrace, ``*.ERROR`` will most likely contain this information. That is a
+good place to start if the test run failed and you want to see if Autotest itself as at fault for the problem.
 
-If you have console support (via conmux) you should also take a look at
-conmux.log
+If both of these files are clean next we go to the ``<hostname>/test/`` directory.
 
-If at any point autotest produced a stacktrace, autoserv.ERROR will most
-likely contain this information. That is a good place to start if the
-test run failed and you want to see if autotest itself as at fault for
-the problem.
+Example investigation
+~~~~~~~~~~~~~~~~~~~~~
+This example was created on host without ``time`` utility, I tried to launch *kernbench* (output reduced)::
 
-If both of these files are clean next we go to the <hostname>/test/
-directory.
+	# client/autotest-local --verbose run kernbench
+	10:01:59 INFO | Writing results to /usr/local/autotest/client/results/default
+	...
+	10:03:19 DEBUG| Running 'gzip -9 '/usr/local/autotest/client/results/default/kernbench/debug/build_log''
+	10:03:19 ERROR| Exception escaping from test:
+	Traceback (most recent call last):
+	  File "/usr/local/autotest/client/shared/test.py", line 398, in _exec
+	    *args, **dargs)
+	  File "/usr/local/autotest/client/shared/test.py", line 823, in _call_test_function
+	    return func(*args, **dargs)
+	  File "/usr/local/autotest/client/shared/test.py", line 738, in _cherry_pick_call
+	    return func(*p_args, **p_dargs)
+	  File "/usr/local/autotest/client/tests/kernbench/kernbench.py", line 53, in warmup
+	    self.kernel.build_timed(self.threads, output=logfile)  # warmup run
+	  File "/usr/local/autotest/client/kernel.py", line 377, in build_timed
+	    utils.system(build_string)
+	  File "/usr/local/autotest/client/shared/utils.py", line 1232, in system
+	    verbose=verbose).exit_status
+	  File "/usr/local/autotest/client/shared/utils.py", line 918, in run
+	    "Command returned non-zero exit status")
+	CmdError: Command </usr/bin/time -o /dev/null make  -j 4 vmlinux > /usr/local/autotest/client/results/default/kernbench/debug/build_log 2>&1> failed, rc=127, Command returned non-zero exit status
+	* Command:
+    	/usr/bin/time -o /dev/null make  -j 4 vmlinux >
+    	/usr/local/autotest/client/results/default/kernbench/debug/build_log 2>&1
+	Exit status: 127
+	Duration: 0.00197100639343
 
-For example (example no longer exists):
+Here we are investigating why *kernbench* failed. The first place we want to look at is the ``debug`` directory.
+There we see the following files::
 
-`http://test.kernel.org/results/IBM/126959/kernbench/ <http://test.kernel.org/results/IBM/126959/kernbench/>`_
+    # tree -s debug/
+    debug/
+    ├── [         79]  build_log.gz
+    ├── [       1345]  client.DEBUG
+    ├── [          0]  client.ERROR
+    ├── [        511]  client.INFO
+    └── [          0]  client.WARNING
 
-Here we are investigating why kernbench failed for this particular
-kernel. The first place we want to look at is the *debug* directory.
-There we see three files
+As it failed during ``build`` phase I am going to look at ``build_log``::
 
--  build\_log
--  stderr
--  stdout
+    $ cat build_log
+    /bin/bash: /usr/bin/time: No such file or directory
 
-Starting with stderr we see
+Well, that is true as::
+    
+    [user@a5 debug]# which time
+    /usr/bin/which: no time in (/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/root/bin)
+    [user@a5 debug]# ls /usr/bin/time
+    ls: cannot access /usr/bin/time: No such file or directory
+    
+In general test diagnoses should be that straight forward. Obvious this can not cover all cases.
 
-::
+The ``sysinfo`` directory
+-------------------------
+The ``sysinfo`` directory is exactly what it sounds like. A directory that contains as much information as possible that
+can be gathered from the machine::
 
-    /usr/local/autobench/autotest/tests/kernbench/src/linux/arch/x86_64/defconfig:111: trying to assign nonexistent symbol HAVE_DEC_LOCK
+    # tree sysinfo/
+    sysinfo/
+    ├── df
+    ├── dmesg.gz
+    ├── messages.gz
+    └── reboot_current -> ../../sysinfo
 
-Alright that gives us some insight. Lets poke around a bit more. The
-stdout file is 45k I am going to skip that and look at build\_log:
-
-::
-
-      SYMLINK include/asm -> include/asm-x86_64
-      CHK     include/linux/version.h
-      HOSTCC  scripts/basic/fixdep
-      UPD     include/linux/version.h
-      HOSTCC  scripts/basic/split-include
-      HOSTCC  scripts/basic/docproc
-      SPLIT   include/linux/autoconf.h -> include/config/*
-      CC      arch/x86_64/kernel/asm-offsets.s
-    arch/x86_64/kernel/asm-offsets.c:1: error: code model `kernel' not supported in the 32 bit mode
-      HOSTCC  scripts/kallsyms
-      HOSTCC  scripts/conmakehash
-      HOSTCC  scripts/bin2c
-    make[1]: *** [arch/x86_64/kernel/asm-offsets.s] Error 1
-    make: *** [prepare0] Error 2
-    make: *** Waiting for unfinished jobs....
-      CC      scripts/mod/empty.o
-    scripts/mod/empty.c:1: error: code model `kernel' not supported in the 32 bit mode
-      HOSTCC  scripts/mod/mk_elfconfig
-    make[2]: *** [scripts/mod/empty.o] Error 1
-    make[2]: *** Waiting for unfinished jobs....
-    make[1]: *** [scripts/mod] Error 2
-    make[1]: *** Waiting for unfinished jobs....
-    make: *** [scripts] Error 2
-
-The two errors listed there are common errors when trying to cross
-compile a 64 bit kernel on a 32 bit system.
-
-In general test diagnoses should be that straight forward. Obvious this
-cannot cover all cases.
-
-The sysinfo Directory
----------------------
-
-The sysinfo directory is exactly what it sounds like. A directory that
-contains as much information as possible that can be gathered from the
-machine. Of all the information these are files you should pay
-particular information to:
-
--  dmesg
--  uname -a
--  cmdline
-
-   -  The kernel boot command line
-
--  df
--  meminfo
-
-In general this directory is your second bet for finding issues. Most
-files are self explanatory, you should always examine dmesg to make sure
-your boot was clean. Then depending on what test you were running that
-failed examine files that will give you insight to that particular piece
-of hardware.
+In general this directory is your second bet for finding issues. Most files are self explanatory, you should always examine
+``dmesg`` to make sure your boot was clean. Then depending on what test you were running that failed examine files that
+will give you insight to that particular piece of hardware.
 
 Manually running a job on a machine that is causing problems
 ------------------------------------------------------------
+A lot of times you will run into the case that all of your machines but two or three pass. While you may be able to figure
+out why most of them failed by looking at files it is sometimes advantageous to run the Autotest process individually on
+the problem machines.
 
-A lot of times you will run into the case that all of your machines but
-two or three pass. While you may be able to figure out why most of them
-failed by looking at files it is sometimes advantageous to run the
-autotest process individually on the problem machines
+Log-in to the machine and change to ``/home/autotest``, there you will find the installation that the server put on this
+particular system.
 
-Log in to the machine and change to */home/autotest*, there you will
-find the installation that the server put on this particular system.
+The last control file of the job that was run is also available to you - ``control.autoserv``.
 
-The last control file of the job that was run is also available to you:
-**control.autoserv**
+To start the job over again run the following::
 
-To start the job over again run the following:
-
-::
-
-    [root@udc autotest]#bin/autotest control.autoserv
+    [root@udc autotest]# bin/autotest control.autoserv
 
 This is exactly how the autotest server starts jobs on client machines.
 
-If you have a large control file that runs multiple tests and you are
-only interested in one or two of them you can safely edit this file and
-remove any tests that you know work for sure. A lot of the time failures
-can be diagnosed by babysitting a machine and seeing what else is going
-on with general diagnostic on a machine.
-
+If you have a large control file that runs multiple tests and you are only interested in one or two of them you can safely
+edit this file and remove any tests that you know work for sure. A lot of the time failures can be diagnosed by babysitting
+a machine and seeing what else is going on with general diagnostic on a machine.
