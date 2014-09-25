@@ -668,6 +668,24 @@ def load_module(module_name):
     return True
 
 
+def loaded_module_info(module_name):
+    """
+    Get loaded module details: Size and Submodules.
+    """
+    l_raw = utils.system_output('/sbin/lsmod').splitlines()[1:]
+    lsmod = [x for x in l_raw if x.split()[0] == module_name]
+    if len(lsmod) > 0:
+        module_info = {'name': module_name, 'size': None, 'submodules': []}
+        line_parts = lsmod[0].split()
+        module_info['size'] = line_parts[1]
+        if len(line_parts) == 4:
+            submodules = line_parts[3].split(",")
+            module_info['submodules'] = submodules
+        return module_info
+    else:
+        return None
+
+
 def unload_module(module_name):
     """
     Removes a module. Handles dependencies. If even then it's not possible
@@ -675,18 +693,14 @@ def unload_module(module_name):
 
     :param module_name: Name of the module we want to remove.
     """
-    l_raw = utils.system_output("/sbin/lsmod").splitlines()
-    lsmod = [x for x in l_raw if x.split()[0] == module_name]
-    if len(lsmod) > 0:
-        line_parts = lsmod[0].split()
-        if len(line_parts) == 4:
-            submodules = line_parts[3].split(",")
-            for submodule in submodules:
-                unload_module(submodule)
+    module_info = loaded_module_info(module_name)
+    if module_info is None:
+        logging.info("Module %s is already unloaded" % module_name)
+    else:
+        for module in module_info.get('submodules'):
+            unload_module(module)
         utils.system("/sbin/modprobe -r %s" % module_name)
         logging.info("Module %s unloaded" % module_name)
-    else:
-        logging.info("Module %s is already unloaded" % module_name)
 
 
 def module_is_loaded(module_name):
