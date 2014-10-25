@@ -349,13 +349,14 @@ class kernel(BootableKernel):
         # Not needed on 2.6, but hard to tell -- handle failure
         utils.system('make dep', ignore_status=True)
         threads = 2 * utils.count_cpus()
-        build_string = 'make -j %d %s %s' % (threads, make_opts,
-                                             self.build_target)
-        # eg make bzImage, or make zImage
+        build_string = 'make -j %d %s %s | tee -a %s' % (threads, make_opts,
+                                     self.build_target, logfile)
+                                # eg make bzImage, or make zImage
         print build_string
         utils.system(build_string)
         if kernel_config.modules_needed('.config'):
-            utils.system('make -j %d %s modules' % (threads, make_opts))
+            utils.system('make -j %d %s modules | tee -a %s' % (
+                    threads, make_opts, logfile))
 
         kernel_version = self.get_kernel_build_ver()
         kernel_version = re.sub('-autotest', '', kernel_version)
