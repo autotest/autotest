@@ -1,0 +1,2 @@
+job.setup_dep(['libaio'])
+job.setup_dep(['xfsprogs'])

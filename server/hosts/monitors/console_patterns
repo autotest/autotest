@@ -15,7 +15,11 @@ BUG
 machine took an open firmware exception (see console)
 
 BUG
-^.*(BUG:.*)
+^.*( BUG:.*)
+%s
+
+BUG
+^(BUG:.*)
 %s
 
 BUG
@@ -28,6 +32,10 @@ OOM
 
 BUG
 ^(.*CommandAbort.*)
+%s
+
+WARNING
+^.*(WARNING: at .*)
 %s
 
 LOCKDEP
