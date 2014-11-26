@@ -9,6 +9,7 @@ from simplejson.scanner import make_scanner
 
 def _import_c_scanstring():
     try:
+        # pylint: disable=E0611
         from simplejson._speedups import scanstring
         return scanstring
     except ImportError:

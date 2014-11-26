@@ -311,6 +311,7 @@ class mock_god(object):
 
             @classmethod
             def make_new(typ, *args, **dargs):
+                # pylint: disable=E1003
                 obj = super(cls_sub, typ).__new__(typ, *args,
                                                   **dargs)
 
