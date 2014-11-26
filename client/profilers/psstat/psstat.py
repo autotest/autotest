@@ -4,7 +4,8 @@ average load great than 'load_threshold'.
 
 Defaults options:
     interval = 0.5
-    top_num = 15
+    top_ps_num = 15
+    log_mb_size = 5
     load_threshold = 0.0
     free_mem_before_test = no
     free_mem_after_test = no
@@ -44,7 +45,7 @@ def listps(num, order):
     return ps_info
 
 
-def cpuload(prev_total=0, prev_idle=0):
+def cpuload(cpu_num, prev_total=0, prev_idle=0):
     """
     Calculate average CPU usage.
 
@@ -53,7 +54,6 @@ def cpuload(prev_total=0, prev_idle=0):
 
     :return: float number of CPU usage.
     """
-    cpu_num = open('/proc/cpuinfo', 'r').read().count('process')
     cpu_stat = utils.read_one_line('/proc/stat').lstrip('cpu')
     cpu_stat = [int(_) for _ in cpu_stat.split()]
     total, idle = (0, cpu_stat[3])
@@ -61,7 +61,7 @@ def cpuload(prev_total=0, prev_idle=0):
         total += val
     diff_total = total - prev_total
     diff_idle = idle - prev_idle
-    load = (1000 * (diff_total - diff_idle) / diff_total + 5) / 10
+    load = float((1000 * (diff_total - diff_idle) / diff_total + 5) / 10)
     load = load / cpu_num
     return (total, idle, load)
 
@@ -93,6 +93,7 @@ def uptime():
     """
     load_avg = ['System Load Average:']
     load_avg += utils.system_output('uptime', verbose=False).splitlines()
+    load_avg += ["\n"]
     return load_avg
 
 
@@ -102,6 +103,7 @@ def vmstat():
     """
     vm_stat = ['vm status:']
     vm_stat += utils.system_output('vmstat', verbose=False).splitlines()
+    vm_stat += ["\n"]
     return vm_stat
 
 
@@ -111,6 +113,7 @@ def iostat():
     """
     io_stat = ['IO status:']
     io_stat += utils.system_output('iostat', verbose=False).splitlines()
+    io_stat += ["\n"]
     return io_stat
 
 
@@ -125,7 +128,7 @@ class psstat(profiler.profiler):
     version = 1
 
     def __get_param(self, key, default):
-        if self.params.has_key(key):
+        if key in self.params:
             try:
                 return float(self.params[key])
             except ValueError:
@@ -133,6 +136,7 @@ class psstat(profiler.profiler):
         return default
 
     def initialize(self, **params):
+        self.fd = None
         self.params = params
         self.outfile = 'psstat.log'
         self.interval = self.__get_param('interval', 0.5)
@@ -145,18 +149,22 @@ class psstat(profiler.profiler):
         if self.__get_param('free_mem_before_test', 'no') == 'yes':
             freemem()
         self.child_pid = os.fork()
-        if self.child_pid:
-            return None
-        else:
+        if not self.child_pid:
             prev_total, prev_idle = 0, 0
-            ps_num = int(self.__get_param('ps_num', 15))
-            threshold = self.__get_param('threshold', 0.0)
+            count, content_size = 0, 0
+            ps_num = int(self.__get_param('top_ps_num', 15))
+            log_mb_size = int(self.params.get('log_mb_size', 5))
+            threshold = float(self.__get_param('load_threshold', 0.0))
+            cpu_num = open('/proc/cpuinfo', 'r').read().count('process')
             outfile = os.path.join(test.profdir, self.outfile)
-            fd = open(outfile, 'a+')
+            self.fd = open(outfile, 'a+')
             while True:
-                lines = []
+                count += 1
+                title = '=' * 30 + ' Loop %d ' % count + '=' * 30
+                lines = [title]
                 swap_cached = swapcached()
-                prev_total, prev_idle, cpu_load = cpuload(prev_total,
+                prev_total, prev_idle, cpu_load = cpuload(cpu_num,
+                                                          prev_total,
                                                           prev_idle)
                 if cpu_load > threshold or swap_cached > 0:
                     lines.extend(uptime())
@@ -169,7 +177,13 @@ class psstat(profiler.profiler):
                     for _ in orders:
                         lines.extend(listps(ps_num, _))
                     lines = '\n'.join(lines)
-                    fd.write(lines)
+                    content_size += len(lines)
+                    # Olny keep 5M log
+                    if content_size > log_mb_size * 1024 * 1024:
+                        self.fd.seek(0)
+                        self.fd.truncate()
+                        content_size = 0
+                    self.fd.write('%s\n' % lines)
                 time.sleep(self.interval)
 
     def stop(self, test):
@@ -177,6 +191,9 @@ class psstat(profiler.profiler):
         Stop monitor subprocses.
         """
         try:
+            if self.fd:
+                self.fd.flush()
+                self.fd.close()
             os.kill(self.child_pid, 15)
         except OSError:
             pass
