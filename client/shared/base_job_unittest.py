@@ -751,12 +751,14 @@ class test_job_state_backing_file_locking(unittest.TestCase):
             def read_from_file(self, file_path, merge=True):
                 if self._backing_file and file_path == self._backing_file:
                     ut_self.assertNotEqual(None, self._backing_file_lock)
+                # pylint: disable=E1003
                 return super(mocked_job_state, self).read_from_file(
                     file_path, merge=True)
 
             def write_to_file(self, file_path):
                 if self._backing_file and file_path == self._backing_file:
                     ut_self.assertNotEqual(None, self._backing_file_lock)
+                # pylint: disable=E1003
                 return super(mocked_job_state, self).write_to_file(file_path)
         self.state = mocked_job_state()
         self.state.set_backing_file('backing_file')

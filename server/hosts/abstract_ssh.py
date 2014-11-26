@@ -401,6 +401,8 @@ class AbstractSSHHost(SiteHost):
 
     def ssh_ping(self, timeout=60):
         try:
+            # Complex inheritance confuses pylint here
+            # pylint: disable=E1123
             self.run("true", timeout=timeout, connect_timeout=timeout)
         except error.AutoservSSHTimeout:
             msg = "Host (ssh) verify timed out (timeout = %d)" % timeout

@@ -124,6 +124,7 @@ OrderedDict = _import_OrderedDict()
 
 def _import_c_make_encoder():
     try:
+        # pylint: disable=E0611
         from simplejson._speedups import make_encoder
         return make_encoder
     except ImportError:
