@@ -81,6 +81,7 @@ class CommandParser(object):
                         # Imply /control by listing only directory name
                         text = "%s" % basename
 
+                    is_control = False
                     for line in open(root + "/" + name).readlines():
                         if re.match("NAME", line):
                             # We have a description line
@@ -90,7 +91,12 @@ class CommandParser(object):
                                 desc = desc[1:-1]
                             except IndexError:
                                 pass
+                            is_control = True
                             break
+                    if not is_control:
+                        # The current file is not a control file
+                        continue
+
                     pipe.write(' %-50s %s\n' % (text, desc))
 
     def fetch(self, args, options):
