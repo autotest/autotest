@@ -716,6 +716,28 @@ def loaded_module_info(module_name):
     return parse_lsmod_for_module(l_raw, module_name)
 
 
+def get_submodules(module_name):
+    """
+    Get all submodules of the module.
+
+    :param module_name: Name of module to search for
+    :type module_name: str
+    :return: List of the submodules
+    :rtype: list
+    """
+    module_info = loaded_module_info(module_name)
+    module_list = []
+    try:
+        submodules = module_info["submodules"]
+    except KeyError:
+        logging.info("Module %s is not loaded" % module_name)
+    else:
+        module_list = submodules
+        for module in submodules:
+            module_list += get_submodules(module)
+    return module_list
+
+
 def unload_module(module_name):
     """
     Removes a module. Handles dependencies. If even then it's not possible
