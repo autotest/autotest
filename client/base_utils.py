@@ -688,13 +688,14 @@ def parse_lsmod_for_module(l_raw, module_name, escape=True):
     # ^module_name spaces size spaces used optional spaces optional submodules
     # use multiline regex to scan the entire output as one string without having to splitlines
     # use named matches so we can extract the dictionaty with groupdict
-    lsmod = re.search(r"^(?P<name>%s)\s+(?P<size>\d+)\s+\d+\s*(?P<submodules>\S+)?$" %
+    lsmod = re.search(r"^(?P<name>%s)\s+(?P<size>\d+)\s+(?P<used>\d+)\s*(?P<submodules>\S+)?$" %
                       module_search, l_raw, re.M)
     if lsmod:
         # default to empty list if no submodules
         module_info = lsmod.groupdict([])
         # convert size to integer because it is an integer
         module_info['size'] = int(module_info['size'])
+        module_info['used'] = int(module_info['used'])
         if module_info['submodules']:
             module_info['submodules'] = module_info['submodules'].split(',')
         return module_info
@@ -716,6 +717,28 @@ def loaded_module_info(module_name):
     return parse_lsmod_for_module(l_raw, module_name)
 
 
+def get_submodules(module_name):
+    """
+    Get all submodules of the module.
+
+    :param module_name: Name of module to search for
+    :type module_name: str
+    :return: List of the submodules
+    :rtype: list
+    """
+    module_info = loaded_module_info(module_name)
+    module_list = []
+    try:
+        submodules = module_info["submodules"]
+    except KeyError:
+        logging.info("Module %s is not loaded" % module_name)
+    else:
+        module_list = submodules
+        for module in submodules:
+            module_list += get_submodules(module)
+    return module_list
+
+
 def unload_module(module_name):
     """
     Removes a module. Handles dependencies. If even then it's not possible
@@ -732,6 +755,15 @@ def unload_module(module_name):
     else:
         for module in submodules:
             unload_module(module)
+        module_info = loaded_module_info(module_name)
+        try:
+            module_used = module_info['used']
+        except KeyError:
+            logging.info("Module %s is already unloaded" % module_name)
+            return
+        if module_used != 0:
+            raise error.TestNAError("Module %s is still in use. "
+                                    "Can not unload it." % module_name)
         utils.system("/sbin/modprobe -r %s" % module_name)
         logging.info("Module %s unloaded" % module_name)
 

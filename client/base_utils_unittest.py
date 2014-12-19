@@ -37,6 +37,7 @@ ip6table_filter        12815  1
         assert lsmod_info == {
             'name': "ebtables",
             'size': 30758,
+            'used': 3,
             'submodules': submodules
         }
 
@@ -52,6 +53,7 @@ ip6table_filter        12815  1
         assert lsmod_info == {
             'name': "ccm",
             'size': 17773,
+            'used': 2,
             'submodules': submodules
         }
 
@@ -63,6 +65,7 @@ ip6table_filter        12815  1
         assert lsmod_info == {
             'name': "bridge",
             'size': 110862,
+            'used': 1,
             'submodules': submodules
         }
 
