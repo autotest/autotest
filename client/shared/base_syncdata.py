@@ -160,8 +160,11 @@ class SyncListenServer(object):
             if (session.data_recv == len(session.hosts) and
                     session.timeout()):
                 for client, _ in session.connection.values():
-                    net_send_object(client, session.sync_data)
-                    net_recv_object(client, _DEFAULT_TIMEOUT)
+                    try:
+                        net_send_object(client, session.sync_data)
+                        net_recv_object(client, _DEFAULT_TIMEOUT)
+                    except (socket.timeout, error.NetCommunicationError):
+                        self._clean_sessions()
                 session.set_finish()
         session.data_lock.release()
 
