@@ -197,7 +197,7 @@ def vg_list():
 
 
 @error.context_aware
-def vg_create(vg_name, pv_list):
+def vg_create(vg_name, pv_list, force=False):
     """
     Create a volume group by using the block special devices
     """
@@ -207,7 +207,11 @@ def vg_create(vg_name, pv_list):
 
     if vg_check(vg_name):
         raise error.TestError("Volume group '%s' already exist" % vg_name)
-    cmd = "vgcreate %s %s" % (vg_name, pv_list)
+    if force:
+        cmd = "vgcreate -f"
+    else:
+        cmd = "vgcreate"
+    cmd += " %s %s" % (vg_name, pv_list)
     result = utils.run(cmd)
     logging.info(result.stdout.rstrip())
 
