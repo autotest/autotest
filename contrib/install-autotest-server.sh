@@ -253,7 +253,7 @@ install_packages() {
     print_log "INFO" "Installing packages dependencies"
     print_log "INFO" "Please note that autotest is compatible with Django $DJANGO_SUPPORTED_VERSION"
     print_log "INFO" "If your distro/local install is different, you WILL have problems"
-    print log "INFO" "Please stick with $DJANGO_SUPPORTED_VERSION for the time being"
+    print_log "INFO" "Please stick with $DJANGO_SUPPORTED_VERSION for the time being"
     $ATHOME/installation_support/autotest-install-packages-deps >> $LOG 2>&1
     if [ $? != 0 ]
     then
@@ -566,8 +566,7 @@ fi
 }
 
 setup_firewall_firewalld() {
-    echo "Opening firewall for http traffic" >> $LOG
-    echo "Opening firewall for http traffic"
+    print_log "INFO" "Adding firewalld service"
 
     $ATHOME/installation_support/autotest-firewalld-add-service -s http
     firewall-cmd --reload
@@ -576,8 +575,7 @@ setup_firewall_firewalld() {
 setup_firewall_iptables() {
 if [ "$(grep -- '--dport 80 -j ACCEPT' /etc/sysconfig/iptables)" = "" ]
 then
-    echo "Opening firewall for http traffic" >> $LOG
-    echo "Opening firewall for http traffic"
+    print_log "INFO" "Opening firewall for http traffic"
     awk '/-A INPUT -i lo -j ACCEPT/ { print; print "-A INPUT -m state --state NEW -m tcp -p tcp --dport 80 -j ACCEPT"; next}
 {print}' /etc/sysconfig/iptables > /tmp/tmp$$
     if [ ! -f /etc/sysconfig/iptables.orig ]
@@ -645,7 +643,8 @@ full_install() {
         setup_substitute
         install_basic_pkgs_deb
     else
-        print_log "Sorry, I can't recognize your distro, exiting..."
+        print_log "ERROR" "Sorry, I can't recognize your distro, exiting..."
+        exit 1
     fi
 
     if [ $INSTALL_PACKAGES_ONLY == 0 ]
