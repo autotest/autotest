@@ -36,7 +36,7 @@ Current version of Django supported by autotest: 1.5
 GENERAL OPTIONS:
    -h      Show this message
    -u      Autotest user password
-   -d      MySQL password (both mysql root and autotest_web db)
+   -d      Database password (both database root and autotest_web db)
    -a      Autotest base dir (defaults to $ATHOME_DEFAULT)
    -g      Autotest git repo (defaults to $AUTOTEST_DEFAULT_GIT_REPO)
    -b      Autotest git branch (defaults to $AUTOTEST_DEFAULT_GIT_BRANCH)
@@ -280,18 +280,18 @@ then
 fi
 }
 
-setup_mysql_service_deb() {
-print_log "INFO" "Enabling MySQL server on boot"
+setup_db_service_deb() {
+print_log "INFO" "Enabling $DB_NAME server on boot"
 update-rc.d mysql defaults >> $LOG
 }
 
-setup_mysql_service_rh() {
-print_log "INFO" "Enabling MySQL server on boot"
-if [ -x /etc/init.d/mysqld ]
+setup_db_service_rh() {
+print_log "INFO" "Enabling $DB_NAME server on boot"
+if [ -x /etc/init.d/$DB_SERVICE ]
 then
-    chkconfig --level 2345 mysqld on >> $LOG
+    chkconfig --level 2345 $DB_SERVICE on >> $LOG
 else
-    systemctl enable mysqld.service >> $LOG
+    systemctl enable $DB_SERVICE >> $LOG
 fi
 }
 
@@ -370,25 +370,25 @@ $ATHOME/installation_support/autotest-install-packages-deps >> $LOG 2>&1
 }
 
 
-check_mysql_password() {
-print_log "INFO" "Setting MySQL root password"
+check_db_password() {
+print_log "INFO" "Setting $DB_NAME root password"
 mysqladmin -u root password $MYSQLPW > /dev/null 2>&1
 
-print_log "INFO" "Verifying MySQL root password"
+print_log "INFO" "Verifying $DB_NAME root password"
 $ATHOME/installation_support/autotest-database-turnkey --check-credentials --root-password=$MYSQLPW
 if [ $? != 0 ]
 then
-    print_log "ERROR" "MySQL already has a different root password"
+    print_log "ERROR" "$DB_NAME already has a different root password"
     exit 1
 fi
 }
 
 create_autotest_database() {
-print_log "INFO" "Creating MySQL databases for autotest"
+print_log "INFO" "Creating $DB_NAME databases for autotest"
 $ATHOME/installation_support/autotest-database-turnkey -s --root-password=$MYSQLPW -p $MYSQLPW > /dev/null 2>&1
 if [ $? != 0 ]
 then
-    print_log "ERROR" "Error creating MySQL database"
+    print_log "ERROR" "Error creating $DB_NAME database"
     exit 1
 fi
 }
@@ -467,18 +467,18 @@ else
 fi
 }
 
-restart_mysql_deb() {
-print_log "INFO" "Re-starting MySQL server"
+restart_db_deb() {
+print_log "INFO" "Re-starting $DB_NAME server"
 service mysql restart >> $LOG
 }
 
-restart_mysql_rh() {
-print_log "INFO" "Re-starting MySQL server"
-if [ -x /etc/init.d/mysqld ]
+restart_db_rh() {
+print_log "INFO" "Re-starting $DB_NAME server"
+if [ -x /etc/init.d/$DB_SERVICE ]
 then
-    service mysqld restart >> $LOG
+    service $DB_SERVICE restart >> $LOG
 else
-    systemctl restart mysqld.service >> $LOG
+    systemctl restart $DB_SERVICE >> $LOG
 fi
 }
 
@@ -624,6 +624,24 @@ IP="$(ip address show dev $DEFAULT_INTERFACE | grep 'inet ' | awk '{print $2}' |
 print_log "INFO" "You can access your server on http://$IP/afe"
 }
 
+set_database_deb() {
+DB_SERVICE=mysqld
+DB_NAME="MySQL"
+}
+
+set_database_rh() {
+if [ ! -z "$(grep "release 6" /etc/redhat-release)" ]
+then
+    DB_SERVICE=mysqld
+    DB_NAME="MySQL"
+elif [ ! -z "$(grep "release 7" /etc/redhat-release)" ]
+then
+    DB_SERVICE=mariadb.service
+    DB_NAME="mariadb"
+    /usr/local/bin/substitute "mysqld.service" $DB_SERVICE $ATHOME/utils/autotestd.service
+fi
+}
+
 full_install() {
     check_command_line_params
 
@@ -637,11 +655,13 @@ full_install() {
         setup_substitute
         setup_epel_repo
         install_basic_pkgs_rh
+        set_database_rh
     elif [ -f /etc/debian_version ]
     then
         check_disk_space
         setup_substitute
         install_basic_pkgs_deb
+        set_database_deb
     else
         print_log "ERROR" "Sorry, I can't recognize your distro, exiting..."
         exit 1
@@ -655,16 +675,16 @@ full_install() {
             create_autotest_user_rh
             install_autotest
             install_packages
-            setup_mysql_service_rh
-            restart_mysql_rh
-            check_mysql_password
+            setup_db_service_rh
+            restart_db_rh
+            check_db_password
             create_autotest_database
             build_external_packages
             relocate_global_config
             relocate_frontend_wsgi
             relocate_webserver
             configure_webserver_rh
-            restart_mysql_rh
+            restart_db_rh
             patch_python27_bug
             build_web_rpc_client
             import_tests
@@ -679,16 +699,16 @@ full_install() {
             create_autotest_user_deb
             install_autotest
             install_packages
-            setup_mysql_service_deb
-            restart_mysql_deb
-            check_mysql_password
+            setup_db_service_deb
+            restart_db_deb
+            check_db_password
             create_autotest_database
             build_external_packages
             relocate_global_config
             relocate_frontend_wsgi
             relocate_webserver
             configure_webserver_deb
-            restart_mysql_deb
+            restart_db_deb
             build_web_rpc_client
             import_tests
             restart_apache_deb
