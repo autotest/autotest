@@ -27,6 +27,7 @@ Currently tested systems - Up to date versions of:
  * Fedora 16
  * Fedora 17
  * Fedora 18
+ * RHEL 7.1
  * RHEL 6.2
  * Ubuntu 12.04
  * Ubuntu 12.10
@@ -223,6 +224,10 @@ then
         then
             print_log "INFO" "Adding EPEL 6 repository"
             rpm -ivh http://download.fedoraproject.org/pub/epel/6/`arch`/epel-release-6-8.noarch.rpm >> $LOG 2>&1
+        elif [ "`grep 'release 7' /etc/redhat-release`" != "" ]
+        then
+            print_log "INFO" "Adding EPEL 7 repository"
+            rpm -ivh http://download.fedoraproject.org/pub/epel/7/`arch`/e/epel-release-7-5.noarch.rpm >> $LOG 2>&1
         fi
     fi
 fi
@@ -249,7 +254,7 @@ install_basic_pkgs_deb() {
     fi
 }
 
-install_packages() {
+_install_packages() {
     print_log "INFO" "Installing packages dependencies"
     print_log "INFO" "Please note that autotest is compatible with Django $DJANGO_SUPPORTED_VERSION"
     print_log "INFO" "If your distro/local install is different, you WILL have problems"
@@ -260,6 +265,27 @@ install_packages() {
         print_log "ERROR" "Failed to install autotest packages dependencies"
         exit 1
     fi
+}
+
+install_packages_deb() {
+_install_packages
+}
+
+install_packages_rh() {
+_install_packages
+if [ ! -z "$(grep "release 7" /etc/redhat-release)" ]
+then
+    # These packages must be obtained from python pip:
+    # python-atfork
+    # python-django-south
+    #
+    pip install --allow-all-external --allow-unverified atfork atfork South
+    if [ $? != 0 ]
+    then
+        print_log "ERROR" "Failed to install autotest package dependencies (install_packages_rh)"
+        exit 1
+    fi
+fi
 }
 
 setup_selinux() {
@@ -674,7 +700,7 @@ full_install() {
             setup_selinux
             create_autotest_user_rh
             install_autotest
-            install_packages
+            install_packages_rh
             setup_db_service_rh
             restart_db_rh
             check_db_password
@@ -698,7 +724,7 @@ full_install() {
         then
             create_autotest_user_deb
             install_autotest
-            install_packages
+            install_packages_deb
             setup_db_service_deb
             restart_db_deb
             check_db_password

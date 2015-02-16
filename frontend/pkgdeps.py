@@ -37,6 +37,33 @@ FEDORA_REDHAT_PKGS = [
     'passwd',
     'pylint']
 
+FEDORA_REDHAT_7_PKGS = [
+    'MySQL-python',
+    'git',
+    'httpd',
+    'java-1.7.0-openjdk-devel',
+    'mod_wsgi',
+    'mariadb-server',
+    'numpy',
+    'passwd',
+    'policycoreutils-python',
+    'protobuf-compiler',
+    'protobuf-python',
+    'pylint',
+    'python-pip',
+    'python-crypto',
+    'python-httplib2',
+    'python-pillow',
+    'python-matplotlib',
+    'python-paramiko',
+    'python-psutil',
+    'selinux-policy',
+    'selinux-policy-targeted',
+    'tar',
+    'unzip',
+    'urw-fonts',
+    'wget',
+]
 
 FEDORA_19_PKGS = [
     'MySQL-python',
@@ -52,7 +79,6 @@ FEDORA_19_PKGS = [
     'protobuf-python',
     'pylint',
     'python-atfork',
-    'python-autopep8',
     'python-crypto',
     'python-django14',
     'python-django-south',
@@ -77,7 +103,6 @@ UBUNTU_PKGS = [
     'makepasswd',
     'mysql-server',
     'openjdk-7-jre-headless',
-    'python-autopep8',
     'python-crypto',
     'python-django',
     'python-django-south',
@@ -102,4 +127,5 @@ PKG_DEPS = {'fedora': FEDORA_REDHAT_PKGS,
             'centos': FEDORA_REDHAT_PKGS,
             'debian': UBUNTU_PKGS,
             'ubuntu': UBUNTU_PKGS,
-            distro.Spec('fedora', 19): FEDORA_19_PKGS}
+            distro.Spec('fedora', 19): FEDORA_19_PKGS,
+            distro.Spec('redhat', 7): FEDORA_REDHAT_7_PKGS}
