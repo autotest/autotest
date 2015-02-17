@@ -17,11 +17,10 @@ See topic_common.py for a High Level Design and Algorithm.
 """
 
 import getpass
-import os
-import pwd
 import re
 import socket
 import sys
+
 from autotest.cli import topic_common, action_common
 
 
@@ -194,7 +193,7 @@ class job_stat(job_list_stat):
 
         for job in summary:
             job_id = job['id']
-            if hosts_status.has_key(job_id):
+            if job_id in hosts_status:
                 this_job = hosts_status[job_id]
                 job['hosts'] = ' '.join(' '.join(host) for host in
                                         this_job.itervalues())
@@ -505,15 +504,19 @@ class job_create(job_create_or_clone):
             parse_info=[deps_info])
 
         if options.hostless:
-            if (self.hosts or self.one_time_hosts
-                or options.labels or options.atomic_group
-                    or options.synch_count):
+            if (self.hosts or
+                    self.one_time_hosts or
+                    options.labels or
+                    options.atomic_group or
+                    options.synch_count):
                 self.invalid_syntax('If hostless is specified cannot specify'
                                     ' machine, atomic group or synch count'
                                     ' (-m, -M, -b, -G, --synch_count')
         else:
-            if (len(self.hosts) == 0 and not self.one_time_hosts
-                    and not options.labels and not options.atomic_group):
+            if (len(self.hosts) == 0 and
+                    not self.one_time_hosts and
+                    not options.labels and
+                    not options.atomic_group):
                 self.invalid_syntax('Must specify at least one machine, '
                                     'atomic group or hostless'
                                     '(-m, -M, -b, -G, --one-time-hosts '

@@ -16,8 +16,10 @@ from subprocess import Popen, PIPE
 import xml.etree.ElementTree
 
 
-DEFAULT_ZONE_DEFAULT_BASE_PATH = os.path.join(os.sep, "usr", "lib", "firewalld", "zones")
-DEFAULT_ZONE_SYSTEM_BASE_PATH = os.path.join(os.sep, "etc", "firewalld", "zones")
+DEFAULT_ZONE_DEFAULT_BASE_PATH = os.path.join(os.sep, "usr", "lib",
+                                              "firewalld", "zones")
+DEFAULT_ZONE_SYSTEM_BASE_PATH = os.path.join(os.sep, "etc",
+                                             "firewalld", "zones")
 
 
 class ArgumentParser(argparse.ArgumentParser):
@@ -41,9 +43,10 @@ class ArgumentParser(argparse.ArgumentParser):
         # don't forget to rstrip the newline
         output = proc.communicate()[0].rstrip()
         if proc.returncode != 0:
-            # we could raise an exception here because firewall-cmd may not be present, instead
-            # return None so we can tell the differente between no default and an empty arg, and
-            # at least get a useful error message
+            # we could raise an exception here because firewall-cmd may not
+            # be present, instead return None so we can tell the difference
+            # between no default and an empty arg, and at least get a useful
+            # error message
             return None
         else:
             return output
@@ -72,9 +75,12 @@ class App(object):
 
     def get_src_file_from_zone(self, zone):
         """
-        Attempt to open the firewalld zone file.  Will attempt to open the system config in /etc/firewalld/,
-        if that fails it will attempt to open the default/fallback config in /usr/lib/firewalld/.
-        Return the path the successfully opens, or the empty path if they all fail.
+        Attempt to open the firewalld zone file.  Will attempt to open the
+        system config in /etc/firewalld/, if that fails it will attempt to
+        open the default/fallback config in /usr/lib/firewalld/.
+
+        Return the path the successfully opens, or the empty path if they all
+        fail.
 
         :param zone: firewalld zone name
         :type zone: str
@@ -139,7 +145,8 @@ class App(object):
 
         if self.parsed_arguments.zone is None:
             logging.error("Unable to determine default zone,"
-                          "please specify zone or check firewall-cmd --get-default-zone")
+                          "please specify zone or check firewall-cmd "
+                          "--get-default-zone")
             argument_parser.print_help()
             raise SystemExit(1)
 

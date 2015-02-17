@@ -11,9 +11,10 @@ Will need some libaries to compile. Do 'apt-get build-dep oprofile'
 """
 import os
 import time
+import logging
+
 from autotest.client import utils, profiler
 from autotest.client.shared import error
-import logging
 
 
 class oprofile(profiler.profiler):
@@ -76,8 +77,9 @@ class oprofile(profiler.profiler):
         src_opcontrol = os.path.join(self.srcdir, 'bin/opcontrol')
 
         if (self.local is False and after_setup) or (
-                (self.local in (None, False) and os.path.exists(src_opreport)
-                 and os.path.exists(src_opcontrol))):
+                (self.local in (None, False) and
+                 os.path.exists(src_opreport) and
+                 os.path.exists(src_opcontrol))):
             print "Using source-built copy of oprofile"
             self.opreport = src_opreport
             self.opcontrol = src_opcontrol

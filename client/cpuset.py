@@ -9,8 +9,10 @@ import re
 import glob
 import fcntl
 import logging
+
 from autotest.client import utils
 from autotest.client.shared import error, utils_memory
+
 
 SUPER_ROOT = ''      # root of all containers or cgroups
 NO_LIMIT = (1 << 63) - 1   # containername/memory.limit_in_bytes if no limit
@@ -405,8 +407,9 @@ def set_io_controls(container_name, disks=[], ioprio_classes=[PROPIO_NORMAL],
         io_shares = [io_shares[0]] * len(disks)
         ioprio_classes = [ioprio_classes[0]] * len(disks)
         io_limits = [io_limits[0]] * len(disks)
-    if not (len(disks) == len(ioprio_classes) and len(disks) == len(io_shares)
-            and len(disks) == len(io_limits)):
+    if not (len(disks) == len(ioprio_classes) and
+            len(disks) == len(io_shares) and
+            len(disks) == len(io_limits)):
         raise error.AutotestError('Unequal number of values for io controls')
     service_level = io_attr(container_name, 'io_service_level')
     if not os.path.exists(service_level):

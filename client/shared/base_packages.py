@@ -10,9 +10,11 @@ import logging
 import os
 import re
 import shutil
+
 from autotest.client import os_dep
 from autotest.client.shared import error, utils
 from autotest.client.shared.settings import settings, SettingsError
+
 
 # the name of the checksum file that stores the packages' checksums
 CHECKSUM_FILE = "packages.checksum"
@@ -679,9 +681,9 @@ class BasePackageManager(object):
 
                 # Fetch the package if it is not there, the checksum does
                 # not match, or checksums are disabled entirely
-                need_to_fetch = (
-                    not use_checksum or not pkg_exists
-                    or not self.compare_checksum(dest, fetcher.url))
+                need_to_fetch = (not use_checksum or
+                                 not pkg_exists or
+                                 not self.compare_checksum(dest, fetcher.url))
                 if need_to_fetch:
                     fetcher.fetch_pkg_file(pkg_name, dest)
                     # update checksum so we won't refetch next time.
@@ -906,8 +908,8 @@ class BasePackageManager(object):
                 return {}
 
             # Read the checksum file into memory
-            checksum_file_contents = self._run_command('cat '
-                                                       + checksum_path).stdout
+            checksum_file_contents = self._run_command('cat %s' %
+                                                       checksum_path).stdout
 
             # Return {} if we have an empty checksum file present
             if not checksum_file_contents.strip():

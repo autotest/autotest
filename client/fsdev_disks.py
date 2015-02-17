@@ -1,6 +1,7 @@
 import sys
 import os
 import re
+
 from autotest.client import utils, fsinfo, fsdev_mgr, partition
 from autotest.client.shared import error
 
@@ -472,16 +473,16 @@ class fsdev_disks:
                 raise Exception("Config entry not recognized: " + cfgline)
             endKV = cfgline.find("]:")
             if endKV < 0:
-                raise Exception("Config entry missing closing bracket: "
-                                + cfgline)
+                raise Exception("Config entry missing closing bracket: " +
+                                cfgline)
             if cfgline[5:endKV] != self.kernel_ver[0:endKV - 5]:
                 continue
 
             tune_parm = cfgline[endKV + 2:].strip()
             equal = tune_parm.find("=")
             if equal < 1 or equal == len(tune_parm) - 1:
-                raise Exception("Config entry doesn't have 'parameter=value' :"
-                                + cfgline)
+                raise Exception("Config entry doesn't have 'parameter=value' "
+                                ":" + cfgline)
 
             tune_name = tune_parm[:equal]
             tune_val = tune_parm[equal + 1:]
@@ -561,7 +562,7 @@ class fsdev_disks:
 
         # Make sure the new value is what we expected
         if nval != val:
-            raise Exception("Unable to correctly set tunable value for "
-                            + name + ": desired " + val + ", but found " + nval)
+            raise Exception("Unable to correctly set tunable value for " +
+                            name + ": desired " + val + ", but found " + nval)
 
         return

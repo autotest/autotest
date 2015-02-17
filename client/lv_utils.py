@@ -398,11 +398,11 @@ def lv_revert(vg_name, lv_name, lv_snapshot_name):
             raise error.TestError("Volume group could not be found")
         if not lv_check(vg_name, lv_snapshot_name):
             raise error.TestError("Snapshot could not be found")
-        if (not lv_check(vg_name, lv_snapshot_name)
-                and not lv_check(vg_name, lv_name)):
+        if (not lv_check(vg_name, lv_snapshot_name) and not lv_check(vg_name,
+                                                                     lv_name)):
             raise error.TestError("Snapshot and its origin could not be found")
-        if (lv_check(vg_name, lv_snapshot_name)
-                and not lv_check(vg_name, lv_name)):
+        if (lv_check(vg_name, lv_snapshot_name) and not lv_check(vg_name,
+                                                                 lv_name)):
             raise error.TestError("Snapshot origin could not be found")
 
         cmd = ("lvconvert --merge /dev/%s/%s" % (vg_name, lv_snapshot_name))

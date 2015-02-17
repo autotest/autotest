@@ -772,9 +772,9 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
         for host in hosts:
             # Check if the user has access to this host,
             # but only if it is not a metahost or a one-time-host
-            no_access = (isinstance(host, Host)
-                         and not host.invalid
-                         and int(host.id) not in accessible_host_ids)
+            no_access = (isinstance(host, Host) and
+                         not host.invalid and
+                         int(host.id) not in accessible_host_ids)
             if no_access:
                 unaccessible.append(str(host))
         if unaccessible:
@@ -802,16 +802,16 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
             in not_owned.filter(host__aclgroup__users__login=user.login))
         public_ids = set(entry.id for entry
                          in not_owned.filter(host__aclgroup__name='Everyone'))
-        cannot_abort = [entry for entry in not_owned.select_related()
-                        if entry.id not in accessible_ids
-                        or entry.id in public_ids]
+        cannot_abort = [entry for entry in not_owned.select_related() if
+                        entry.id not in accessible_ids or
+                        entry.id in public_ids]
         if len(cannot_abort) == 0:
             return
         entry_names = ', '.join('%s-%s/%s' % (entry.job.id, entry.job.owner,
                                               entry.host_or_metahost_name())
                                 for entry in cannot_abort)
-        raise AclAccessViolation('You cannot abort the following job entries: '
-                                 + entry_names)
+        raise AclAccessViolation('You cannot abort job entries: %s' %
+                                 entry_names)
 
     def check_for_acl_violation_acl_group(self):
         user = User.current_user()

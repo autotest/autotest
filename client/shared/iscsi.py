@@ -133,7 +133,7 @@ class Iscsi(object):
                              'G': (1024, 1024),
                              'T': (1024, 1048576),
                              }
-            if emulated_size.has_key(self.unit):
+            if self.unit in emulated_size:
                 block_size = emulated_size[self.unit][1]
                 size = int(self.emulated_size) * emulated_size[self.unit][0]
                 self.create_cmd = ("dd if=/dev/zero of=%s count=%s bs=%sK"

@@ -34,9 +34,9 @@ class test_find_base_directories(
 
 class test_init(base_job_unittest.test_init.generic_tests, unittest.TestCase):
     OPTIONAL_ATTRIBUTES = (
-        base_job_unittest.test_init.generic_tests.OPTIONAL_ATTRIBUTES
-        - set(['serverdir', 'conmuxdir', 'num_tests_run', 'num_tests_failed',
-               'warning_manager', 'warning_loggers']))
+        base_job_unittest.test_init.generic_tests.OPTIONAL_ATTRIBUTES -
+        set(['serverdir', 'conmuxdir', 'num_tests_run', 'num_tests_failed',
+             'warning_manager', 'warning_loggers']))
 
     def setUp(self):
         self.god = mock.mock_god()
@@ -51,11 +51,16 @@ class test_init(base_job_unittest.test_init.generic_tests, unittest.TestCase):
 
         class manager:
             pass
+
         self.god.stub_with(server_job.logging_manager, 'get_logging_manager',
                            lambda *a, **k: manager())
 
         class sysi:
-            log_per_reboot_data = lambda self: None
+
+            @staticmethod
+            def log_per_reboot_data():
+                return None
+
         self.god.stub_with(server_job.sysinfo, 'sysinfo', lambda r: sysi())
 
         self.job.__init__('/control', (), None, 'job_label',

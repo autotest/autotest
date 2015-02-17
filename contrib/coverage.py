@@ -191,9 +191,9 @@ class StatementFindingAstVisitor(compiler.visitor.ASTVisitor):
                 return 0
             # If this line is excluded, or suite_spots maps this line to
             # another line that is exlcuded, then we're excluded.
-            elif self.excluded.has_key(lineno) or \
-                self.suite_spots.has_key(lineno) and \
-                    self.excluded.has_key(self.suite_spots[lineno][1]):
+            elif lineno in self.excluded or \
+                lineno in self.suite_spots and \
+                    self.suite_spots[lineno][1] in self.excluded:
                 return 0
             # Otherwise, this is an executable line.
             else:
@@ -382,12 +382,12 @@ class coverage:
                     help_fn("You can't specify the '%s' and '%s' "
                             "options at the same time." % (i, j))
 
-        args_needed = (settings.get('execute')
-                       or settings.get('annotate')
-                       or settings.get('report'))
-        action = (settings.get('erase')
-                  or settings.get('collect')
-                  or args_needed)
+        args_needed = (settings.get('execute') or
+                       settings.get('annotate') or
+                       settings.get('report'))
+        action = (settings.get('erase') or
+                  settings.get('collect') or
+                  args_needed)
         if not action:
             help_fn("You must specify at least one of -e, -x, -c, -r, or -a.")
         if not args_needed and args:
@@ -895,8 +895,7 @@ class coverage:
         source = open(filename, 'r')
         if directory:
             dest_file = os.path.join(directory,
-                                     os.path.basename(filename)
-                                     + ',cover')
+                                     os.path.basename(filename) + ',cover')
         else:
             dest_file = filename + ',cover'
         dest = open(dest_file, 'w')

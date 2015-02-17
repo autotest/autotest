@@ -1162,8 +1162,8 @@ def get_host_queue_entries_and_special_tasks(hostname, query_start=None,
 
 def get_num_host_queue_entries_and_special_tasks(hostname):
     filter_data = {'host__hostname': hostname}
-    return (models.HostQueueEntry.query_count(filter_data)
-            + models.SpecialTask.query_count(filter_data))
+    return (models.HostQueueEntry.query_count(filter_data) +
+            models.SpecialTask.query_count(filter_data))
 
 
 # recurring run

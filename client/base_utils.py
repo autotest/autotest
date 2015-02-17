@@ -469,10 +469,7 @@ def dump_object(object):
 
 def environ(env_key):
     """return the requested environment variable, or '' if unset"""
-    if (os.environ.has_key(env_key)):
-        return os.environ[env_key]
-    else:
-        return ''
+    return os.environ.get(env_key, '')
 
 
 def prepend_path(newpath, oldpath):

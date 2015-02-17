@@ -194,10 +194,10 @@ except ImportError, exp:
 # IPython is available from http://ipython.scipy.org/.
 #
 
-## from IPython.Shell import IPShellEmbed
-## args = ''
+# from IPython.Shell import IPShellEmbed
+# args = ''
 # ipshell = IPShellEmbed(args,
-##     banner = 'Dropping into IPython',
+#     banner = 'Dropping into IPython',
 # exit_msg = 'Leaving Interpreter, back to program.')
 
 # Then use the following line where and when you want to drop into the

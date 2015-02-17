@@ -257,8 +257,8 @@ class DBObject(object):
         datetime_cmp_fmt = '%Y-%m-%d %H:%M:%S'  # Leave off the microseconds.
         for field, row_value in itertools.izip(self._fields, row):
             current_value = getattr(self, field)
-            if (isinstance(current_value, datetime.datetime)
-                    and isinstance(row_value, datetime.datetime)):
+            if (isinstance(current_value, datetime.datetime) and
+                    isinstance(row_value, datetime.datetime)):
                 current_value = current_value.strftime(datetime_cmp_fmt)
                 row_value = row_value.strftime(datetime_cmp_fmt)
             if current_value != row_value:
@@ -830,9 +830,9 @@ class HostQueueEntry(DBObject):
         self.update_field('started_on', datetime.datetime.now())
 
     def is_hostless(self):
-        return (self.host_id is None
-                and self.meta_host is None
-                and self.atomic_group_id is None)
+        return (self.host_id is None and
+                self.meta_host is None and
+                self.atomic_group_id is None)
 
 
 class Job(DBObject):
@@ -1113,8 +1113,8 @@ class Job(DBObject):
         # machines in the atomic group.
         pending_count = self._pending_count()
         atomic_and_has_started = self._atomic_and_has_started()
-        ready = (pending_count >= self.synch_count
-                 and not atomic_and_has_started)
+        ready = (pending_count >= self.synch_count and not
+                 atomic_and_has_started)
 
         if not ready:
             logging.info(

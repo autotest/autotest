@@ -682,8 +682,8 @@ def create_job_common(name, priority, control_type, control_file=None,
     meta_hosts = [meta_host.lower() for meta_host in meta_hosts]
 
     # input validation
-    if not (hosts or meta_hosts or one_time_hosts or atomic_group_name
-            or hostless):
+    if not (hosts or meta_hosts or one_time_hosts or atomic_group_name or
+            hostless):
         raise model_logic.ValidationError({
             'arguments': "You must pass at least one of 'hosts', "
                                           "'meta_hosts', 'one_time_hosts', "

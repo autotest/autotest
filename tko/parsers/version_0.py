@@ -387,8 +387,7 @@ class parser(base.parser):
                 line.status != "ABORT" and
                     not line.testname.startswith('reboot.')):
                 if line.subdir:
-                    logging.debug("set group_subdir: "
-                                  + line.subdir)
+                    logging.debug("set group_subdir: %s", line.subdir)
                     group_subdir = line.subdir
                 logging.debug("ignoring incorrect indent "
                               "level %d != %d," %

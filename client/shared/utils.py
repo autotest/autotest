@@ -30,7 +30,6 @@ import textwrap
 import traceback
 import urlparse
 import warnings
-import smtplib
 import logging
 import urllib2
 import string
@@ -47,7 +46,6 @@ from autotest.client.shared.settings import settings
 from autotest.client import os_dep
 import commands
 import fcntl
-import inspect
 import getpass
 
 
@@ -2833,7 +2831,6 @@ def is_port_free(port, address):
     """
     try:
         s = socket.socket()
-        #s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         if address == "localhost":
             s.bind(("localhost", port))
             free = True
@@ -3241,8 +3238,8 @@ def strip_console_codes(output):
     while index < len(output):
         tmp_index = 0
         tmp_word = ""
-        while (len(re.findall("\x1b", tmp_word)) < 2
-               and index + tmp_index < len(output)):
+        while (len(re.findall("\x1b", tmp_word)) < 2 and
+               index + tmp_index < len(output)):
             tmp_word += output[index + tmp_index]
             tmp_index += 1
 

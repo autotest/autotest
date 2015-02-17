@@ -27,11 +27,12 @@ import imp
 def preserve_value(namespace, name):
     """
     Function decorator to wrap a function that sets a namespace item.
-    In particular if we modify a global namespace and want to restore the value after
-    we have finished, use this function.
+    In particular if we modify a global namespace and want to restore the value
+    after we have finished, use this function.
 
-    This is decorator version of the context manager from http://stackoverflow.com/a/6811921
-    We use a decorator since Python 2.4 doesn't have context managers.
+    This is decorator version of the context manager from
+    http://stackoverflow.com/a/6811921. We use a decorator since Python 2.4
+    doesn't have context managers.
 
     :param namespace: namespace to modify, e.g. sys
     :type namespace: object
@@ -42,18 +43,28 @@ def preserve_value(namespace, name):
     """
 
     def decorator(func):
+
+        def resetter_attr(saved_value_internal):
+            return setattr(namespace, name, saved_value_internal)
+
+        def resetter_no_attr(saved_value_internal):
+            del saved_value_internal
+            return delattr(namespace, name)
+
         def wrapper(*args, **kwargs):
+            saved_value = None
             try:
                 saved_value = getattr(namespace, name)
-                resetter = lambda: setattr(namespace, name, saved_value)
+                resetter = resetter_attr
             except AttributeError:
                 # the attribute didn't exist before, so delete it when we are
                 # done
-                resetter = lambda: delattr(namespace, name)
+                resetter = resetter_no_attr
             try:
                 return func(*args, **kwargs)
             finally:
-                resetter()
+                resetter(saved_value)
+
         wrapper.__name__ = func.__name__
         wrapper.__doc__ = func.__doc__
 

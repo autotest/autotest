@@ -890,9 +890,6 @@ class test_VersionableClass(unittest.TestCase):
         m.check_repair_versions()
         m.func2()
 
-        #m.version = 1
-        # m.check_repair_versions()
-
         mm = test_VersionableClass.MM()
         mm.func2()   # call VC3.func2(m)
         mm.func1()   # call VC2.func1(m)

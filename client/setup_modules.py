@@ -85,7 +85,7 @@ def setup(base_path, root_module_name="autotest"):
     :param base_path: Base path for the module.
     :param root_module_name: Top level name for the module.
     """
-    if sys.modules.has_key(root_module_name):
+    if root_module_name in sys.modules:
         # already set up
         return
 

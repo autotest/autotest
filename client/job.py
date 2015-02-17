@@ -17,6 +17,7 @@ import glob
 import logging
 import getpass
 import weakref
+
 from autotest.client import client_logging_config
 from autotest.client import utils, parallel, kernel, xen
 from autotest.client import profilers, harness
@@ -502,8 +503,9 @@ class base_client_job(base_job.base_job):
 
     def _runtest(self, url, tag, timeout, args, dargs):
         try:
-            l = lambda: test.runtest(self, url, tag, args, dargs)
-            pid = parallel.fork_start(self.resultdir, l)
+            pid = parallel.fork_start(self.resultdir,
+                                      lambda: test.runtest(self, url, tag,
+                                                           args, dargs))
 
             if timeout:
                 logging.debug('Waiting for pid %d for %d seconds', pid, timeout)
