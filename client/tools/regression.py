@@ -12,6 +12,7 @@ import re
 import commands
 import warnings
 import ConfigParser
+
 import MySQLdb
 
 
@@ -225,8 +226,8 @@ class Sample(object):
         """ (num2 - num1) / num1 * 100 """
         result = "+0.0"
         if len(data) == 2 and float(data[0]) != 0:
-            result = "%+.3f%%" % ((float(data[1]) - float(data[0]))
-                                  / float(data[0]) * 100)
+            result = "%+.3f%%" % ((float(data[1]) - float(data[0])) /
+                                  float(data[0]) * 100)
         return result
 
     def _get_list_sd(self, data):

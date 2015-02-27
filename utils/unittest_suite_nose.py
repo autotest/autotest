@@ -21,8 +21,65 @@ try:
 except ImportError:
     import common
 
-from autotest.utils.unittest_suite import LONG_TESTS
+REQUIRES_DJANGO = set((
+    'monitor_db_unittest.py',
+    'monitor_db_functional_unittest.py',
+    'monitor_db_cleanup_unittest.py',
+    'frontend_unittest.py',
+    'csv_encoder_unittest.py',
+    'rpc_interface_unittest.py',
+    'models_unittest.py',
+    'scheduler_models_unittest.py',
+    'metahost_scheduler_unittest.py',
+    'site_metahost_scheduler_unittest.py',
+    'rpc_utils_unittest.py',
+    'site_rpc_utils_unittest.py',
+    'execution_engine_unittest.py',
+    'service_proxy_lib_unittest.py',
+    'reservations_unittest.py',
+    'autotest_remote_unittest.py',
+))
 
+REQUIRES_MYSQLDB = set((
+    'migrate_unittest.py',
+    'db_utils_unittest.py',
+))
+
+REQUIRES_GWT = set((
+    'client_compilation_unittest.py',
+))
+
+REQUIRES_SIMPLEJSON = set((
+    'resources_unittest.py',
+    'serviceHandler_unittest.py',
+))
+
+REQUIRES_AUTH = set((
+    'trigger_unittest.py',
+))
+
+REQUIRES_PROTOBUFS = set((
+    'job_serializer_unittest.py',
+))
+
+REQUIRES_XML_ETREE = set((
+    'autotest_firewalld_add_service_unittest.py',
+))
+
+LONG_RUNTIME = set((
+    'base_barrier_unittest.py',
+    'logging_manager_unittest.py',
+    'base_syncdata_unittest.py'
+))
+
+LONG_TESTS = (REQUIRES_DJANGO |
+              REQUIRES_MYSQLDB |
+              REQUIRES_GWT |
+              REQUIRES_SIMPLEJSON |
+              REQUIRES_AUTH |
+              REQUIRES_PROTOBUFS |
+              REQUIRES_XML_ETREE |
+              LONG_RUNTIME)
 
 logger = logging.getLogger(__name__)
 

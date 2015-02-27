@@ -5,11 +5,13 @@ import errno
 import threading
 import logging
 import signal
+
 from autotest.client.shared import error
 from autotest.client.shared import barrier
 from autotest.client.shared import utils
 from autotest.client.shared import autotemp
 from autotest.client import parallel
+
 
 _DEFAULT_PORT = 13234
 _DEFAULT_TIMEOUT = 10
@@ -102,22 +104,23 @@ class SyncListenServer(object):
         :param port: Port of server.
         :param tmpdir: Dir where pid file is saved.
         """
-        l = lambda: self._start_server(address, port)
-
         if tmpdir:
             self.tmpdir = TempDir(tmpdir)
         else:
             self.tmpdir = autotemp.tempdir(unique_id='',
-                                           prefix="SyncListenServer_%d" % (port))
+                                           prefix=("SyncListenServer_%d" %
+                                                   port))
         self.sessions = {}
         self.exit_event = threading.Event()
 
-        self.server_pid = parallel.fork_start(self.tmpdir.name, l)
+        self.server_pid = parallel.fork_start(self.tmpdir.name,
+                                              lambda: self._start_server(
+                                                  address, port))
 
     def __del__(self):
         if self.tmpdir.name:
             logging.error("SyncListenServer on port %d was not closed." %
-                          (self.port))
+                          self.port)
             self.close()
 
     def _clean_sessions(self):

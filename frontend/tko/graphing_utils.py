@@ -414,7 +414,7 @@ def _normalize(data_values, data_errors, base_values, base_errors):
             #   If value > base: append 100.0.
             values.append(100 * float(cmp(value, base)))
 
-    # Based on error for f(x,y) = 100 * (x - y) / y
+    # Based on error for f(x, y) = 100 * (x - y) / y
     if data_errors:
         if not base_errors:
             base_errors = [0] * len(data_errors)
@@ -422,9 +422,11 @@ def _normalize(data_values, data_errors, base_values, base_errors):
         for data, error, base_value, base_error in zip(
                 data_values, data_errors, base_values, base_errors):
             try:
-                errors.append(sqrt(error ** 2 * (100 / base_value) ** 2
-                                   + base_error ** 2 * (100 * data / base_value ** 2) ** 2
-                                   + error * base_error * (100 / base_value ** 2) ** 2))
+                errors.append(sqrt(error ** 2 * (100 / base_value) ** 2 +
+                                   base_error ** 2 *
+                                   (100 * data / base_value ** 2) ** 2 +
+                                   error * base_error *
+                                   (100 / base_value ** 2) ** 2))
             except ZeroDivisionError:
                 # Again, base is 0.0 so do the simple thing.
                 errors.append(100 * abs(error))

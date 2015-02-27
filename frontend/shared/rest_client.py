@@ -2,7 +2,6 @@ import copy
 import getpass
 import logging
 import pprint
-import re
 import urllib
 import urlparse
 import httplib2
@@ -109,9 +108,8 @@ class Resource(object):
 
     def _representation(self):
         return dict((key, self._write_representation(value))
-                    for key, value in self.__dict__.iteritems()
-                    if not key.startswith('_')
-                    and not callable(value))
+                    for key, value in self.__dict__.iteritems() if not
+                    key.startswith('_') and not callable(value))
 
     def _do_request(self, method, uri, query_parameters, encoded_body):
         uri_parts = [uri]

@@ -778,13 +778,19 @@ class NonCallableMock(Base):
             msg = 'Attempting to set unsupported magic method %r.' % name
             raise AttributeError(msg)
         elif name in _all_magics:
-            if self._mock_methods is not None and name not in self._mock_methods:
+            if (self._mock_methods is not None and name not in
+                    self._mock_methods):
                 raise AttributeError("Mock object has no attribute '%s'" % name)
 
             if not _is_instance_mock(value):
                 setattr(type(self), name, _get_method(name, value))
                 original = value
-                value = lambda *args, **kw: original(self, *args, **kw)
+
+                def local_value(*args, **kw):
+                    return original(self, *args, **kw)
+
+                value = local_value
+
             else:
                 # only set _new_name and not name so that mock_calls is tracked
                 # but not method calls
@@ -1405,8 +1411,7 @@ def _get_target(target):
     except (TypeError, ValueError):
         raise TypeError("Need a valid target to patch. You supplied: %r" %
                         (target,))
-    getter = lambda: _importer(target)
-    return getter, attribute
+    return lambda: _importer(target), attribute
 
 
 def _patch_object(
@@ -1430,9 +1435,8 @@ def _patch_object(
     When used as a class decorator `patch.object` honours `patch.TEST_PREFIX`
     for choosing which methods to wrap.
     """
-    getter = lambda: target
     return _patch(
-        getter, attribute, new, spec, create,
+        lambda: target, attribute, new, spec, create,
         spec_set, autospec, new_callable, kwargs
     )
 
@@ -1459,10 +1463,17 @@ def _patch_multiple(target, spec=None, create=False, spec_set=None,
     When used as a class decorator `patch.multiple` honours `patch.TEST_PREFIX`
     for choosing which methods to wrap.
     """
+
+    def g_importer():
+        return _importer(target)
+
+    def g_target():
+        return target
+
     if type(target) in (unicode, str):
-        getter = lambda: _importer(target)
+        getter = g_importer
     else:
-        getter = lambda: target
+        getter = g_target
 
     if not kwargs:
         raise ValueError(

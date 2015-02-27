@@ -37,7 +37,10 @@ class TestDroneUtility(unittest.TestCase):
         self._set_check_dark_mark(False)
         self.drone_utility._get_process_info.expect_call().and_return(
             [self._fake_proc_info])
-        fake_open = lambda path, mode: self.fail('dark mark checked!')
+
+        def fake_open(path, mode):
+            return self.fail('dark mark checked!')
+
         processes = self.drone_utility._refresh_processes(self._fake_command,
                                                           open=fake_open)
         our_pid = self._fake_proc_info['pid']

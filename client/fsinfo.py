@@ -206,14 +206,14 @@ def xfs_tunables(dev):
         os.rmdir(tmp_mount_dir)
 
     # The output format is given in report_info (xfs_growfs.c)
-    ## "meta-data=%-22s isize=%-6u agcount=%u, agsize=%u blks\n"
-    ## "                 =%-22s sectsz=%-5u attr=%u\n"
-    ## "data         =%-22s bsize=%-6u blocks=%llu, imaxpct=%u\n"
-    ## "                 =%-22s sunit=%-6u swidth=%u blks\n"
-    ## "naming     =version %-14u bsize=%-6u\n"
-    ## "log            =%-22s bsize=%-6u blocks=%u, version=%u\n"
-    ## "                 =%-22s sectsz=%-5u sunit=%u blks, lazy-count=%u\n"
-    ## "realtime =%-22s extsz=%-6u blocks=%llu, rtextents=%llu\n"
+    # "meta-data=%-22s isize=%-6u agcount=%u, agsize=%u blks\n"
+    # "                 =%-22s sectsz=%-5u attr=%u\n"
+    # "data         =%-22s bsize=%-6u blocks=%llu, imaxpct=%u\n"
+    # "                 =%-22s sunit=%-6u swidth=%u blks\n"
+    # "naming     =version %-14u bsize=%-6u\n"
+    # "log            =%-22s bsize=%-6u blocks=%u, version=%u\n"
+    # "                 =%-22s sectsz=%-5u sunit=%u blks, lazy-count=%u\n"
+    # "realtime =%-22s extsz=%-6u blocks=%llu, rtextents=%llu\n"
 
     tune2fs_dict = {}
     # Flag for extracting naming version number

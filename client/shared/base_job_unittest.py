@@ -132,13 +132,19 @@ class test_init(unittest.TestCase):
 
         class stub_sysinfo:
 
-            def log_per_reboot_data(self):
+            @staticmethod
+            def log_per_reboot_data():
                 return None
+
         self.god.stub_function_to_return(job.sysinfo, 'sysinfo',
                                          stub_sysinfo())
 
         class stub_harness:
-            run_start = lambda self: None
+
+            @staticmethod
+            def run_start():
+                return None
+
         self.god.stub_function_to_return(job.harness, 'select', stub_harness())
         self.god.stub_function_to_return(job.boottool, 'boottool', object())
 
@@ -162,9 +168,9 @@ class test_init(unittest.TestCase):
         def test_public_attributes_initialized(self):
             # only the known public attributes should be there after __init__
             self.call_init()
-            public_attributes = set(attr for attr in dir(self.job)
-                                    if not attr.startswith('_')
-                                    and not callable(getattr(self.job, attr)))
+            public_attributes = set(attr for attr in dir(self.job) if
+                                    not attr.startswith('_') and
+                                    not callable(getattr(self.job, attr)))
             expected_attributes = self.PUBLIC_ATTRIBUTES
             missing_attributes = expected_attributes - public_attributes
             self.assertEqual(missing_attributes, set([]),
@@ -243,10 +249,6 @@ class test_initialize_dir_properties(unittest.TestCase):
         # check all the context-specifc dir properties
         self.assertTrue(self.cjob.testdir.startswith('/atest/client'))
         self.assertTrue(self.sjob.testdir.startswith('/atest/server'))
-        #self.assertTrue(self.cjob.tmpdir.startswith(os.environ['AUTODIR']))
-        #self.assertTrue(self.cjob.site_testdir.startswith(os.environ['AUTODIR']))
-        #self.assertTrue(self.sjob.tmpdir.startswith(os.environ['AUTODIR']))
-        #self.assertTrue(self.sjob.site_testdir.startswith(os.environ['AUTODIR']))
 
 
 class test_execution_context(unittest.TestCase):

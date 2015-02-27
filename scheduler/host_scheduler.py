@@ -241,9 +241,9 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
 
         :return: A generator yielding Label ids for this atomic group.
         """
-        return (id for id, label in self._labels.iteritems()
-                if label.atomic_group_id == atomic_group_id
-                and not label.invalid)
+        return (a_id for a_id, label in self._labels.iteritems() if
+                label.atomic_group_id == atomic_group_id and not
+                label.invalid)
 
     def _get_eligible_host_ids_in_group(self, group_hosts, queue_entry):
         """
@@ -255,9 +255,9 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
         :return: A subset of group_hosts Host ids that are eligible for the
                 supplied queue_entry.
         """
-        return set(host_id for host_id in group_hosts
-                   if self.is_host_usable(host_id)
-                   and self.is_host_eligible_for_job(host_id, queue_entry))
+        return set(host_id for host_id in group_hosts if
+                   self.is_host_usable(host_id) and
+                   self.is_host_eligible_for_job(host_id, queue_entry))
 
     def is_host_eligible_for_job(self, host_id, queue_entry):
         if self._is_host_invalid(host_id):

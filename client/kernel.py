@@ -5,6 +5,7 @@ import re
 import glob
 import time
 import logging
+
 from autotest.client import kernel_config, os_dep, kernelexpand
 from autotest.client import utils
 from autotest.client.shared import log, error
@@ -632,10 +633,9 @@ class kernel(BootableKernel):
         if cross_compile:
             os.environ['CROSS_COMPILE'] = cross_compile
         else:
-            if os.environ.has_key('CROSS_COMPILE'):
+            if 'CROSS_COMPILE' in os.environ:
                 del os.environ['CROSS_COMPILE']
-
-        return                 # HACK. Crap out for now.
+        return  # HACK. Crap out for now.
 
         # At this point I know what arch I *want* to build for
         # but have no way of working out what arch the default
@@ -715,9 +715,11 @@ class rpm_kernel(BootableKernel):
                     self.rpm_flavour = rpm_name.split('-')[1]
 
                     # get version and release number
-                    self.version, self.release = utils.system_output(
-                        'rpm --queryformat="%{VERSION}\\n%{RELEASE}\\n" -q '
-                        + rpm_name).splitlines()[0:2]
+                    r_cmd = ('rpm --queryformat="%{VERSION}\\n%{RELEASE}\\n" '
+                             '-q ' + rpm_name)
+                    (self.version,
+                     self.release) = utils.system_output(
+                        r_cmd).splitlines()[0:2]
 
                     # prefer /boot/kernel-version before /boot/kernel
                     if self.full_version:

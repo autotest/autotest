@@ -42,8 +42,8 @@ class DoctestRunner(object):
         module_names = [os.path.basename(filename)[:-3]
                         for filename
                         in glob.glob(os.path.join(self._app_dir, '*.py'))
-                        if '__init__' not in filename
-                        and 'test.py' not in filename]
+                        if '__init__' not in filename and
+                        'test.py' not in filename]
         # TODO: use common.setup_modules.import_module()
         app_module = __import__(self._app_module_name, globals(), locals(),
                                 module_names)

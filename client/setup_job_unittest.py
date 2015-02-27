@@ -57,11 +57,11 @@ class abstract_test_init(base_job_unittest.test_init.generic_tests):
     """Generic client job mixin used when defining variations on the
     job.__init__ generic tests."""
     PUBLIC_ATTRIBUTES = (
-        base_job_unittest.test_init.generic_tests.PUBLIC_ATTRIBUTES
-        - set(['bootloader', 'control', 'drop_caches',
-               'drop_caches_between_iterations', 'harness', 'hosts', 'logging',
-               'machines', 'num_tests_failed', 'num_tests_run', 'profilers',
-               'sysinfo', 'user', 'warning_loggers', 'warning_manager']))
+        base_job_unittest.test_init.generic_tests.PUBLIC_ATTRIBUTES -
+        set(['bootloader', 'control', 'drop_caches',
+             'drop_caches_between_iterations', 'harness', 'hosts', 'logging',
+             'machines', 'num_tests_failed', 'num_tests_run', 'profilers',
+             'sysinfo', 'user', 'warning_loggers', 'warning_manager']))
 
 
 class test_init_minimal_options(abstract_test_init, setup_job_test_case):

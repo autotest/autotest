@@ -57,8 +57,8 @@ class abstract_test_init(base_job_unittest.test_init.generic_tests):
     """Generic client job mixin used when defining variations on the
     job.__init__ generic tests."""
     OPTIONAL_ATTRIBUTES = (
-        base_job_unittest.test_init.generic_tests.OPTIONAL_ATTRIBUTES
-        - set(['control', 'bootloader', 'harness']))
+        base_job_unittest.test_init.generic_tests.OPTIONAL_ATTRIBUTES -
+        set(['control', 'bootloader', 'harness']))
 
 
 class test_init_minimal_options(abstract_test_init, job_test_case):
@@ -86,11 +86,15 @@ class test_init_minimal_options(abstract_test_init, job_test_case):
 
             def log_per_reboot_data(self):
                 return None
+
         self.god.stub_function_to_return(job.sysinfo, 'sysinfo',
                                          stub_sysinfo())
 
         class stub_harness:
-            run_start = lambda self: None
+
+            def run_start(self):
+                return None
+
         self.god.stub_function_to_return(job.harness, 'select', stub_harness())
         self.god.stub_function_to_return(job.boottool, 'boottool', object())
 

@@ -358,7 +358,6 @@ class harness_beaker(harness.harness):
         test.write("    def run_once(self):\n")
         test.write("        os.chdir('%s')\n" % task.rpmPath)
         test.write("        raw_output = utils.system_output('make run', retain_output=True)\n")
-        #test.write("        raw_output = utils.system_output('make help', retain_output=True)\n")
         test.write("        self.results = raw_output\n")
         test.close()
 

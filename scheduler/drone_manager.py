@@ -314,8 +314,8 @@ class DroneManager(object):
         drone.active_processes = 0
         for pidfile_id, contents in self._pidfiles.iteritems():
             is_running = contents.exit_status is None
-            on_this_drone = (contents.process
-                             and contents.process.hostname == drone.hostname)
+            on_this_drone = (contents.process and
+                             contents.process.hostname == drone.hostname)
             if is_running and on_this_drone:
                 info = self._registered_pidfile_info[pidfile_id]
                 if info.num_processes is not None:
@@ -428,8 +428,8 @@ class DroneManager(object):
             if not drone.usable_by(username):
                 continue
 
-            drone_allowed = (drone_hostnames_allowed is None
-                             or drone.hostname in drone_hostnames_allowed)
+            drone_allowed = (drone_hostnames_allowed is None or
+                             drone.hostname in drone_hostnames_allowed)
             if not drone_allowed:
                 logging.debug('Drone %s not allowed: ', drone.hostname)
                 continue

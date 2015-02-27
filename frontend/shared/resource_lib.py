@@ -1,5 +1,4 @@
 import cgi
-import datetime
 import re
 import time
 import urllib
@@ -523,8 +522,8 @@ class Relationship(Entry):
             other_model, this_model = models
 
         _, field = this_model.objects.determine_relationship(other_model)
-        this_models_fields = (this_model._meta.fields
-                              + this_model._meta.many_to_many)
+        this_models_fields = (this_model._meta.fields +
+                              this_model._meta.many_to_many)
         if field in this_models_fields:
             manager_name = field.attname
         else:

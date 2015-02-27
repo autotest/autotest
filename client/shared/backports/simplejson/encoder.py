@@ -209,8 +209,7 @@ class JSONEncoder(object):
         if isinstance(o, basestring):
             if isinstance(o, str):
                 _encoding = self.encoding
-                if (_encoding is not None
-                        and not (_encoding == 'utf-8')):
+                if _encoding is not None and not (_encoding == 'utf-8'):
                     o = o.decode(_encoding)
             if self.ensure_ascii:
                 return encode_basestring_ascii(o)
@@ -275,8 +274,9 @@ class JSONEncoder(object):
             return text
 
         key_memo = {}
-        if (_one_shot and c_make_encoder is not None
-                and not self.indent and not self.sort_keys):
+        if (_one_shot and c_make_encoder is not None and
+                not self.indent and
+                not self.sort_keys):
             _iterencode = c_make_encoder(
                 markers, self.default, _encoder, self.indent,
                 self.key_separator, self.item_separator, self.sort_keys,

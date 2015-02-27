@@ -333,5 +333,4 @@ class CommandParser(object):
 
         args.append(control)
 
-        #raise SystemExit(1)
         return args

@@ -70,8 +70,8 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
                 key, value = ParamikoHost._parse_config_line(line)
                 if key == "Host":
                     host_pattern = value
-                elif (key == "IdentityFile"
-                      and fnmatch.fnmatch(hostname, host_pattern)):
+                elif (key == "IdentityFile" and fnmatch.fnmatch(hostname,
+                                                                host_pattern)):
                     raw_identity_files.append(value)
 
         # drop any files that use percent-escapes; we don't support them
@@ -166,7 +166,10 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
                 # and this just hangs on linux after a fork()
                 self.transport.join = lambda: None
                 self.transport.atfork()
-                join_hook = lambda cmd: self._close_transport()
+
+                def join_hook(cmd):
+                    return self._close_transport()
+
                 subcommand.subcommand.register_join_hook(join_hook)
                 logging.debug("Reopening SSH connection after a process fork")
             self._init_transport()

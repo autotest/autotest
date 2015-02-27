@@ -407,8 +407,8 @@ class Dispatcher(object):
         _drone_manager.reinitialize_drones()
 
     def _create_recovery_agent_tasks(self):
-        return (self._get_queue_entry_agent_tasks()
-                + self._get_special_task_agent_tasks(is_active=True))
+        return (self._get_queue_entry_agent_tasks() +
+                self._get_special_task_agent_tasks(is_active=True))
 
     def _get_queue_entry_agent_tasks(self):
         # host queue entry statuses handled directly by AgentTasks (Verifying is
@@ -472,8 +472,8 @@ class Dispatcher(object):
         non_host_statuses = (models.HostQueueEntry.Status.PARSING,
                              models.HostQueueEntry.Status.ARCHIVING)
         for task_entry in task_entries:
-            using_host = (task_entry.host is not None
-                          and task_entry.status not in non_host_statuses)
+            using_host = (task_entry.host is not None and task_entry.status
+                          not in non_host_statuses)
             if using_host:
                 self._assert_host_has_no_agent(task_entry)
 
@@ -701,8 +701,8 @@ class Dispatcher(object):
 
         for queue_entry in queue_entries:
             is_unassigned_atomic_group = (
-                queue_entry.atomic_group_id is not None
-                and queue_entry.host_id is None)
+                queue_entry.atomic_group_id is not None and
+                queue_entry.host_id is None)
 
             if queue_entry.is_hostless():
                 self._schedule_hostless_job(queue_entry)
@@ -1315,8 +1315,8 @@ class AgentTask(object):
                     '%s attempting to start entry with invalid status %s: '
                     '%s' % (class_name, entry.status, entry))
             invalid_host_status = (
-                allowed_host_statuses is not None
-                and entry.host.status not in allowed_host_statuses)
+                allowed_host_statuses is not None and entry.host.status not
+                in allowed_host_statuses)
             if invalid_host_status:
                 raise host_scheduler.SchedulerError(
                     '%s attempting to start on queue entry with invalid '
@@ -1604,8 +1604,8 @@ class CleanupTask(PreJobTask):
 
         do_not_verify_protection = host_protections.Protection.DO_NOT_VERIFY
         should_run_verify = (
-            self.queue_entry.job.run_verify
-            and self.host.protection != do_not_verify_protection)
+            self.queue_entry.job.run_verify and self.host.protection !=
+            do_not_verify_protection)
         if should_run_verify:
             entry = models.HostQueueEntry.objects.get(id=self.queue_entry.id)
             models.SpecialTask.objects.create(
@@ -1926,10 +1926,11 @@ class GatherLogsTask(PostJobTask):
         reboot_after = self._job.reboot_after
         do_reboot = (
             # always reboot after aborted jobs
-            self._final_status() == models.HostQueueEntry.Status.ABORTED
-            or reboot_after == model_attributes.RebootAfter.ALWAYS
-            or (reboot_after == model_attributes.RebootAfter.IF_ALL_TESTS_PASSED
-                and final_success and num_tests_failed == 0))
+            self._final_status() == models.HostQueueEntry.Status.ABORTED or
+            reboot_after == model_attributes.RebootAfter.ALWAYS or
+            (reboot_after ==
+             model_attributes.RebootAfter.IF_ALL_TESTS_PASSED and
+             final_success and num_tests_failed == 0))
 
         for queue_entry in self.queue_entries:
             if do_reboot:

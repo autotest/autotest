@@ -513,8 +513,8 @@ class base_server_job(base_job.base_job):
                     return
 
                 # determine the dir to write the control files to
-                cfd_specified = (control_file_dir
-                                 and control_file_dir is not self._USE_TEMP_DIR)
+                cfd_specified = (control_file_dir and control_file_dir is not
+                                 self._USE_TEMP_DIR)
                 if cfd_specified:
                     temp_control_file_dir = None
                 else:

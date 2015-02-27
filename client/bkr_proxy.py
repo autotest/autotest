@@ -295,7 +295,7 @@ class BkrProxy(object):
         lfile = os.path.basename(lf)
         path = self.labc_url + make_path_log(r, t, i) + rp + '/' + lfile
 
-        #copy in chunks
+        # copy in chunks
         chunksize = 262144
         start = 0
         total = os.path.getsize(lf)

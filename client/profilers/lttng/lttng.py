@@ -37,6 +37,7 @@ or
 
 import os
 import time
+
 from autotest.client import utils, profiler
 
 
@@ -102,8 +103,8 @@ class lttng(profiler.profiler):
                 else:
                     channel = ''
                 print 'Connecting ' + tracepoint
-                utils.write_one_line('/proc/ltt', 'connect ' + tracepoint
-                                     + ' default dynamic ' + channel)
+                utils.write_one_line('/proc/ltt', 'connect ' + tracepoint +
+                                     ' default dynamic ' + channel)
 
     def start(self, test):
         self.output = os.path.join(test.profdir, 'lttng')

@@ -155,7 +155,7 @@ class Bootloader(object):
         entry = self.get_entry(default)
         if entry.has_key('title'):
             return entry['title']
-        elif entry.has_key('label'):
+        elif 'label' in entry:
             return entry['label']
 
     def get_entry(self, entry):
