@@ -145,12 +145,13 @@ class OpenVSwitchControl(object):
         """
         :param version: (int) Converted from version string 1.4.0 => int 140
         """
-        if (isinstance(version, int)):
+        if isinstance(version, int):
             return version
         try:
-            int_ver = int(version.replace(".", ""))
+            a = re.findall('^(\d+)\.?(\d+)\.?(\d+)\-?', version)[0]
+            int_ver = ''.join(a)
         except:
-            raise error.AutotestError("Wrong version format '%s'" % (version))
+            raise error.AutotestError("Wrong version format '%s'" % version)
         return int_ver
 
     @classmethod
