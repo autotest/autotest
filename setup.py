@@ -7,6 +7,7 @@ except ImportError:
 
 # High level way of installing each autotest component
 import client.setup
+import shared.setup
 import frontend.setup
 import cli.setup
 import server.setup
@@ -65,6 +66,7 @@ def _fix_data_paths(package_data_dict):
 
 def get_package_dir():
     return _combine_dicts([client.setup.get_package_dir(),
+                           shared.setup.get_package_dir(),
                            frontend.setup.get_package_dir(),
                            cli.setup.get_package_dir(),
                            server.setup.get_package_dir(),
@@ -77,6 +79,7 @@ def get_package_dir():
 
 def get_packages():
     return (client.setup.get_packages() +
+            shared.setup.get_packages() +
             frontend.setup.get_packages() +
             cli.setup.get_packages() +
             server.setup.get_packages() +
