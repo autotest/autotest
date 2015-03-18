@@ -84,7 +84,9 @@ class TestNetUtils(unittest.TestCase):
     #
     def test_network_interface_init(self):
         self.god.stub_function(socket, 'socket')
+        self.god.stub_function(utils, 'system')
         s = net_utils_mock.socket_stub('eth0', socket, socket)
+        utils.system.expect_call('ifconfig eth0', ignore_status=True)
         socket.socket.expect_call(socket.PF_PACKET,
                                   socket.SOCK_RAW).and_return(s)
         self.god.stub_function(s, 'bind')

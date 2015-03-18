@@ -9,8 +9,10 @@ import re
 import glob
 import fcntl
 import logging
+
 from autotest.client import utils
 from autotest.client.shared import error, utils_memory
+
 
 SUPER_ROOT = ''      # root of all containers or cgroups
 NO_LIMIT = (1 << 63) - 1   # containername/memory.limit_in_bytes if no limit
@@ -405,13 +407,14 @@ def set_io_controls(container_name, disks=[], ioprio_classes=[PROPIO_NORMAL],
         io_shares = [io_shares[0]] * len(disks)
         ioprio_classes = [ioprio_classes[0]] * len(disks)
         io_limits = [io_limits[0]] * len(disks)
-    if not (len(disks) == len(ioprio_classes) and len(disks) == len(io_shares)
-            and len(disks) == len(io_limits)):
+    if not (len(disks) == len(ioprio_classes) and
+            len(disks) == len(io_shares) and
+            len(disks) == len(io_limits)):
         raise error.AutotestError('Unequal number of values for io controls')
     service_level = io_attr(container_name, 'io_service_level')
     if not os.path.exists(service_level):
         return  # kernel predates propio features
-            # or io cgroup is mounted separately from cpusets
+        # or io cgroup is mounted separately from cpusets
     disk_infos = []
     for disk, ioclass, limit, share in zip(disks, ioprio_classes,
                                            io_limits, io_shares):
@@ -508,15 +511,13 @@ def create_container_with_mbytes_and_specific_cpus(name, mbytes,
     Create a cpuset container and move job's current pid into it
     Allocate the list "cpus" of cpus to that container
 
-            name = arbitrary string tag
-            mbytes = reqested memory for job in megabytes
-            cpus = list of cpu indices to associate with the cpuset
-                  defaults to all cpus avail with given root
-            root = the parent cpuset to nest this new set within
-                   '': unnested top-level container
-            io = arguments for proportional IO containers
-            move_in = True: Move current process into the new container now.
-            timeout = must be 0: persist until explicitly deleted.
+    :param name: arbitrary string tag
+    :param mbytes: reqested memory for job in megabytes
+    :param cpus (None): list of cpu indices to associate with the cpuset defaults to all cpus avail with given root
+    :param root: the parent cpuset to nest this new set within, '' unnested top-level container
+    :param io: arguments for proportional IO containers
+    :param move_in (True): Move current process into the new container now.
+    :param timeout (must be 0): persist until explicitly deleted.
     """
     need_mem_containers()
     if not container_exists(root):

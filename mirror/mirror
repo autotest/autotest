@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
-import optparse, os, re
+import optparse
+import os
+import re
 
 try:
     import autotest.common
@@ -22,6 +24,7 @@ def import_config_file(path):
     proper packages to the path of the module to import, just a full filename).
     """
     class namespace_type(object):
+
         def __init__(self):
             # hardcoded default values
             self.filter_exprs = ()

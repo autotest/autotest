@@ -15,7 +15,11 @@ try:
     import autotest.common as common
 except ImportError:
     import common
-from autotest.cli import cli_mock, topic_common, job, rpc
+from autotest.cli import cli_mock
+# pylint: disable=E0611
+from autotest.cli import job
+from autotest.cli import rpc
+from autotest.cli import topic_common
 from autotest.client.shared.test_utils import mock
 
 
@@ -642,30 +646,30 @@ class job_stat_unittest(job_unittest):
                      rpcs=[('get_jobs_summary', {'id__in': ['180']},
                             True,
                             [{u'status_counts': {u'Aborted': 1},
-                             u'control_file':
-                             u"job.run_test('sleeptest')\n",
-                             u'name': u'job0',
-                             u'control_type': u'Server',
-                             u'priority':
-                             u'Medium',
-                             u'owner': u'user0',
-                             u'created_on':
-                             u'2008-07-08 17:45:44',
-                             u'synch_count': 2,
-                             u'id': 180}]),
+                              u'control_file':
+                              u"job.run_test('sleeptest')\n",
+                              u'name': u'job0',
+                              u'control_type': u'Server',
+                              u'priority':
+                              u'Medium',
+                              u'owner': u'user0',
+                              u'created_on':
+                              u'2008-07-08 17:45:44',
+                              u'synch_count': 2,
+                              u'id': 180}]),
                            ('get_jobs_summary', {'name__in': ['mytest']},
                             True,
                             [{u'status_counts': {u'Queued': 1},
-                             u'control_file':
-                             u"job.run_test('sleeptest')\n",
-                             u'name': u'mytest',
-                             u'control_type': u'Client',
-                             u'priority':
-                             u'High',
-                             u'owner': u'user0',
-                             u'created_on': u'2008-07-08 12:17:47',
-                             u'synch_count': 1,
-                             u'id': 338}]),
+                              u'control_file':
+                              u"job.run_test('sleeptest')\n",
+                              u'name': u'mytest',
+                              u'control_type': u'Client',
+                              u'priority':
+                              u'High',
+                              u'owner': u'user0',
+                              u'created_on': u'2008-07-08 12:17:47',
+                              u'synch_count': 1,
+                              u'id': 338}]),
                            ('get_host_queue_entries',
                             {'job__in': ['180']},
                             True,
@@ -975,9 +979,9 @@ class job_create_unittest(cli_mock.cli_unittest):
     def test_execute_create_job_with_kernel_spaces(self):
         data = self.data.copy()
         data['control_file'] = self.kernel_ctrl_file
-        data['name'] = 'test job	with  spaces'
+        data['name'] = 'test job    with  spaces'
         self.run_cmd(argv=['atest', 'job', 'create', '-t', 'sleeptest',
-                           '-k', 'kernel', 'test job	with  spaces',
+                           '-k', 'kernel', 'test job    with  spaces',
                            '-m', 'host0', '--ignore_site_file'],
                      rpcs=[('generate_control_file',
                             {'tests': ['sleeptest'],
@@ -994,7 +998,7 @@ class job_create_unittest(cli_mock.cli_unittest):
                      # to move to the next 8 char boundary which is 7 characters
                      # away. Hence the 7 spaces in out_words_ok.
                      # The tab has been converted by print.
-                     out_words_ok=['test job       with  spaces', 'Created',
+                     out_words_ok=['test job    with  spaces', 'Created',
                                    'id', '180'])
 
     def test_execute_create_job_no_args(self):
@@ -1182,7 +1186,7 @@ class job_create_unittest(cli_mock.cli_unittest):
                            'test_job0', '-m', 'host0', '-b', 'label1,label2',
                            '--ignore_site_file'],
                      rpcs=[('get_hosts', {'multiple_labels': ['label1',
-                            'label2']}, True,
+                                                              'label2']}, True,
                             [{u'status': u'Running', u'lock_time': None,
                               u'hostname': u'host1', u'locked': False,
                               u'locked_by': None, u'invalid': False, u'id': 42,
@@ -1230,7 +1234,7 @@ class job_create_unittest(cli_mock.cli_unittest):
                            'test_job0', '-m', 'host0,host1', '-b',
                            'label1,label\\,2', '--ignore_site_file'],
                      rpcs=[('get_hosts', {'multiple_labels': ['label1',
-                            'label,2']}, True,
+                                                              'label,2']}, True,
                             [{u'status': u'Running', u'lock_time': None,
                               u'hostname': u'host1', u'locked': False,
                               u'locked_by': None, u'invalid': False, u'id': 42,
@@ -1251,7 +1255,7 @@ class job_create_unittest(cli_mock.cli_unittest):
                            'test_job0', '-m', 'host0,host1', '-b',
                            'label1,label\\,2\\\\,label3', '--ignore_site_file'],
                      rpcs=[('get_hosts', {'multiple_labels': ['label,2\\',
-                            'label1', 'label3']}, True,
+                                                              'label1', 'label3']}, True,
                             [{u'status': u'Running', u'lock_time': None,
                               u'hostname': u'host1', u'locked': False,
                               u'locked_by': None, u'invalid': False, u'id': 42,

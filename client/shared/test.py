@@ -771,7 +771,7 @@ def _validate_args(args, dargs, *funcs):
         if not all_co_flags & 0x08:
             # no func accepts *dargs, so:
             for param in dargs:
-                if not param in all_varnames:
+                if param not in all_varnames:
                     raise error.AutotestError('Unknown parameter: %s' % param)
 
 

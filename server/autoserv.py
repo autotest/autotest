@@ -28,7 +28,10 @@ try:
     # internal locks.  http://code.google.com/p/python-atfork/
     import warnings
     warnings.filterwarnings('ignore', 'logging module already imported')
-    atfork.stdlib_fixer.fix_logging_module()
+    try:
+        atfork.stdlib_fixer.fix_logging_module()
+    except Exception:
+        pass
 except ImportError, e:
     from autotest.client.shared.settings import settings
     if settings.get_value('AUTOSERV', 'require_atfork_module', type=bool,
@@ -99,8 +102,8 @@ def run_autoserv(pid_file_manager, results, parser):
     if client and server:
         parser.parser.error("Can not specify a test as both server and client!")
 
-    if len(parser.args) < 1 and not (verify or repair or cleanup
-                                     or collect_crashinfo):
+    if len(parser.args) < 1 and not (verify or repair or cleanup or
+                                     collect_crashinfo):
         parser.parser.error("Missing argument: control file")
 
     # We have a control file unless it's just a verify/repair/cleanup job

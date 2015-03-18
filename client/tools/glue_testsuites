@@ -17,6 +17,8 @@ import os
 
 # file_load
 #
+
+
 def file_load(file_name):
     """
     Load the indicated file into a string and return the string.
@@ -31,6 +33,7 @@ def file_load(file_name):
         sys.stderr.write("  ** Warning: The requested file (%s) does not exist.\n" % file_name)
 
     return retval
+
 
 def main(argv):
 

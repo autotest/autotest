@@ -513,8 +513,8 @@ class base_server_job(base_job.base_job):
                     return
 
                 # determine the dir to write the control files to
-                cfd_specified = (control_file_dir
-                                 and control_file_dir is not self._USE_TEMP_DIR)
+                cfd_specified = (control_file_dir and control_file_dir is not
+                                 self._USE_TEMP_DIR)
                 if cfd_specified:
                     temp_control_file_dir = None
                 else:
@@ -928,8 +928,8 @@ class base_server_job(base_job.base_job):
                     if namespace[name] is not getattr(module, name):
                         raise error.AutoservError('importing name '
                                                   '%s from %s %r would override %r' %
-                                                 (name, module_name, getattr(module, name),
-                                                  namespace[name]))
+                                                  (name, module_name, getattr(module, name),
+                                                   namespace[name]))
                     else:
                         # Encourage cleanliness and the use of __all__ for a
                         # more concrete API with less surprises on '*' imports.
@@ -944,8 +944,8 @@ class base_server_job(base_job.base_job):
         # the front of the control script.
         namespace.update(os=os, sys=sys, logging=logging)
         _import_names('autotest.server',
-                     ('hosts', 'autotest_remote', 'standalone_profiler',
-                      'source_kernel', 'rpm_kernel', 'deb_kernel', 'git_kernel'))
+                      ('hosts', 'autotest_remote', 'standalone_profiler',
+                       'source_kernel', 'rpm_kernel', 'deb_kernel', 'git_kernel'))
         _import_names('autotest.server.subcommand',
                       ('parallel', 'parallel_simple', 'subcommand'))
         _import_names('autotest.server.utils',

@@ -5,6 +5,7 @@ import re
 import glob
 import time
 import logging
+
 from autotest.client import kernel_config, os_dep, kernelexpand
 from autotest.client import utils
 from autotest.client.shared import log, error
@@ -151,7 +152,7 @@ class kernel(BootableKernel):
 
         self.src_dir = os.path.join(tmp_dir, 'src')
         self.build_dir = os.path.join(tmp_dir, build_dir)
-                # created by get_kernel_tree
+        # created by get_kernel_tree
         self.config_dir = os.path.join(subdir, 'config')
         self.log_dir = os.path.join(subdir, 'debug')
         self.results_dir = os.path.join(subdir, 'results')
@@ -351,7 +352,7 @@ class kernel(BootableKernel):
         threads = 2 * utils.count_cpus()
         build_string = 'make -j %d %s %s' % (threads, make_opts,
                                              self.build_target)
-                                # eg make bzImage, or make zImage
+        # eg make bzImage, or make zImage
         print build_string
         utils.system(build_string)
         if kernel_config.modules_needed('.config'):
@@ -632,10 +633,9 @@ class kernel(BootableKernel):
         if cross_compile:
             os.environ['CROSS_COMPILE'] = cross_compile
         else:
-            if os.environ.has_key('CROSS_COMPILE'):
+            if 'CROSS_COMPILE' in os.environ:
                 del os.environ['CROSS_COMPILE']
-
-        return                 # HACK. Crap out for now.
+        return  # HACK. Crap out for now.
 
         # At this point I know what arch I *want* to build for
         # but have no way of working out what arch the default
@@ -715,9 +715,11 @@ class rpm_kernel(BootableKernel):
                     self.rpm_flavour = rpm_name.split('-')[1]
 
                     # get version and release number
-                    self.version, self.release = utils.system_output(
-                        'rpm --queryformat="%{VERSION}\\n%{RELEASE}\\n" -q '
-                        + rpm_name).splitlines()[0:2]
+                    r_cmd = ('rpm --queryformat="%{VERSION}\\n%{RELEASE}\\n" '
+                             '-q ' + rpm_name)
+                    (self.version,
+                     self.release) = utils.system_output(
+                        r_cmd).splitlines()[0:2]
 
                     # prefer /boot/kernel-version before /boot/kernel
                     if self.full_version:
@@ -818,7 +820,7 @@ def auto_kernel(job, path, subdir, tmp_dir, build_dir, leave=False):
     """
     kernel_paths = [preprocess_path(path)]
     if kernel_paths[0].endswith('.list'):
-    # Fetch the list of packages to install
+        # Fetch the list of packages to install
         kernel_list = os.path.join(tmp_dir, 'kernel.list')
         utils.get_file(kernel_paths[0], kernel_list)
         kernel_paths = [p.strip() for p in open(kernel_list).readlines()]

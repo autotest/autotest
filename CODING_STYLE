@@ -94,7 +94,7 @@ Comments
 Generally, you want your comments to tell WHAT your code does, not HOW.
 We can figure out how from the code itself (or if not, your code needs fixing).
 
-Try to describle the intent of a function and what it does in a triple-quoted
+Try to describe the intent of a function and what it does in a triple-quoted
 (multiline) string just after the def line. We've tried to do that in most
 places, though undoubtedly we're not perfect. A high level overview is
 incredibly helpful in understanding code.
@@ -137,7 +137,7 @@ framework:
 
  http://sphinx-doc.org
 
-So you can use not only use the basic reStructuredText tags, but also any other
+So you can not only use the basic reStructuredText tags, but also any other
 tag that Sphinx makes available. When documenting functions and methods, you
 probably want to use one of the tags exemplified here:
 
@@ -185,14 +185,14 @@ Please don't raise string exceptions, as they're deprecated and will be removed
 from future versions of python. If you're in doubt about what type of exception
 you will raise, please look at http://docs.python.org/lib/module-exceptions.html
 and client/shared/error.py, the former is a list of python built in
-exceptions and the later is a list of autotest/autoserv internal exceptions. Of
+exceptions and the latter is a list of autotest/autoserv internal exceptions. Of
 course, if you really need to, you can extend the exception definitions on
 client/shared/error.py.
 
 
 Submitting patches
 
-Nowadays, the projects uses the github (http://github.com/ infrastructure,
+Nowadays, the projects uses the github (http://github.com/) infrastructure,
 and we ask contributors to send patches as github pull requests, rather than
 to the mailing list. How to do that is covered on github's documentation:
 

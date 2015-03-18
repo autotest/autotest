@@ -525,7 +525,7 @@ class DebianBuildDeps(object):
                                       stdout=subprocess.PIPE,
                                       stderr=subprocess.PIPE,
                                       close_fds=True).stdout.read()
-            if not output == 'install ok installed':
+            if output != 'install ok installed':
                 result = False
         return result
 
@@ -1402,8 +1402,7 @@ class Grubby(object):
         :param path: path to the binary that should be backed up
         '''
         backup_path = '%s.boottool.bkp' % path
-        if (os.path.exists(path)
-                and not os.path.exists(backup_path)):
+        if (os.path.exists(path) and not os.path.exists(backup_path)):
             try:
                 shutil.move(path, backup_path)
             except:
@@ -1422,6 +1421,7 @@ class Grubby(object):
         except:
             try:
                 # then the autotest source directory
+                # pylint: disable=E0611
                 from autotest.client.shared.settings import settings
                 top_path = settings.get_value('COMMON', 'autotest_top_path')
                 tarball = os.path.join(top_path, tarball_name)

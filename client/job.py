@@ -17,6 +17,7 @@ import glob
 import logging
 import getpass
 import weakref
+
 from autotest.client import client_logging_config
 from autotest.client import utils, parallel, kernel, xen
 from autotest.client import profilers, harness
@@ -84,9 +85,9 @@ class base_client_job(base_job.base_job):
     """The client-side concrete implementation of base_job.
 
     Optional properties provided by this implementation:
-        control
-        bootloader
-        harness
+    - control
+    - bootloader
+    - harness
     """
 
     _WARNING_DISABLE_DELAY = 5
@@ -280,8 +281,8 @@ class base_client_job(base_job.base_job):
         Perform the drop caches initialization.
         """
         self.drop_caches_between_iterations = (settings.get_value('CLIENT',
-                                               'drop_caches_between_iterations',
-                                               type=bool, default=True))
+                                                                  'drop_caches_between_iterations',
+                                                                  type=bool, default=True))
         self.drop_caches = drop_caches
         if self.drop_caches:
             utils_memory.drop_caches()
@@ -431,10 +432,11 @@ class base_client_job(base_job.base_job):
         This method is a simple wrapper around the actual package
         installation method in the Packager class. This is used
         internally by the profilers, deps and tests code.
-        name : name of the package (ex: sleeptest, dbench etc.)
-        pkg_type : Type of the package (ex: test, dep etc.)
-        install_dir : The directory in which the source is actually
-                      untarred into. (ex: client/profilers/<name> for profilers)
+
+        :param name: name of the package (ex: sleeptest, dbench etc.)
+        :param pkg_type: Type of the package (ex: test, dep etc.)
+        :param install_dir: The directory in which the source is actually
+        untarred into. (ex: client/profilers/<name> for profilers)
         '''
         if self.pkgmgr.repositories:
             self.pkgmgr.install_pkg(name, pkg_type, self.pkgdir, install_dir)
@@ -501,8 +503,9 @@ class base_client_job(base_job.base_job):
 
     def _runtest(self, url, tag, timeout, args, dargs):
         try:
-            l = lambda: test.runtest(self, url, tag, args, dargs)
-            pid = parallel.fork_start(self.resultdir, l)
+            pid = parallel.fork_start(self.resultdir,
+                                      lambda: test.runtest(self, url, tag,
+                                                           args, dargs))
 
             if timeout:
                 logging.debug('Waiting for pid %d for %d seconds', pid, timeout)
@@ -568,9 +571,9 @@ class base_client_job(base_job.base_job):
 
         :param url A url that identifies the test to run.
         :param tag An optional keyword argument that will be added to the
-            test and subdir name.
+        test and subdir name.
         :param subdir_tag An optional keyword argument that will be added
-            to the subdir name.
+        to the subdir name.
 
         :return: True if the test passes, False otherwise.
         """
@@ -595,12 +598,12 @@ class base_client_job(base_job.base_job):
 
         :param url A url that identifies the test to run.
         :param tag An optional keyword argument that will be added to the
-            test and subdir name.
+        test and subdir name.
         :param subdir_tag An optional keyword argument that will be added
-            to the subdir name.
+        to the subdir name.
 
         :return: Test status
-        @see: client/shared/error.py, exit_status
+        :see: client/shared/error.py, exit_status
         """
         (subdir, testname, group_func, timeout) = self._run_test_base(url,
                                                                       *args,
@@ -613,16 +616,12 @@ class base_client_job(base_job.base_job):
 
     def _rungroup(self, subdir, testname, function, timeout, *args, **dargs):
         """
-        subdir:
-                name of the group
-        testname:
-                name of the test to run, or support step
-        function:
-                subroutine to run
-        *args:
-                arguments for the function
+        :param subdir: name of the group
+        :param testname: name of the test to run, or support step
+        :function: subroutine to run
+        :param args: arguments for the function
 
-        Returns the result of the passed in function
+        :returns: the result of the passed in function
         """
 
         try:
@@ -659,13 +658,10 @@ class base_client_job(base_job.base_job):
         """
         Run a function nested within a group level.
 
-        function:
-                Callable to run.
-        tag:
-                An optional tag name for the group.  If None (default)
-                function.__name__ will be used.
-        **dargs:
-                Named arguments for the function.
+        :param function: Callable to run.
+        :param tag: An optional tag name for the group.  If None (default)
+        function.__name__ will be used.
+        :param dargs: Named arguments for the function.
         """
         if tag:
             name = tag
@@ -819,7 +815,7 @@ class base_client_job(base_job.base_job):
     def filesystem(self, device, mountpoint=None, loop_size=0):
         """ Same as partition
 
-        @deprecated: Use partition method instead
+        :deprecated: Use partition method instead
         """
         return self.partition(device, loop_size, mountpoint)
 
@@ -949,8 +945,8 @@ class base_client_job(base_job.base_job):
         if not os.path.isdir(state_config):
             os.makedirs(state_config)
         init_state_file = os.path.join(state_config,
-                                      ("%s.init.state" %
-                                       os.path.basename(self.control)))
+                                       ("%s.init.state" %
+                                        os.path.basename(self.control)))
         self._state_file = os.path.join(state_config,
                                         ("%s.state" %
                                          os.path.basename(self.control)))
@@ -1231,7 +1227,7 @@ def runjob(control, drop_caches, options):
 
     This is the main interface to this module.
 
-    @see base_job.__init__ for parameter info.
+    :see: base_job.__init__ for parameter info.
     """
     control = os.path.abspath(control)
 

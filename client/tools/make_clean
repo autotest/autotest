@@ -1,5 +1,8 @@
 #!/usr/bin/python
-import os, sys, shutil
+import os
+import sys
+import shutil
+
 
 def purge_src(top_dir):
     if not os.path.exists(top_dir):
@@ -12,15 +15,15 @@ def purge_src(top_dir):
             os.unlink(envfile)
             print "Cleaned environment file %s" % envfile
         except OSError:
-            pass # ignore non-existing files
-        py = os.path.join (top_dir, subdir, subdir + '.py')
+            pass  # ignore non-existing files
+        py = os.path.join(top_dir, subdir, subdir + '.py')
         if not os.path.exists(py):
             continue
         ret = os.system('grep -q "preserve_srcdir = " ' + py)
         src_path = os.path.abspath(os.path.join('tests', subdir, 'src'))
         if not os.path.exists(src_path):
             continue
-        if ret: # This should have a replaceable src subdir
+        if ret:  # This should have a replaceable src subdir
             cmd = 'rm -rf ' + src_path
         else:
             cmd = 'cd %s; make clean > /dev/null 2>&1 ' % src_path

@@ -132,16 +132,15 @@ class SyncDataTest(unittest.TestCase):
         sync = syncdata.SyncData("127.0.0.1", "127.0.0.1", ["127.0.0.1"],
                                  "127.0.0.1#1", sync_ls)
 
-        l = lambda: sync.sync("test1", 2)
-        self.assertRaises(error.DataSyncError, l)
+        self.assertRaises(error.DataSyncError, lambda: sync.sync("test1", 2))
 
     def test_SyncData_with_listenServer_client_wait_timeout(self):
         sync = syncdata.SyncData("127.0.0.1", "127.0.0.1",
                                  ["127.0.0.1", "192.168.0.1"],
                                  "127.0.0.1#1")
 
-        l = lambda: sync.single_sync("test1", 2)
-        self.assertRaises(error.DataSyncError, l)
+        self.assertRaises(error.DataSyncError,
+                          lambda: sync.single_sync("test1", 2))
 
     def test_SyncData_multiple_session(self):
         data_check = {}
@@ -200,5 +199,4 @@ class SyncDataTest(unittest.TestCase):
         return obj
 
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'Test.testName']
     unittest.main()

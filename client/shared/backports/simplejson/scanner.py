@@ -5,6 +5,7 @@ import re
 
 def _import_c_make_scanner():
     try:
+        # pylint: disable=E0611
         from simplejson._speedups import make_scanner
         return make_scanner
     except ImportError:

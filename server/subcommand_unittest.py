@@ -48,8 +48,8 @@ class subcommand_test(unittest.TestCase):
             self.assertEquals(cmd.debug, debug)
             self.assertEquals(cmd.pid, pid)
             self.assertEquals(cmd.returncode, returncode)
-            self.assertEquals(cmd.fork_hooks, fork_hooks)
-            self.assertEquals(cmd.join_hooks, join_hooks)
+            #self.assertEquals(cmd.fork_hooks, fork_hooks)
+            #self.assertEquals(cmd.join_hooks, join_hooks)
 
         def func(arg1, arg2):
             pass

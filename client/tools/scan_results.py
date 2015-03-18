@@ -16,6 +16,7 @@ def parse_results(text):
     result_list = []
     start_time_list = []
     info_list = []
+    test_names = []
 
     lines = text.splitlines()
     for line in lines:
@@ -40,8 +41,12 @@ def parse_results(text):
             # Remove "kvm." prefix
             if test_name.startswith("kvm."):
                 test_name = test_name[4:]
-            result_list.append((test_name, test_status,
-                                int(end_time - start_time), info))
+            # Parse test results only once (iterated tests are expected
+            # to have an iteration number in their name)
+            if test_name not in test_names:
+                result_list.append((test_name, test_status,
+                                    int(end_time - start_time), info))
+                test_names.append(test_name)
 
         # Found a FAIL/ERROR/GOOD line -- get failure/success info
         elif (len(parts) >= 6 and parts[3].startswith("timestamp") and

@@ -1,3 +1,4 @@
+# pylint: disable=E0611
 from distutils.core import setup
 import os
 
@@ -28,8 +29,8 @@ def get_packages():
 
 
 def get_scripts():
-    return [scheduler_dir + '/autotest-scheduler',
-            scheduler_dir + '/autotest-scheduler-watcher']
+    return [os.path.join(scheduler_dir, 'autotest-scheduler'),
+            os.path.join(scheduler_dir, 'autotest-scheduler-watcher')]
 
 
 def run():

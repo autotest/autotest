@@ -148,7 +148,7 @@ def gdb_report(path):
         write_to_file(gdb_command_path, gdb_command)
 
         # Take a backtrace from the running program
-        gdb_cmd = ('gdb -e %s -c %s -x %s -n -batch -quiet' %
+        gdb_cmd = ('gdb -se %s -c %s -x %s -n -batch -quiet' %
                    (exe_path, path, gdb_command_path))
         backtrace = commands.getoutput(gdb_cmd)
         # Sanitize output before passing it to the report

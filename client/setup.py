@@ -1,3 +1,4 @@
+# pylint: disable=E0611
 from distutils.core import setup
 import os
 
@@ -33,6 +34,7 @@ def get_filelist():
     pd_filelist = ['config/*']
     pd_filelist.extend(_get_files(os.path.join(client_dir, 'profilers')))
     pd_filelist.extend(_get_files(os.path.join(client_dir, 'tools')))
+    pd_filelist.extend(_get_files(os.path.join(client_dir, 'shared', 'templates')))
     return pd_filelist
 
 
@@ -58,8 +60,8 @@ def get_scripts():
 
 def get_data_files():
     return [(os.environ.get('AUTOTEST_TOP_PATH', '/etc/autotest'),
-           [autotest_dir + '/global_config.ini',
-            autotest_dir + '/shadow_config.ini', ]), ]
+             [autotest_dir + '/global_config.ini',
+              autotest_dir + '/shadow_config.ini', ]), ]
 
 
 def get_package_dir():

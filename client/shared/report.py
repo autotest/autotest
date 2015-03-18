@@ -200,8 +200,11 @@ def parse_results_dir(results_dir, relative_links=True):
     # Now we will account the number of operations and PASS rate
     job_data['operations_executed'] = (job_data['operations_passed'] +
                                        job_data['operations_failed'])
-    job_data['operations_pass_rate'] = float(100 *
-                                             job_data['operations_passed'] / job_data['operations_executed'])
+    if job_data['operations_executed'] == 0:
+        job_data['operations_pass_rate'] = 100.0
+    else:
+        job_data['operations_pass_rate'] = float(100 * job_data['operations_passed'] /
+                                                 job_data['operations_executed'])
 
     return job_data
 
@@ -233,10 +236,16 @@ def generate_html_report(results_dir, relative_links=True):
     job_data = json.load(json_fo)
 
     templates_path = settings.settings.get_value("CLIENT", "job_templates_dir",
-                                                 default="")
+                                                 default=None)
 
     if not templates_path:
-        templates_path = os.path.join(common.client_dir, "shared", "templates")
+        if hasattr(common, 'autotest_dir'):
+            templates_path = os.path.join(common.autotest_dir, "client", "shared", "templates")
+        elif hasattr(common, 'client_dir'):
+            templates_path = os.path.join(common.client_dir, "shared", "templates")
+
+    if templates_path is None:
+        raise ValueError('Could not find json templates directory to create report')
 
     base_template_path = os.path.join(templates_path, "report.jsont")
     base_template = open(base_template_path, "r").read()
@@ -256,7 +265,7 @@ def generate_html_report(results_dir, relative_links=True):
     return jsontemplate.expand(base_template, context)
 
 
-def write_html_report(results_dir, report_path=None):
+def write_html_report(results_dir, report_path=None, encoding="utf8"):
     """
     Write an HTML file at report_path, with job data summary.
 
@@ -264,6 +273,7 @@ def write_html_report(results_dir, report_path=None):
 
     :param results_dir: Directory with test results.
     :param report_path: Path to a report file (optional).
+    :param encoding: Encoding for output (optional).
     """
     default_report_path = os.path.join(results_dir, "job_report.html")
     if report_path is None:
@@ -280,7 +290,7 @@ def write_html_report(results_dir, report_path=None):
         raise InvalidOutputDirError(report_dir)
 
     html_result = open(report_path, "w")
-    html_result.write(rendered_html)
+    html_result.write(rendered_html.encode(encoding))
     html_result.close()
     logging.info("Report successfully generated at %s", report_path)
 
@@ -308,6 +318,11 @@ class ReportOptionParser(optparse.OptionParser):
                              "value different than the default, the HTML will "
                              "link to the absolute paths of the results dir. "
                              "Default: %default")
+        self.add_option("-e", action="store", type="string",
+                        dest="encoding",
+                        default="utf8",
+                        help="Encoding for output. Example of codecs are "
+                        "ascii, latin1 and utf8. Default: %default")
 
 
 class ReportLoggingConfig(logging_config.LoggingConfig):
@@ -338,7 +353,8 @@ if __name__ == "__main__":
 
     try:
         write_html_report(results_dir=options.results_dir,
-                          report_path=options.report_path)
+                          report_path=options.report_path,
+                          encoding=options.encoding)
     except InvalidAutotestResultDirError, e:
         logging.error(e)
         sys.exit(ERROR_INVALID_RESULT_DIR)

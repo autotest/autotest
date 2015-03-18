@@ -47,7 +47,7 @@ def parse_unified_diff_output(lines):
     for line in lines:
         # ignore filepaths in the output
         if (len(line) > 2 and
-           (line[:3] == "+++" or
+            (line[:3] == "+++" or
                 line[:3] == "---")):
             continue
         # ignore line range information in the output
@@ -82,8 +82,8 @@ def extract_config_changes(file_paths, compared_file_paths=[]):
         temp_file_path = get_temp_file_path(file_paths[i])
 
         if len(compared_file_paths) > i:
-            command = ("diff -U 0 -b " + compared_file_paths[i]
-                       + " " + file_paths[i])
+            command = ("diff -U 0 -b " + compared_file_paths[i] + " " +
+                       file_paths[i])
         else:
             command = "diff -U 0 -b " + temp_file_path + " " + file_paths[i]
 

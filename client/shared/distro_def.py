@@ -47,7 +47,7 @@ def load(path):
     return pickle.loads(bz2.decompress(open(path).read()))
 
 
-# pylint: disable=I0011,R0913,W0142
+# pylint: disable=I0011,R0913
 def load_from_tree(name, version, release, arch,
                    package_type, path):
     '''

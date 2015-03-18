@@ -3,25 +3,41 @@ Trace kernel events with Linux Tracing Toolkit (lttng).
 You need to install the lttng patched kernel in order to use the profiler.
 
 Examples:
+
+::
+
     job.profilers.add('lttng', tracepoints = None): enable all trace points.
     job.profilers.add('lttng', tracepoints = []): disable all trace points.
     job.profilers.add('lttng', tracepoints = ['kernel_arch_syscall_entry',
                                               'kernel_arch_syscall_exit'])
-                               will only trace syscall events.
+
+will only trace syscall events.
 Take a look at /proc/ltt for the list of the tracing events currently
 supported by lttng and their output formats.
 
 To view the collected traces, copy results/your-test/profiler/lttng
 to a machine that has Linux Tracing Toolkit Viewer (lttv) installed:
+
+::
+
     test$ scp -r results/your-test/profiler/lttng user@localmachine:/home/tmp/
+
 Then you can examine the traces either in text mode or in GUI:
+
+::
+
     localmachine$ lttv -m textDump -t /home/tmp/lttng
+
 or
+
+::
+
     localmachine$ lttv-gui -t /home/tmp/lttng &
 """
 
 import os
 import time
+
 from autotest.client import utils, profiler
 
 
@@ -87,13 +103,13 @@ class lttng(profiler.profiler):
                 else:
                     channel = ''
                 print 'Connecting ' + tracepoint
-                utils.write_one_line('/proc/ltt', 'connect ' + tracepoint
-                                     + ' default dynamic ' + channel)
+                utils.write_one_line('/proc/ltt', 'connect ' + tracepoint +
+                                     ' default dynamic ' + channel)
 
     def start(self, test):
         self.output = os.path.join(test.profdir, 'lttng')
         utils.system('%s -n test -d -l %s/ltt -t %s' %
-                    (self.lttctl, self.mountpoint, self.output))
+                     (self.lttctl, self.mountpoint, self.output))
 
     def stop(self, test):
         utils.system(self.lttctl + ' -n test -R')

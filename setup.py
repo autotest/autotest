@@ -7,6 +7,7 @@ except ImportError:
 
 # High level way of installing each autotest component
 import client.setup
+import shared.setup
 import frontend.setup
 import cli.setup
 import server.setup
@@ -17,6 +18,7 @@ import utils.setup
 import mirror.setup
 import installation_support.setup
 
+# pylint: disable=E0611
 from distutils.core import setup
 
 from sphinx.setup_command import BuildDoc
@@ -64,18 +66,20 @@ def _fix_data_paths(package_data_dict):
 
 def get_package_dir():
     return _combine_dicts([client.setup.get_package_dir(),
-                          frontend.setup.get_package_dir(),
-                          cli.setup.get_package_dir(),
-                          server.setup.get_package_dir(),
-                          scheduler.setup.get_package_dir(),
-                          database_legacy.setup.get_package_dir(),
-                          tko.setup.get_package_dir(),
-                          utils.setup.get_package_dir(),
-                          mirror.setup.get_package_dir()])
+                           shared.setup.get_package_dir(),
+                           frontend.setup.get_package_dir(),
+                           cli.setup.get_package_dir(),
+                           server.setup.get_package_dir(),
+                           scheduler.setup.get_package_dir(),
+                           database_legacy.setup.get_package_dir(),
+                           tko.setup.get_package_dir(),
+                           utils.setup.get_package_dir(),
+                           mirror.setup.get_package_dir()])
 
 
 def get_packages():
     return (client.setup.get_packages() +
+            shared.setup.get_packages() +
             frontend.setup.get_packages() +
             cli.setup.get_packages() +
             server.setup.get_packages() +

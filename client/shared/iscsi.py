@@ -22,10 +22,12 @@ def iscsi_get_sessions():
     cmd = "iscsiadm --mode session"
 
     output = utils.system_output(cmd, ignore_status=True)
-    pattern = r"(\d+\.\d+\.\d+\.\d+):\d+,\d+\s+([\w\.\-:\d]+)"
     sessions = []
     if "No active sessions" not in output:
-        sessions = re.findall(pattern, output)
+        for session in output.splitlines():
+            ip_addr = session.split()[2].split(',')[0]
+            target = session.split()[3]
+            sessions.append((ip_addr, target))
     return sessions
 
 
@@ -36,7 +38,7 @@ def iscsi_get_nodes():
     cmd = "iscsiadm --mode node"
 
     output = utils.system_output(cmd)
-    pattern = r"(\d+\.\d+\.\d+\.\d+):\d+,\d+\s+([\w\.\-:\d]+)"
+    pattern = r"(\d+\.\d+\.\d+\.\d+|\W:{2}\d\W):\d+,\d+\s+([\w\.\-:\d]+)"
     nodes = []
     if "No records found" not in output:
         nodes = re.findall(pattern, output)
@@ -106,6 +108,7 @@ class Iscsi(object):
     def __init__(self, params, root_dir="/tmp"):
         os_dep.command("iscsiadm")
         self.target = params.get("target")
+        self.export_flag = False
         if params.get("portal_ip"):
             self.portal_ip = params.get("portal_ip")
         else:
@@ -124,14 +127,13 @@ class Iscsi(object):
             self.emulated_size = params.get("image_size")
             self.unit = self.emulated_size[-1].upper()
             self.emulated_size = self.emulated_size[:-1]
-            self.export_flag = False
             # maps K,M,G,T => (count, bs)
             emulated_size = {'K': (1, 1),
                              'M': (1, 1024),
                              'G': (1024, 1024),
                              'T': (1024, 1048576),
                              }
-            if emulated_size.has_key(self.unit):
+            if self.unit in emulated_size:
                 block_size = emulated_size[self.unit][1]
                 size = int(self.emulated_size) * emulated_size[self.unit][0]
                 self.create_cmd = ("dd if=/dev/zero of=%s count=%s bs=%sK"
@@ -143,10 +145,8 @@ class Iscsi(object):
         """
         sessions = iscsi_get_sessions()
         login = False
-        for i in sessions:
-            if i[1] == self.target:
-                login = True
-                break
+        if self.target in map(lambda x: x[1], sessions):
+            login = True
         return login
 
     def portal_visible(self):
@@ -192,14 +192,14 @@ class Iscsi(object):
         device_name = ""
         if self.logged_in():
             output = utils.system_output(cmd)
-            pattern = r"Target:\s+%s\n.*?disk\s+(\w+)\s+" % self.target
-            if re.findall(pattern, output, re.S):
-                device_name = re.findall(pattern, output, re.S)[0]
-                device_name = "/dev/%s" % device_name
-            else:
-                logging.debug("Can not find taget after login")
+            pattern = r"Target:\s+%s.*?disk\s(\w+)\s+\S+\srunning" % self.target
+            device_name = re.findall(pattern, output, re.S)
+            try:
+                device_name = "/dev/%s" % device_name[0]
+            except IndexError:
+                logging.error("Can not find target '%s' after login.", self.target)
         else:
-            logging.debug("Session is not login yet.")
+            logging.error("Session is not logged in yet.")
         return device_name
 
     def get_target_id(self):
@@ -212,7 +212,7 @@ class Iscsi(object):
         for line in re.split("\n", target_info):
             if re.findall("Target\s+(\d+)", line):
                 target_id = re.findall("Target\s+(\d+)", line)[0]
-            elif re.findall("Backing store path:\s+(/+.+)", line):
+            if re.findall("Backing store path:\s+(/+.+)", line):
                 if self.emulated_image in line:
                     break
         else:
@@ -243,17 +243,35 @@ class Iscsi(object):
             cmd = "tgtadm --mode target --op new --tid %s" % self.emulated_id
             cmd += " --lld iscsi --targetname %s" % self.target
             utils.system(cmd)
-            cmd = "tgtadm --mode logicalunit --op new "
-            cmd += "--tid %s --lld iscsi --lun 1 " % self.emulated_id
-            cmd += "--backing-store %s" % self.emulated_image
-            utils.system(cmd)
             cmd = "tgtadm --lld iscsi --op bind --mode target "
             cmd += "--tid %s -I ALL" % self.emulated_id
             utils.system(cmd)
-            self.export_flag = True
         else:
-            self.emulated_id = re.findall("Target\s+(\d+):\s+%s$" %
-                                          self.target, output)
+            target_strs = re.findall("Target\s+(\d+):\s+%s$" %
+                                     self.target, output, re.M)
+            self.emulated_id = target_strs[0].split(':')[0].split()[-1]
+
+        cmd = "tgtadm --lld iscsi --mode target --op show"
+        try:
+            output = utils.system_output(cmd)
+        except error.CmdError:   # In case service stopped
+            utils.system("service tgtd restart")
+            output = utils.system_output(cmd)
+
+        # Create a LUN with emulated image
+        if re.findall(self.emulated_image, output, re.M):
+            # Exist already
+            logging.debug("Exported image already exists.")
+            self.export_flag = True
+            return
+        else:
+            luns = len(re.findall("\s+LUN:\s(\d+)", output, re.M))
+            cmd = "tgtadm --mode logicalunit --op new "
+            cmd += "--tid %s --lld iscsi " % self.emulated_id
+            cmd += "--lun %s " % luns
+            cmd += "--backing-store %s" % self.emulated_image
+            utils.system(cmd)
+            self.export_flag = True
 
     def delete_target(self):
         """
@@ -278,8 +296,7 @@ class Iscsi(object):
         """
         Clean up env after iscsi used.
         """
-        if self.logged_in():
-            self.logout()
+        self.logout()
         if os.path.isfile("/etc/iscsi/initiatorname.iscsi-%s" % self.id):
             cmd = " mv /etc/iscsi/initiatorname.iscsi-%s" % self.id
             cmd += " /etc/iscsi/initiatorname.iscsi"

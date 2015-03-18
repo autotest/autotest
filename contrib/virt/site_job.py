@@ -7,6 +7,7 @@ import logging
 import string
 import tempfile
 
+# pylint: disable=E0611
 from autotest.cli import job
 from autotest.client.shared import logging_config
 

@@ -100,7 +100,7 @@ class label_list(action_common.atest_list, label):
 
         if len(self.hosts) > 1:
             self.invalid_syntax(('Only one machine name allowed. '
-                                '''Use '%s host list %s' '''
+                                 '''Use '%s host list %s' '''
                                  'instead.') %
                                 (sys.argv[0], ','.join(self.hosts)))
         self.all = options.all

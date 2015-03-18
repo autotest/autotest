@@ -24,8 +24,8 @@ class PeriodicCleanup(object):
             self._cleanup()
 
     def run_cleanup_maybe(self):
-        should_cleanup = (self._last_clean_time + self.clean_interval * 60
-                          < time.time())
+        should_cleanup = (self._last_clean_time + self.clean_interval * 60 <
+                          time.time())
         if should_cleanup:
             self._cleanup()
             self._last_clean_time = time.time()
@@ -143,8 +143,8 @@ class UserCleanup(PeriodicCleanup):
             USING (job_id) WHERE hqe.job_id IS NULL""")
 
     def _should_reverify_hosts_now(self):
-        reverify_period_sec = (scheduler_config.config.reverify_period_minutes
-                               * 60)
+        reverify_period_sec = (
+            scheduler_config.config.reverify_period_minutes * 60)
         if reverify_period_sec == 0:
             return False
         return (self._last_reverify_time + reverify_period_sec) <= time.time()

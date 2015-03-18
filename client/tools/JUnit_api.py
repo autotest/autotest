@@ -194,10 +194,10 @@ except ImportError, exp:
 # IPython is available from http://ipython.scipy.org/.
 #
 
-## from IPython.Shell import IPShellEmbed
-## args = ''
+# from IPython.Shell import IPShellEmbed
+# args = ''
 # ipshell = IPShellEmbed(args,
-##     banner = 'Dropping into IPython',
+#     banner = 'Dropping into IPython',
 # exit_msg = 'Leaving Interpreter, back to program.')
 
 # Then use the following line where and when you want to drop into the
@@ -363,15 +363,15 @@ class MixedContainer:
         if self.category == MixedContainer.CategoryText:
             showIndent(outfile, level)
             outfile.write('model_.MixedContainer(%d, %d, "%s", "%s"),\n' %
-                         (self.category, self.content_type, self.name, self.value))
+                          (self.category, self.content_type, self.name, self.value))
         elif self.category == MixedContainer.CategorySimple:
             showIndent(outfile, level)
             outfile.write('model_.MixedContainer(%d, %d, "%s", "%s"),\n' %
-                         (self.category, self.content_type, self.name, self.value))
+                          (self.category, self.content_type, self.name, self.value))
         else:    # category == MixedContainer.CategoryComplex
             showIndent(outfile, level)
             outfile.write('model_.MixedContainer(%d, %d, "%s",\n' %
-                         (self.category, self.content_type, self.name,))
+                          (self.category, self.content_type, self.name,))
             self.value.exportLiteral(outfile, level + 1)
             showIndent(outfile, level)
             outfile.write(')\n')

@@ -56,20 +56,49 @@ INTERFACE_VERSION = (2013, 9, 11)
 # labels
 
 def add_label(name, kernel_config=None, platform=None, only_if_needed=None):
+    """
+    Add (create) label.
+
+    :param name: The name of the label.
+    :param kernel_config: Kernel configuration (optional).
+    :param platform: Platform (optional).
+    :param only_if_need: Only if needed (optional).
+    :return: ID.
+    """
     return models.Label.add_object(
         name=name, kernel_config=kernel_config, platform=platform,
         only_if_needed=only_if_needed).id
 
 
 def modify_label(id, **data):
+    """
+    Modify (update) label.
+
+    :param id: Label identification.
+    :param data: Fields to modify.
+    :return: None.
+    """
     models.Label.smart_get(id).update_object(data)
 
 
 def delete_label(id):
+    """
+    Delete label.
+
+    :param id: Label identification.
+    :return: None.
+    """
     models.Label.smart_get(id).delete()
 
 
 def label_add_hosts(id, hosts):
+    """
+    Add multiple hosts to a label.
+
+    :param id: Label identification.
+    :param hosts: A sequence of hosts.
+    :return: None.
+    """
     host_objs = models.Host.smart_get_bulk(hosts)
     label = models.Label.smart_get(id)
     if label.platform:
@@ -78,12 +107,22 @@ def label_add_hosts(id, hosts):
 
 
 def label_remove_hosts(id, hosts):
+    """
+    Remove hosts from label.
+
+    :param id: Label identification.
+    :param hosts: A sequence of hosts.
+    :return: None.
+    """
     host_objs = models.Host.smart_get_bulk(hosts)
     models.Label.smart_get(id).host_set.remove(*host_objs)
 
 
 def get_labels(**filter_data):
     """
+    Get labels.
+
+    :param filter_data: Filters out which labels to get.
     :return: A sequence of nested dictionaries of label information.
     """
     return rpc_utils.prepare_rows_as_nested_dicts(
@@ -94,30 +133,70 @@ def get_labels(**filter_data):
 # atomic groups
 
 def add_atomic_group(name, max_number_of_machines=None, description=None):
+    """
+    Add (create) atomic group.
+
+    :param name: Name of the atomic group.
+    :param max_number_of_machines: Maximum number of machines (optional).
+    :param description: Description (optional).
+    :return: ID.
+    """
     return models.AtomicGroup.add_object(
         name=name, max_number_of_machines=max_number_of_machines,
         description=description).id
 
 
 def modify_atomic_group(id, **data):
+    """
+    Modify (update) atomic group.
+
+    :param data: Fields to modify.
+    :return: None.
+    """
     models.AtomicGroup.smart_get(id).update_object(data)
 
 
 def delete_atomic_group(id):
+    """
+    Delete atomic group.
+
+    :param id: Atomic group identification.
+    :return: None.
+    """
     models.AtomicGroup.smart_get(id).delete()
 
 
 def atomic_group_add_labels(id, labels):
+    """
+    Add labels to atomic group.
+
+    :param id: Atomic group identification.
+    :param labels: Sequence of labels.
+    :return: None.
+    """
     label_objs = models.Label.smart_get_bulk(labels)
     models.AtomicGroup.smart_get(id).label_set.add(*label_objs)
 
 
 def atomic_group_remove_labels(id, labels):
+    """
+    Remove labels from atomic group.
+
+    :param id: Atomic group identification.
+    :param labels: Sequence of labels.
+    :return: None.
+    """
     label_objs = models.Label.smart_get_bulk(labels)
     models.AtomicGroup.smart_get(id).label_set.remove(*label_objs)
 
 
 def get_atomic_groups(**filter_data):
+    """
+    Get atomic groups.
+
+    :param filter_data: Filters out which atomic groups to get.
+    :return: Sequence of atomic groups.
+    """
     return rpc_utils.prepare_for_serialization(
         models.AtomicGroup.list_objects(filter_data))
 
@@ -125,11 +204,27 @@ def get_atomic_groups(**filter_data):
 # hosts
 
 def add_host(hostname, status=None, locked=None, protection=None):
+    """
+    Add (create) host.
+
+    :param hostname: The hostname.
+    :param status: Status (optional).
+    :param locked: Locked (optional).
+    :param protection: Protection (optional).
+    :return: ID.
+    """
     return models.Host.add_object(hostname=hostname, status=status,
                                   locked=locked, protection=protection).id
 
 
 def modify_host(id, **data):
+    """
+    Modify (update) host.
+
+    :param id: Host identification.
+    :param data: Fields to modify.
+    :return: None.
+    """
     rpc_utils.check_modify_host(data)
     host = models.Host.smart_get(id)
     rpc_utils.check_modify_host_locking(host, data)
@@ -138,8 +233,11 @@ def modify_host(id, **data):
 
 def modify_hosts(host_filter_data, update_data):
     """
+    Modify multiple hosts.
+
     :param host_filter_data: Filters out which hosts to modify.
     :param update_data: A dictionary with the changes to make to the hosts.
+    :return: None.
     """
     rpc_utils.check_modify_host(update_data)
     hosts = models.Host.query_objects(host_filter_data)
@@ -148,6 +246,13 @@ def modify_hosts(host_filter_data, update_data):
 
 
 def host_add_labels(id, labels):
+    """
+    Add labels to host.
+
+    :param id: Host identification.
+    :param labels: Sequence of labels.
+    :return: None.
+    """
     labels = models.Label.smart_get_bulk(labels)
     host = models.Host.smart_get(id)
 
@@ -162,16 +267,26 @@ def host_add_labels(id, labels):
 
 
 def host_remove_labels(id, labels):
+    """
+    Remove labels from host.
+
+    :param id: Host Identification.
+    :param labels: Sequence of labels.
+    :return: None.
+    """
     labels = models.Label.smart_get_bulk(labels)
     models.Host.smart_get(id).labels.remove(*labels)
 
 
 def set_host_attribute(attribute, value, **host_filter_data):
     """
-    :param attribute string name of attribute
-    :param value string, or None to delete an attribute
-    :param host_filter_data filter data to apply to Hosts to choose hosts to act
-    upon
+    Set host attribute.
+
+    :param attribute: string name of attribute.
+    :param value: string, or None to delete an attribute.
+    :param host_filter_data: filter data to apply to Hosts to choose hosts
+    to act upon.
+    :return: None.
     """
     assert host_filter_data  # disallow accidental actions on all hosts
     hosts = models.Host.query_objects(host_filter_data)
@@ -182,18 +297,29 @@ def set_host_attribute(attribute, value, **host_filter_data):
 
 
 def delete_host(id):
+    """
+    Delete host.
+
+    :param id: Host identification.
+    :return: None.
+    """
     models.Host.smart_get(id).delete()
 
 
 def get_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
               exclude_atomic_group_hosts=False, valid_only=True, **filter_data):
     """
-    :param multiple_labels: match hosts in all of the labels given.  Should
-            be a list of label names.
-    :param exclude_only_if_needed_labels: Exclude hosts with at least one
-            "only_if_needed" label applied.
+    Get hosts.
+
+    :param multiple_labels: match hosts in all of the labels given (optional).
+    Should be a list of label names.
+    :param exclude_only_if_needed_labels: Exclude hosts with
+    at least one "only_if_needed" label applied (optional).
     :param exclude_atomic_group_hosts: Exclude hosts that have one or more
             atomic group labels associated with them.
+    :param valid_only: Filter valid hosts (optional).
+    :param filter_data: Filters out which hosts to get.
+    :return: Sequence of hosts.
     """
     hosts = rpc_utils.get_host_query(multiple_labels,
                                      exclude_only_if_needed_labels,
@@ -271,7 +397,7 @@ def get_num_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
                   exclude_atomic_group_hosts=False, valid_only=True,
                   **filter_data):
     """
-    Same parameters as get_hosts().
+    Get the number of hosts. Same parameters as get_hosts().
 
     :return: The number of matching hosts.
     """
@@ -283,6 +409,11 @@ def get_num_hosts(multiple_labels=(), exclude_only_if_needed_labels=False,
 
 
 def get_install_server_profiles():
+    """
+    Get install server profiles.
+
+    :return: Sequence of profiles.
+    """
     install_server = None
     install_server_info = get_install_server_info()
     install_server_type = install_server_info.get('type', None)
@@ -298,6 +429,11 @@ def get_install_server_profiles():
 
 
 def get_profiles():
+    """
+    Get profiles.
+
+    :return: Sequence of profiles.
+    """
     error_encountered = True
     profile_dicts = []
     profiles = get_install_server_profiles()
@@ -323,7 +459,7 @@ def get_profiles():
 
 def get_num_profiles():
     """
-    Same parameters as get_profiles().
+    Get the number of profiles. Same parameters as get_profiles().
 
     :return: The number of defined profiles.
     """
@@ -345,9 +481,12 @@ def get_num_profiles():
 
 def reserve_hosts(host_filter_data, username=None):
     """
+    Reserve some hosts.
+
     :param host_filter_data: Filters out which hosts to reserve.
     :param username: login of the user reserving hosts
     :type username: str
+    :return: None.
     """
     hosts = models.Host.query_objects(host_filter_data)
     reservations.create(hosts_to_reserve=[h.hostname for h in hosts],
@@ -356,9 +495,12 @@ def reserve_hosts(host_filter_data, username=None):
 
 def release_hosts(host_filter_data, username=None):
     """
-    :param host_filter_data: Filters out which hosts to reserve.
+    Release some hosts.
+
+    :param host_filter_data: Filters out which hosts to release.
     :param username: login of the user reserving hosts
     :type username: str
+    :return: None.
     """
     hosts = models.Host.query_objects(host_filter_data)
     reservations.release(hosts_to_release=[h.hostname for h in hosts],
@@ -371,6 +513,23 @@ def add_test(name, test_type, path, author=None, dependencies=None,
              experimental=True, run_verify=None, test_class=None,
              test_time=None, test_category=None, description=None,
              sync_count=1):
+    """
+    Add (create) test.
+
+    :param name: Test name.
+    :param test_type: Test type (Client or Server).
+    :param path: Relative path to the test.
+    :param author: The author of the test (optional).
+    :param dependencies: Dependencies (optional).
+    :param experimental: Experimental? (True or False) (optional).
+    :param run_verify: Run verify? (True or False) (optional).
+    :param test_class: Test class (optional).
+    :param test_time: Test time (optional).
+    :param test_category: Test category (optional).
+    :param description: Description (optional).
+    :param sync_count: Sync count (optional).
+    :return: ID.
+    """
     return models.Test.add_object(name=name, test_type=test_type, path=path,
                                   author=author, dependencies=dependencies,
                                   experimental=experimental,
@@ -382,14 +541,33 @@ def add_test(name, test_type, path, author=None, dependencies=None,
 
 
 def modify_test(id, **data):
+    """
+    Modify (update) test.
+
+    :param id: Test identification.
+    :param data: Test data to modify.
+    :return: None.
+    """
     models.Test.smart_get(id).update_object(data)
 
 
 def delete_test(id):
+    """
+    Delete test.
+
+    :param id: Test identification.
+    :return: None.
+    """
     models.Test.smart_get(id).delete()
 
 
 def get_tests(**filter_data):
+    """
+    Get tests.
+
+    :param filter_data: Filters out which tests to get.
+    :return: Sequence of tests.
+    """
     return rpc_utils.prepare_for_serialization(
         models.Test.list_objects(filter_data))
 
@@ -397,18 +575,44 @@ def get_tests(**filter_data):
 # profilers
 
 def add_profiler(name, description=None):
+    """
+    Add (create) profiler.
+
+    :param name: The name of the profiler.
+    :param description: Description (optional).
+    :return: ID.
+    """
     return models.Profiler.add_object(name=name, description=description).id
 
 
 def modify_profiler(id, **data):
+    """
+    Modify (update) profiler.
+
+    :param id: Profiler identification.
+    :param data: Profiler data to modify.
+    :return: None.
+    """
     models.Profiler.smart_get(id).update_object(data)
 
 
 def delete_profiler(id):
+    """
+    Delete profiler.
+
+    :param id: Profiler identification.
+    :return: None.
+    """
     models.Profiler.smart_get(id).delete()
 
 
 def get_profilers(**filter_data):
+    """
+    Get all profilers.
+
+    :param filter_data: Filters out which profilers to get.
+    :return: Sequence of profilers.
+    """
     return rpc_utils.prepare_for_serialization(
         models.Profiler.list_objects(filter_data))
 
@@ -416,18 +620,44 @@ def get_profilers(**filter_data):
 # users
 
 def add_user(login, access_level=None):
+    """
+    Add (create) user.
+
+    :param login: The login name.
+    :param acess_level: Access level (optional).
+    :return: ID.
+    """
     return models.User.add_object(login=login, access_level=access_level).id
 
 
 def modify_user(id, **data):
+    """
+    Modify (update) user.
+
+    :param id: User identification.
+    :param data: User data to modify.
+    :return: None.
+    """
     models.User.smart_get(id).update_object(data)
 
 
 def delete_user(id):
+    """
+    Delete user.
+
+    :param id: User identification.
+    :return: None.
+    """
     models.User.smart_get(id).delete()
 
 
 def get_users(**filter_data):
+    """
+    Get users.
+
+    :param filter_data: Filters out which users to get.
+    :return: Sequence of users.
+    """
     return rpc_utils.prepare_for_serialization(
         models.User.list_objects(filter_data))
 
@@ -435,12 +665,26 @@ def get_users(**filter_data):
 # acl groups
 
 def add_acl_group(name, description=None):
+    """
+    Add (create) ACL group.
+
+    :param name: The name of the ACL group.
+    :param description: Description (optional).
+    :return: ID.
+    """
     group = models.AclGroup.add_object(name=name, description=description)
     group.users.add(models.User.current_user())
     return group.id
 
 
 def modify_acl_group(id, **data):
+    """
+    Modify (update) ACL group.
+
+    :param id: ACL group identification.
+    :param data: ACL group data to modify.
+    :return: None.
+    """
     group = models.AclGroup.smart_get(id)
     group.check_for_acl_violation_acl_group()
     group.update_object(data)
@@ -448,6 +692,13 @@ def modify_acl_group(id, **data):
 
 
 def acl_group_add_users(id, users):
+    """
+    Add users to an ACL group.
+
+    :param id: ACL group identification.
+    :param users: Sequence of users.
+    :return: None.
+    """
     group = models.AclGroup.smart_get(id)
     group.check_for_acl_violation_acl_group()
     users = models.User.smart_get_bulk(users)
@@ -455,6 +706,13 @@ def acl_group_add_users(id, users):
 
 
 def acl_group_remove_users(id, users):
+    """
+    Remove users from an ACL group.
+
+    :param id: ACL group identification.
+    :param users: Sequence of users.
+    :return: None.
+    """
     group = models.AclGroup.smart_get(id)
     group.check_for_acl_violation_acl_group()
     users = models.User.smart_get_bulk(users)
@@ -463,6 +721,13 @@ def acl_group_remove_users(id, users):
 
 
 def acl_group_add_hosts(id, hosts):
+    """
+    Add hosts to an ACL group.
+
+    :param id: ACL group identification.
+    :param hosts: Sequence of hosts to add.
+    :return: None.
+    """
     group = models.AclGroup.smart_get(id)
     group.check_for_acl_violation_acl_group()
     hosts = models.Host.smart_get_bulk(hosts)
@@ -471,6 +736,13 @@ def acl_group_add_hosts(id, hosts):
 
 
 def acl_group_remove_hosts(id, hosts):
+    """
+    Remove hosts from an ACL group.
+
+    :param id: ACL group identification.
+    :param hosts: Sequence of hosts to remove.
+    :return: None.
+    """
     group = models.AclGroup.smart_get(id)
     group.check_for_acl_violation_acl_group()
     hosts = models.Host.smart_get_bulk(hosts)
@@ -479,10 +751,22 @@ def acl_group_remove_hosts(id, hosts):
 
 
 def delete_acl_group(id):
+    """
+    Delete ACL group.
+
+    :param id: ACL group identification.
+    :return: None.
+    """
     models.AclGroup.smart_get(id).delete()
 
 
 def get_acl_groups(**filter_data):
+    """
+    Get ACL groups.
+
+    :param filter_data: Filters out which ACL groups to get.
+    :return: Sequence of ACL groups.
+    """
     acl_groups = models.AclGroup.list_objects(filter_data)
     for acl_group in acl_groups:
         acl_group_obj = models.AclGroup.objects.get(id=acl_group['id'])
@@ -683,6 +967,9 @@ def create_job(name, priority, control_file, control_type,
 def abort_host_queue_entries(**filter_data):
     """
     Abort a set of host queue entries.
+
+    :param filter_data: Filters out which hosts.
+    :return: None.
     """
     query = models.HostQueueEntry.query_objects(filter_data)
     query = query.filter(complete=False)
@@ -698,6 +985,7 @@ def reverify_hosts(**filter_data):
     """
     Schedules a set of hosts for verify.
 
+    :param filter_data: Filters out which hosts.
     :return: A list of hostnames that a verify task was created for.
     """
     hosts = models.Host.query_objects(filter_data)
@@ -874,28 +1162,55 @@ def get_host_queue_entries_and_special_tasks(hostname, query_start=None,
 
 def get_num_host_queue_entries_and_special_tasks(hostname):
     filter_data = {'host__hostname': hostname}
-    return (models.HostQueueEntry.query_count(filter_data)
-            + models.SpecialTask.query_count(filter_data))
+    return (models.HostQueueEntry.query_count(filter_data) +
+            models.SpecialTask.query_count(filter_data))
 
 
 # recurring run
 
 def get_recurring(**filter_data):
+    """
+    Return recurring jobs.
+
+    :param filter_data: Filters out which recurring jobs to get.
+    :return: Sequence of recurring jobs.
+    """
     return rpc_utils.prepare_rows_as_nested_dicts(
         models.RecurringRun.query_objects(filter_data),
         ('job', 'owner'))
 
 
 def get_num_recurring(**filter_data):
+    """
+    Get the number of recurring jobs.
+
+    :param filter_data: Filters out which recurring jobs to get.
+    :return: Number of recurring jobs.
+    """
     return models.RecurringRun.query_count(filter_data)
 
 
 def delete_recurring_runs(**filter_data):
+    """
+    Delete recurring jobs.
+
+    :param filter_data: Filters out which recurring jobs to delete.
+    :return: None.
+    """
     to_delete = models.RecurringRun.query_objects(filter_data)
     to_delete.delete()
 
 
 def create_recurring_run(job_id, start_date, loop_period, loop_count):
+    """
+    Create (add) a recurring job.
+
+    :param job_id: Job identification.
+    :param start_date: Start date.
+    :param loop_period: Loop period.
+    :param loop_count: Loo counter.
+    :return: None.
+    """
     owner = models.User.current_user().login
     job = models.Job.objects.get(id=job_id)
     return job.create_recurring_job(start_date=start_date,
@@ -908,15 +1223,20 @@ def create_recurring_run(job_id, start_date, loop_period, loop_count):
 
 def echo(data=""):
     """
-    Returns a passed in string. For doing a basic test to see if RPC calls
+    Echo - for doing a basic test to see if RPC calls
     can successfully be made.
+
+    :param data: Object to echo, it must be serializable.
+    :return: Object echoed back.
     """
     return data
 
 
 def get_motd():
     """
-    Returns the message of the day as a string.
+    Returns the message of the day (MOTD).
+
+    :return: String with MOTD.
     """
     return rpc_utils.get_motd()
 
@@ -996,20 +1316,37 @@ def get_static_data():
 
 
 def get_server_time():
+    """
+    Return server current time.
+
+    :return: Date string in format YYYY-MM-DD HH:MM
+    """
     return datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
 
 def get_version():
+    """
+    Return autotest version.
+
+    :return: String with version.
+    """
     return version.get_version()
 
 
 def get_interface_version():
+    """
+    Return interface version.
+
+    :return: Sequence with year, month number, day.
+    """
     return INTERFACE_VERSION
 
 
 def _get_logs_used_space():
     """
-    Return disk usage (percentage) for the results directory.
+    (Internal) Return disk usage (percentage) for the results directory.
+
+    :return: Usage in percents (integer value).
     """
     logs_dir = settings.get_value('COMMON', 'test_output_dir', default=None)
     autodir = os.path.abspath(os.path.join(os.path.dirname(__file__),
@@ -1022,7 +1359,10 @@ def _get_logs_used_space():
 
 def _process_running(process_name):
     """
-    Return whether a given process name is running.
+    (Internal) Return whether a given process name is running.
+
+    :param process_name: The name of the process.
+    :return: True (running) or False (no).
     """
     process_running = False
     for p in psutil.process_iter():

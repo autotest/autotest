@@ -537,6 +537,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
             self.save()
         queue_entry.save()
 
+        # pylint: disable=E1123
         block = IneligibleHostQueue(job=job, host=self)
         block.save()
 
@@ -771,9 +772,9 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
         for host in hosts:
             # Check if the user has access to this host,
             # but only if it is not a metahost or a one-time-host
-            no_access = (isinstance(host, Host)
-                         and not host.invalid
-                         and int(host.id) not in accessible_host_ids)
+            no_access = (isinstance(host, Host) and
+                         not host.invalid and
+                         int(host.id) not in accessible_host_ids)
             if no_access:
                 unaccessible.append(str(host))
         if unaccessible:
@@ -801,16 +802,16 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
             in not_owned.filter(host__aclgroup__users__login=user.login))
         public_ids = set(entry.id for entry
                          in not_owned.filter(host__aclgroup__name='Everyone'))
-        cannot_abort = [entry for entry in not_owned.select_related()
-                        if entry.id not in accessible_ids
-                        or entry.id in public_ids]
+        cannot_abort = [entry for entry in not_owned.select_related() if
+                        entry.id not in accessible_ids or
+                        entry.id in public_ids]
         if len(cannot_abort) == 0:
             return
         entry_names = ', '.join('%s-%s/%s' % (entry.job.id, entry.job.owner,
                                               entry.host_or_metahost_name())
                                 for entry in cannot_abort)
-        raise AclAccessViolation('You cannot abort the following job entries: '
-                                 + entry_names)
+        raise AclAccessViolation('You cannot abort job entries: %s' %
+                                 entry_names)
 
     def check_for_acl_violation_acl_group(self):
         user = User.current_user()
@@ -818,7 +819,7 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
             return
         if self.name == 'Everyone':
             raise AclAccessViolation("You cannot modify 'Everyone'!")
-        if not user in self.users.all():
+        if user not in self.users.all():
             raise AclAccessViolation("You do not have access to %s"
                                      % self.name)
 
@@ -1244,6 +1245,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
                              is_template=is_template)
 
     def create_recurring_job(self, start_date, loop_period, loop_count, owner):
+        # pylint: disable=E1123
         rec = RecurringRun(job=self, start_date=start_date,
                            loop_period=loop_period,
                            loop_count=loop_count,
@@ -1326,6 +1328,7 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
         super(HostQueueEntry, self).__init__(*args, **kwargs)
         self._record_attributes(['status'])
 
+    # pylint: disable=E1123
     @classmethod
     def create(cls, job, host=None, profile='', meta_host=None, atomic_group=None,
                is_template=False):
@@ -1375,6 +1378,7 @@ class HostQueueEntry(dbmodels.Model, model_logic.ModelExtensions):
         return self.host is None and self.meta_host is not None
 
     def log_abort(self, user):
+        # pylint: disable=E1123
         abort_log = AbortedHostQueueEntry(queue_entry=self, aborted_by=user)
         abort_log.save()
 
@@ -1525,6 +1529,7 @@ class SpecialTask(dbmodels.Model, model_logic.ModelExtensions):
         if existing_tasks:
             return existing_tasks[0]
 
+        # pylint: disable=E1123
         special_task = SpecialTask(host=host, task=task,
                                    requested_by=User.current_user())
         special_task.save()

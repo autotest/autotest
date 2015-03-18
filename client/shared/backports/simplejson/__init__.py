@@ -124,6 +124,7 @@ OrderedDict = _import_OrderedDict()
 
 def _import_c_make_encoder():
     try:
+        # pylint: disable=E0611
         from simplejson._speedups import make_encoder
         return make_encoder
     except ImportError:
@@ -258,10 +259,10 @@ def dumps(obj, skipkeys=False, ensure_ascii=True, check_circular=True,
     """
     # cached encoder
     if (not skipkeys and ensure_ascii and
-        check_circular and allow_nan and
-        cls is None and indent is None and separators is None and
-        encoding == 'utf-8' and default is None and not use_decimal
-            and not kw):
+            check_circular and allow_nan and
+            cls is None and indent is None and separators is None and
+            encoding == 'utf-8' and default is None and not use_decimal and
+            not kw):
         return _default_encoder.encode(obj)
     if cls is None:
         cls = JSONEncoder
@@ -383,8 +384,8 @@ def loads(s, encoding=None, cls=None, object_hook=None, parse_float=None,
     """
     if (cls is None and encoding is None and object_hook is None and
             parse_int is None and parse_float is None and
-            parse_constant is None and object_pairs_hook is None
-            and not use_decimal and not kw):
+            parse_constant is None and object_pairs_hook is None and
+            not use_decimal and not kw):
         return _default_decoder.decode(s)
     if cls is None:
         cls = JSONDecoder

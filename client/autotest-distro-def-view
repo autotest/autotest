@@ -3,10 +3,16 @@
 import sys
 import optparse
 
+try:
+    import autotest.common as common
+except ImportError:
+    import common
+
 from autotest.client.shared import distro_def
 
 
 class OptionParser(optparse.OptionParser):
+
     def __init__(self):
         optparse.OptionParser.__init__(self)
 
@@ -32,13 +38,11 @@ class App(object):
     def __init__(self):
         self.option_parser = OptionParser()
 
-
     def print_basic(self):
         print "Distro: %s" % self.distro.name
         print self.VERSION_LINE % (self.distro.version,
                                    self.distro.release,
                                    self.distro.arch)
-
 
     def print_packages(self):
         for package in self.distro.software_packages:
@@ -47,7 +51,6 @@ class App(object):
                                        package.release,
                                        package.arch)
             print "Hash/Checksum: %s\n" % package.checksum
-
 
     def run(self):
         (self.command_line_opts,

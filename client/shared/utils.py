@@ -30,7 +30,6 @@ import textwrap
 import traceback
 import urlparse
 import warnings
-import smtplib
 import logging
 import urllib2
 import string
@@ -44,6 +43,10 @@ except ImportError:
 from autotest.client.shared import error, logging_manager
 from autotest.client.shared import progressbar
 from autotest.client.shared.settings import settings
+from autotest.client import os_dep
+import commands
+import fcntl
+import getpass
 
 
 def deprecated(func):
@@ -90,7 +93,8 @@ def get_stream_tee_file(stream, level, prefix=''):
 class BgJob(object):
 
     def __init__(self, command, stdout_tee=None, stderr_tee=None, verbose=True,
-                 stdin=None, stderr_level=DEFAULT_STDERR_LEVEL):
+                 stdin=None, stderr_level=DEFAULT_STDERR_LEVEL,
+                 close_fds=False):
         self.command = command
         self.stdout_tee = get_stream_tee_file(stdout_tee, DEFAULT_STDOUT_LEVEL,
                                               prefix=STDOUT_PREFIX)
@@ -115,7 +119,9 @@ class BgJob(object):
             shell = '/bin/sh'
         self.sp = subprocess.Popen(command, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE,
-                                   preexec_fn=self._reset_sigpipe, shell=True,
+                                   preexec_fn=self._reset_sigpipe,
+                                   close_fds=close_fds,
+                                   shell=True,
                                    executable=shell,
                                    stdin=stdin)
 
@@ -159,10 +165,11 @@ class BgJob(object):
 class AsyncJob(BgJob):
 
     def __init__(self, command, stdout_tee=None, stderr_tee=None, verbose=True,
-                 stdin=None, stderr_level=DEFAULT_STDERR_LEVEL, kill_func=None):
+                 stdin=None, stderr_level=DEFAULT_STDERR_LEVEL, kill_func=None,
+                 close_fds=False):
         super(AsyncJob, self).__init__(command, stdout_tee=stdout_tee,
                                        stderr_tee=stderr_tee, verbose=verbose, stdin=stdin,
-                                       stderr_level=stderr_level)
+                                       stderr_level=stderr_level, close_fds=close_fds)
 
         # start time for CmdResult
         self.start_time = time.time()
@@ -206,9 +213,9 @@ class AsyncJob(BgJob):
         """
         try:
             while True:
-                # we can write PIPE_BUF bytes without blocking after a poll or select
-                # we aren't doing either but let's write small chunks anyway.
-                # POSIX requires PIPE_BUF is >= 512
+                # we can write PIPE_BUF bytes without blocking after a poll or
+                # select we aren't doing either but let's write small chunks
+                # anyway. POSIX requires PIPE_BUF is >= 512
                 # 512 should be replaced with select.PIPE_BUF in Python 2.7+
                 tmp = input_string[:512]
                 if tmp == '':
@@ -249,7 +256,8 @@ class AsyncJob(BgJob):
 
     def process_output(self, stdout=True, final_read=False):
         raise NotImplementedError("This object has background threads "
-                                  "automatically polling the process. Use the locked accessors")
+                                  "automatically polling the process. Use the "
+                                  "locked accessors")
 
     def get_stdout(self):
         self.stdout_lock.acquire()
@@ -270,9 +278,15 @@ class AsyncJob(BgJob):
         try:
             os.kill(self.sp.pid, signal.SIGTERM)
         except OSError:
-            pass  # don't care if the process is already gone, since that was the goal
+            pass  # don't care if the process is already gone
 
     def wait_for(self, timeout=None):
+        """
+        Wait for the process to finish. When timeout is provided, process is
+        safely destroyed after timeout.
+        :param timeout: Acceptable timeout
+        :return: results of this command
+        """
         if timeout is None:
             self.sp.wait()
 
@@ -282,13 +296,25 @@ class AsyncJob(BgJob):
                 self.result.exit_status = self.sp.poll()
                 if self.result.exit_status is not None:
                     break
+        else:
+            timeout = 1     # Increase the timeout to check if it really died
         # first need to kill the threads and process, then no more locking
         # issues for superclass's cleanup function
         self.kill_func()
-
+        # Verify it was really killed with provided kill function
+        stop_time = time.time() + timeout
+        while time.time() < stop_time:
+            self.result.exit_status = self.sp.poll()
+            if self.result.exit_status is not None:
+                break
+        else:   # Process is immune against self.kill_func() use -9
+            try:
+                os.kill(self.sp.pid, signal.SIGKILL)
+            except OSError:
+                pass  # don't care if the process is already gone
         # we need to fill in parts of the result that aren't done automatically
         try:
-            pid, self.result.exit_status = os.waitpid(self.sp.pid, 0)
+            _, self.result.exit_status = os.waitpid(self.sp.pid, 0)
         except OSError:
             self.result.exit_status = self.sp.poll()
         self.result.duration = time.time() - self.start_time
@@ -614,9 +640,9 @@ class FileFieldMonitor(object):
         value = []
         for i in range(self.num_of_params):
             value.append(int(get_field(data,
-                             self.data_to_read[i][1],
-                             self.data_to_read[i][0],
-                             self.separator)))
+                                       self.data_to_read[i][1],
+                                       self.data_to_read[i][0],
+                                       self.separator)))
 
         if logging:
             self.log.append(value)
@@ -2331,19 +2357,19 @@ def archive_as_tarball(source_dir, dest_dir, tarball_name=None,
     For archiving directory '/tmp' in '/net/server/backup' as file
     'tmp.tar.bz2', simply use:
 
-    >>> utils_misc.archive_as_tarball('/tmp', '/net/server/backup')
+    >>> utils.archive_as_tarball('/tmp', '/net/server/backup')
 
     To save the file it with a different name, say 'host1-tmp.tar.bz2'
     and save it under '/net/server/backup', use:
 
-    >>> utils_misc.archive_as_tarball('/tmp', '/net/server/backup',
-                                      'host1-tmp')
+    >>> utils.archive_as_tarball('/tmp', '/net/server/backup',
+                                 'host1-tmp')
 
     To save with gzip compression instead (resulting in the file
     '/net/server/backup/host1-tmp.tar.gz'), use:
 
-    >>> utils_misc.archive_as_tarball('/tmp', '/net/server/backup',
-                                      'host1-tmp', 'gz')
+    >>> utils.archive_as_tarball('/tmp', '/net/server/backup',
+                                 'host1-tmp', 'gz')
     '''
     tarball_name = get_archive_tarball_name(source_dir,
                                             tarball_name,
@@ -2371,113 +2397,115 @@ class VersionableClass(object):
     version of class. Class manipulation is used for this reason.
     By this reason is:
     Advantage) Only one version is working in one process. Class is changed in
-               whole process.
+    whole process.
     Disadvantage) Only one version is working in one process.
 
     Example of usage (in utils_unittest):
 
-    class FooC(object):
-        pass
+    ::
 
-    #Not implemented get_version -> not used for versioning.
-    class VCP(FooC, VersionableClass):
-        def __new__(cls, *args, **kargs):
-            VCP.master_class = VCP
-            return super(VCP, cls).__new__(cls, *args, **kargs)
-
-        def foo(self):
+        class FooC(object):
             pass
 
-    class VC2(VCP, VersionableClass):
-        @staticmethod
-        def get_version():
-            return "get_version_from_system"
+        #Not implemented get_version -> not used for versioning.
+        class VCP(FooC, VersionableClass):
+            def __new__(cls, *args, **kargs):
+                VCP.master_class = VCP
+                return super(VCP, cls).__new__(cls, *args, **kargs)
 
-        @classmethod
-        def is_right_version(cls, version):
-            if version is not None:
-                if "version is satisfied":
-                    return True
-            return False
+            def foo(self):
+                pass
 
-        def func1(self):
-            print "func1"
+        class VC2(VCP, VersionableClass):
+            @staticmethod
+            def get_version():
+                return "get_version_from_system"
 
-        def func2(self):
-            print "func2"
+            @classmethod
+            def is_right_version(cls, version):
+                if version is not None:
+                    if "version is satisfied":
+                        return True
+                return False
 
-    # get_version could be inherited.
-    class VC3(VC2, VersionableClass):
-        @classmethod
-        def is_right_version(cls, version):
-            if version is not None:
-                if "version+1 is satisfied":
-                    return True
-            return False
+            def func1(self):
+                print "func1"
 
-        def func2(self):
-            print "func2_2"
+            def func2(self):
+                print "func2"
 
-    class M(VCP):
-        pass
+        # get_version could be inherited.
+        class VC3(VC2, VersionableClass):
+            @classmethod
+            def is_right_version(cls, version):
+                if version is not None:
+                    if "version+1 is satisfied":
+                        return True
+                return False
 
-    m = M()   # <- When class is constructed the right version is
-              #    automatically selected. In this case VC3 is selected.
-    m.func2() # call VC3.func2(m)
-    m.func1() # call VC2.func1(m)
-    m.foo()   # call VC1.foo(m)
+            def func2(self):
+                print "func2_2"
 
-    # When controlled "program" version is changed then is necessary call
-     check_repair_versions or recreate object.
+        class M(VCP):
+            pass
 
-    m.check_repair_versions()
+        m = M()   # <- When class is constructed the right version is
+                  #    automatically selected. In this case VC3 is selected.
+        m.func2() # call VC3.func2(m)
+        m.func1() # call VC2.func1(m)
+        m.foo()   # call VC1.foo(m)
 
-    # priority of class. (change place where is method searched first in group
-    # of verisonable class.)
+        # When controlled "program" version is changed then is necessary call
+         check_repair_versions or recreate object.
 
-    class PP(VersionableClass):
-        def __new__(cls, *args, **kargs):
-            PP.master_class = PP
-            return super(PP, cls).__new__(cls, *args, **kargs)
+        m.check_repair_versions()
 
-    class PP2(PP, VersionableClass):
-        @staticmethod
-        def get_version():
-            return "get_version_from_system"
+        # priority of class. (change place where is method searched first in group
+        # of verisonable class.)
 
-        @classmethod
-        def is_right_version(cls, version):
-            if version is not None:
-                if "version is satisfied":
-                    return True
-            return False
+        class PP(VersionableClass):
+            def __new__(cls, *args, **kargs):
+                PP.master_class = PP
+                return super(PP, cls).__new__(cls, *args, **kargs)
 
-        def func1(self):
-            print "PP func1"
+        class PP2(PP, VersionableClass):
+            @staticmethod
+            def get_version():
+                return "get_version_from_system"
 
-    class N(VCP, PP):
-        pass
+            @classmethod
+            def is_right_version(cls, version):
+                if version is not None:
+                    if "version is satisfied":
+                        return True
+                return False
 
-    n = N()
+            def func1(self):
+                print "PP func1"
 
-    n.func1() # -> "func2"
+        class N(VCP, PP):
+            pass
 
-    n.set_priority_class(PP, [VCP, PP])
+        n = N()
 
-    n.func1() # -> "PP func1"
+        n.func1() # -> "func2"
+
+        n.set_priority_class(PP, [VCP, PP])
+
+        n.func1() # -> "PP func1"
 
     Necessary for using:
     1) Subclass of versionable class must have implemented class methods
-      get_version and is_right_version. These two methods are necessary
-      for correct version section. Class without this method will be never
-      chosen like suitable class.
+    get_version and is_right_version. These two methods are necessary
+    for correct version section. Class without this method will be never
+    chosen like suitable class.
 
     2) Every class derived from master_class have to add to class definition
-      inheritance from VersionableClass. Direct inheritance from Versionable
-      Class is use like a mark for manipulation with VersionableClass.
+    inheritance from VersionableClass. Direct inheritance from Versionable
+    Class is use like a mark for manipulation with VersionableClass.
 
     3) Master of VersionableClass have to defined class variable
-      cls.master_class.
+    cls.master_class.
     """
     def __new__(cls, *args, **kargs):
         cls.check_repair_versions()
@@ -2506,7 +2534,7 @@ class VersionableClass(object):
         one subclass.__bases__ after that continue to another class.
         """
         def change_position(ccls):
-            if not VersionableClass in ccls.__bases__:
+            if VersionableClass not in ccls.__bases__:
                 bases = list(ccls.__bases__)
 
                 index = None
@@ -2623,3 +2651,777 @@ if os.path.exists(os.path.join(os.path.dirname(__file__), 'site_utils.py')):
     # Here we are importing site utils only if it exists
     # pylint: disable=E0611
     from autotest.client.shared.site_utils import *
+
+#
+# Functions above were imported from virttest/utils_misc.py.
+#
+
+
+def aton(sr):
+    """
+    Transform a string to a number(include float and int). If the string is
+    not in the form of number, just return false.
+
+    :param sr: string to transfrom
+    :return: float, int or False for failed transform
+    """
+    try:
+        return int(sr)
+    except ValueError:
+        try:
+            return float(sr)
+        except ValueError:
+            return False
+
+
+def find_substring(string, pattern1, pattern2=None):
+    """
+    Return the match of pattern1 in string. Or return the match of pattern2
+    if pattern is not matched.
+
+    @string: string
+    @pattern1: first pattern want to match in string, must set.
+    @pattern2: second pattern, it will be used if pattern1 not match, optional.
+
+    Return: Match substing or None
+    """
+    if not pattern1:
+        logging.debug("pattern1: get empty string.")
+        return None
+    pattern = pattern1
+    if pattern2:
+        pattern += "|%s" % pattern2
+    ret = re.findall(pattern, string)
+    if not ret:
+        logging.debug("Could not find matched string with pattern: %s",
+                      pattern)
+        return None
+    return ret[0]
+
+
+def lock_file(filename, mode=fcntl.LOCK_EX):
+    lockfile = open(filename, "w")
+    fcntl.lockf(lockfile, mode)
+    return lockfile
+
+
+def unlock_file(lockfile):
+    fcntl.lockf(lockfile, fcntl.LOCK_UN)
+    lockfile.close()
+
+
+# Utility functions for dealing with external processes
+
+
+def unique(llist):
+    """
+    Return a list of the elements in list, but without duplicates.
+
+    :param list: List with values.
+    :return: List with non duplicate elements.
+    """
+    n = len(llist)
+    if n == 0:
+        return []
+    u = {}
+    try:
+        for x in llist:
+            u[x] = 1
+    except TypeError:
+        return None
+    else:
+        return u.keys()
+
+
+def find_command(cmd):
+    """
+    Try to find a command in the PATH, paranoid version.
+
+    :param cmd: Command to be found.
+    :raise: ValueError in case the command was not found.
+    """
+    common_bin_paths = ["/usr/libexec", "/usr/local/sbin", "/usr/local/bin",
+                        "/usr/sbin", "/usr/bin", "/sbin", "/bin"]
+    try:
+        path_paths = os.environ['PATH'].split(":")
+    except IndexError:
+        path_paths = []
+    path_paths = unique(common_bin_paths + path_paths)
+
+    for dir_path in path_paths:
+        cmd_path = os.path.join(dir_path, cmd)
+        if os.path.isfile(cmd_path):
+            return os.path.abspath(cmd_path)
+
+    raise ValueError('Missing command: %s' % cmd)
+
+
+def pid_exists(pid):
+    """
+    Return True if a given PID exists.
+
+    :param pid: Process ID number.
+    """
+    try:
+        os.kill(pid, 0)
+        return True
+    except Exception:
+        return False
+
+
+def safe_kill(pid, signal):
+    """
+    Attempt to send a signal to a given process that may or may not exist.
+
+    :param signal: Signal number.
+    """
+    try:
+        os.kill(pid, signal)
+        return True
+    except Exception:
+        return False
+
+
+def kill_process_tree(pid, sig=signal.SIGKILL):
+    """Signal a process and all of its children.
+
+    If the process does not exist -- return.
+
+    :param pid: The pid of the process to signal.
+    :param sig: The signal to send to the processes.
+    """
+    if not safe_kill(pid, signal.SIGSTOP):
+        return
+    children = commands.getoutput("ps --ppid=%d -o pid=" % pid).split()
+    for child in children:
+        kill_process_tree(int(child), sig)
+    safe_kill(pid, sig)
+    safe_kill(pid, signal.SIGCONT)
+
+
+def process_or_children_is_defunct(ppid):
+    """Verify if any processes from PPID is defunct.
+
+    Attempt to verify if parent process and any children from PPID is defunct
+    (zombie) or not.
+    :param ppid: The parent PID of the process to verify.
+    """
+    defunct = False
+    try:
+        pids = get_children_pids(ppid)
+    except error.CmdError:  # Process doesn't exist
+        return True
+    for pid in pids:
+        cmd = "ps --no-headers -o cmd %d" % int(pid)
+        proc_name = system_output(cmd, ignore_status=True)
+        if '<defunct>' in proc_name:
+            defunct = True
+            break
+    return defunct
+
+
+# The following are utility functions related to ports.
+
+
+def is_port_free(port, address):
+    """
+    Return True if the given port is available for use.
+
+    :param port: Port number
+    """
+    try:
+        s = socket.socket()
+        if address == "localhost":
+            s.bind(("localhost", port))
+            free = True
+        else:
+            s.connect((address, port))
+            free = False
+    except socket.error:
+        if address == "localhost":
+            free = False
+        else:
+            free = True
+    s.close()
+    return free
+
+
+def find_free_port(start_port, end_port, address="localhost"):
+    """
+    Return a host free port in the range [start_port, end_port].
+
+    :param start_port: First port that will be checked.
+    :param end_port: Port immediately after the last one that will be checked.
+    """
+    for i in range(start_port, end_port):
+        if is_port_free(i, address):
+            return i
+    return None
+
+
+def find_free_ports(start_port, end_port, count, address="localhost"):
+    """
+    Return count of host free ports in the range [start_port, end_port].
+
+    @count: Initial number of ports known to be free in the range.
+    :param start_port: First port that will be checked.
+    :param end_port: Port immediately after the last one that will be checked.
+    """
+    ports = []
+    i = start_port
+    while i < end_port and count > 0:
+        if is_port_free(i, address):
+            ports.append(i)
+            count -= 1
+        i += 1
+    return ports
+
+
+# An easy way to log lines to files when the logging system can't be used
+
+_open_log_files = {}
+_log_file_dir = "/tmp"
+
+
+def log_line(filename, line):
+    """
+    Write a line to a file.  '\n' is appended to the line.
+
+    :param filename: Path of file to write to, either absolute or relative to
+            the dir set by set_log_file_dir().
+    :param line: Line to write.
+    """
+    global _open_log_files, _log_file_dir
+
+    path = get_path(_log_file_dir, filename)
+    if path not in _open_log_files:
+        # First, let's close the log files opened in old directories
+        close_log_file(filename)
+        # Then, let's open the new file
+        try:
+            os.makedirs(os.path.dirname(path))
+        except OSError:
+            pass
+        _open_log_files[path] = open(path, "w")
+    timestr = time.strftime("%Y-%m-%d %H:%M:%S")
+    _open_log_files[path].write("%s: %s\n" % (timestr, line))
+    _open_log_files[path].flush()
+
+
+def set_log_file_dir(directory):
+    """
+    Set the base directory for log files created by log_line().
+
+    :param dir: Directory for log files.
+    """
+    global _log_file_dir
+    _log_file_dir = directory
+
+
+def close_log_file(filename):
+    global _open_log_files, _log_file_dir
+    remove = []
+    for k in _open_log_files:
+        if os.path.basename(k) == filename:
+            f = _open_log_files[k]
+            f.close()
+            remove.append(k)
+    if remove:
+        for key_to_remove in remove:
+            _open_log_files.pop(key_to_remove)
+
+
+# The following are miscellaneous utility functions.
+
+
+def get_path(base_path, user_path):
+    """
+    Translate a user specified path to a real path.
+    If user_path is relative, append it to base_path.
+    If user_path is absolute, return it as is.
+
+    :param base_path: The base path of relative user specified paths.
+    :param user_path: The user specified path.
+    """
+    if os.path.isabs(user_path):
+        return user_path
+    else:
+        return os.path.join(base_path, user_path)
+
+
+def generate_random_id():
+    """
+    Return a random string suitable for use as a qemu id.
+    """
+    return "id" + generate_random_string(6)
+
+
+def generate_tmp_file_name(file_name, ext=None, directory='/tmp/'):
+    """
+    Returns a temporary file name. The file is not created.
+    """
+    while True:
+        file_name = (file_name + '-' + time.strftime("%Y%m%d-%H%M%S-") +
+                     generate_random_string(4))
+        if ext:
+            file_name += '.' + ext
+        file_name = os.path.join(directory, file_name)
+        if not os.path.exists(file_name):
+            break
+
+    return file_name
+
+
+def format_str_for_message(msg_str):
+    """
+    Format msg_str so that it can be appended to a message.
+    If msg_str consists of one line, prefix it with a space.
+    If msg_str consists of multiple lines, prefix it with a newline.
+
+    :param msg_str: string that will be formatted.
+    """
+    lines = msg_str.splitlines()
+    num_lines = len(lines)
+    sr = "\n".join(lines)
+    if num_lines == 0:
+        return ""
+    elif num_lines == 1:
+        return " " + sr
+    else:
+        return "\n" + sr
+
+
+def wait_for(func, timeout, first=0.0, step=1.0, text=None):
+    """
+    If func() evaluates to True before timeout expires, return the
+    value of func(). Otherwise return None.
+
+    @brief: Wait until func() evaluates to True.
+
+    :param timeout: Timeout in seconds
+    :param first: Time to sleep before first attempt
+    :param steps: Time to sleep between attempts in seconds
+    :param text: Text to print while waiting, for debug purposes
+    """
+    start_time = time.time()
+    end_time = time.time() + timeout
+
+    time.sleep(first)
+
+    while time.time() < end_time:
+        if text:
+            logging.debug("%s (%f secs)", text, (time.time() - start_time))
+
+        output = func()
+        if output:
+            return output
+
+        time.sleep(step)
+
+    return None
+
+
+def get_hash_from_file(hash_path, dvd_basename):
+    """
+    Get the a hash from a given DVD image from a hash file
+    (Hash files are usually named MD5SUM or SHA1SUM and are located inside the
+    download directories of the DVDs)
+
+    :param hash_path: Local path to a hash file.
+    :param cd_image: Basename of a CD image
+    """
+    hash_file = open(hash_path, 'r')
+    for line in hash_file.readlines():
+        if dvd_basename in line:
+            return line.split()[0]
+
+
+def get_full_pci_id(pci_id):
+    """
+    Get full PCI ID of pci_id.
+
+    :param pci_id: PCI ID of a device.
+    """
+    cmd = "lspci -D | awk '/%s/ {print $1}'" % pci_id
+    status, full_id = commands.getstatusoutput(cmd)
+    if status != 0:
+        return None
+    return full_id
+
+
+def get_vendor_from_pci_id(pci_id):
+    """
+    Check out the device vendor ID according to pci_id.
+
+    :param pci_id: PCI ID of a device.
+    """
+    cmd = "lspci -n | awk '/%s/ {print $3}'" % pci_id
+    return re.sub(":", " ", commands.getoutput(cmd))
+
+
+def parallel(targets):
+    """
+    Run multiple functions in parallel.
+
+    :param targets: A sequence of tuples or functions.  If it's a sequence of
+            tuples, each tuple will be interpreted as (target, args, kwargs) or
+            (target, args) or (target,) depending on its length.  If it's a
+            sequence of functions, the functions will be called without
+            arguments.
+    :return: A list of the values returned by the functions called.
+    """
+    threads = []
+    for target in targets:
+        if isinstance(target, tuple) or isinstance(target, list):
+            t = InterruptedThread(*target)
+        else:
+            t = InterruptedThread(target)
+        threads.append(t)
+        t.start()
+    return [t.join() for t in threads]
+
+
+def umount(src, mount_point, fstype, verbose=True, fstype_mtab=None):
+    """
+    Umount the src mounted in mount_point.
+
+    :src: mount source
+    :mount_point: mount point
+    :type: file system type
+    :param fstype_mtab: file system type in mtab could be different
+    :type fstype_mtab: str
+    """
+    if fstype_mtab is None:
+        fstype_mtab = fstype
+
+    if is_mounted(src, mount_point, fstype, None, verbose, fstype_mtab):
+        umount_cmd = "umount %s" % mount_point
+        try:
+            system(umount_cmd, verbose)
+            return True
+        except error.CmdError:
+            return False
+    else:
+        logging.debug("%s is not mounted under %s", src, mount_point)
+        return True
+
+
+def mount(src, mount_point, fstype, perm=None, verbose=True, fstype_mtab=None):
+    """
+    Mount the src into mount_point of the host.
+
+    :src: mount source
+    :mount_point: mount point
+    :fstype: file system type
+    :perm: mount permission
+    :param fstype_mtab: file system type in mtab could be different
+    :type fstype_mtab: str
+    """
+    if perm is None:
+        perm = "rw"
+    if fstype_mtab is None:
+        fstype_mtab = fstype
+
+    umount(src, mount_point, fstype, verbose, fstype_mtab)
+
+    if is_mounted(src, mount_point, fstype, perm, verbose, fstype_mtab):
+        logging.debug("%s is already mounted in %s with %s",
+                      src, mount_point, perm)
+        return True
+
+    mount_cmd = "mount -t %s %s %s -o %s" % (fstype, src, mount_point, perm)
+    try:
+        system(mount_cmd, verbose=verbose)
+    except error.CmdError:
+        return False
+
+    return is_mounted(src, mount_point, fstype, perm, verbose, fstype_mtab)
+
+
+def is_mounted(src, mount_point, fstype, perm=None, verbose=True,
+               fstype_mtab=None):
+    """
+    Check mount status from /etc/mtab
+
+    :param src: mount source
+    :type src: string
+    :param mount_point: mount point
+    :type mount_point: string
+    :param fstype: file system type
+    :type fstype: string
+    :param perm: mount permission
+    :type perm: string
+    :param fstype_mtab: file system type in mtab could be different
+    :type fstype_mtab: str
+    :return: if the src is mounted as expect
+    :rtype: Boolean
+    """
+    if perm is None:
+        perm = ""
+    if fstype_mtab is None:
+        fstype_mtab = fstype
+
+    mount_point = os.path.realpath(mount_point)
+    if fstype not in ['nfs', 'smbfs', 'glusterfs']:
+        if src:
+            src = os.path.realpath(src)
+        else:
+            # Allow no passed src(None or "")
+            src = ""
+    mount_string = "%s %s %s %s" % (src, mount_point, fstype_mtab, perm)
+    if mount_string.strip() in file("/etc/mtab").read():
+        logging.debug("%s is successfully mounted", src)
+        return True
+    else:
+        if verbose:
+            logging.error("Can't find mounted NFS share - /etc/mtab"
+                          " contents \n%s", file("/etc/mtab").read())
+        return False
+
+
+def bitlist_to_string(data):
+    """
+    Transform from bit list to ASCII string.
+
+    :param data: Bit list to be transformed
+    """
+    result = []
+    pos = 0
+    c = 0
+    while pos < len(data):
+        c += data[pos] << (7 - (pos % 8))
+        if (pos % 8) == 7:
+            result.append(c)
+            c = 0
+        pos += 1
+    return ''.join([chr(c) for c in result])
+
+
+def string_to_bitlist(data):
+    """
+    Transform from ASCII string to bit list.
+
+    :param data: String to be transformed
+    """
+    data = [ord(c) for c in data]
+    result = []
+    for ch in data:
+        i = 7
+        while i >= 0:
+            if ch & (1 << i) != 0:
+                result.append(1)
+            else:
+                result.append(0)
+            i -= 1
+    return result
+
+
+def strip_console_codes(output):
+    """
+    Remove the Linux console escape and control sequences from the console
+    output. Make the output readable and can be used for result check. Now
+    only remove some basic console codes using during boot up.
+
+    :param output: The output from Linux console
+    :type output: string
+    :return: the string wihout any special codes
+    :rtype: string
+    """
+    if "\x1b" not in output:
+        return output
+
+    old_word = ""
+    return_str = ""
+    index = 0
+    output = "\x1b[m%s" % output
+    console_codes = "%G|\[m|\[[\d;]+[HJnrm]"
+    while index < len(output):
+        tmp_index = 0
+        tmp_word = ""
+        while (len(re.findall("\x1b", tmp_word)) < 2 and
+               index + tmp_index < len(output)):
+            tmp_word += output[index + tmp_index]
+            tmp_index += 1
+
+        tmp_word = re.sub("\x1b", "", tmp_word)
+        index += len(tmp_word) + 1
+        if tmp_word == old_word:
+            continue
+        try:
+            special_code = re.findall(console_codes, tmp_word)[0]
+        except IndexError:
+            if index + tmp_index < len(output):
+                raise ValueError("%s is not included in the known console "
+                                 "codes list %s" % (tmp_word, console_codes))
+            continue
+        if special_code == tmp_word:
+            continue
+        old_word = tmp_word
+        return_str += tmp_word[len(special_code):]
+    return return_str
+
+
+def create_x509_dir(path, cacert_subj, server_subj, passphrase,
+                    secure=False, bits=1024, days=1095):
+    """
+    Creates directory with freshly generated:
+    ca-cart.pem, ca-key.pem, server-cert.pem, server-key.pem,
+
+    :param path: defines path to directory which will be created
+    :param cacert_subj: ca-cert.pem subject
+    :param server_key.csr subject
+    :param passphrase - passphrase to ca-key.pem
+    :param secure = False - defines if the server-key.pem will use a passphrase
+    :param bits = 1024: bit length of keys
+    :param days = 1095: cert expiration
+
+    :raise ValueError: openssl not found or rc != 0
+    :raise OSError: if os.makedirs() fails
+    """
+
+    ssl_cmd = os_dep.command("openssl")
+    path = path + os.path.sep  # Add separator to the path
+    shutil.rmtree(path, ignore_errors=True)
+    os.makedirs(path)
+
+    server_key = "server-key.pem.secure"
+    if secure:
+        server_key = "server-key.pem"
+
+    cmd_set = [
+        ('%s genrsa -des3 -passout pass:%s -out %sca-key.pem %d' %
+         (ssl_cmd, passphrase, path, bits)),
+        ('%s req -new -x509 -days %d -key %sca-key.pem -passin pass:%s -out '
+         '%sca-cert.pem -subj "%s"' %
+         (ssl_cmd, days, path, passphrase, path, cacert_subj)),
+        ('%s genrsa -out %s %d' % (ssl_cmd, path + server_key, bits)),
+        ('%s req -new -key %s -out %s/server-key.csr -subj "%s"' %
+         (ssl_cmd, path + server_key, path, server_subj)),
+        ('%s x509 -req -passin pass:%s -days %d -in %sserver-key.csr -CA '
+         '%sca-cert.pem -CAkey %sca-key.pem -set_serial 01 -out %sserver-cert.pem' %
+         (ssl_cmd, passphrase, days, path, path, path, path))
+    ]
+
+    if not secure:
+        cmd_set.append('%s rsa -in %s -out %sserver-key.pem' %
+                       (ssl_cmd, path + server_key, path))
+
+    for cmd in cmd_set:
+        run(cmd)
+        logging.info(cmd)
+
+
+def convert_ipv4_to_ipv6(ipv4):
+    """
+    Translates a passed in string of an ipv4 address to an ipv6 address.
+
+    :param ipv4: a string of an ipv4 address
+    """
+
+    converted_ip = "::ffff:"
+    split_ipaddress = ipv4.split('.')
+    try:
+        socket.inet_aton(ipv4)
+    except socket.error:
+        raise ValueError("ipv4 to be converted is invalid")
+    if (len(split_ipaddress) != 4):
+        raise ValueError("ipv4 address is not in dotted quad format")
+
+    for index, string in enumerate(split_ipaddress):
+        if index != 1:
+            test = str(hex(int(string)).split('x')[1])
+            if len(test) == 1:
+                final = "0"
+                final += test
+                test = final
+        else:
+            test = str(hex(int(string)).split('x')[1])
+            if len(test) == 1:
+                final = "0"
+                final += test + ":"
+                test = final
+            else:
+                test += ":"
+        converted_ip += test
+    return converted_ip
+
+
+def get_thread_cpu(thread):
+    """
+    Get the light weight process(thread) used cpus.
+
+    :param thread: thread checked
+    :type thread: string
+    :return: A list include all cpus the thread used
+    :rtype: list
+    """
+    cmd = "ps -o cpuid,lwp -eL | grep -w %s$" % thread
+    cpu_thread = system_output(cmd)
+    if not cpu_thread:
+        return []
+    return list(set([_.strip().split()[0] for _ in cpu_thread.splitlines()]))
+
+
+def get_pid_cpu(pid):
+    """
+    Get the process used cpus.
+
+    :param pid: process id
+    :type thread: string
+    :return: A list include all cpus the process used
+    :rtype: list
+    """
+    cmd = "ps -o cpuid -L -p %s" % pid
+    cpu_pid = system_output(cmd)
+    if not cpu_pid:
+        return []
+    return list(set([_.strip() for _ in cpu_pid.splitlines()]))
+
+
+def verify_running_as_root():
+    """
+    Verifies whether we're running under UID 0 (root).
+
+    :raise: error.TestNAError
+    """
+    if os.getuid() != 0:
+        raise error.TestNAError("This test requires root privileges "
+                                "(currently running with user %s)" %
+                                getpass.getuser())
+
+
+def selinux_enforcing():
+    """
+    Returns True if SELinux is in enforcing mode, False if permissive/disabled
+    """
+    cmdresult = run('getenforce', ignore_status=True, verbose=False)
+    mobj = re.search('Enforcing', cmdresult.stdout)
+    return mobj is not None
+
+
+def get_unique_name(check, prefix="", suffix="", length=None, skip=None):
+    """
+    Get unique name according to check function, use only 1000 iterations.
+    :param cmp: Function called to discover name uniqueness
+    :param prefix: Name prefix
+    :param suffix: Name suffix
+    :param length: Length of random string, when None use numbers (0,1,2)
+    :param skip: skip n numbers (only when length=None
+
+    :raise StopIteration: In case no unique name obtained in 1000 iterations
+    :return: Unique name according to check function
+    """
+    if length:
+        _name = "_".join([_ for _ in (prefix, '%s', suffix) if _])
+        for _ in xrange(1000):
+            name = _name % generate_random_string(length)
+            if check(name):
+                return name
+    else:
+        _name = "_".join([_ for _ in (prefix, '%s', suffix) if _])
+        for i in xrange(skip, skip + 1000):
+            name = _name % i
+            if check(name):
+                return name
+    raise StopIteration("Fail to get unique name in 1000 iterations. (%s)"
+                        % _name)

@@ -1,5 +1,6 @@
 # Please keep this code python 2.4 compatible and stand alone.
 
+# pylint: disable=E0611
 import distutils.version
 import logging
 import os
@@ -575,7 +576,7 @@ class NumpyPackage(ExternalPackage):
 
 
 class PsUtilPackage(ExternalPackage):
-    minimum_version = '0.6.0'
+    minimum_version = '0.4.0'
     version = '1.0.1'
     local_filename = 'psutil-%s.tar.gz' % version
     urls = ("https://psutil.googlecode.com/files/%s" % local_filename,)

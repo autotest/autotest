@@ -67,9 +67,9 @@ class OptionParser(optparse.OptionParser):
 
         self.add_option('--from-config', action='store_true', default=False,
                         help=('Use the configuration as it is in the '
-                             'configuration file. When this option is used '
-                             'it disregards options such as --host, --username'
-                             ', etc. Also it won\'t modify the configuration '
+                              'configuration file. When this option is used '
+                              'it disregards options such as --host, --username'
+                              ', etc. Also it won\'t modify the configuration '
                               'file.'))
 
         self.add_option('--root-username', default='root',
@@ -92,9 +92,9 @@ class OptionParser(optparse.OptionParser):
 
 
 class App(object):
+
     def __init__(self):
         self.option_parser = OptionParser()
-
 
     def update_config_file(self, opts):
         '''
@@ -111,7 +111,6 @@ class App(object):
 
         return True
 
-
     def run(self):
         result = False
         opts, args = self.option_parser.parse_args()
@@ -120,21 +119,21 @@ class App(object):
             return settings.settings.get_value('AUTOTEST_WEB', key)
 
         if opts.from_config:
-            conn_options = {'database' : get_config_db_value('database'),
-                            'host' : get_config_db_value('host'),
-                            'db_type' : get_config_db_value('db_type'),
-                            'user' : get_config_db_value('user'),
-                            'password' : get_config_db_value('password'),
-                            'root_user' : opts.root_username,
-                            'root_password' : opts.root_password}
+            conn_options = {'database': get_config_db_value('database'),
+                            'host': get_config_db_value('host'),
+                            'db_type': get_config_db_value('db_type'),
+                            'user': get_config_db_value('user'),
+                            'password': get_config_db_value('password'),
+                            'root_user': opts.root_username,
+                            'root_password': opts.root_password}
         else:
-            conn_options = {'database' : opts.database,
-                            'host' : opts.host,
-                            'db_type' : get_config_db_value('db_type'),
-                            'user' : opts.username,
-                            'password' : opts.password,
-                            'root_user' : opts.root_username,
-                            'root_password' : opts.root_password}
+            conn_options = {'database': opts.database,
+                            'host': opts.host,
+                            'db_type': get_config_db_value('db_type'),
+                            'user': opts.username,
+                            'password': opts.password,
+                            'root_user': opts.root_username,
+                            'root_password': opts.root_password}
 
         klass = database_manager.get_manager_class(conn_options['db_type'])
         mngr = klass(conn_options['database'],

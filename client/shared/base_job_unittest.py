@@ -13,6 +13,8 @@ try:
 except ImportError:
     import common
 from autotest.client.shared import base_job, error
+from autotest.client import job, utils
+
 
 os.environ['AUTODIR'] = '/tmp/autotest'
 
@@ -109,12 +111,66 @@ class test_init(unittest.TestCase):
             'warning_manager', 'warning_loggers',
         ])
 
+    def call_init(self):
+        # TODO(jadmanski): refactor more of the __init__ code to not need to
+        # stub out countless random APIs
+        self.god.stub_function_to_return(job.os, 'mkdir', None)
+        self.god.stub_function_to_return(job.os.path, 'exists', True)
+        self.god.stub_function_to_return(self.job, '_load_state', None)
+        self.god.stub_function_to_return(self.job, 'record', None)
+        self.god.stub_function_to_return(job.shutil, 'copyfile', None)
+        self.god.stub_function_to_return(job.logging_manager,
+                                         'configure_logging', None)
+        self.god.stub_function_to_return(utils, 'safe_rmdir', None)
+
+        class manager:
+
+            def start_logging(self):
+                return None
+        self.god.stub_function_to_return(job.logging_manager,
+                                         'get_logging_manager', manager())
+
+        class stub_sysinfo:
+
+            @staticmethod
+            def log_per_reboot_data():
+                return None
+
+        self.god.stub_function_to_return(job.sysinfo, 'sysinfo',
+                                         stub_sysinfo())
+
+        class stub_harness:
+
+            @staticmethod
+            def run_start():
+                return None
+
+        self.god.stub_function_to_return(job.harness, 'select', stub_harness())
+        self.god.stub_function_to_return(job.boottool, 'boottool', object())
+
+        class options:
+            tag = ''
+            verbose = False
+            cont = False
+            harness = 'stub'
+            harness_args = None
+            hostname = None
+            user = None
+            log = False
+            args = ''
+            output_dir = ''
+            tap_report = None
+        self.god.stub_function_to_return(job.utils, 'drop_caches', None)
+
+        self.job._job_state = stub_job_state
+        self.job.__init__('/control', options)
+
         def test_public_attributes_initialized(self):
             # only the known public attributes should be there after __init__
             self.call_init()
-            public_attributes = set(attr for attr in dir(self.job)
-                                    if not attr.startswith('_')
-                                    and not callable(getattr(self.job, attr)))
+            public_attributes = set(attr for attr in dir(self.job) if
+                                    not attr.startswith('_') and
+                                    not callable(getattr(self.job, attr)))
             expected_attributes = self.PUBLIC_ATTRIBUTES
             missing_attributes = expected_attributes - public_attributes
             self.assertEqual(missing_attributes, set([]),
@@ -191,12 +247,8 @@ class test_initialize_dir_properties(unittest.TestCase):
         self.sjob._initialize_dir_properties()
 
         # check all the context-specifc dir properties
-        self.assert_(self.cjob.tmpdir.startswith(os.environ['AUTODIR']))
-        self.assert_(self.cjob.testdir.startswith('/atest/client'))
-        self.assert_(self.cjob.site_testdir.startswith(os.environ['AUTODIR']))
-        self.assert_(self.sjob.tmpdir.startswith(os.environ['AUTODIR']))
-        self.assert_(self.sjob.testdir.startswith('/atest/server'))
-        self.assert_(self.sjob.site_testdir.startswith(os.environ['AUTODIR']))
+        self.assertTrue(self.cjob.testdir.startswith('/atest/client'))
+        self.assertTrue(self.sjob.testdir.startswith('/atest/server'))
 
 
 class test_execution_context(unittest.TestCase):
@@ -701,12 +753,14 @@ class test_job_state_backing_file_locking(unittest.TestCase):
             def read_from_file(self, file_path, merge=True):
                 if self._backing_file and file_path == self._backing_file:
                     ut_self.assertNotEqual(None, self._backing_file_lock)
+                # pylint: disable=E1003
                 return super(mocked_job_state, self).read_from_file(
                     file_path, merge=True)
 
             def write_to_file(self, file_path):
                 if self._backing_file and file_path == self._backing_file:
                     ut_self.assertNotEqual(None, self._backing_file_lock)
+                # pylint: disable=E1003
                 return super(mocked_job_state, self).write_to_file(file_path)
         self.state = mocked_job_state()
         self.state.set_backing_file('backing_file')

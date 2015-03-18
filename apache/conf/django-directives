@@ -27,21 +27,21 @@ RewriteEngine On
 <IfModule mod_wsgi.c>
 
     RewriteCond /usr/local/autotest/frontend/frontend.wsgi -f
-    RewriteRule /(retrieve_logs|media|(afe|new_tko)/server)(.*) /usr/local/autotest/frontend/frontend.wsgi [H=wsgi-script]
+    RewriteRule /(retrieve_logs|media/|(afe|new_tko)/server)(.*) /usr/local/autotest/frontend/frontend.wsgi [H=wsgi-script]
 
     RewriteCond /usr/lib/python2.7/site-packages/autotest/frontend/frontend.wsgi -f
-    RewriteRule /(retrieve_logs|media|(afe|new_tko)/server)(.*) /usr/lib/python2.7/site-packages/autotest/frontend/frontend.wsgi [H=wsgi-script]
+    RewriteRule /(retrieve_logs|media/|(afe|new_tko)/server)(.*) /usr/lib/python2.7/site-packages/autotest/frontend/frontend.wsgi [H=wsgi-script]
 
     RewriteCond /usr/lib/python2.6/site-packages/autotest/frontend/frontend.wsgi -f
-    RewriteRule /(retrieve_logs|media|(afe|new_tko)/server)(.*) /usr/lib/python2.6/site-packages/autotest/frontend/frontend.wsgi [H=wsgi-script]
+    RewriteRule /(retrieve_logs|media/|(afe|new_tko)/server)(.*) /usr/lib/python2.6/site-packages/autotest/frontend/frontend.wsgi [H=wsgi-script]
 
     RewriteCond /usr/lib/python2.5/site-packages/autotest/frontend/frontend.wsgi -f
-    RewriteRule /(retrieve_logs|media|(afe|new_tko)/server)(.*) /usr/lib/python2.5/site-packages/autotest/frontend/frontend.wsgi [H=wsgi-script]
+    RewriteRule /(retrieve_logs|media/|(afe|new_tko)/server)(.*) /usr/lib/python2.5/site-packages/autotest/frontend/frontend.wsgi [H=wsgi-script]
 
     RewriteCond /usr/lib/python2.4/site-packages/autotest/frontend/frontend.wsgi -f
-    RewriteRule /(retrieve_logs|media|(afe|new_tko)/server)(.*) /usr/lib/python2.4/site-packages/autotest/frontend/frontend.wsgi [H=wsgi-script]
+    RewriteRule /(retrieve_logs|media/|(afe|new_tko)/server)(.*) /usr/lib/python2.4/site-packages/autotest/frontend/frontend.wsgi [H=wsgi-script]
 
-    <LocationMatch "/(retrieve_logs|media|(afe|new_tko)/server)(.*)">
+    <LocationMatch "/(retrieve_logs|media/|(afe|new_tko)/server)(.*)">
        Options +ExecCGI
     </LocationMatch>
 

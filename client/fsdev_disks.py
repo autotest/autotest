@@ -1,6 +1,7 @@
 import sys
 import os
 import re
+
 from autotest.client import utils, fsinfo, fsdev_mgr, partition
 from autotest.client.shared import error
 
@@ -20,11 +21,9 @@ def get_disk_list(std_mounts_only=True, get_all_disks=False):
     :param std_mounts_only: Whether the function should return only disks that
             have a mount point defined (True) or even devices that doesn't
             (False).
-
     :param get_all_disks: Whether the function should return only partitioned
             disks (False) or return every disk, regardless of being partitioned
             or not (True).
-
     :return: List of dictionaries with disk information (see more below).
 
     The 'disk_list' array returned by get_disk_list() has an entry for each
@@ -171,7 +170,7 @@ def mkfs_all_disks(job, disk_list, fs_type, fs_makeopt, fs_mnt_opt):
                 fs.unmount(mnt_path)
             except Exception, info:
                 raise Exception("umount failed: exception = %s, args = %s" %
-                               (sys.exc_info()[0], info.args))
+                                (sys.exc_info()[0], info.args))
             except Exception:
                 raise Exception("Could not unmount device ", dev_path)
 
@@ -196,7 +195,7 @@ def mkfs_all_disks(job, disk_list, fs_type, fs_makeopt, fs_mnt_opt):
             raise Exception("mount name error: %s" % info)
         except Exception, info:
             raise Exception("mount failed: exception = %s, args = %s" %
-                           (type(info), info.args))
+                            (type(info), info.args))
 
         # If we skipped mkfs we need to wipe the partition clean
         if skip_mkfs:
@@ -474,16 +473,16 @@ class fsdev_disks:
                 raise Exception("Config entry not recognized: " + cfgline)
             endKV = cfgline.find("]:")
             if endKV < 0:
-                raise Exception("Config entry missing closing bracket: "
-                                + cfgline)
+                raise Exception("Config entry missing closing bracket: " +
+                                cfgline)
             if cfgline[5:endKV] != self.kernel_ver[0:endKV - 5]:
                 continue
 
             tune_parm = cfgline[endKV + 2:].strip()
             equal = tune_parm.find("=")
             if equal < 1 or equal == len(tune_parm) - 1:
-                raise Exception("Config entry doesn't have 'parameter=value' :"
-                                + cfgline)
+                raise Exception("Config entry doesn't have 'parameter=value' "
+                                ":" + cfgline)
 
             tune_name = tune_parm[:equal]
             tune_val = tune_parm[equal + 1:]
@@ -563,7 +562,7 @@ class fsdev_disks:
 
         # Make sure the new value is what we expected
         if nval != val:
-            raise Exception("Unable to correctly set tunable value for "
-                            + name + ": desired " + val + ", but found " + nval)
+            raise Exception("Unable to correctly set tunable value for " +
+                            name + ": desired " + val + ", but found " + nval)
 
         return

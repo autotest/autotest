@@ -323,7 +323,7 @@ class _AssertRaisesContext(object):
             expected_regexp = re.compile(expected_regexp)
         if not expected_regexp.search(str(exc_value)):
             raise self.failureException('"%s" does not match "%s"' %
-                                       (expected_regexp.pattern, str(exc_value)))
+                                        (expected_regexp.pattern, str(exc_value)))
         return True
 
 
@@ -384,7 +384,7 @@ class TestCase(object):
             testMethod = getattr(self, methodName)
         except AttributeError:
             raise ValueError("no such test method in %s: %s" %
-                            (self.__class__, methodName))
+                             (self.__class__, methodName))
         self._testMethodDoc = testMethod.__doc__
 
         # Map types to custom assertEqual functions that will compare
@@ -766,7 +766,7 @@ class TestCase(object):
                         differing += ('Unable to index element %d '
                                       'of second %s\n' % (len1, seq_type_name))
         standardMsg = differing + '\n'.join(difflib.ndiff(pprint.pformat(seq1).splitlines(),
-                                            pprint.pformat(seq2).splitlines()))
+                                                          pprint.pformat(seq2).splitlines()))
         msg = self._formatMessage(msg, standardMsg)
         self.fail(msg)
 

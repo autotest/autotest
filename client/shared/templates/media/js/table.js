@@ -546,7 +546,7 @@ var Table = (function(){
 							if (sortconvert) cellValue = sortconvert(cellValue);
 							rows[cRowIndex] = [cellValue,tbrows[cRowIndex]];
 						}
-					} while (cRow=tbrows[++cRowIndex])
+					} while (cRow=tbrows[++cRowIndex]);
 				}
 
 				// Do the actual sorting
@@ -559,7 +559,7 @@ var Table = (function(){
 				if (cRow=rows[cRowIndex]){
 					do { 
 						tb.appendChild(cRow[1]); 
-					} while (cRow=rows[++cRowIndex])
+					} while (cRow=rows[++cRowIndex]);
 				}
 			}
 		}
@@ -825,14 +825,14 @@ var Table = (function(){
 				if (tdata.ignoreHiddenRows) {
 					do {
 						f[displayedCount++%2](cRow,className);
-					} while (cRow=tbrows[++cRowIndex])
+					} while (cRow=tbrows[++cRowIndex]);
 				}
 				else {
 					do {
 						if (!isHidden(cRow)) {
 							f[displayedCount++%2](cRow,className);
 						}
-					} while (cRow=tbrows[++cRowIndex])
+					} while (cRow=tbrows[++cRowIndex]);
 				}
 			}
 		}

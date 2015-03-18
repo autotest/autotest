@@ -17,7 +17,7 @@ Group: Applications/System
 # Part of frontend/afe/feeds/feed.py is BSD licensed code from Django
 # frontend/afe/json_rpc is a heavily modified fork of the dead
 # http://json-rpc.org/wiki/python-json-rpc which is LGPLv2.1+
-# client/shared/pexpect.py and frontend/shared/json_html_formatter.py are MIT licensed
+# frontend/shared/json_html_formatter.py is MIT licensed
 License: GPLv2 and BSD and LGPLv2+ and MIT
 URL: http://autotest.github.com/
 BuildArch: noarch

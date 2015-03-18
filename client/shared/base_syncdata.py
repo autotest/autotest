@@ -5,11 +5,13 @@ import errno
 import threading
 import logging
 import signal
+
 from autotest.client.shared import error
 from autotest.client.shared import barrier
 from autotest.client.shared import utils
 from autotest.client.shared import autotemp
 from autotest.client import parallel
+
 
 _DEFAULT_PORT = 13234
 _DEFAULT_TIMEOUT = 10
@@ -102,22 +104,23 @@ class SyncListenServer(object):
         :param port: Port of server.
         :param tmpdir: Dir where pid file is saved.
         """
-        l = lambda: self._start_server(address, port)
-
         if tmpdir:
             self.tmpdir = TempDir(tmpdir)
         else:
             self.tmpdir = autotemp.tempdir(unique_id='',
-                                           prefix="SyncListenServer_%d" % (port))
+                                           prefix=("SyncListenServer_%d" %
+                                                   port))
         self.sessions = {}
         self.exit_event = threading.Event()
 
-        self.server_pid = parallel.fork_start(self.tmpdir.name, l)
+        self.server_pid = parallel.fork_start(self.tmpdir.name,
+                                              lambda: self._start_server(
+                                                  address, port))
 
     def __del__(self):
         if self.tmpdir.name:
             logging.error("SyncListenServer on port %d was not closed." %
-                          (self.port))
+                          self.port)
             self.close()
 
     def _clean_sessions(self):
@@ -160,8 +163,11 @@ class SyncListenServer(object):
             if (session.data_recv == len(session.hosts) and
                     session.timeout()):
                 for client, _ in session.connection.values():
-                    net_send_object(client, session.sync_data)
-                    net_recv_object(client, _DEFAULT_TIMEOUT)
+                    try:
+                        net_send_object(client, session.sync_data)
+                        net_recv_object(client, _DEFAULT_TIMEOUT)
+                    except (socket.timeout, error.NetCommunicationError):
+                        self._clean_sessions()
                 session.set_finish()
         session.data_lock.release()
 
@@ -171,10 +177,10 @@ class SyncListenServer(object):
     def _start_server(self, address, port):
         signal.signal(signal.SIGTERM, self)
         self.server_thread = utils.InterruptedThread(self._server,
-                                                    (address, port))
+                                                     (address, port))
         self.server_thread.start()
 
-        while not self.exit_event.is_set():
+        while not self.exit_event.isSet():
             signal.pause()
 
         self.server_thread.join(2 * _DEFAULT_TIMEOUT)
@@ -188,20 +194,20 @@ class SyncListenServer(object):
         self.listen_server = barrier.listen_server(address, port)
         logging.debug("Wait for clients")
         self.listen_server.socket.settimeout(_DEFAULT_TIMEOUT)
-        while not self.exit_event.is_set():
+        while not self.exit_event.isSet():
             try:
                 connection = self.listen_server.socket.accept()
                 logging.debug("Client %s connected.", connection[1][0])
                 session_id, hosts, timeout = net_recv_object(connection[0],
                                                              _DEFAULT_TIMEOUT)
                 self._clean_sessions()
-                if not session_id in self.sessions:
+                if session_id not in self.sessions:
                     logging.debug("Add new session")
                     self.sessions[session_id] = SessionData(hosts, timeout)
 
                 logging.debug("Start recv thread.")
                 utils.InterruptedThread(self._recv_data, (connection,
-                                        self.sessions[session_id])).start()
+                                                          self.sessions[session_id])).start()
 
             except (socket.timeout, error.NetCommunicationError):
                 self._clean_sessions()

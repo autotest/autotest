@@ -387,12 +387,11 @@ class parser(base.parser):
                 line.status != "ABORT" and
                     not line.testname.startswith('reboot.')):
                 if line.subdir:
-                    logging.debug("set group_subdir: "
-                                  + line.subdir)
+                    logging.debug("set group_subdir: %s", line.subdir)
                     group_subdir = line.subdir
                 logging.debug("ignoring incorrect indent "
                               "level %d != %d," %
-                             (line.indent, sought_level))
+                              (line.indent, sought_level))
                 continue
 
             # use the subdir as the testname, except for
@@ -432,8 +431,8 @@ class parser(base.parser):
             final_status = stack.end()
             logging.debug("Adding: "
                           "%s\nSubdir:%s\nTestname:%s\n%s" %
-                         (final_status, line.subdir,
-                          line.testname, line.reason))
+                          (final_status, line.subdir,
+                           line.testname, line.reason))
             new_test = test.parse_test(self.job, line.subdir,
                                        line.testname,
                                        final_status, line.reason,

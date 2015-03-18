@@ -1,7 +1,6 @@
-from django.contrib.auth.models import User, Group, check_password
+from django.contrib.auth.models import User, Group
 from django.contrib.auth import backends
 from django.contrib import auth
-from django import http
 
 from autotest.frontend import thread_local
 from autotest.frontend.afe import models, management
@@ -22,6 +21,7 @@ class SimpleAuthBackend(backends.ModelBackend):
             user = User.objects.get(username=username)
         except User.DoesNotExist:
             # password is meaningless
+            # pylint: disable=E1123
             user = User(username=username,
                         password='apache authentication')
             user.is_staff = True

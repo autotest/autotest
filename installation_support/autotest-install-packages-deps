@@ -21,6 +21,7 @@ from autotest.client.shared import logging_manager, logging_config
 
 
 class AutotestInstallConfig(logging_config.LoggingConfig):
+
     def configure_logging(self, results_dir=None, verbose=False):
         super(AutotestInstallConfig, self).configure_logging(use_console=True,
                                                              verbose=verbose)
@@ -29,8 +30,8 @@ if __name__ == '__main__':
     import optparse
     option_parser = optparse.OptionParser()
     option_parser.add_option("-v", "--verbose",
-                      action="store_true", dest="verbose",
-                      help="Exhibit debug messages")
+                             action="store_true", dest="verbose",
+                             help="Exhibit debug messages")
     options, args = option_parser.parse_args()
     logging_manager.configure_logging(AutotestInstallConfig(),
                                       verbose=options.verbose)

@@ -15,7 +15,7 @@ import re
 import fnmatch
 import logging
 import platform
-from autotest.client.shared import error, utils, magic
+from autotest.client.shared import error, utils, magic, base_packages
 
 
 def grep(pattern, file):
@@ -54,7 +54,10 @@ def cat_file_to_cmd(file, command, ignore_status=0, return_output=False):
         run_cmd = utils.system
 
     if magic.guess_type(file) == 'application/x-bzip2':
-        cat = 'bzcat'
+        if base_packages.has_pbzip2():
+            cat = 'pbzip2 -d -c'
+        else:
+            cat = 'bzcat'
     elif magic.guess_type(file) == 'application/x-gzip':
         cat = 'zcat'
     else:
@@ -319,8 +322,7 @@ def cpu_has_flags(flags):
     """
     Check if a list of flags are available on current CPU info
 
-    :param flags: A `list` of cpu flags that must exists
-    on the current CPU.
+    :param flags: A `list` of cpu flags that must exists on the current CPU.
     :type flags: `list`
     :returns: `bool` True if all the flags were found or False if not
     :rtype: `list`
@@ -340,8 +342,7 @@ def get_cpu_vendor_name():
     """
     Get the current cpu vendor name
 
-    :returns: string 'intel' or 'amd' or 'power7' depending
-    on the current CPU architecture.
+    :returns: string 'intel' or 'amd' or 'power7' depending on the current CPU architecture.
     :rtype: `string`
     """
     vendors_map = {
@@ -468,10 +469,7 @@ def dump_object(object):
 
 def environ(env_key):
     """return the requested environment variable, or '' if unset"""
-    if (os.environ.has_key(env_key)):
-        return os.environ[env_key]
-    else:
-        return ''
+    return os.environ.get(env_key, '')
 
 
 def prepend_path(newpath, oldpath):
@@ -495,7 +493,7 @@ def avgtime_print(dir):
         Input is a directory containing a file called 'time'.
         File contains one-per-line results of /usr/bin/time.
         Output is average Elapsed, User, and System time in seconds,
-          and average CPU percentage.
+        and average CPU percentage.
     """
     f = open(dir + "/time")
     user = system = elapsed = cpu = count = 0
@@ -667,34 +665,117 @@ def load_module(module_name):
     return True
 
 
+def parse_lsmod_for_module(l_raw, module_name, escape=True):
+    """
+    Use a regexp to parse raw lsmod output and get module information
+    :param l_raw: raw output of lsmod
+    :type l_raw:  str
+    :param module_name: Name of module to search for
+    :type module_name: str
+    :param escape: Escape regexp tokens in module_name, default True
+    :type escape: bool
+    :return: Dictionary of module info, name, size, submodules if present
+    :rtype: dict
+    """
+    # re.escape the module name for safety
+    if escape:
+        module_search = re.escape(module_name)
+    else:
+        module_search = module_name
+    # ^module_name spaces size spaces used optional spaces optional submodules
+    # use multiline regex to scan the entire output as one string without having to splitlines
+    # use named matches so we can extract the dictionaty with groupdict
+    lsmod = re.search(r"^(?P<name>%s)\s+(?P<size>\d+)\s+(?P<used>\d+)\s*(?P<submodules>\S+)?$" %
+                      module_search, l_raw, re.M)
+    if lsmod:
+        # default to empty list if no submodules
+        module_info = lsmod.groupdict([])
+        # convert size to integer because it is an integer
+        module_info['size'] = int(module_info['size'])
+        module_info['used'] = int(module_info['used'])
+        if module_info['submodules']:
+            module_info['submodules'] = module_info['submodules'].split(',')
+        return module_info
+    else:
+        # return empty dict to be consistent
+        return {}
+
+
+def loaded_module_info(module_name):
+    """
+    Get loaded module details: Size and Submodules.
+
+    :param module_name: Name of module to search for
+    :type module_name: str
+    :return: Dictionary of module info, name, size, submodules if present
+    :rtype: dict
+    """
+    l_raw = utils.system_output('/sbin/lsmod')
+    return parse_lsmod_for_module(l_raw, module_name)
+
+
+def get_submodules(module_name):
+    """
+    Get all submodules of the module.
+
+    :param module_name: Name of module to search for
+    :type module_name: str
+    :return: List of the submodules
+    :rtype: list
+    """
+    module_info = loaded_module_info(module_name)
+    module_list = []
+    try:
+        submodules = module_info["submodules"]
+    except KeyError:
+        logging.info("Module %s is not loaded" % module_name)
+    else:
+        module_list = submodules
+        for module in submodules:
+            module_list += get_submodules(module)
+    return module_list
+
+
 def unload_module(module_name):
     """
     Removes a module. Handles dependencies. If even then it's not possible
-    to remove one of the modules, it will trhow an error.CmdError exception.
+    to remove one of the modules, it will throw an error.CmdError exception.
 
     :param module_name: Name of the module we want to remove.
+    :type module_name: str
     """
-    l_raw = utils.system_output("/sbin/lsmod").splitlines()
-    lsmod = [x for x in l_raw if x.split()[0] == module_name]
-    if len(lsmod) > 0:
-        line_parts = lsmod[0].split()
-        if len(line_parts) == 4:
-            submodules = line_parts[3].split(",")
-            for submodule in submodules:
-                unload_module(submodule)
+    module_info = loaded_module_info(module_name)
+    try:
+        submodules = module_info['submodules']
+    except KeyError:
+        logging.info("Module %s is already unloaded" % module_name)
+    else:
+        for module in submodules:
+            unload_module(module)
+        module_info = loaded_module_info(module_name)
+        try:
+            module_used = module_info['used']
+        except KeyError:
+            logging.info("Module %s is already unloaded" % module_name)
+            return
+        if module_used != 0:
+            raise error.TestNAError("Module %s is still in use. "
+                                    "Can not unload it." % module_name)
         utils.system("/sbin/modprobe -r %s" % module_name)
         logging.info("Module %s unloaded" % module_name)
-    else:
-        logging.info("Module %s is already unloaded" % module_name)
 
 
 def module_is_loaded(module_name):
+    """
+    Is module loaded
+
+    :param module_name: Name of module to search for
+    :type module_name: str
+    :return: True is module is loaded
+    :rtype: bool
+    """
     module_name = module_name.replace('-', '_')
-    modules = utils.system_output('/sbin/lsmod').splitlines()
-    for module in modules:
-        if module.startswith(module_name) and module[len(module_name)] == ' ':
-            return True
-    return False
+    return bool(loaded_module_info(module_name))
 
 
 def get_loaded_modules():
@@ -811,8 +892,7 @@ def get_cpu_stat(key):
 
 def get_uptime():
     """
-    :return: return the uptime of system in secs in float
-    in error case return 'None'
+    :return: return the uptime of system in secs in float in error case return 'None'
     """
 
     cmd = "/bin/cat /proc/uptime"

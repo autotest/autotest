@@ -25,22 +25,6 @@ test_utils Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`mock_demo` Module
------------------------
-
-.. automodule:: autotest.client.shared.test_utils.mock_demo
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`mock_demo_MUT` Module
----------------------------
-
-.. automodule:: autotest.client.shared.test_utils.mock_demo_MUT
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`unittest` Module
 ----------------------
 

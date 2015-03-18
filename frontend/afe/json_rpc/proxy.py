@@ -44,8 +44,8 @@ class ServiceProxy(object):
         from simplejson import decoder, encoder
 
         postdata = encoder.JSONEncoder().encode({"method": self.__serviceName,
-                                                'params': args + (kwargs,),
-                                                'id': 'jsonrpc'})
+                                                 'params': args + (kwargs,),
+                                                 'id': 'jsonrpc'})
         request = urllib2.Request(self.__serviceURL, data=postdata,
                                   headers=self.__headers)
         respdata = urllib2.urlopen(request).read()

@@ -39,15 +39,15 @@ def get_job_dirs(path):
     regex = re.compile('[1-9][0-9]*-')
     jobdirs = []
 
-    for dir in os.listdir(path):
+    for d in os.listdir(path):
         # skip directories not matching the job result dir pattern
-        if not regex.match(dir):
+        if not regex.match(d):
             continue
 
-        dir = os.path.join(options.resultsdir, dir)
-        if (os.path.isdir(dir)
-                and not os.path.exists(os.path.join(dir, PUBLISH_FLAGFILE))):
-            jobdirs.append(dir)
+        d = os.path.join(options.resultsdir, d)
+        if (os.path.isdir(d) and
+                not os.path.exists(os.path.join(d, PUBLISH_FLAGFILE))):
+            jobdirs.append(d)
 
     return jobdirs
 

@@ -1,5 +1,10 @@
 #!/usr/bin/python
-import os, sys, shutil, glob, optparse, logging
+import os
+import sys
+import shutil
+import glob
+import optparse
+import logging
 try:
     import autotest.common as common
 except ImportError:
@@ -16,11 +21,14 @@ ERROR_NO_RESULTS_AVAILABLE = 1
 ERROR_WRONG_INPUT = 2
 ERROR_USER_ABORT = 3
 
+
 class DeleteJobLoggingConfig(logging_config.LoggingConfig):
+
     """
     Used with the sole purpose of providing convenient logging setup
     for this program.
     """
+
     def configure_logging(self, results_dir=None, verbose=False):
         super(DeleteJobLoggingConfig, self).configure_logging(use_console=True,
                                                               verbose=verbose)
@@ -84,6 +92,7 @@ def get_tags_list(option):
 
 
 class OptionParser(optparser.OptionParser):
+
     def __init__(self):
         optparser.OptionParser.__init__(self, usage="%prog [options]")
         self.add_option("-r", action="store", type="string",
@@ -127,7 +136,7 @@ def delete_job_full(tag):
 
         logging.info("Deleting job tag %s" % tag)
         if afe_job is not None:
-            deleted = afe_models_utils.job_delete_by_id(afe_job)
+            deleted = afe_models_utils.job_delete_by_id(afe_job.id)
             if not deleted:
                 logging.error("Failed while deleting AFE job")
 

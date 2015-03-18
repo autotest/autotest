@@ -257,8 +257,8 @@ class DBObject(object):
         datetime_cmp_fmt = '%Y-%m-%d %H:%M:%S'  # Leave off the microseconds.
         for field, row_value in itertools.izip(self._fields, row):
             current_value = getattr(self, field)
-            if (isinstance(current_value, datetime.datetime)
-                    and isinstance(row_value, datetime.datetime)):
+            if (isinstance(current_value, datetime.datetime) and
+                    isinstance(row_value, datetime.datetime)):
                 current_value = current_value.strftime(datetime_cmp_fmt)
                 row_value = row_value.strftime(datetime_cmp_fmt)
             if current_value != row_value:
@@ -694,8 +694,8 @@ class HostQueueEntry(DBObject):
         hosts_queue = HostQueueEntry.fetch('job_id = %s' % self.job.id)
         for queue_entry in hosts_queue:
             summary.append("Host: %s Status: %s" %
-                          (queue_entry._get_hostname(),
-                           queue_entry.status))
+                           (queue_entry._get_hostname(),
+                            queue_entry.status))
 
         summary = "\n".join(summary)
         status_counts = models.Job.objects.get_status_counts(
@@ -830,9 +830,9 @@ class HostQueueEntry(DBObject):
         self.update_field('started_on', datetime.datetime.now())
 
     def is_hostless(self):
-        return (self.host_id is None
-                and self.meta_host is None
-                and self.atomic_group_id is None)
+        return (self.host_id is None and
+                self.meta_host is None and
+                self.atomic_group_id is None)
 
 
 class Job(DBObject):
@@ -961,7 +961,7 @@ class Job(DBObject):
                 for i in test_indexes:
                     rows = db.execute('SELECT value FROM tko_test_attributes '
                                       'WHERE test_idx=%s AND attribute="%s"' %
-                                     (i[0], keyname))
+                                      (i[0], keyname))
                     if rows:
                         for row in rows:
                             line = []
@@ -1113,8 +1113,8 @@ class Job(DBObject):
         # machines in the atomic group.
         pending_count = self._pending_count()
         atomic_and_has_started = self._atomic_and_has_started()
-        ready = (pending_count >= self.synch_count
-                 and not atomic_and_has_started)
+        ready = (pending_count >= self.synch_count and not
+                 atomic_and_has_started)
 
         if not ready:
             logging.info(

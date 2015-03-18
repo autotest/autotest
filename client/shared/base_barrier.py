@@ -72,7 +72,6 @@ class barrier(object):
     Execution stops until all members arrive at the barrier.
 
     Implementation Details:
-    .......................
 
     When a barrier is forming the master node (first in sort order) in the
     set accepts connections from each member of the set.  As they arrive

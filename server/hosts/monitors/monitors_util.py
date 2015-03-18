@@ -71,8 +71,11 @@ def make_alert(warnfile, msg_type, msg_template, timestamp_format=None):
         The format for a warning used here is:
             %(timestamp)d\t%(msg_type)s\t%(status)s\n
     """
+    def t_format():
+        return int(time.time())
+
     if timestamp_format is None:
-        timestamp_format = lambda: int(time.time())
+        timestamp_format = t_format
 
     def alert(*params):
         formatted_msg = msg_type + "\t" + msg_template % params

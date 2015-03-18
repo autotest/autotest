@@ -55,7 +55,7 @@ class AutotestLocalOptionParser(optparse.OptionParser):
                            help=('a comma separated list of client tests to '
                                  'prebuild on the server. Use all to prebuild '
                                  'all of them.'))
-        general.add_option("-d",'--test_directory', dest='test_directory',
+        general.add_option("-d", '--test_directory', dest='test_directory',
                            type='string', default=None, action='store',
                            help=('Specify a custom test directory '))
         self.add_option_group(general)
@@ -74,7 +74,7 @@ class AutotestLocalOptionParser(optparse.OptionParser):
         self.add_option_group(job_id)
 
         verbosity = optparse.OptionGroup(self, 'VERBOSITY')
-        verbosity.add_option('--verbose', dest='verbose', action='store_true',
+        verbosity.add_option('-v', '--verbose', dest='verbose', action='store_true',
                              default=False,
                              help='Include DEBUG messages in console output. '
                              'If omitted, only informational messages will be '

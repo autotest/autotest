@@ -106,8 +106,8 @@ class FrontendTestMixin(object):
         :return: A Django frontend.afe.models.Job instance.
         """
         if not drone_set:
-            drone_set = (models.DroneSet.default_drone_set_name()
-                         and models.DroneSet.get_default())
+            drone_set = (models.DroneSet.default_drone_set_name() and
+                         models.DroneSet.get_default())
 
         assert not (atomic_group and active)  # TODO(gps): support this
         synch_count = synchronous and 2 or 1

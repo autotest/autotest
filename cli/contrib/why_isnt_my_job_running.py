@@ -2,7 +2,7 @@
 
 import sys
 import optparse
-import pwd
+
 try:
     import autotest.common as common
 except ImportError:
@@ -230,13 +230,14 @@ host = hosts[0]
 job_will_run = True
 
 entries_for_this_host = [entry for entry in queue_entries
-                         if entry['host']
-                         and entry['host']['hostname'] == hostname]
+                         if entry['host'] and
+                         entry['host']['hostname'] == hostname]
 host_label_names = set(host['labels'])
 eligible_metahost_entries = [entry for entry in queue_entries
-                             if entry['meta_host'] and not entry['host']
-                             and entry['meta_host'] in host_label_names
-                             and not entry['complete']]
+                             if entry['meta_host'] and
+                             not entry['host'] and
+                             entry['meta_host'] in host_label_names and
+                             not entry['complete']]
 
 if entries_for_this_host:
     assert len(entries_for_this_host) == 1, (
@@ -316,9 +317,9 @@ if unmet:
 
 # at this point, if the job is for an unassigned atomic group, things are too
 # complicated to proceed
-unassigned_atomic_group_entries = [entry for entry in queue_entries
-                                   if entry['atomic_group']
-                                   and not entry['host']]
+unassigned_atomic_group_entries = [entry for entry in queue_entries if
+                                   entry['atomic_group'] and
+                                   not entry['host']]
 if unassigned_atomic_group_entries:
     print ("Job is for an unassigned atomic group.  That's too complicated, I "
            "can't give you any definite answers.  Sorry.")

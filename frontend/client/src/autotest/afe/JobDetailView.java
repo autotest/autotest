@@ -439,7 +439,8 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
             return selectionManager.createWidget(row, cell, hostQueueEntry, type);
         }
 
-        String executionSubdir = Utils.jsonToString(hostQueueEntry.get("execution_subdir"));
+        // one-time hosts have # in their name, which needs to be escaped
+        String executionSubdir = Utils.escape(Utils.jsonToString(hostQueueEntry.get("execution_subdir")));
         if (executionSubdir.equals("")) {
             // when executionSubdir == "", it's a job that hasn't yet run.
             return null;

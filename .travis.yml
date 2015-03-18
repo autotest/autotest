@@ -6,10 +6,26 @@ branches:
     only:
         - master
 
+git:
+    submodules: false
+
+before_script:
+    - sudo apt-get install -y --force-yes protobuf-compiler python-protobuf
+    - make -C tko
+
 install:
-    - pip install sphinx tox
-    - pip install -r requirements.txt --use-mirrors
-    - AUTOTEST_TOP_PATH=. python setup.py install
+    - pip install sphinx tox simplejson MySQL-python autopep8
+    - pip install -r requirements.txt
+    - pip install inspektor
 
 script:
-    AUTOTEST_DIR=. ./utils/unittest_suite_nose.py -c .nose.cfg -s autotest.client autotest.server autotest.utils
+    - ./utils/unittest_suite_nose.py -c .nose.cfg
+    - inspekt lint
+    - rm -f tko/tko_pb2.py
+    - inspekt style
+
+notifications:
+  irc:
+    channels: "irc.oftc.net#autotest"
+    template:
+      - "%{repository}@%{branch}: %{message} (%{build_url})"

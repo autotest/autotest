@@ -1,6 +1,5 @@
 import os
 import re
-import time
 import logging
 
 from autotest.tko import models, status_lib, utils as tko_utils
@@ -254,8 +253,8 @@ class parser(base.parser):
             if line.type == "START":
                 stack.start()
                 started_time = line.get_timestamp()
-                if (line.testname is None and line.subdir is None
-                        and not running_test):
+                if (line.testname is None and line.subdir is None and
+                        not running_test):
                     # we just started a client, all tests are relative to here
                     min_stack_size = stack.size()
                     # start a "RUNNING" CLIENT_JOB entry
@@ -327,8 +326,8 @@ class parser(base.parser):
             elif line.type == "END":
                 # grab the current subdir off of the subdir stack, or, if this
                 # is the end of a job, just pop it off
-                if (line.testname is None and line.subdir is None
-                        and not running_test):
+                if (line.testname is None and line.subdir is None and
+                        not running_test):
                     min_stack_size = stack.size() - 1
                     subdir_stack.pop()
                 else:
