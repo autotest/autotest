@@ -9,7 +9,7 @@
 %bcond_with gwt
 
 Name: autotest-framework
-Version: 0.16.0
+Version: 0.16.2
 Release: 1%{?dist}
 Summary: Framework for fully automated testing
 Group: Applications/System
