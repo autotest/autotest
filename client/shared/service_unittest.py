@@ -118,23 +118,27 @@ class TestSpecificServiceManager(unittest.TestCase):
         assert not hasattr(self.service_manager, "set_target")
 
 
-def get_service_manager_from_init_and_run(init_name, run_mock):
-    command_generator = service._command_generators[init_name]
-    result_parser = service._result_parsers[init_name]
-    service_manager = service._service_managers[init_name]
-    service_command_generator = service._ServiceCommandGenerator(
-        command_generator)
-    service_result_parser = service._ServiceResultParser(result_parser)
-    return service_manager(service_command_generator, service_result_parser, run_mock)
+class TestServiceManager(unittest.TestCase):
+
+    @staticmethod
+    def get_service_manager_from_init_and_run(init_name, run_mock):
+        command_generator = service._command_generators[init_name]
+        result_parser = service._result_parsers[init_name]
+        service_manager = service._service_managers[init_name]
+        service_command_generator = service._ServiceCommandGenerator(
+            command_generator)
+        service_result_parser = service._ServiceResultParser(result_parser)
+        return service_manager(service_command_generator, service_result_parser, run_mock)
 
 
-class TestSystemdServiceManager(unittest.TestCase):
+class TestSystemdServiceManager(TestServiceManager):
 
     def setUp(self):
         self.run_mock = MagicMock()
         self.init_name = "systemd"
-        self.service_manager = get_service_manager_from_init_and_run(
-            self.init_name, self.run_mock)
+        self.service_manager = super(TestSystemdServiceManager,
+                                     self).get_service_manager_from_init_and_run(self.init_name,
+                                                                                 self.run_mock)
 
     def test_start(self):
         service = "lldpad"
@@ -147,8 +151,9 @@ class TestSystemdServiceManager(unittest.TestCase):
                                                            "vsftpd.service disabled\n"
                                                            "systemd-sysctl.service static\n")
         run_mock = MagicMock(return_value=list_result_mock)
-        service_manager = get_service_manager_from_init_and_run(self.init_name,
-                                                                run_mock)
+        service_manager = super(TestSystemdServiceManager,
+                                self).get_service_manager_from_init_and_run(self.init_name,
+                                                                            run_mock)
         list_result = service_manager.list(ignore_status=False)
         assert run_mock.call_args[0][
             0] == "systemctl list-unit-files --type=service --no-pager --full"
@@ -186,13 +191,14 @@ class TestSystemdServiceManager(unittest.TestCase):
         assert service.convert_sysv_runlevel(6) == "reboot.target"
 
 
-class TestSysVInitServiceManager(unittest.TestCase):
+class TestSysVInitServiceManager(TestServiceManager):
 
     def setUp(self):
         self.run_mock = MagicMock()
         self.init_name = "init"
-        self.service_manager = get_service_manager_from_init_and_run(
-            self.init_name, self.run_mock)
+        self.service_manager = super(TestSysVInitServiceManager,
+                                     self).get_service_manager_from_init_and_run(self.init_name,
+                                                                                 self.run_mock)
 
     def test_list(self):
         list_result_mock = MagicMock(exit_status=0,
@@ -203,8 +209,9 @@ class TestSysVInitServiceManager(unittest.TestCase):
                                             "        chargen-dgram:  on\n")
 
         run_mock = MagicMock(return_value=list_result_mock)
-        service_manager = get_service_manager_from_init_and_run(self.init_name,
-                                                                run_mock)
+        service_manager = super(TestSysVInitServiceManager,
+                                self).get_service_manager_from_init_and_run(self.init_name,
+                                                                            run_mock)
         list_result = service_manager.list(ignore_status=False)
         assert run_mock.call_args[0][
             0] == "chkconfig --list"
