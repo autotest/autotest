@@ -30,15 +30,16 @@ def get_public_key():
                        os.path.isfile(rsa_private_key_path))
 
     if has_dsa_keypair:
-        print 'DSA keypair found, using it'
+        logging.info('DSA keypair found, using it')
         public_key_path = dsa_public_key_path
 
     elif has_rsa_keypair:
-        print 'RSA keypair found, using it'
+        logging.info('RSA keypair found, using it')
         public_key_path = rsa_public_key_path
 
     else:
-        print 'Neither RSA nor DSA keypair found, creating DSA ssh key pair'
+        logging.info('Neither RSA nor DSA keypair found, '
+                     'creating DSA ssh key pair')
         utils.system('ssh-keygen -t dsa -q -N "" -f %s' % dsa_private_key_path)
         public_key_path = dsa_public_key_path
 
@@ -78,15 +79,16 @@ def get_remote_public_key(session):
     has_rsa_keypair = rsa_public_s == 0 and rsa_private_s == 0
 
     if has_dsa_keypair:
-        print 'DSA keypair found on %s, using it' % session
+        logging.info('DSA keypair found on %s, using it', session)
         public_key_path = dsa_public_key_path
 
     elif has_rsa_keypair:
-        print 'RSA keypair found on %s, using it' % session
+        logging.info('RSA keypair found on %s, using it', session)
         public_key_path = rsa_public_key_path
 
     else:
-        print 'Neither RSA nor DSA keypair found, creating DSA ssh key pair'
+        logging.info('Neither RSA nor DSA keypair found, '
+                     'creating DSA ssh key pair')
         session.cmd('ssh-keygen -t dsa -q -N "" -f %s' % dsa_private_key_path)
         public_key_path = dsa_public_key_path
 
