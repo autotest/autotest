@@ -165,14 +165,11 @@ def db_clean_all(autotest_dir):
             (see global_config.ini, COMMON, autotest_top_path).
     """
     for test in models.Test.objects.all():
-        full_path = os.path.join(autotest_dir, test.path)
         logging.info("Removing %s", test.path)
         _log_or_execute(repr(test), test.delete)
 
     # Find profilers that are no longer present
     for profiler in models.Profiler.objects.all():
-        full_path = os.path.join(autotest_dir, "client", "profilers",
-                                 profiler.name)
         logging.info("Removing %s", profiler.name)
         _log_or_execute(repr(profiler), profiler.delete)
 
