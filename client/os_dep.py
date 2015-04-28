@@ -9,11 +9,10 @@ the same. With added distro-independant pixie dust.
 
 
 def command(cmd):
-    # this could use '/usr/bin/which', I suppose. But this seems simpler
-    for dir in os.environ['PATH'].split(':'):
-        file = os.path.join(dir, cmd)
-        if os.path.exists(file):
-            return file
+    for directory in os.environ.get('PATH', '').split(':'):
+        filepath = os.path.join(directory, cmd)
+        if os.path.exists(filepath):
+            return filepath
     raise ValueError('Missing command: %s' % cmd)
 
 
