@@ -13,7 +13,7 @@ tests or setup a fully automated test grid, depending on what you are up to.
 A non extensive list of modules is:
 
 * Autotest client: The engine that executes the tests (dir client). Each
-  autotest test is a a directory inside (client/tests) and it is represented
+  autotest test is a directory inside (client/tests) and it is represented
   by a python class that implements a minimum number of methods. The client
   is what you need if you are a single developer trying out autotest and executing
   some tests. Autotest client executes ''client side control files'', which are
