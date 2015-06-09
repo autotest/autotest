@@ -383,6 +383,15 @@ class Label(DBObject):
             self.name, self.id, self.atomic_group_id)
 
 
+class ACLGroup(DBObject):
+    _table_name = 'afe_acl_groups'
+    _fields = ('id', 'name', 'description')
+
+    def __repr__(self):
+        return 'ACLGroup(name=%r, id=%d, description=%r)' % (
+             self.name, self.id, self.description)
+
+
 class Host(DBObject):
     _table_name = 'afe_hosts'
     _fields = ('id', 'hostname', 'locked', 'synch_id', 'status',
