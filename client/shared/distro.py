@@ -328,6 +328,12 @@ class DebianProbe(Probe):
     CHECK_FILE_DISTRO_NAME = 'debian'
 
 
+class SuseProbe(Probe):
+    CHECK_FILE = '/etc/SuSE-release'
+    CHECK_FILE_DISTRO_NAME = 'sles'
+    CHECK_VERSION_REGEX = re.compile(r'SUSE.*\nVERSION = (.*)\nPATCHLEVEL = (.*)')
+
+
 #: the complete list of probes that have been registered
 REGISTERED_PROBES = []
 
@@ -345,6 +351,7 @@ register_probe(CentosProbe)
 register_probe(FedoraProbe)
 register_probe(DebianProbe)
 register_probe(StdLibProbe)
+register_probe(SuseProbe)
 
 
 def detect():
