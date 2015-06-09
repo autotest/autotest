@@ -20,14 +20,18 @@ import re
 import logging
 import ConfigParser
 import optparse
+
 try:
     import yum
+    HAS_YUM_MODULE = True
 except ImportError:
-    pass
+    HAS_YUM_MODULE = False
+
 try:
     import autotest.common as common
 except ImportError:
     import common
+
 from autotest.client import os_dep, utils
 from autotest.client.shared import error, distro
 from autotest.client.shared import logging_config, logging_manager
@@ -359,7 +363,12 @@ class YumBackend(RpmBackend):
         self.pm_version = ver
         logging.debug('Yum version: %s' % self.pm_version)
 
-        self.yum_base = yum.YumBase()
+        if HAS_YUM_MODULE:
+            self.yum_base = yum.YumBase()
+        else:
+            self.yum_base = None
+            logging.error("yum module for Python is required. "
+                          "Using the basic support from rpm and yum commands")
 
     def _cleanup(self):
         """
@@ -461,6 +470,10 @@ class YumBackend(RpmBackend):
 
         :param name: Capability name (eg, 'foo').
         """
+        if self.yum_base is None:
+            logging.error("The method 'provides' is disabled, "
+                          "yum module is required for this operation")
+            return None
         try:
             d_provides = self.yum_base.searchPackageProvides(args=[name])
         except Exception, e:
