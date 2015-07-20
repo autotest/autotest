@@ -51,6 +51,12 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
         logging.info('Metahost schedulers: %s',
                      ', '.join(type(scheduler).__name__ for scheduler
                                in self._metahost_schedulers))
+        # cache the "Everyone" ACL's id, as it is static, so we can
+        # check for effectively non-ACL'd hosts in
+        # _check_no_acl_for_metahost
+        self.everyone_acl = set(
+            [int(acl.id) for acl in
+                scheduler_models.ACLGroup.fetch(where="name like 'Everyone'")])
 
     def _get_ready_hosts(self):
         # avoid any host with a currently active queue entry against it
@@ -210,6 +216,20 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
         return (self._get_host_atomic_group_id(host_labels, queue_entry) ==
                 queue_entry.atomic_group_id)
 
+    def _check_no_acl_for_metahost(self, host_id, queue_entry):
+        """
+        If the given HostQueueEntry is for a metahost, determine if the given
+        host id has any user-specific ACL set. We do not want to schedule a
+        metahost job on a reserved host.
+
+        :param host_id: host id to examine.
+        :param queue_entry: The HostQueueEntry being considered for the host.
+
+        :return: True if entry is not a metahost or the host only has the "Everyone" ACL, False otherwise.
+        """
+        host_acls = self._host_acls.get(host_id, set())
+        return (queue_entry.meta_host is None or host_acls == self.everyone_acl)
+
     def _get_host_atomic_group_id(self, host_labels, queue_entry=None):
         """
         Return the atomic group label id for a host with the given set of
@@ -274,7 +294,8 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
                 self._check_job_dependencies(job_dependencies, host_labels) and
                 self._check_only_if_needed_labels(
                     job_dependencies, host_labels, queue_entry) and
-                self._check_atomic_group_labels(host_labels, queue_entry))
+                self._check_atomic_group_labels(host_labels, queue_entry) and
+                self._check_no_acl_for_metahost(host_id, queue_entry))
 
     def _is_host_invalid(self, host_id):
         host_object = self._hosts_available.get(host_id, None)
