@@ -399,8 +399,8 @@ public class HostSelector implements ClickHandler {
                 String hostname = getHostname(row);
                 if (isOneTimeHost(row)) {
                     /*
-		     * Need to avoid trying to install one-time hosts.
-		     */
+                     * Need to avoid trying to install one-time hosts.
+                     */
                     hostname += "#N/A";
                     selection.oneTimeHosts.add(hostname);
                 } else {
