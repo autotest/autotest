@@ -17,6 +17,7 @@ AFE_RE_PREFIX = '^%s' % frontend.AFE_URL_PREFIX
 AFE_RE_ADMIN_PREFIX = '%sadmin/' % AFE_RE_PREFIX
 AFE_RE_STATIC_PREFIX = '%sstatic/(?P<path>.*)' % AFE_RE_PREFIX
 TKO_RE_PREFIX = '^%s' % frontend.TKO_URL_PREFIX
+TKO_RE_ADMIN_PREFIX = '%sadmin/' % TKO_RE_PREFIX
 
 urlpatterns = defaults.patterns(
     '',
@@ -24,7 +25,8 @@ urlpatterns = defaults.patterns(
     (AFE_RE_PREFIX, defaults.include('autotest.frontend.afe.urls')),
     (AFE_RE_STATIC_PREFIX, 'django.views.static.serve',
      {'document_root': os.path.join(os.path.dirname(__file__), 'static')}),
-    (TKO_RE_PREFIX, defaults.include('autotest.frontend.tko.urls'))
+    (TKO_RE_PREFIX, defaults.include('autotest.frontend.tko.urls')),
+    (TKO_RE_ADMIN_PREFIX, defaults.include(admin.site.urls))
 )
 
 handler404 = 'django.views.defaults.page_not_found'
