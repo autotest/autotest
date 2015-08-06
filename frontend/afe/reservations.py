@@ -75,8 +75,6 @@ def create(hosts_to_reserve, username=None):
         user_acl.users = [user]
         user_acl.save()
     for host in hosts:
-        # remove host from other acls
-        user_acl.hosts.clear()
         host.aclgroup_set.add(user_acl)
         # and add to reservation acl
         user_acl.hosts.add(*hosts)
