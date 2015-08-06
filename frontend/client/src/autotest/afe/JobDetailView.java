@@ -447,7 +447,7 @@ public class JobDetailView extends DetailView implements TableWidgetFactory, Tab
         }
 
         JSONObject jobObject = hostQueueEntry.get("job").isObject();
-        String owner = Utils.jsonToString(jobObject.get("owner"));
+        String owner = Utils.escape(Utils.jsonToString(jobObject.get("owner")));
         String basePath = jobId + "-" + owner + "/" + executionSubdir + "/";
 
         if (cell == JOB_HOSTS_COLUMNS.length - 1) {
