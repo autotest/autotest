@@ -16,6 +16,7 @@ public class HostTable extends DynamicTable {
         {HostDataSource.OTHER_LABELS, "Other labels"}, 
         {"status", "Status"}, 
         {"locked", "Locked"},
+	{HostDataSource.HOST_ACLS, "ACLs"},
     };
     
     public HostTable(DataSource dataSource) {

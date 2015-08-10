@@ -193,7 +193,8 @@ class host_list(action_common.atest_list, host):
             self.print_list(results, key='hostname')
         else:
             super(host_list, self).output(results, keys=['hostname', 'status',
-                                                         'locked', 'platform', 'labels'])
+                                                         'locked', 'acls',
+                                                         'platform', 'labels'])
 
 
 class host_stat(host):
