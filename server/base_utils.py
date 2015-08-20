@@ -252,9 +252,9 @@ def form_ntuples_from_machines(machines, n=2, mapping_func=default_mappings):
 
 def parse_machine(machine, user='root', password='', port=22, profile=''):
     """
-    Parse the machine string user:pass@host:port and return it separately,
-    if the machine string is not complete, use the default parameters
-    when appropriate.
+    Parse the machine string user:pass@host#profile:port and return it
+    separately, if the machine string is not complete, use the default
+    parameters when appropriate.
     """
     if '@' in machine:
         user, machine = machine.split('@', 1)
