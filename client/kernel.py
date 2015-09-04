@@ -784,7 +784,7 @@ class rpm_kernel_suse(rpm_kernel):
             errmsg = "cannot find installed kernel in bootloader configuration"
             raise error.TestError(errmsg)
 
-    def add_to_bootloader(self, tag='dummy', args=''):
+    def add_to_bootloader(self, args=''):
         """ Set parameters of this kernel in bootloader
         """
 
@@ -793,7 +793,7 @@ class rpm_kernel_suse(rpm_kernel):
         if baseargs:
             args = baseargs + ' ' + args
 
-        self.job.bootloader.add_args(tag, args)
+        self.job.bootloader.add_args(self.installed_as, args)
 
 
 def rpm_kernel_vendor(job, rpm_package, subdir):
