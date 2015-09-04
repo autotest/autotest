@@ -8,7 +8,7 @@ import logging
 
 from autotest.client import kernel_config, os_dep, kernelexpand
 from autotest.client import utils
-from autotest.client.shared import log, error
+from autotest.client.shared import log, error, distro
 
 
 def tee_output_logdir_mark(fn):
@@ -404,7 +404,7 @@ class kernel(BootableKernel):
                 initrd
                         initrd image file to build
         """
-        vendor = utils.get_os_vendor()
+        d = distro.detect()
 
         if os.path.isfile(initrd):
             print "Existing %s file, will remove it." % initrd
@@ -430,7 +430,7 @@ class kernel(BootableKernel):
                                 "kernel version %s under /lib/modules", version)
             version = os.path.basename(real_version_list[0])
 
-        if vendor in ['Red Hat', 'Fedora']:
+        if d.name in ['redhat', 'fedora']:
             try:
                 cmd = os_dep.command('dracut')
                 full_cmd = '%s -f %s %s' % (cmd, initrd, version)
@@ -438,10 +438,10 @@ class kernel(BootableKernel):
                 cmd = os_dep.command('mkinitrd')
                 full_cmd = '%s %s %s %s' % (cmd, args, initrd, version)
             utils.system(full_cmd)
-        elif vendor in ['SUSE']:
+        elif d.name in ['sles']:
             utils.system('mkinitrd %s -k %s -i %s -M %s' %
                          (args, image, initrd, system_map))
-        elif vendor in ['Debian', 'Ubuntu']:
+        elif d.name in ['debian', 'ubuntu']:
             if os.path.isfile('/usr/sbin/mkinitrd'):
                 cmd = '/usr/sbin/mkinitrd'
             elif os.path.isfile('/usr/sbin/mkinitramfs'):
@@ -450,7 +450,7 @@ class kernel(BootableKernel):
                 raise error.TestError('No Debian initrd builder')
             utils.system('%s %s -o %s %s' % (cmd, args, initrd, version))
         else:
-            raise error.TestError('Unsupported vendor %s' % vendor)
+            raise error.TestError('Unsupported distro %s' % d.name)
 
     def set_build_image(self, image):
         self.build_image = image
@@ -795,8 +795,8 @@ class rpm_kernel_suse(rpm_kernel):
 
 
 def rpm_kernel_vendor(job, rpm_package, subdir):
-    vendor = utils.get_os_vendor()
-    if vendor == "SUSE":
+    d = distro.detect()
+    if d.name == "sles":
         return rpm_kernel_suse(job, rpm_package, subdir)
     else:
         return rpm_kernel(job, rpm_package, subdir)

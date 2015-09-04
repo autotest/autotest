@@ -11,7 +11,7 @@ try:
 except ImportError:
     import common
 from autotest.client.shared.test_utils import mock
-from autotest.client.shared import boottool
+from autotest.client.shared import boottool, distro
 from autotest.client import kernel, job, utils, kernelexpand
 from autotest.client import kernel_config, os_dep
 
@@ -125,6 +125,7 @@ class TestKernel(unittest.TestCase):
         self.god.stub_function(kernelexpand, "expand_classic")
         self.god.stub_function(kernel_config, "modules_needed")
         self.god.stub_function(glob, "glob")
+        self.god.stub_function(distro, "detect")
 
         def dummy_mark(filename, msg):
             pass
@@ -512,7 +513,7 @@ class TestKernel(unittest.TestCase):
         self.construct_kernel()
 
         # record
-        utils.get_os_vendor.expect_call().and_return('Ubuntu')
+        distro.detect.expect_call().and_return(distro.LinuxDistro("ubuntu", "15.04", "", "x86_64"))
         os.path.isfile.expect_call('initrd').and_return(True)
         os.remove.expect_call('initrd')
         self.job.config_get.expect_call(
