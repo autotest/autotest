@@ -291,10 +291,10 @@ public class HostSelector implements ClickHandler {
             return;
         }
 
-        addMetaHosts(label, number);
+        addMetaHosts(label, number, "");
     }
 
-    public void addMetaHosts(final String label, final String number) {
+    public void addMetaHosts(final String label, final String number, final String profile) {
         JSONObject params = new JSONObject();
         profileDataSource.query(params, new DefaultDataCallback () {
             @Override
@@ -304,12 +304,12 @@ public class HostSelector implements ClickHandler {
 
             @Override
             public void handlePage(List<JSONObject> data) {
-                processAddByLabel(label, number, data);
+                processAddByLabel(label, number, profile, data);
             }
         });
     }
 
-    private void processAddByLabel(final String label, final String number, List<JSONObject> data) {
+    private void processAddByLabel(final String label, final String number, final String profile, List<JSONObject> data) {
         JSONObject metaObject = new JSONObject();
         JSONArray profiles = new JSONArray();
         int i = 0;
@@ -319,8 +319,9 @@ public class HostSelector implements ClickHandler {
         metaObject.put("status", new JSONString(""));
         metaObject.put("locked_text", new JSONString(""));
         metaObject.put("id", new JSONNumber(--META_INDEX));
-        for (JSONObject profile : data) {
-             String p = profile.get("name").toString();
+        metaObject.put("profile", new JSONString(profile));
+        for (JSONObject prof : data) {
+             String p = prof.get("name").toString();
              // JSON seems to insert extra quotes
              profiles.set(i, new JSONString(p.substring(1, p.length()-1)));
              i++;

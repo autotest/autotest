@@ -1075,12 +1075,16 @@ def get_info_for_clone(id, preserve_metahosts, queue_entry_filter_data=None):
                          locked_text='')
         host_dicts.append(host_dict)
 
+    meta_host_dicts = []
     # convert keys from Label objects to strings (names of labels)
     meta_host_counts = dict((meta_host.name, count) for meta_host, count
                             in job_info['meta_host_counts'].iteritems())
+    for meta_host, meta_host_profile in zip(job_info['meta_hosts'], job_info['meta_host_profiles']):
+        meta_host_dict = dict(name=meta_host.name, count=meta_host_counts[meta_host.name], profile=meta_host_profile)
+        meta_host_dicts.append(meta_host_dict)
 
     info = dict(job=job.get_object_dict(),
-                meta_host_counts=meta_host_counts,
+                meta_hosts=meta_host_dicts,
                 hosts=host_dicts)
     info['job']['dependencies'] = job_info['dependencies']
     if job_info['atomic_group']:
