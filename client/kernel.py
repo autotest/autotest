@@ -5,6 +5,7 @@ import re
 import glob
 import time
 import logging
+import shutil
 
 from autotest.client import kernel_config, os_dep, kernelexpand
 from autotest.client import utils
@@ -768,6 +769,132 @@ class rpm_kernel(BootableKernel):
                           None, 'rpm')
 
 
+class srpm_kernel(kernel):
+    prefix = '/root/rpmbuild'
+    binrpm_pattern = re.compile(r'kernel-[0-9]')
+
+    def __init__(self, job, rpm_package, subdir):
+        # download and install src.rpm
+        self.job = job
+        self.subdir = subdir
+        self.SOURCES_dir = os.path.join(self.prefix, 'SOURCES')
+        self.SPECS_dir = os.path.join(self.prefix, 'SPECS')
+        self.BUILD_dir = os.path.join(self.prefix, 'BUILD')
+        self.BUILDROOT_dir = os.path.join(self.prefix, 'BUILDROOT')
+        self.RPMS_dir = os.path.join(self.prefix, 'RPMS')
+        # technically this is where both patches and tarballs get put, but
+        # since we don't have any tarballs, we just fudge it
+        self.src_dir = self.SOURCES_dir
+        self.spec = os.path.join(self.SPECS_dir, 'kernel.spec')
+        self.results_dir = os.path.join(subdir, 'results')
+        self.log_dir = os.path.join(subdir, 'debug')
+        self.patches = []
+        self.configs = []
+        self.built = False
+        self.finish_init()
+        self.__init(rpm_package)
+
+    # dummy function to override in children classes to modify __init__ behavior
+    def finish_init(self):
+        pass
+
+    def __init(self, rpm_package):
+
+        for path in [self.prefix, self.SOURCES_dir, self.SPECS_dir,
+                     self.BUILD_dir, self.BUILDROOT_dir, self.RPMS_dir,
+                     self.src_dir, self.results_dir, self.log_dir]:
+            utils.system('rm -rf ' + path)
+            os.mkdir(path)
+
+        utils.system('rpm -ivh %s' % rpm_package)
+
+    def apply_patches(self, local_patches):
+        self.patches += local_patches
+
+    def setup_source(self):
+        if len(self.configs) > 0:
+            for config_file in glob.glob(os.path.join(self.SOURCES_dir, 'kernel-*%s*' % utils.get_current_kernel_arch())):
+                with open(config_file, 'a') as cfg:
+                    for config in self.configs:
+                        cfg.write("%s\n" % config)
+
+    def consume_one_config(self, config_option):
+        if os.path.exists(config_option) or utils.is_url(config_option):
+            if os.path.exists(config_option):
+                cfg = open(config_option, 'r')
+            if utils.is_url(config_option):
+                cfg = utils.urlopen(config_option)
+            # read the file
+            for line in cfg.readlines():
+                self.configs.append(line)
+        else:
+            self.configs.append(config_option)
+
+    def config(self, *args, **kwargs):
+        for config_option in args:
+            self.consume_one_config(config_option)
+
+    def update_spec_line(self, line, outspec, tag):
+        if line.startswith('# % define buildid'):
+            outspec.write('%%define buildid .%s\n' % tag)
+            return
+        if len(self.patches) > 0:
+            if line.startswith('Patch999999'):
+                for index, (spec, dest, md5sum) in enumerate(self.patches):
+                    outspec.write('Patch%d: %s\n' %
+                                  (index,
+                                   os.path.relpath(dest, self.SOURCES_dir)))
+            if line.startswith('ApplyOptionalPatch linux-kernel-test.patch'):
+                for (spec, dest, md5sum) in self.patches:
+                    outspec.write('ApplyPatch %s\n' %
+                                  os.path.relpath(dest, self.SOURCES_dir))
+        if len(self.configs) > 0:
+            if line.startswith('%define listnewconfig_fail'):
+                outspec.write('%define listnewconfig_fail 0\n')
+                return
+        outspec.write(line)
+
+    def update_spec(self, tag):
+        utils.system('cp %s %s' % (self.spec, self.spec + '.bak'))
+        with open(self.spec + '.bak', 'r') as inspec:
+            with open(self.spec, 'w+') as outspec:
+                for line in inspec:
+                    self.update_spec_line(line, outspec, tag)
+
+    def prep(self, tag='autotest'):
+        self.setup_source()
+        self.update_spec(tag)
+        utils.system('rpmbuild -bp %s' % self.spec)
+
+    def build(self, tag='autotest'):
+        self.setup_source()
+        self.update_spec(tag)
+        utils.system('rpmbuild -bb %s' % self.spec)
+        dest = os.path.join(self.results_dir, "RPMs")
+        shutil.copytree(self.RPMS_dir, dest)
+        rpms = []
+        for root, dirs, files in os.walk(self.RPMS_dir):
+            for name in files:
+                if self.binrpm_pattern.search(name) is not None:
+                    rpms.append(os.path.join(root, name))
+        self.binrpms = rpms
+        self.built = True
+
+    def install(self, tag='autotest'):
+        # install resulting rpm on system
+        if not self.built:
+            self.build(tag)
+        r = rpm_kernel_vendor(self.job, self.binrpms, self.subdir)
+        r.install(tag=tag)
+
+    def boot(self, args=''):
+        # boot resulting rpm on system
+        if not self.built:
+            self.build()
+        r = rpm_kernel_vendor(self.job, self.binrpms, self.subdir)
+        r.boot(args=args)
+
+
 class rpm_kernel_suse(rpm_kernel):
 
     """ Class for installing openSUSE/SLE rpm kernel package
@@ -796,12 +923,92 @@ class rpm_kernel_suse(rpm_kernel):
         self.job.bootloader.add_args(self.installed_as, args)
 
 
+class srpm_kernel_suse(srpm_kernel):
+    prefix = '/usr/src/packages'
+
+    def __init__(self, job, rpm_package, subdir):
+        # download and install src.rpm
+        super(srpm_kernel_suse, self).__init__(job, rpm_package, subdir)
+        utils.system('rm -rf ' + self.cfg_dir)
+        os.mkdir(self.cfg_dir)
+        os.mkdir(os.path.join(self.cfg_dir, utils.get_current_kernel_arch()))
+
+    def finish_init(self):
+        self.src_dir = os.path.join(self.SOURCES_dir, 'patches.addon')
+        self.cfg_dir = os.path.join(self.SOURCES_dir, 'config.addon')
+        d = distro.detect()
+        if d.version == '11':
+            self.spec = os.path.join(self.SPECS_dir, 'kernel-ppc64.spec')
+            self.config_file = os.path.join(self.cfg_dir, utils.get_current_kernel_arch(), utils.get_current_kernel_arch())
+            # sles11 needs both kernel and kernel-base
+            self.binrpm_pattern = re.compile(r'kernel-%s-(base|[0-9])' % utils.get_current_kernel_arch())
+        if d.version == '12':
+            self.spec = os.path.join(self.SPECS_dir, 'kernel-default.spec')
+            self.config_file = os.path.join(self.cfg_dir, utils.get_current_kernel_arch(), 'default')
+            self.binrpm_pattern = re.compile(r'kernel-default-[0-9]')
+
+    def setup_source(self):
+        # setup tarball
+        if len(self.patches) > 0:
+            # need to ensure the tarball's contents are relative to SOURCES
+            utils.system('tar jCcf %s %s.tar.bz2 %s' % (self.SOURCES_dir,
+                                                        self.src_dir,
+                                                        os.path.basename(self.src_dir)))
+            # append to series file
+            with open(os.path.join(self.SOURCES_dir, 'series.conf'), 'a') as series:
+                for (spec, local, md5sum) in self.patches:
+                    series.write("%s\n" % os.path.relpath(local, self.SOURCES_dir))
+
+        if len(self.configs) > 0:
+            with open(self.config_file, 'w+') as cfg:
+                for config in self.configs:
+                    cfg.write("%s\n" % config)
+            # need to ensure the tarball's contents are relative to SOURCES
+            utils.system('tar jCcf %s %s.tar.bz2 %s' % (self.SOURCES_dir,
+                                                        self.cfg_dir,
+                                                        os.path.basename(self.cfg_dir)))
+            # if we are mucking with the new CONFIG symbols, the build will
+            # fail if any dependencies get pulled in
+            utils.system('touch /usr/src/packages/SOURCES/TOLERATE-UNKNOWN-NEW-CONFIG-OPTIONS')
+
+        # generate spec file
+        cwd = os.getcwd()
+        os.chdir(self.SOURCES_dir)
+        utils.system('./mkspec')
+        os.chdir(cwd)
+
+        # copy spec file
+        d = distro.detect()
+        if d.version == '11':
+            utils.system('cp %s %s' % (
+                          os.path.join(self.SOURCES_dir, 'kernel-ppc64.spec'),
+                          self.spec))
+        else:
+            utils.system('cp %s %s' % (
+                          os.path.join(self.SOURCES_dir, 'kernel-default.spec'),
+                          self.spec))
+
+    def update_spec_line(self, line, outspec, tag):
+        if line.startswith('Release'):
+            outspec.write('Release:        %s\n' % tag)
+            return
+        outspec.write(line)
+
+
 def rpm_kernel_vendor(job, rpm_package, subdir):
     d = distro.detect()
     if d.name == "sles":
         return rpm_kernel_suse(job, rpm_package, subdir)
     else:
         return rpm_kernel(job, rpm_package, subdir)
+
+
+def srpm_kernel_vendor(job, rpm_package, subdir):
+    d = distro.detect()
+    if d.name == "sles":
+        return srpm_kernel_suse(job, rpm_package, subdir)
+    else:
+        return srpm_kernel(job, rpm_package, subdir)
 
 
 # just make the preprocessor a nop
@@ -828,6 +1035,8 @@ def auto_kernel(job, path, subdir, tmp_dir, build_dir, leave=False):
         kernel_paths = [p.strip() for p in open(kernel_list).readlines()]
 
     if kernel_paths[0].endswith('.rpm'):
+        if kernel_paths[0].endswith('src.rpm') and len(kernel_paths) > 1:
+            raise error.TestError("don't know what to do with more than one non-rpm kernel file")
         rpm_paths = []
         for kernel_path in kernel_paths:
             if os.path.exists(kernel_path):
@@ -842,8 +1051,9 @@ def auto_kernel(job, path, subdir, tmp_dir, build_dir, leave=False):
                 # kernel from that specific path.
                 job.pkgmgr.fetch_pkg(rpm_name, os.path.join(job.pkgdir, rpm_name),
                                      repo_url=os.path.dirname(kernel_path))
-
                 rpm_paths.append(os.path.join(job.pkgdir, rpm_name))
+        if kernel_paths[0].endswith('src.rpm'):
+            return srpm_kernel_vendor(job, rpm_paths[0], subdir)
         return rpm_kernel_vendor(job, rpm_paths, subdir)
     else:
         if len(kernel_paths) > 1:
