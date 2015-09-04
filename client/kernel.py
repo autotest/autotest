@@ -675,6 +675,7 @@ class rpm_kernel(BootableKernel):
     """
     Class for installing a binary rpm kernel package
     """
+    kernel_string = '/boot/vmlinuz'
 
     def __init__(self, job, rpm_package, subdir):
         super(rpm_kernel, self).__init__(job)
@@ -709,8 +710,8 @@ class rpm_kernel(BootableKernel):
 
             # search for vmlinuz
             for file in files:
-                if file.startswith('/boot/vmlinuz'):
-                    self.full_version = file[len('/boot/vmlinuz-'):]
+                if file.startswith(self.kernel_string):
+                    self.full_version = file[len(self.kernel_string + '-'):]
                     self.image = file
                     self.rpm_flavour = rpm_name.split('-')[1]
 
@@ -771,6 +772,7 @@ class rpm_kernel_suse(rpm_kernel):
 
     """ Class for installing openSUSE/SLE rpm kernel package
     """
+    kernel_string = '/boot/vmlinux'
 
     def install(self):
         # do not set the new kernel as the default one
