@@ -702,8 +702,8 @@ class rpm_kernel(BootableKernel):
         for rpm_pack in self.rpm_package:
             rpm_name = utils.system_output('rpm -qp ' + rpm_pack)
 
-            # install
-            utils.system('rpm -i --force ' + rpm_pack)
+            # install without dependencies (e.g., kernel-firmware)
+            utils.system('rpm -i --force --nodeps ' + rpm_pack)
 
             # get file list
             files = utils.system_output('rpm -ql ' + rpm_name).splitlines()
