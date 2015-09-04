@@ -6,9 +6,16 @@ Autotest AFE Cleanup used by the scheduler
 import time
 import logging
 import random
+import socket
 from autotest.frontend.afe import models
 from autotest.scheduler import scheduler_config
 from autotest.client.shared import host_protections, mail
+from autotest.client.shared.settings import settings
+from autotest.server.hosts import remote
+
+
+class InstallServerUnavailable(Exception):
+    pass
 
 
 class PeriodicCleanup(object):
@@ -53,6 +60,37 @@ class UserCleanup(PeriodicCleanup):
         self._check_for_db_inconsistencies()
         self._reverify_dead_hosts()
 
+    def _disable_host_installation(self, host):
+        server_info = remote.get_install_server_info()
+        if remote.install_server_is_configured():
+            timeout = settings.get_value('INSTALL_SERVER',
+                                         'default_install_timeout',
+                                         type=int,
+                                         default=3600)
+
+            end_time = time.time() + (timeout / 10)
+            step = int(timeout / 100)
+            ServerInterface = remote.RemoteHost.INSTALL_SERVER_MAPPING[server_info['type']]
+            server_interface = None
+            while time.time() < end_time:
+                try:
+                    server_interface = ServerInterface(**server_info)
+                    break
+                except socket.error:
+                    logging.error('Install server unavailable. Trying '
+                                  'again in %s s...', step)
+                    time.sleep(step)
+
+            if server_interface is None:
+                raise InstallServerUnavailable("%s install server at (%s) "
+                                               "unavailable. Tried to "
+                                               "communicate for %s s" %
+                                               (server_info['type'],
+                                                server_info['xmlrpc_url'],
+                                                timeout / 10))
+
+            server_interface._disable_host_installation(host)
+
     def _abort_timed_out_jobs(self):
         msg = 'Aborting all jobs that have timed out and are not complete'
         logging.info(msg)
@@ -60,6 +98,17 @@ class UserCleanup(PeriodicCleanup):
             where=['created_on + INTERVAL timeout HOUR < NOW()'])
         for job in query.distinct():
             logging.warning('Aborting job %d due to job timeout', job.id)
+            rows = self._db.execute("""
+                SELECT hqe.id
+                FROM afe_host_queue_entries AS hqe
+                INNER JOIN afe_jobs ON (hqe.job_id = %s)""" % job.id)
+            query2 = models.HostQueueEntry.objects.filter(
+                id__in=[row[0] for row in rows])
+            for queue_entry in query2.distinct():
+                # ensure we only disable installation on actually scheduled hosts
+                if queue_entry.host is not None:
+                    logging.info('Disabling installation on %s' % queue_entry.host.hostname)
+                    self._disable_host_installation(queue_entry.host)
             job.abort()
 
     def _abort_jobs_past_max_runtime(self):
@@ -77,6 +126,8 @@ class UserCleanup(PeriodicCleanup):
             id__in=[row[0] for row in rows])
         for queue_entry in query.distinct():
             logging.warning('Aborting entry %s due to max runtime', queue_entry)
+            logging.info('Disabling installation on %s' % queue_entry.host.hostname)
+            self._disable_host_installation(queue_entry.host.hostname)
             queue_entry.abort()
 
     def _check_for_db_inconsistencies(self):
