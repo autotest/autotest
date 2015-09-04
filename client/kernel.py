@@ -8,7 +8,7 @@ import logging
 
 from autotest.client import kernel_config, os_dep, kernelexpand
 from autotest.client import utils
-from autotest.client.shared import log, error
+from autotest.client.shared import log, error, distro
 
 
 def tee_output_logdir_mark(fn):
@@ -797,8 +797,8 @@ class rpm_kernel_suse(rpm_kernel):
 
 
 def rpm_kernel_vendor(job, rpm_package, subdir):
-    vendor = utils.get_os_vendor()
-    if vendor == "SUSE":
+    d = distro.detect()
+    if d.name == "sles":
         return rpm_kernel_suse(job, rpm_package, subdir)
     else:
         return rpm_kernel(job, rpm_package, subdir)
