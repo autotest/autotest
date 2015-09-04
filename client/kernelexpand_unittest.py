@@ -41,17 +41,17 @@ class kernelexpandTest(unittest.TestCase):
         self.assertEqual(sample, correct)
 
     def test_decompose_simple_30(self):
-        correct = [[km + 'v3.x/linux-3.0.14.tar.bz2']]
+        correct = [[km + 'v3.x/linux-3.0.14.tar.bz2', km + 'v3.x/linux-3.0.14.tar.xz']]
         sample = decompose_kernel('3.0.14')
         self.assertEqual(sample, correct)
 
     def test_decompose_simple_3X(self):
-        correct = [[km + 'v3.x/linux-3.2.1.tar.bz2']]
+        correct = [[km + 'v3.x/linux-3.2.1.tar.bz2', km + 'v3.x/linux-3.2.1.tar.xz']]
         sample = decompose_kernel('3.2.1')
         self.assertEqual(sample, correct)
 
     def test_decompose_nominor_30(self):
-        correct = [[km + 'v3.x/linux-3.0.tar.bz2']]
+        correct = [[km + 'v3.x/linux-3.0.tar.bz2', km + 'v3.x/linux-3.0.tar.xz']]
         sample = decompose_kernel('3.0')
         self.assertEqual(sample, correct)
 
@@ -94,7 +94,7 @@ class kernelexpandTest(unittest.TestCase):
     def test_decompose_gitweb(self):
         settings.override_value('CLIENT', 'kernel_gitweb', gw)
         settings.override_value('CLIENT', 'stable_kernel_gitweb', sgw)
-        correct = [[km + 'v3.x/linux-3.0.tar.bz2', gw + ';a=snapshot;h=refs/tags/v3.0;sf=tgz']]
+        correct = [[km + 'v3.x/linux-3.0.tar.bz2', km + 'v3.x/linux-3.0.tar.xz', gw + ';a=snapshot;h=refs/tags/v3.0;sf=tgz']]
         sample = decompose_kernel('3.0')
         self.assertEqual(sample, correct)
 

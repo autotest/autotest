@@ -395,6 +395,7 @@ magic_database = [
     [0L, 'leshort', '=', 65398L, 'application/data'],
     [0L, 'leshort', '=', 65142L, 'application/data'],
     [0L, 'leshort', '=', 64886L, 'application/x-lzh'],
+    [0L, 'string', '=', '\3757zXZ\000', 'application/x-xz'],
     [0L, 'string', '=', '\037\237', 'application/data'],
     [0L, 'string', '=', '\037\236', 'application/data'],
     [0L, 'string', '=', '\037\240', 'application/data'],

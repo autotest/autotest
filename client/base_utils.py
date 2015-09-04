@@ -60,6 +60,8 @@ def cat_file_to_cmd(file, command, ignore_status=0, return_output=False):
             cat = 'bzcat'
     elif magic.guess_type(file) == 'application/x-gzip':
         cat = 'zcat'
+    elif magic.guess_type(file) == 'application/x-xz':
+        cat = 'xzcat'
     else:
         cat = 'cat'
     return run_cmd('%s %s | %s' % (cat, file, command),

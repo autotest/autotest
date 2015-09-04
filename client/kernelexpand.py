@@ -73,14 +73,17 @@ def get_mappings_post_2x():
     MAPPINGS_POST_2X = [
         [r'^\d+\.\d+$', '', True,
          map(lambda x: x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+         map(lambda x: x + 'v%(major)s/linux-%(full)s.tar.xz', KERNEL_BASE_URL.split()) +
          map(lambda x: x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
          ],
         [r'^\d+\.\d+\.\d+$', '', True,
          map(lambda x: x + 'v%(major)s/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+         map(lambda x: x + 'v%(major)s/linux-%(full)s.tar.xz', KERNEL_BASE_URL.split()) +
          map(lambda x: x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', STABLE_GITWEB_BASE_URL.split())
          ],
         [r'-rc\d+$', '', True,
          map(lambda x: x + 'v%(major)s/testing/linux-%(full)s.tar.bz2', KERNEL_BASE_URL.split()) +
+         map(lambda x: x + 'v%(major)s/testing/linux-%(full)s.tar.xz', KERNEL_BASE_URL.split()) +
          map(lambda x: x + ';a=snapshot;h=refs/tags/v%(full)s;sf=tgz', GITWEB_BASE_URL.split())
          ],
         [r'[a-f0-9]{7,40}$', '', True,
