@@ -2,6 +2,7 @@ package autotest.afe;
 
 import autotest.afe.create.CreateJobViewPresenter.JobCreateListener;
 import autotest.common.SimpleCallback;
+import autotest.common.StaticDataRepository;
 import autotest.common.Utils;
 import autotest.common.table.DataSource;
 import autotest.common.table.DataSource.DataCallback;
@@ -31,13 +32,18 @@ import com.google.gwt.json.client.JSONValue;
 import com.google.gwt.user.client.Command;
 import com.google.gwt.user.client.ui.Button;
 import com.google.gwt.user.client.ui.CheckBox;
+import com.google.gwt.user.client.ui.TextBox;
 import com.google.gwt.user.client.ui.HorizontalPanel;
+import com.google.gwt.user.client.Window;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 
 public class HostDetailView extends DetailView
                             implements DataCallback, TableActionsListener, SelectableRowFilter {
+    private static final StaticDataRepository staticData = StaticDataRepository.getRepository();
+    private static final JSONObject user = staticData.getData("current_user").isObject();
     private static final String[][] HOST_JOBS_COLUMNS = {
             {DataTable.WIDGET_COLUMN, ""}, {"type", "Type"}, {"job__id", "Job ID"},
             {"job_owner", "Job Owner"}, {"job_name", "Job Name"}, {"profile", "Profile"},
@@ -142,6 +148,7 @@ public class HostDetailView extends DetailView
     private Button reinstallButton = new Button("Reinstall");
     private Button reserveButton = new Button("Reserve");
     private Button releaseButton = new Button("Release");
+    private Button forceReleaseButton = new Button("Force Release");
     private CheckBox showSpecialTasks = new CheckBox();
 
     public HostDetailView(HostDetailListener hostDetailListener,
@@ -228,6 +235,11 @@ public class HostDetailView extends DetailView
         showText(lockedText, "view_host_locked");
         showField(currentHostObject, "protection", "view_host_protection");
         showField(currentHostObject, "current_profile", "view_host_current_profile");
+
+        reserveButton.setVisible(AfeUtils.hostIsEveryoneAccessible(currentHostObject));
+        releaseButton.setVisible(AfeUtils.hostIsAclAccessible(currentHostObject));
+        forceReleaseButton.setVisible((int)user.get("access_level").isNumber().doubleValue() >= 1);
+
         String pageTitle = "Host " + hostname;
         updateLockButton();
         displayObjectData(pageTitle);
@@ -279,7 +291,7 @@ public class HostDetailView extends DetailView
         });
         addWidget(lockButton, "view_host_lock_button");
 
-        HorizontalPanel buttons = new HorizontalPanel();
+        HorizontalPanel host_buttons = new HorizontalPanel();
 
         reverifyButton.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
@@ -293,7 +305,7 @@ public class HostDetailView extends DetailView
                 }, "Host " + hostname);
             }
         });
-        buttons.add(reverifyButton);
+        host_buttons.add(reverifyButton);
 
         reinstallButton.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
@@ -302,35 +314,55 @@ public class HostDetailView extends DetailView
                 AfeUtils.scheduleReinstall(set, hostname, jobCreateListener);
             }
         });
-        buttons.add(reinstallButton);
+        host_buttons.add(reinstallButton);
+
+        HorizontalPanel reservation_buttons = new HorizontalPanel();
 
         reserveButton.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
                 JSONArray hostIds = new JSONArray();
                 hostIds.set(0, currentHostObject.get("id"));
-                AfeUtils.handleHostsReservations(hostIds, true, "Host reserved", new SimpleCallback() {
+                AfeUtils.handleHostsReservations(hostIds, true, false, "Host reserved", new SimpleCallback() {
                     public void doCallback(Object source) {
                         refresh();
                     }
                 });
             }
         });
-        buttons.add(reserveButton);
+        reserveButton.setVisible(false);
+        reservation_buttons.add(reserveButton);
 
         releaseButton.addClickHandler(new ClickHandler() {
             public void onClick(ClickEvent event) {
                 JSONArray hostIds = new JSONArray();
                 hostIds.set(0, currentHostObject.get("id"));
-                AfeUtils.handleHostsReservations(hostIds, false, "Host released", new SimpleCallback() {
+                AfeUtils.handleHostsReservations(hostIds, false, false, "Host released", new SimpleCallback() {
                     public void doCallback(Object source) {
                         refresh();
                     }
                 });
             }
         });
-        buttons.add(releaseButton);
 
-        addWidget(buttons, "view_host_buttons");
+        releaseButton.setVisible(false);
+        reservation_buttons.add(releaseButton);
+
+        forceReleaseButton.addClickHandler(new ClickHandler() {
+            public void onClick(ClickEvent event) {
+                JSONArray hostIds = new JSONArray();
+                hostIds.set(0, currentHostObject.get("id"));
+                AfeUtils.handleHostsReservations(hostIds, false, true, "Host force released", new SimpleCallback() {
+                    public void doCallback(Object source) {
+                        refresh();
+                    }
+                });
+            }
+        });
+        forceReleaseButton.setVisible(false);
+        reservation_buttons.add(forceReleaseButton);
+
+        addWidget(host_buttons, "view_host_buttons");
+        addWidget(reservation_buttons, "view_host_reservation_buttons");
     }
 
     public void onError(JSONObject errorObject) {

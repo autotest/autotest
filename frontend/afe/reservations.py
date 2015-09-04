@@ -21,11 +21,10 @@
 
 __author__ = "Julius Gawlas <julius.gawlas@hp.com>"
 
-
 from autotest.frontend.afe import models
 
 
-__all__ = ['create', 'release']
+__all__ = ['create', 'release', 'force_release']
 
 
 #
@@ -99,5 +98,28 @@ def release(hosts_to_release, username=None):
     acls = models.AclGroup.objects.filter(name=user.login)
     if acls:
         user_acl = acls[0]
+        user_acl.hosts.remove(*hosts)
+        user_acl.on_host_membership_change()
+
+
+def force_release(hosts_to_release, username=None):
+    """
+    Force release a collection of hosts from user
+
+    This will remove all ACLs from the hosts
+
+    :param hosts_to_release: strings or idents for hosts to release
+    :type hosts_to_release: list
+    :param username: login of the user reserving hosts
+    :type username: str
+    """
+    hosts = models.Host.smart_get_bulk(hosts_to_release)
+    if not hosts:
+        raise Exception("At least one host must be specified")
+    user = get_user(username)
+    if not user.is_superuser():
+        raise Exception("Must be super user to force release")
+    acls = models.AclGroup.objects.all()
+    for user_acl in acls:
         user_acl.hosts.remove(*hosts)
         user_acl.on_host_membership_change()
