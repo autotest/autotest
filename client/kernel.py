@@ -185,7 +185,7 @@ class kernel(BootableKernel):
             self.build_image = 'vmlinux.gz'
         elif arch in ['s390', 's390x']:
             self.build_target = 'image'
-        elif arch in ['ppc64', 'ppc']:
+        elif 'ppc' in arch:
             self.build_target = 'vmlinux'
 
         if not leave:
