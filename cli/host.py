@@ -323,33 +323,62 @@ class host_mod(host):
                                      ', '.join('"%s"' % p
                                                for p in self.protections)),
                                choices=self.protections)
+        self.parser.add_option('-t', '--platform',
+                               help='Sets the platform label')
+        self.parser.add_option('-b', '--labels',
+                               help='Comma separated list of labels')
+        self.parser.add_option('-B', '--blist',
+                               help='File listing the labels',
+                               type='string',
+                               metavar='LABEL_FLIST')
 
     def parse(self):
         """Consume the specific options"""
-        (options, leftover) = super(host_mod, self).parse()
+        label_info = topic_common.item_parse_info(attribute_name='labels',
+                                                  inline_option='labels',
+                                                  filename_option='blist')
+
+        (options, leftover) = super(host_mod, self).parse([label_info])
 
         self._parse_lock_options(options)
+        self.platform = getattr(options, 'platform', None)
 
         if options.protection:
             self.data['protection'] = options.protection
             self.messages.append('Protection set to "%s"' % options.protection)
 
-        if len(self.data) == 0:
-            self.invalid_syntax('No modification requested')
         return (options, leftover)
 
     def execute(self):
+        # We need to check if these labels exist,
+        # and create them if not.
+        if self.platform:
+            self.check_and_create_items('get_labels', 'add_label',
+                                        [self.platform],
+                                        platform=True)
+
+        if self.labels:
+            self.check_and_create_items('get_labels', 'add_label',
+                                        self.labels,
+                                        platform=False)
+
         successes = []
         for host in self.hosts:
-            try:
-                res = self.execute_rpc('modify_host', item=host,
-                                       id=host, **self.data)
-                # TODO: Make the AFE return True or False,
-                # especially for lock
-                successes.append(host)
-            except topic_common.CliError, full_error:
-                # Already logged by execute_rpc()
-                pass
+            labels = self.labels[:]
+            if self.platform:
+                labels.append(self.platform)
+            if len(labels):
+                self.execute_rpc('host_add_labels', id=host, labels=labels)
+            if len(self.data) > 0:
+                try:
+                    res = self.execute_rpc('modify_host', item=host,
+                                           id=host, **self.data)
+                    # TODO: Make the AFE return True or False,
+                    # especially for lock
+                    successes.append(host)
+                except topic_common.CliError, full_error:
+                    # Already logged by execute_rpc()
+                    pass
 
         return successes
 
