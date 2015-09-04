@@ -91,6 +91,26 @@ class CobblerInterface(object):
                 logging.error("DHCP sync failed, error code: %s, error string: %s",
                               err.faultCode, err.faultString)
 
+    def _disable_host_installation(self, host):
+        system, system_handle = self.get_system_handle(host)
+        system_info = self.server.get_system(system)
+
+        # Disable netboot for that machine (principle of least surprise on
+        # failure)
+        self.server.modify_system(system_handle, 'netboot_enabled', 'False',
+                                  self.token)
+        self.server.save_system(system_handle, self.token)
+        try:
+            # Cobbler only generates the DHCP configuration for netboot enabled
+            # machines, so we need to synchronize the dhcpd file after changing
+            # the value above
+            self.server.sync_dhcp(self.token)
+        except xmlrpclib.Fault, err:
+            # older Cobbler will not recognize the above command
+            if "unknown remote method" not in err.faultString:
+                logging.error("DHCP sync failed, error code: %s, error string: %s",
+                              err.faultCode, err.faultString)
+
     def install_host(self, host, profile='', timeout=None, num_attempts=2):
         """
         Install a host object with profile name defined by distro.
@@ -163,6 +183,8 @@ class CobblerInterface(object):
         if not install_successful:
             e_msg = 'Host %s install timed out' % host.hostname
             host.record("END FAIL", None, "install", e_msg)
+            self._disable_host_installation(host)
+
             raise error.HostInstallTimeoutError(e_msg)
 
         remove_hosts_file()
