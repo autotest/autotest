@@ -17,6 +17,7 @@ import tarfile
 import tempfile
 import shutil
 import struct
+import platform
 
 #
 # Get rid of DeprecationWarning messages on newer Python version while still
@@ -861,6 +862,15 @@ class Grubby(object):
                 raise ValueError('Bootloader "%s" is not supported' %
                                  bootloader)
 
+    def _dist_uses_grub2(self):
+        if self.get_architecture().startswith('ppc64'):
+            (d_name, d_version, d_id) = platform.dist()
+            if d_name.lower() == 'redhat' and d_version >= 7:
+                return True
+            if d_name.lower() == 'suse' and d_version >= 12:
+                return True
+        return False
+
     def _run_grubby_prepare_args(self, arguments, include_bootloader=True):
         '''
         Prepares the argument list when running a grubby command
@@ -886,6 +896,8 @@ class Grubby(object):
         # Override configuration file
         if self.opts is not None and self.opts.config_file:
             args.append('--config-file=%s' % self.opts.config_file)
+        elif self._dist_uses_grub2():
+            args.append('--config-file=/boot/grub2/grub.cfg')
 
         args += arguments
         return args
@@ -1666,6 +1678,8 @@ class Grubby(object):
         # Make sure the "set default" entry in the configuration file is set
         # to "${saved_entry}. Assuming the config file is at /boot/grub/grub.cfg
         deb_grub_cfg_path = '/boot/grub/grub.cfg'
+        if self._dist_uses_grub2():
+            deb_grub_cfg_path = '/boot/grub2/grub.cfg'
         deb_grub_cfg_bkp_path = '%s.boottool.bak' % deb_grub_cfg_path
 
         default_index = None
