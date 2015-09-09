@@ -106,13 +106,13 @@ public class HostListView extends TabView implements TableActionsListener {
         AfeUtils.scheduleReinstall(selectedSet, "Hosts", jobCreateListener);
     }
 
-    private void handleHostsReservations(boolean reserve) {
+    private void handleHostsReservations(boolean reserve, boolean force) {
         JSONArray hostIds = getSelectedHostIds();
         if (hostIds == null) {
             return;
         }
 
-        AfeUtils.handleHostsReservations(hostIds, reserve, "DONE", new SimpleCallback() {
+        AfeUtils.handleHostsReservations(hostIds, reserve, force, "DONE", new SimpleCallback() {
             public void doCallback(Object source) {
                 refresh();
             }
@@ -166,12 +166,17 @@ public class HostListView extends TabView implements TableActionsListener {
         });
         menu.addItem("Reserve hosts", new Command() {
             public void execute() {
-                handleHostsReservations(true);
+                handleHostsReservations(true, false);
             }
         });
         menu.addItem("Release hosts", new Command() {
             public void execute() {
-                handleHostsReservations(false);
+                handleHostsReservations(false, false);
+            }
+        });
+        menu.addItem("Force release hosts", new Command() {
+            public void execute() {
+                handleHostsReservations(false, true);
             }
         });
 

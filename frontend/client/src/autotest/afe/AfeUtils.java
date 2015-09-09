@@ -37,7 +37,8 @@ public class AfeUtils {
 
     public static final ClassFactory factory = new SiteClassFactory();
 
-    private static StaticDataRepository staticData = StaticDataRepository.getRepository();
+    private static final StaticDataRepository staticData = StaticDataRepository.getRepository();
+    private static final JSONObject user = staticData.getData("current_user").isObject();
 
     public static String formatStatusCounts(JSONObject counts, String joinWith) {
         StringBuilder result = new StringBuilder();
@@ -387,7 +388,7 @@ public class AfeUtils {
         row.put(targetFieldName, new JSONString(date));
     }
 
-    public static void handleHostsReservations(JSONArray hostIds, final boolean reserve,
+    public static void handleHostsReservations(JSONArray hostIds, final boolean reserve, final boolean force,
             final String message,
             final SimpleCallback callback) {
         JSONObject hostFilterData = new JSONObject();
@@ -397,10 +398,14 @@ public class AfeUtils {
         params.put("host_filter_data", hostFilterData);
 
         String functionName;
-        if (reserve)
+        if (reserve) {
             functionName = "reserve_hosts";
-        else
-            functionName = "release_hosts";
+        } else {
+            if (force)
+                functionName = "force_release_hosts";
+            else
+                functionName = "release_hosts";
+        }
         JsonRpcProxy rpcProxy = JsonRpcProxy.getProxy();
 
         rpcProxy.rpcCall(functionName, params, new JsonRpcCallback() {
@@ -414,4 +419,16 @@ public class AfeUtils {
     }
 
 
+    public static boolean hostIsEveryoneAccessible(JSONObject host)
+    {
+        String hostAcl = Utils.jsonToString(host.get(HostDataSource.HOST_ACLS));
+        return (hostAcl.indexOf(HostDataSource.EVERYONE_ACL) != -1);
+    }
+
+    public static boolean hostIsAclAccessible(JSONObject host)
+    {
+        String hostAcl = Utils.jsonToString(host.get(HostDataSource.HOST_ACLS));
+        String login = Utils.jsonToString(user.get("login"));
+        return (hostAcl.indexOf(login) != -1);
+    }
 }

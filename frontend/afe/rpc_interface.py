@@ -507,6 +507,20 @@ def release_hosts(host_filter_data, username=None):
                          username=username)
 
 
+def force_release_hosts(host_filter_data, username=None):
+    """
+    Force release some hosts (remove all ACLs).
+
+    :param host_filter_data: Filters out which hosts to release.
+    :param username: login of the user releasing hosts, which needs have elevated privileges
+    :type username: str
+    :return: None.
+    """
+    hosts = models.Host.query_objects(host_filter_data)
+    reservations.force_release(hosts_to_release=[h.hostname for h in hosts],
+                               username=username)
+
+
 # tests
 
 def add_test(name, test_type, path, author=None, dependencies=None,
