@@ -16,7 +16,7 @@ from autotest.client import xen, kernel, utils
 from autotest.client.shared import error, boottool, utils_memory
 from autotest.client.shared.settings import settings
 from autotest.client.shared import logging_manager, logging_config
-from autotest.client.shared import base_job_unittest
+from autotest.client.shared import base_job_unittest, distro
 from autotest.client.shared.test_utils import mock
 
 
@@ -445,7 +445,7 @@ class test_base_job(unittest.TestCase):
         self.god.stub_class(kernel, "rpm_kernel")
         self.god.stub_function(kernel, "preprocess_path")
         self.god.stub_function(self.job.pkgmgr, "fetch_pkg")
-        self.god.stub_function(utils, "get_os_vendor")
+        self.god.stub_function(distro, "detect")
         results = 'results_dir'
         tmp = 'tmp'
         build = 'xen'
@@ -459,7 +459,7 @@ class test_base_job(unittest.TestCase):
         kernel.preprocess_path.expect_call(path).and_return(path)
         os.path.exists.expect_call(path).and_return(False)
         self.job.pkgmgr.fetch_pkg.expect_call(path, packages_dir, repo_url='')
-        utils.get_os_vendor.expect_call()
+        distro.detect.expect_call().and_return(distro.LinuxDistro("ubuntu", "15.04", "", "x86_64"))
         mykernel = kernel.rpm_kernel.expect_new(self.job, [packages_dir],
                                                 results)
 
