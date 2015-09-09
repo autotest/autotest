@@ -494,9 +494,8 @@ def detect_distro_type():
         return 'redhat'
     elif os.path.exists('/etc/debian_version'):
         return 'debian'
-    elif os.path.exists('/etc/issue'):
-        if re.match(r'.*SUSE.*', open('/etc/issue').read()):
-            return 'suse'
+    elif os.path.exists('/etc/SuSE-release'):
+        return 'suse'
     else:
         return None
 
