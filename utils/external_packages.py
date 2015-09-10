@@ -664,6 +664,21 @@ class SimplejsonPackage(ExternalPackage):
         ExternalPackage._build_and_install_current_dir_setup_py)
 
 
+class AexpectPackage(ExternalPackage):
+    version = '1.0.0'
+    local_filename = 'aexpect-%s.tar.gz' % version
+    urls = ('http://pypi.python.org/packages/source/a/aexpect/' +
+            local_filename,)
+    hex_sum = '5a1752dd26b4653f8c4ee413455e86879e47c269'
+
+    def _get_installed_version_from_module(self, module):
+        return self.version
+
+    _build_and_install = ExternalPackage._build_and_install_from_package
+    _build_and_install_current_dir = (
+        ExternalPackage._build_and_install_current_dir_noegg)
+
+
 class Httplib2Package(ExternalPackage):
     version = '0.6.0'
     local_filename = 'httplib2-%s.tar.gz' % version
