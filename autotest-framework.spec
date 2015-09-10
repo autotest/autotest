@@ -28,6 +28,7 @@ Requires: python >= 2.4
 Requires: openssh-clients
 Requires: openssh-server
 Requires: rsync
+Requires: aexpect
 Requires: tar, gzip, bzip2, unzip
 
 Requires(post): openssh

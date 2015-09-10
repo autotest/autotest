@@ -56,6 +56,23 @@ it. Other needed packages:
      yum install httpd mod_wsgi mysql-server MySQL-python gnuplot python-crypto python-paramiko java-1.6.0-openjdk-devel python-httplib2
      yum install numpy python-matplotlib libpng-devel freetype-devel python-imaging
 
+And our aexpect package, that can be installed from our COPR repo. Instructions
+to add the repo can be found on:
+
+https://copr.fedoraproject.org/coprs/lmr/Autotest/
+
+With the repo enabled, you can go on to install:
+
+::
+
+    yum install aexpect
+
+Alternatively, you can simply install it from pip:
+
+::
+
+    pip install aexpect
+
 
 Important notes
 ---------------
