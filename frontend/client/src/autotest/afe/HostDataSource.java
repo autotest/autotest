@@ -17,6 +17,7 @@ public class HostDataSource extends RpcDataSource {
     protected static final String LOCKED_TEXT = "locked_text";
     protected static final String OTHER_LABELS = "other_labels";
     protected static final String HOST_ACLS = "host_acls";
+    protected static final String EVERYONE_ACL = "everyone_acl";
 
     public HostDataSource() {
         super("get_hosts", "get_num_hosts");
