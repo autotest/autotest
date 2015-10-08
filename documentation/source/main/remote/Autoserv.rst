@@ -31,7 +31,7 @@ statements.
 Here is an example control file that installs a .deb packaged kernel on
 a remote host controlled through ssh. If this file is placed in the
 ``server/`` directory and named "``example.control``", it can be
-executed as ``./autoserv example.control`` from within the ``server/``
+executed as ``./autotest-remote example.control`` from within the ``server/``
 directory:
 
 ::
