@@ -1,3 +1,6 @@
+.. image:: https://badge.waffle.io/autotest/autotest.png?label=ready&title=Ready 
+ :target: https://waffle.io/autotest/autotest
+ :alt: 'Stories in Ready'
 ========================================================
 Autotest: Fully automated tests under the linux platform
 ========================================================
