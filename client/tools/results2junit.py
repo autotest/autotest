@@ -195,13 +195,21 @@ def main(basedir, resfiles):
             elif r[1] == 'TEST_NA':
                 failures = failures + 1
                 fid = os.path.join(basedir, tname, 'debug', '%s.DEBUG' % tname)
-                contents = text_clean(file_load(fid))
+                debug_contents = file_load(fid)
+                if not debug_contents:
+                    contents = 'Could not find debug file %s' % fid
+                else:
+                    contents = text_clean(debug_contents)
                 tcfailure = api.failureType(message='Test %s is Not Applicable: %s' % (tname, r[3]), type_='Failure', valueOf_="\n<![CDATA[\n%s\n]]>\n" % contents)
                 tc.failure = tcfailure
             elif r[1] == 'ERROR':
                 failures = failures + 1
                 fid = os.path.join(basedir, tname, 'debug', '%s.DEBUG' % tname)
-                contents = text_clean(file_load(fid))
+                debug_contents = file_load(fid)
+                if not debug_contents:
+                    contents = 'Could not find debug file %s' % fid
+                else:
+                    contents = text_clean(debug_contents)
                 tcfailure = api.failureType(message='Test %s has failed' % tname, type_='Failure', valueOf_="\n<![CDATA[\n%s\n]]>\n" % contents)
                 tc.failure = tcfailure
             else:
