@@ -188,20 +188,27 @@ def main(basedir, resfiles):
             tc.classname = 'autotest.%s' % suite
             tc.time = int(r[2])
             tests = tests + 1
+            fid = os.path.join(basedir, tname, 'debug', '%s.DEBUG' % tname)
+            if not os.path.exists(fid):
+                # tag also encoded with '.' delimeter, attempt with file
+                # based on name.tag if suite/name parsing file doesn't exist
+                fid = os.path.join(basedir, tname, 'debug',
+                                   '%s.DEBUG' % os.path.basename(r[0]))
+            debug_contents = file_load(fid)
+            if not debug_contents:
+                contents = 'Could not find debug file %s' % fid
+            else:
+                contents = text_clean(debug_contents)
             if r[1] == 'GOOD':
                 # success, we append the testcase without an error or fail
                 pass
             # Count NA as fails, disable them if you don't want them
             elif r[1] == 'TEST_NA':
                 failures = failures + 1
-                fid = os.path.join(basedir, tname, 'debug', '%s.DEBUG' % tname)
-                contents = text_clean(file_load(fid))
                 tcfailure = api.failureType(message='Test %s is Not Applicable: %s' % (tname, r[3]), type_='Failure', valueOf_="\n<![CDATA[\n%s\n]]>\n" % contents)
                 tc.failure = tcfailure
             elif r[1] == 'ERROR':
                 failures = failures + 1
-                fid = os.path.join(basedir, tname, 'debug', '%s.DEBUG' % tname)
-                contents = text_clean(file_load(fid))
                 tcfailure = api.failureType(message='Test %s has failed' % tname, type_='Failure', valueOf_="\n<![CDATA[\n%s\n]]>\n" % contents)
                 tc.failure = tcfailure
             else:
