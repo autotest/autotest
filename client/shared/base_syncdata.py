@@ -148,7 +148,7 @@ class SyncListenServer(object):
         session.connection[addr[0]] = connection
 
         try:
-            logging.info("Try recv from client")
+            logging.debug("Try recv from client")
             session.sync_data[addr[0]] = net_recv_object(client,
                                                          _DEFAULT_TIMEOUT)
             session.data_recv += 1
@@ -275,7 +275,7 @@ class SyncData(object):
             session_id = self.session_id
         session_id = str(session_id)
         self.endtime = time.time() + timeout
-        logging.info("calling master: %s", self.hosts[0])
+        logging.debug("calling master: %s", self.hosts[0])
         while self.timeout():
             try:
                 self.server = socket.socket(socket.AF_INET,
