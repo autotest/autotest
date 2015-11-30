@@ -146,7 +146,8 @@ class harness_beaker(harness.harness):
                         f = arg_list.pop(0)
                         break
                 if not f:
-                    raise
+                    raise HarnessException("Argument -l not found in q_args "
+                                           "'%s'" % q_args)
                 self.bkr_proxy.task_upload_file(task_id, f)
             except Exception:
                 logging.critical('ERROR: Failed to process quick cmd %s' % cmd)
