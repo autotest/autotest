@@ -472,7 +472,7 @@ class Relationship(Entry):
     _permitted_methods = ('GET', 'DELETE')
 
     # subclasses must override this with a dict mapping name to entry class
-    related_classes = None
+    related_classes = {}
 
     def __init__(self, **kwargs):
         assert len(self.related_classes) == 2
