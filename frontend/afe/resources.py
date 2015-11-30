@@ -362,7 +362,7 @@ class Test(resource_lib.InstanceEntry):
                                        ('name', 'control_file_type',
                                         'control_file_path'))
         test_type = model_attributes.TestTypes.get_value(
-            input['control_file_type'])
+            input_dict['control_file_type'])
         return models.Test.add_object(name=input_dict['name'],
                                       test_type=test_type,
                                       path=input_dict['control_file_path'])

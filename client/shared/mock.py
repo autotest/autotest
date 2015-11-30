@@ -832,7 +832,8 @@ class NonCallableMock(Base):
         expected_string = self._format_mock_call_signature(args, kwargs)
         call_args = self.call_args
         if len(call_args) == 3:
-            call_args = call_args[1:]
+            # Can't get here when selc.call_args is None, ignore E1136
+            call_args = call_args[1:]   # pylint: disable=E1136
         actual_string = self._format_mock_call_signature(*call_args)
         return message % (expected_string, actual_string)
 

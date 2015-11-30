@@ -14,7 +14,8 @@ _request_headers = {}
 
 
 def _get_request_headers(uri):
-    server = urlparse.urlparse(uri)[0:2]
+    # ParseResult is subscriptable, ignore E1136
+    server = urlparse.urlparse(uri)[0:2]    # pylint: disable=E1136
     if server in _request_headers:
         return _request_headers[server]
 
@@ -26,7 +27,8 @@ def _get_request_headers(uri):
 
 
 def _clear_request_headers(uri):
-    server = urlparse.urlparse(uri)[0:2]
+    # ParseResult is subscriptable, ignore E1136
+    server = urlparse.urlparse(uri)[0:2]    # pylint: disable=E1136
     if server in _request_headers:
         del _request_headers[server]
 

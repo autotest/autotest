@@ -78,7 +78,7 @@ class ExternalPackage(object):
     """
     subclasses = []
     urls = ()
-    local_filename = None
+    local_filename = ""
     hex_sum = None
     module_name = None
     version = None
