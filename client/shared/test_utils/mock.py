@@ -449,7 +449,8 @@ class mock_god(object):
                                       _dump_function_call(symbol, args, dargs))
 
         if len(self.recording) != 0:
-            func_call = self.recording[0]
+            # self.recording is subscriptable (deque), ignore E1136
+            func_call = self.recording[0]   # pylint: disable=E1136
             if func_call.symbol != symbol:
                 msg = ("Unexpected call: %s\nExpected: %s"
                        % (_dump_function_call(symbol, args, dargs),

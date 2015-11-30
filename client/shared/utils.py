@@ -709,7 +709,7 @@ def is_url(path):
     """Return true if path looks like a URL"""
     # for now, just handle http and ftp
     url_parts = urlparse.urlparse(path)
-    return (url_parts[0] in ('http', 'ftp', 'git'))
+    return (url_parts[0] in ('http', 'ftp', 'git'))  # pylint: disable=E1136
 
 
 def urlopen(url, data=None, timeout=5):
@@ -797,7 +797,8 @@ def unmap_url(srcdir, src, destdir='.'):
     """
     if is_url(src):
         url_parts = urlparse.urlparse(src)
-        filename = os.path.basename(url_parts[2])
+        # ParseResult is subscriptable, ignore E1136
+        filename = os.path.basename(url_parts[2])  # pylint: disable=E1136
         dest = os.path.join(destdir, filename)
         return get_file(src, dest)
     else:
