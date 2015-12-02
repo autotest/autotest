@@ -4,7 +4,7 @@
 
 import cPickle
 
-import common
+import common  # pylint: disable=W0611
 from autotest.client.shared import utils
 from autotest.client.shared.test_utils import mock, unittest
 from autotest.scheduler import drones

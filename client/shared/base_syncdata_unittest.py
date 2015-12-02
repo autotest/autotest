@@ -8,9 +8,9 @@ import time
 import pickle
 import os
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.client.shared.test_utils import mock, unittest
 from autotest.client.shared import error, base_syncdata, barrier
 from autotest.client.shared import utils

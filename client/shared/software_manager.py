@@ -28,9 +28,9 @@ except ImportError:
     HAS_YUM_MODULE = False
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 
 from autotest.client import os_dep, utils
 from autotest.client.shared import error, distro

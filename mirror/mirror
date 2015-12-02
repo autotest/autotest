@@ -7,7 +7,7 @@ import re
 try:
     import autotest.common
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.mirror import trigger
 
 default_config_path = os.path.expanduser(

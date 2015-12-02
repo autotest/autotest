@@ -28,9 +28,9 @@ Most options should be fairly self explanatory, use --help to display them.
 
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 import logging
 import re
 import os

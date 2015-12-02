@@ -8,9 +8,9 @@ import re
 import os
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.frontend.afe import model_logic
 from autotest.client.shared.settings import settings
 import autotest.frontend.settings as frontend_settings

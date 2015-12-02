@@ -7,7 +7,7 @@ import os
 import tempfile
 import logging
 
-import common
+import common  # pylint: disable=W0611
 from autotest.server import autotest_remote, utils, hosts, server_job, profilers
 from autotest.client import sysinfo
 from autotest.client import utils as client_utils

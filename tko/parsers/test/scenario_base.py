@@ -12,9 +12,9 @@ import time
 import difflib
 import itertools
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.client.shared import utils, autotemp
 from autotest.tko import status_lib
 from autotest.tko.parsers.test import templates

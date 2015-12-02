@@ -10,9 +10,9 @@ import os
 import sys
 from os import path
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.tko.parsers.test import scenario_base
 
 

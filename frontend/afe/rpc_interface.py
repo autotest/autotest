@@ -36,9 +36,9 @@ import os
 # psutil is a non stdlib import, it needs to be installed
 import psutil
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.frontend.afe import models, model_logic, model_attributes
 from autotest.frontend.afe import control_file, rpc_utils, reservations
 from autotest.server.hosts.remote import get_install_server_info

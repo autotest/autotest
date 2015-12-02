@@ -4,9 +4,9 @@ see http://linux.die.net/man/8/tc for details about traffic controls in linux.
 
 Example
   try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
   from autotest.client.net.net_tc import *
   from autotest.client.net.net_utils import *
 
@@ -41,9 +41,9 @@ except ImportError:
 """
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.client.shared import error
 
 # TODO (chavey) clean up those global here and new_handle()

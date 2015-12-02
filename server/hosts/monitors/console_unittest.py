@@ -9,7 +9,7 @@ import StringIO
 import tempfile
 import unittest
 
-import common
+import common  # pylint: disable=W0611
 from autotest.client.shared.test_utils import mock
 from autotest.server.hosts.monitors import console
 

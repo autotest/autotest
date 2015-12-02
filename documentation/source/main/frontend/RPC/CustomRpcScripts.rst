@@ -13,7 +13,7 @@ Basically:
 
    ::
 
-       import common
+       import common  # pylint: disable=W0611
        from autotest_lib.cli import rpc
 
 -  to create the object you need for making the rpc calls use "comm =

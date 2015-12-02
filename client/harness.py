@@ -8,9 +8,9 @@ __author__ = """Copyright Andy Whitcroft 2006"""
 import os
 import logging
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 
 
 class harness(object):

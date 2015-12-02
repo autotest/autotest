@@ -21,7 +21,7 @@
 import unittest
 from mock import MagicMock, patch
 
-import common
+import common  # pylint: disable=W0611
 from autotest.client.shared import service
 
 

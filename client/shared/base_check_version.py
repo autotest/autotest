@@ -20,7 +20,7 @@ class base_check_python_version:
         # new one by default. Some things (like running under mod_python) just
         # plain don't handle python restarting properly. I know that I do some
         # development under ipython and whenever I run (or do anything that
-        # runs) 'import common' it restarts my shell. Overall, the change was
+        # runs) 'import common  # pylint: disable=W0611' it restarts my shell. Overall, the change was
         # fairly annoying for me (and I can't get around having 2.4 and 2.5
         # installed with 2.5 being default).
         if not version or version < (2, 4) or version >= (3, 0):

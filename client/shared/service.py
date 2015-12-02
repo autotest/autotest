@@ -20,7 +20,7 @@ import os
 import re
 import logging
 
-import common
+import common  # pylint: disable=W0611
 import error
 from tempfile import mktemp
 from autotest.client import utils

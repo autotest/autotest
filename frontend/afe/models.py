@@ -4,9 +4,9 @@ from datetime import datetime
 from django.db import models as dbmodels, connection
 from xml.sax import saxutils
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.frontend.afe import model_logic, model_attributes
 from autotest.frontend import thread_local
 from autotest.frontend import settings as frontend_settings

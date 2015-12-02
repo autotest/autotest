@@ -17,9 +17,9 @@ import sys
 
 # we can replace this with a @attr(duration='long') on each test
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 
 REQUIRES_DJANGO = set((
     'monitor_db_unittest.py',

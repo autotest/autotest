@@ -12,9 +12,9 @@ import threading
 import Queue
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.cli import cli_mock, threads
 
 

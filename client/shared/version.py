@@ -36,7 +36,7 @@ __all__ = ("get_version",)
 
 import os
 import sys
-import common
+import common  # pylint: disable=W0611
 import datetime
 from autotest.client import utils
 from autotest.client.shared import error

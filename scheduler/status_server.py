@@ -5,9 +5,9 @@ import urllib
 import fcntl
 import logging
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.scheduler import drone_manager, scheduler_config
 
 _PORT = 13467
