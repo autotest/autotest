@@ -37,7 +37,7 @@ import os
 import sys
 import optparse
 import compiler
-from autotest.frontend import setup_django_environment
+from autotest.frontend import setup_django_environment  # pylint: disable=W0611
 from autotest.frontend.afe import models
 from autotest.client.shared import control_data, utils
 from autotest.client.shared import logging_config, logging_manager

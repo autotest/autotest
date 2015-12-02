@@ -10,8 +10,8 @@ import unittest
 from autotest.client.shared.settings import settings
 settings.override_value('HOSTS', 'default_protection', 'NO_PROTECTION')
 
-from autotest.frontend import setup_django_environment
-from autotest.frontend import setup_test_environment
+from autotest.frontend import setup_django_environment  # pylint: disable=W0611
+from autotest.frontend import setup_test_environment  # pylint: disable=W0611
 from autotest.frontend.shared import resource_test_utils
 from autotest.frontend.afe import control_file, models, model_attributes
 

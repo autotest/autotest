@@ -7,8 +7,8 @@ try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:
     import common  # pylint: disable=W0611
-from autotest.frontend import setup_django_environment
-from autotest.frontend import setup_test_environment
+from autotest.frontend import setup_django_environment  # pylint: disable=W0611
+from autotest.frontend import setup_test_environment  # pylint: disable=W0611
 from autotest.client.shared.test_utils import mock
 from django.db import connection
 from autotest.frontend.tko import models, rpc_interface

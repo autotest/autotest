@@ -6,8 +6,8 @@ except ImportError:
     import common  # pylint: disable=W0611
 import unittest
 from autotest.client.shared.test_utils import mock
-from autotest.frontend import setup_django_environment
-from autotest.frontend import setup_test_environment
+from autotest.frontend import setup_django_environment  # pylint: disable=W0611
+from autotest.frontend import setup_test_environment  # pylint: disable=W0611
 from autotest.scheduler import metahost_scheduler, scheduler_models
 
 

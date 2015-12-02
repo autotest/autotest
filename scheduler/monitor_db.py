@@ -17,7 +17,7 @@ import logging
 import gc
 
 from autotest.scheduler import scheduler_logging_config
-from autotest.frontend import setup_django_environment
+from autotest.frontend import setup_django_environment  # pylint: disable=W0611
 
 import django.db
 

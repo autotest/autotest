@@ -2,7 +2,7 @@
 
 from autotest.client.shared import distro_def
 from autotest.frontend import optparser
-from autotest.frontend import setup_django_environment
+from autotest.frontend import setup_django_environment  # pylint: disable=W0611
 from autotest.frontend.afe import models
 
 

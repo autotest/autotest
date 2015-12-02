@@ -5,8 +5,8 @@ try:
 except ImportError:
     import common  # pylint: disable=W0611
 import unittest
-from autotest.frontend import setup_django_environment
-from autotest.frontend import setup_test_environment
+from autotest.frontend import setup_django_environment  # pylint: disable=W0611
+from autotest.frontend import setup_test_environment  # pylint: disable=W0611
 from autotest.client.shared.test_utils import mock
 from autotest.frontend.shared import resource_test_utils
 from autotest.frontend.tko import models, rpc_interface_unittest

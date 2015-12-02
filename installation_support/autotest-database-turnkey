@@ -20,7 +20,7 @@ try:
 except ImportError:
     import common  # pylint: disable=W0611
 
-from autotest.frontend import setup_django_environment
+from autotest.frontend import setup_django_environment  # pylint: disable=W0611
 from autotest.installation_support import database_manager
 from autotest.installation_support import global_config_set_value
 from autotest.client.shared import settings

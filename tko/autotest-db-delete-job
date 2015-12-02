@@ -13,7 +13,7 @@ from autotest.client.shared.settings import settings
 from autotest.client.shared import logging_manager, logging_config
 from autotest.client import utils
 from autotest.frontend import optparser
-from autotest.frontend import setup_django_environment
+from autotest.frontend import setup_django_environment  # pylint: disable=W0611
 from autotest.frontend.tko import models_utils as tko_models_utils
 from autotest.frontend.afe import models_utils as afe_models_utils
 
