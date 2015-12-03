@@ -14,9 +14,8 @@ before_script:
     - make -C tko
 
 install:
-    - pip install sphinx tox simplejson MySQL-python autopep8
+    - pip install sphinx tox simplejson MySQL-python
     - pip install -r requirements.txt
-    - pip install inspektor
 
 script:
     - inspekt indent
