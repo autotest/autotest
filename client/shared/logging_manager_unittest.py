@@ -6,12 +6,34 @@ import os
 import select
 import subprocess
 import unittest
+import functools
+import types
+from nose.plugins.skip import SkipTest
 
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:
     import common  # pylint: disable=W0611
 from autotest.client.shared import logging_manager, logging_config
+
+
+def skip(reason):
+    def decorator(test_item):
+        if not isinstance(test_item, (type, types.ClassType)):
+            @functools.wraps(test_item)
+            def skip_wrapper(*args, **kwargs):
+                raise SkipTest(reason)
+            test_item = skip_wrapper
+        elif issubclass(test_item, unittest.TestCase):
+            @classmethod
+            @functools.wraps(test_item.setUpClass)
+            def skip_wrapper(*args, **kwargs):
+                raise SkipTest(reason)
+            test_item.setUpClass = skip_wrapper
+        test_item.__unittest_skip__ = True
+        test_item.__unittest_skip_why__ = reason
+        return test_item
+    return decorator
 
 
 class PipedStringIO(object):
@@ -213,19 +235,19 @@ class LoggingManagerTest(unittest.TestCase):
         self._compare_logs(self._log1, _EXPECTED_LOG1)
         self._compare_logs(self._log2, _EXPECTED_LOG2)
 
-    @unittest.skip("logging manager does not behave well under nosetests")
+    @skip("logging manager does not behave well under nosetests")
     def test_logging_manager(self):
         self._run_test(logging_manager.LoggingManager)
         self._check_results()
 
-    @unittest.skip("logging manager does not behave well under nosetests")
+    @skip("logging manager does not behave well under nosetests")
     def test_fd_redirection_logging_manager(self):
         self._real_system_calls = True
         self._fd_info = self._grab_fd_info()
         self._run_test(logging_manager.FdRedirectionLoggingManager)
         self._check_results()
 
-    @unittest.skip("logging manager does not behave well under nosetests")
+    @skip("logging manager does not behave well under nosetests")
     def test_tee_redirect_debug_dir(self):
         manager = self._setup_manager()
         manager.start_logging()

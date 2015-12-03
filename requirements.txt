@@ -9,3 +9,4 @@ astroid==1.1.0
 pylint==1.2.0
 aexpect==1.0.0
 inspektor==0.2.0
+protobuf==2.6.1

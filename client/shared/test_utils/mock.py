@@ -310,8 +310,12 @@ class mock_god(object):
             @classmethod
             def make_new(typ, *args, **dargs):
                 # pylint: disable=E1003
-                obj = super(cls_sub, typ).__new__(typ, *args,
-                                                  **dargs)
+                super_class = super(cls_sub, typ)
+                if isinstance(super_class, object):
+                    obj = super_class.__new__(typ)
+                else:
+                    obj = super(cls_sub, typ).__new__(typ, *args,
+                                                      **dargs)
 
                 typ.cls_count += 1
                 obj_name = "%s_%s" % (name, typ.cls_count)
