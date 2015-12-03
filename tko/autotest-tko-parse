@@ -1,12 +1,12 @@
 #!/usr/bin/python -u
 
-import os
-import sys
-import fcntl
 import errno
-import traceback
-import socket
+import fcntl
 import logging
+import os
+import socket
+import sys
+import traceback
 
 try:
     import autotest.common as common  # pylint: disable=W0611
@@ -14,7 +14,7 @@ except ImportError:
     import common  # pylint: disable=W0611
 from autotest.client.shared import mail, pidfile
 from autotest.client.shared import logging_manager, logging_config
-from autotest.tko import utils as tko_utils, status_lib, models, dbutils
+from autotest.tko import status_lib, models, dbutils
 from autotest.client.shared import utils
 from autotest.frontend import optparser
 from autotest.frontend import setup_django_environment  # pylint: disable=W0611

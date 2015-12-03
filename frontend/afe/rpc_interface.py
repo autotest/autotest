@@ -30,9 +30,9 @@ See doctests/001_rpc_test.txt for (lots) more examples.
 __author__ = 'showard@google.com (Steve Howard)'
 
 import datetime
-import xmlrpclib
 import logging
 import os
+import xmlrpclib
 # psutil is a non stdlib import, it needs to be installed
 import psutil
 try:

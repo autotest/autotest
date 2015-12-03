@@ -5,14 +5,12 @@
 """Tests for test."""
 
 import unittest
-import sys
-import os
 
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:
     import common  # pylint: disable=W0611
-from autotest.cli import cli_mock, topic_common, test
+from autotest.cli import cli_mock
 
 
 class test_list_unittest(cli_mock.cli_unittest):

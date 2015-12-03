@@ -20,11 +20,10 @@
 
 
 import getopt
-import sys
 import os
-import time
 import select
-import signal
+import sys
+import time
 from glob import glob
 
 # BEGIN_VERSION_GENERATION

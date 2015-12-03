@@ -10,12 +10,11 @@ You should import the "hosts" package instead of importing each type of host.
         SSHHost: a remote machine with a ssh access
 """
 
-import sys
-import re
-import traceback
 import logging
-import subprocess
 import os
+import re
+import subprocess
+
 from autotest.client.shared import error, ssh_key
 from autotest.server import utils
 from autotest.server.hosts import abstract_ssh

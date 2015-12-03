@@ -19,7 +19,6 @@ import types
 from autotest.client.shared import barrier, utils
 from autotest.server import subcommand
 
-
 # A dictionary of pid and a list of tmpdirs for that pid
 __tmp_dirs = {}
 

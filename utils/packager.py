@@ -5,11 +5,12 @@ Utility to upload or remove the packages from the packages repository.
 """
 
 import logging
-import os
-import sys
 import optparse
-import tempfile
+import os
 import shutil
+import sys
+import tempfile
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

@@ -18,10 +18,9 @@
 #  The full GNU General Public License is included in this distribution in
 #  the file called "COPYING".
 
-import unittest
-import sys
 import pickle
-import doctest
+import sys
+import unittest
 
 try:
     import autotest.common as common  # pylint: disable=W0611

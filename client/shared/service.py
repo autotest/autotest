@@ -16,15 +16,14 @@
 #  The full GNU General Public License is included in this distribution in
 #  the file called "COPYING".
 
+import logging
 import os
 import re
-import logging
-
-import common  # pylint: disable=W0611
-import error
 from tempfile import mktemp
+
 from autotest.client import utils
 
+import error
 
 _COMMAND_TABLE_DOC = """
 

@@ -2,9 +2,8 @@
 
 import os
 import sys
-import unittest_suite
-from autotest.client.shared import utils
 
+from autotest.client.shared import utils
 
 root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 

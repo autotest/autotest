@@ -33,8 +33,8 @@ The ramdisk volume group size is in MB.
 """
 
 import logging
-import re
 import os
+import re
 import shutil
 import time
 

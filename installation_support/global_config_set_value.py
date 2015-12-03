@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
-import re
-import sys
 import logging
 import optparse
+import re
+import sys
 
 
 def set_value(path, section, key, value):

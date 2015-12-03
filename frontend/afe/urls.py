@@ -1,7 +1,7 @@
-from django.conf.urls import defaults
 from autotest.frontend import settings, urls_common
-from autotest.frontend.afe.feeds import feed
 from autotest.frontend.afe import resources
+from autotest.frontend.afe.feeds import feed
+from django.conf.urls import defaults
 
 feeds = {
     'jobs': feed.JobFeed

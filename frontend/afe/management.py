@@ -1,5 +1,4 @@
 from django.contrib import auth
-from autotest.frontend.afe import models
 from south.signals import post_migrate
 
 BASIC_ADMIN = 'Basic admin'

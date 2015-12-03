@@ -1,9 +1,10 @@
 """
 Run iostat with a default interval of 1 second.
 """
-import time
 import os
 import subprocess
+import time
+
 from autotest.client import profiler
 from autotest.client.shared import utils, error
 

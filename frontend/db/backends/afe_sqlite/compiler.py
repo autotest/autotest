@@ -1,5 +1,5 @@
-from django.db.models.sql import compiler
 from autotest.frontend.afe.model_logic import _quote_name
+from django.db.models.sql import compiler
 
 
 class SQLCompiler(compiler.SQLCompiler):

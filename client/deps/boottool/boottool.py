@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import os
+
 from autotest.client import utils
 
 # To use this, you have to set PERL5LIB to:

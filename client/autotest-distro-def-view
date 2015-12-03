@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
-import sys
 import optparse
+import sys
 
 try:
     import autotest.common as common  # pylint: disable=W0611

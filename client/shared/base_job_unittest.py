@@ -1,12 +1,11 @@
 #!/usr/bin/python
 
+import logging
 import os
+import shutil
 import stat
 import tempfile
-import shutil
-import logging
 import unittest
-
 
 try:
     import autotest.common as common  # pylint: disable=W0611

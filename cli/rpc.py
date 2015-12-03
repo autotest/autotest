@@ -3,8 +3,9 @@
 #
 
 import os
-from autotest.frontend.afe import rpc_client_lib
+
 from autotest.client.shared.settings import settings
+from autotest.frontend.afe import rpc_client_lib
 
 DEFAULT_SERVER = 'autotest'
 AFE_RPC_PATH = '/afe/server/rpc/'

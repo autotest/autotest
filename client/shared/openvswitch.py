@@ -1,8 +1,8 @@
 import logging
-import re
 import os
-import select
+import re
 import signal
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

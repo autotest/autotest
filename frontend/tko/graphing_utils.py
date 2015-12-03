@@ -1,11 +1,12 @@
 import base64
-import tempfile
-import pickle
 import datetime
-import django
-import os.path
 import getpass
+import os.path
+import pickle
+import tempfile
 from math import sqrt
+
+import django
 
 # When you import matplotlib, it tries to write some temp files for better
 # performance, and it does that to the directory in MPLCONFIGDIR, or, if that

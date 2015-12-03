@@ -6,7 +6,6 @@ import sys
 
 from django.core.management import execute_from_command_line
 
-
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

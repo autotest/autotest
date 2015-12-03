@@ -1,11 +1,12 @@
 #!/usr/bin/python
 
+import StringIO
 import logging
 import os
-import StringIO
+import select
 import subprocess
 import unittest
-import select
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

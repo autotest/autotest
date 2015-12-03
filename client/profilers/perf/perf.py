@@ -5,11 +5,12 @@ supports functionality similar to oprofile and more.
 @see: http://lwn.net/Articles/310260/
 """
 
+import logging
 import os
+import signal
 import stat
 import subprocess
-import signal
-import logging
+
 from autotest.client import profiler, os_dep, utils
 
 

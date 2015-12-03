@@ -4,9 +4,9 @@ try:
 except ImportError:
     import common  # pylint: disable=W0611
 
-import sys
 import os
 import subprocess
+import sys
 
 # We want to set the output (stdout&stderr) of the autotest binary onto our
 # stdout channel. We went to get the status stream of autotest back on our

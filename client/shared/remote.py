@@ -2,17 +2,18 @@
 Functions and classes used for logging into guests and transferring files.
 """
 import logging
-import time
-import re
 import os
+import re
 import shutil
 import tempfile
-import aexpect
-import rss_client
+import time
 
-import error
-import utils
+import aexpect
+
 import data_dir
+import error
+import rss_client
+import utils
 
 
 class LoginError(Exception):

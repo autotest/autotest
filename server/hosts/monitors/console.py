@@ -9,7 +9,12 @@ import os
 import signal
 import sys
 import time
-import common  # pylint: disable=W0611
+
+try:
+    import autotest.common as common  # pylint: disable=W0611
+except ImportError:
+    import common  # pylint: disable=W0611
+
 from autotest.server.hosts.monitors import monitors_util
 
 PATTERNS_PATH = os.path.join(os.path.dirname(__file__), 'console_patterns')

@@ -6,10 +6,11 @@ This library is to release in the public repository.
 import os
 import re
 import socket
-import time
 import struct
-from autotest.client.shared import error
+import time
+
 from autotest.client import utils
+from autotest.client.shared import error
 
 TIMEOUT = 10  # Used for socket timeout and barrier timeout
 

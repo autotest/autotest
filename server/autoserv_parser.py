@@ -1,6 +1,6 @@
+import optparse
 import os
 import sys
-import optparse
 
 from autotest.client.shared import host_protections, utils
 

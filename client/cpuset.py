@@ -4,15 +4,14 @@ __author__ = "duanes (Duane Sand), pdahl (Peter Dahl)"
 # A basic cpuset/cgroup container manager for limiting memory use during tests
 #   for use on kernels not running some site-specific container manager
 
+import fcntl
+import glob
+import logging
 import os
 import re
-import glob
-import fcntl
-import logging
 
 from autotest.client import utils
 from autotest.client.shared import error, utils_memory
-
 
 SUPER_ROOT = ''      # root of all containers or cgroups
 NO_LIMIT = (1 << 63) - 1   # containername/memory.limit_in_bytes if no limit

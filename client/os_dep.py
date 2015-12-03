@@ -19,9 +19,9 @@
 #  the file called "COPYING".
 
 
-import os
 import itertools
 import logging
+import os
 from glob import glob
 
 try:

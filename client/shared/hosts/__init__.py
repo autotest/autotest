@@ -7,6 +7,7 @@ You should 'import hosts' instead of importing every available host module.
 """
 
 from autotest.client.shared import utils
+
 import base_classes
 
 Host = utils.import_site_class(

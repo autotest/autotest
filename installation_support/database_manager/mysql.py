@@ -5,7 +5,6 @@ MySQL implementation of the database manager interface
 import logging
 
 import MySQLdb
-
 from autotest.installation_support.database_manager import base
 
 

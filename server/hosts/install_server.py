@@ -1,10 +1,11 @@
 """
 Install server interfaces, for autotest client machine OS provisioning.
 """
-import os
-import xmlrpclib
 import logging
+import os
 import time
+import xmlrpclib
+
 from autotest.client.shared import error
 
 

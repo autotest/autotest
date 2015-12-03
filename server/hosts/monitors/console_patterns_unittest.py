@@ -7,6 +7,7 @@ except ImportError:
 import cStringIO
 import os
 import unittest
+
 from autotest.server.hosts.monitors import monitors_util
 
 

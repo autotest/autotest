@@ -21,9 +21,10 @@ API Usage:
 import logging
 import optparse
 import os
-import sys
 import string
 import struct
+import sys
+
 import logging_config
 import logging_manager
 

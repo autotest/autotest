@@ -12,8 +12,9 @@
 #    glue_testsuites [jUnit_filename]...
 #
 
-import sys
 import os
+import sys
+
 
 # file_load
 #

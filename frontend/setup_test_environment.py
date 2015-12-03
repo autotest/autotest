@@ -1,5 +1,6 @@
-from django.core import management
 from django.conf import settings
+from django.core import management
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

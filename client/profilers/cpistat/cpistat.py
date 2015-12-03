@@ -6,6 +6,7 @@ job.profilers.add('cpistat', interval=1)
 """
 import os
 import subprocess
+
 from autotest.client import profiler
 
 

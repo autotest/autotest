@@ -2,13 +2,14 @@ try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:
     import common  # pylint: disable=W0611
-import os
 import doctest
 import glob
-import sys
+import os
+
+import django.test.utils
 from django.conf import settings
 from django.db import connection
-import django.test.utils
+
 
 # doctest takes a copy+paste log of a Python interactive session, runs a Python
 # interpreter, and replays all the inputs from the log, checking that the

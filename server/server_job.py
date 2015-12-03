@@ -22,13 +22,20 @@ import pickle
 import logging
 import itertools
 import errno
+
 from autotest.client import sysinfo
 from autotest.client.shared import base_job
-from autotest.client.shared import error, utils, packages
+from autotest.client.shared import error
+from autotest.client.shared import utils
+from autotest.client.shared import packages
 from autotest.client.shared import logging_manager
-from autotest.server import test, subcommand, profilers
+from autotest.server import test
+from autotest.server import subcommand
+from autotest.server import profilers
 from autotest.server.hosts import abstract_ssh
-from autotest.tko import dbutils, status_lib, utils as tko_utils
+from autotest.tko import dbutils
+from autotest.tko import status_lib
+from autotest.tko import utils as tko_utils  # pylint: disable=W0611
 from autotest.frontend.tko import models_utils
 
 

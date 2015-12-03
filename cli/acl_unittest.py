@@ -4,14 +4,14 @@
 
 """Test for acl."""
 
-import unittest
 import sys
+import unittest
 
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:
     import common  # pylint: disable=W0611
-from autotest.cli import topic_common, action_common, acl, cli_mock
+from autotest.cli import acl, cli_mock
 
 
 class acl_list_unittest(cli_mock.cli_unittest):

@@ -18,9 +18,9 @@
 #  The full GNU General Public License is included in this distribution in
 #  the file called "COPYING".
 
+import imp
 import os
 import sys
-import imp
 import unittest
 
 try:

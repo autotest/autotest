@@ -6,12 +6,12 @@ compute and check regression bug.
 :copyright: Red Hat 2011-2012
 :author: Amos Kong <akong@redhat.com>
 """
-import os
-import sys
-import re
-import commands
-import warnings
 import ConfigParser
+import commands
+import os
+import re
+import sys
+import warnings
 
 import MySQLdb
 

@@ -43,9 +43,8 @@ this will exit 0 whether pattern displays anything or not
 __author__ = 'jmeurin@google.com (Jean-Marc Eurin)'
 
 import os
-import sys
-import optparse
 import re
+import sys
 import traceback
 
 try:

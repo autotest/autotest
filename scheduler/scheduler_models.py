@@ -30,13 +30,14 @@ import re
 import sys
 import time
 import weakref
+
 from autotest.client.shared import host_protections, mail
 from autotest.client.shared.settings import settings
-from autotest.frontend.afe import models, model_attributes
 from autotest.database_legacy import database_connection
+from autotest.frontend.afe import models, model_attributes
+from autotest.frontend.afe import reservations
 from autotest.scheduler import drone_manager
 from autotest.scheduler import scheduler_config
-from autotest.frontend.afe import reservations
 
 _notify_email_statuses = []
 _notify_admin_email_statuses = []

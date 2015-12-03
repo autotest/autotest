@@ -1,9 +1,10 @@
-import os
-import logging
 import ConfigParser
+import logging
+import os
+
+from autotest.client import harness
 from autotest.client.shared import autotemp, base_packages, error
 from autotest.client.shared.settings import settings
-from autotest.client import harness
 
 
 class harness_autoserv(harness.harness):

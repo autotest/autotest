@@ -8,7 +8,7 @@ try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:
     import common  # pylint: disable=W0611
-from autotest.cli import cli_mock, topic_common, atomicgroup
+from autotest.cli import cli_mock
 
 
 class atomicgroup_unittest(cli_mock.cli_unittest):

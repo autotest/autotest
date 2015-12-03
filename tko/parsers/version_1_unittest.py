@@ -1,8 +1,8 @@
 #!/usr/bin/python
 
-import unittest
 import datetime
 import time
+import unittest
 
 try:
     import autotest.common as common  # pylint: disable=W0611

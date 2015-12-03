@@ -1,14 +1,14 @@
 #!/usr/bin/python
 
+import StringIO
 import fcntl
 import os
-import signal
 import subprocess
-import StringIO
 import tempfile
 import textwrap
 import time
 import unittest
+
 import monitors_util
 
 

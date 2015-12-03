@@ -4,12 +4,9 @@
 
 """Tests for thread."""
 
-import unittest
-import sys
-import os
-
-import threading
 import Queue
+import threading
+import unittest
 
 try:
     import autotest.common as common  # pylint: disable=W0611

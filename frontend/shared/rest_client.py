@@ -4,11 +4,11 @@ import logging
 import pprint
 import urllib
 import urlparse
-import httplib2
-from django.utils import datastructures, simplejson
-from autotest.frontend.afe import rpc_client_lib
-from autotest.client.shared import utils
 
+import httplib2
+from autotest.client.shared import utils
+from autotest.frontend.afe import rpc_client_lib
+from django.utils import datastructures, simplejson
 
 _request_headers = {}
 

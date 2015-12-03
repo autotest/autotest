@@ -6,13 +6,10 @@ This script attemps to make it trivial to create the Autotest server database
 and populate with the needed schema, all in one simple command
 """
 
-
-import os
-import re
 import logging
 import optparse
+import os
 
-import MySQLdb
 import django.core.management
 
 try:

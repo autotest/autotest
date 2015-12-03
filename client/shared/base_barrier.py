@@ -1,7 +1,8 @@
-import socket
 import errno
 import logging
+import socket
 from time import time, sleep
+
 from autotest.client.shared import error
 
 # default barrier port

@@ -1,10 +1,9 @@
-import sys
 import os
 import re
+import sys
 
 from autotest.client import utils, fsinfo, fsdev_mgr, partition
 from autotest.client.shared import error
-
 
 fd_mgr = fsdev_mgr.FsdevManager()
 

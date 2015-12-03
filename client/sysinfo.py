@@ -1,5 +1,5 @@
-from autotest.client.shared import utils
 from autotest.client import base_sysinfo
+from autotest.client.shared import utils
 
 sysinfo = utils.import_site_class(__file__,
                                   "autotest.client.site_sysinfo",

@@ -19,15 +19,15 @@
 #       tmpdir          eg. tmp/<testname.tag>
 #       virtdir         eg. virt
 
-import os
-import logging
-import resource
 import glob
+import logging
+import os
+import resource
 
-from autotest.client.shared import utils
+from autotest.client import os_dep
 from autotest.client.shared import settings
 from autotest.client.shared import test as common_test
-from autotest.client import os_dep
+from autotest.client.shared import utils
 
 
 class test(common_test.base_test):

@@ -22,13 +22,13 @@ bkr_proxy - class used to talk to beaker
 """
 __author__ = """Don Zickus 2013"""
 
-
-import time
-import os
 import logging
+import os
 import re
+import time
 import urllib
 import urllib2
+
 from autotest.client.shared import utils
 
 log = logging

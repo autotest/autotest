@@ -1,5 +1,5 @@
 import os
-import sys
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

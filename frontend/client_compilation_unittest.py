@@ -1,10 +1,7 @@
 #!/usr/bin/python
 
 import os
-import shutil
-import tempfile
 import unittest
-import logging
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

@@ -1,18 +1,19 @@
 #!/usr/bin/python
 
-import pickle
-import subprocess
-import os
-import shutil
-import sys
-import time
-import signal
-import getpass
-import logging
 import datetime
-import traceback
-import tempfile
+import getpass
 import itertools
+import logging
+import os
+import pickle
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+import time
+import traceback
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

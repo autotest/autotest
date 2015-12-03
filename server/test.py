@@ -3,9 +3,9 @@
 # Define the server-side test class
 #
 
+import logging
 import os
 import tempfile
-import logging
 
 from autotest.client.shared import log, utils, test as common_test
 

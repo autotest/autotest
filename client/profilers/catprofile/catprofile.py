@@ -5,8 +5,9 @@ Defaults options:
 job.profilers.add('catprofile', ['/proc/meminfo','/proc/uptime'],
                   outfile=monitor, interval=1)
 """
-import time
 import os
+import time
+
 from autotest.client import profiler
 
 

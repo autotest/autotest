@@ -15,7 +15,6 @@ from autotest.client import os_dep
 from autotest.client.shared import error, utils
 from autotest.client.shared.settings import settings, SettingsError
 
-
 # the name of the checksum file that stores the packages' checksums
 CHECKSUM_FILE = "packages.checksum"
 

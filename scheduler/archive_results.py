@@ -5,6 +5,7 @@ try:
 except ImportError:
     import common  # pylint: disable=W0611
 import logging
+
 from autotest.client.shared import utils
 from autotest.client.shared.settings import settings
 from autotest.scheduler import drone_utility

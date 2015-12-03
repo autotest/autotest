@@ -2,11 +2,11 @@
 
 # change_protection_level.py "No protection" machine1 machine2 machine3
 
-import sys
 import optparse
-import traceback
-import pwd
 import os
+import pwd
+import traceback
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

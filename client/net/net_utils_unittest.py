@@ -1,10 +1,10 @@
 #!/usr/bin/python
-import unittest
 import os
 import socket
-import time
-import sys
 import struct
+import time
+import unittest
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

@@ -1,9 +1,10 @@
-import os
 import logging
+import os
+
+import aexpect
 
 import remote
 import utils
-import aexpect
 
 
 def get_public_key():

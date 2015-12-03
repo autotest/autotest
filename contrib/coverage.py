@@ -22,8 +22,6 @@
 # interface and limitations.  See [GDR 2001-12-04b] for requirements and
 # design.
 
-import pdb
-
 r"""Usage:
 
 coverage.py -x [-p] MODULE.py [ARG1 ARG2 ...]

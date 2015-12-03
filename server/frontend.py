@@ -16,9 +16,10 @@ For docs, see:
 
 import getpass
 import os
+import re
 import time
 import traceback
-import re
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

@@ -33,11 +33,15 @@ include RELEASE-VERSION
 """
 __all__ = ("get_version",)
 
-
+import datetime
 import os
 import sys
-import common  # pylint: disable=W0611
-import datetime
+
+try:
+    import autotest.common as common  # pylint: disable=W0611
+except ImportError:
+    import common  # pylint: disable=W0611
+
 from autotest.client import utils
 from autotest.client.shared import error
 

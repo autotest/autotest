@@ -6,9 +6,8 @@ This is a replacement for the get_os_vendor() function from the utils module.
 """
 
 import os
-import re
 import platform
-
+import re
 
 __all__ = ['LinuxDistro',
            'UNKNOWN_DISTRO_NAME',

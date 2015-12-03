@@ -1,14 +1,13 @@
-import os
-import pickle
 import datetime
 import itertools
 import operator
-from django.db import models as dbmodels
-from autotest.frontend.afe import rpc_utils, model_logic
+import pickle
+
 from autotest.frontend.afe import models as afe_models, readonly_connection
+from autotest.frontend.afe import rpc_utils, model_logic
 from autotest.frontend.tko import models, tko_rpc_utils, graphing_utils
 from autotest.frontend.tko import preconfigs
-
+from django.db import models as dbmodels
 
 #
 # IMPORTANT: please update INTERFACE_VERSION with the current date whenever

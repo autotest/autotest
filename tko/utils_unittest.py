@@ -1,10 +1,10 @@
 #!/usr/bin/python
 
-import os
-import unittest
-import time
 import datetime
 import itertools
+import os
+import time
+import unittest
 
 try:
     import autotest.common as common  # pylint: disable=W0611

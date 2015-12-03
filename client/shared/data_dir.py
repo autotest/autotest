@@ -2,12 +2,12 @@
 """
 Library used to provide the appropriate data dir for virt test.
 """
+import glob
 import inspect
 import os
+import shutil
 import sys
 import tempfile
-import glob
-import shutil
 
 _ROOT_PATH = os.path.join(sys.modules[__name__].__file__, "..", "..")
 ROOT_DIR = os.path.abspath(_ROOT_PATH)

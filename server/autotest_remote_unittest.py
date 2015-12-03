@@ -2,18 +2,22 @@
 
 __author__ = "raphtee@google.com (Travis Miller)"
 
-import unittest
+import logging
 import os
 import tempfile
-import logging
+import unittest
 
-import common  # pylint: disable=W0611
-from autotest.server import autotest_remote, utils, hosts, server_job, profilers
+try:
+    import autotest.common as common  # pylint: disable=W0611
+except ImportError:
+    import common  # pylint: disable=W0611
+
 from autotest.client import sysinfo
 from autotest.client import utils as client_utils
-from autotest.client.shared import packages
 from autotest.client.shared import error
+from autotest.client.shared import packages
 from autotest.client.shared.test_utils import mock
+from autotest.server import autotest_remote, utils, hosts, server_job, profilers
 
 
 class TestBaseAutotest(unittest.TestCase):

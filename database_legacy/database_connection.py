@@ -1,8 +1,9 @@
+import logging
 import re
+import sys
 import time
 import traceback
-import logging
-import sys
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

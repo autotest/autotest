@@ -1,10 +1,10 @@
 #!/usr/bin/python
 
+import StringIO
 import logging
 import os
 import shutil
 import sys
-import StringIO
 import unittest
 
 try:

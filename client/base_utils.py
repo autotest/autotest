@@ -7,14 +7,15 @@ Convenience functions for use by tests or whomever.
 Note that this file is mixed in by utils.py - note very carefully the
 precedence order defined there
 """
-import os
-import shutil
 import commands
-import pickle
-import re
 import fnmatch
 import logging
+import os
+import pickle
 import platform
+import re
+import shutil
+
 from autotest.client.shared import error, utils, magic, base_packages
 
 

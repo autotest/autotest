@@ -17,10 +17,11 @@ try:
 except ImportError:
     import common  # pylint: disable=W0611
 
-from autotest.client.shared.settings import settings
-import sys
 import re
+import sys
 import urllib2
+
+from autotest.client.shared.settings import settings
 
 
 def get_mappings_2x():

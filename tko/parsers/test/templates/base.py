@@ -4,9 +4,8 @@ This is not meant to be executed unless copied into a
 scenario package and renamed with a _unittest suffix.
 """
 
-import os
 import unittest
-from os import path
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

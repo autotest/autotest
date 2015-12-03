@@ -6,12 +6,13 @@ except ImportError:
     import common  # pylint: disable=W0611
 import logging
 import unittest
-from autotest.frontend import setup_django_environment  # pylint: disable=W0611
+
+from autotest.client.shared import host_protections
 from autotest.database_legacy import database_connection
+from autotest.frontend import setup_django_environment  # pylint: disable=W0611
 from autotest.frontend import test_utils
 from autotest.frontend.afe import models
 from autotest.scheduler import monitor_db_cleanup, scheduler_config
-from autotest.client.shared import host_protections
 
 
 class UserCleanupTest(unittest.TestCase, test_utils.FrontendTestMixin):

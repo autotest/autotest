@@ -2,12 +2,12 @@
 Code that helps to deal with content from git repositories
 """
 
-
-import os
 import logging
-import error
+import os
+
 from autotest.client import utils, os_dep
 
+import error
 
 __all__ = ["GitRepoHelper", "get_repo"]
 

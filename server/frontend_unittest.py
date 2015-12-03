@@ -5,10 +5,11 @@
 
 """Tests for server.frontend."""
 
-from cStringIO import StringIO
 import os
 import sys
 import unittest
+from cStringIO import StringIO
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

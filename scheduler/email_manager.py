@@ -1,11 +1,12 @@
-import traceback
-import socket
-import os
-import time
-import smtplib
-import re
 import getpass
 import logging
+import os
+import re
+import smtplib
+import socket
+import time
+import traceback
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

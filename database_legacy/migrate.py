@@ -1,11 +1,11 @@
 #!/usr/bin/python -u
 
-import os
-import sys
-import re
-import tempfile
-import optparse
 import logging
+import optparse
+import os
+import re
+import sys
+import tempfile
 
 try:
     import autotest.common as common  # pylint: disable=W0611

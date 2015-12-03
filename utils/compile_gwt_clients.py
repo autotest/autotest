@@ -3,14 +3,15 @@ try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:
     import common  # pylint: disable=W0611
-import sys
+import logging
+import optparse
 import os
 import shutil
-import errno
-import optparse
-import logging
+import sys
+
 from autotest.client.shared import error, utils
 from autotest.client.shared import logging_config, logging_manager
+
 """
 Compile All Autotest GWT Clients Living in autotest/frontend/client/src
 """

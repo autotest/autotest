@@ -1,9 +1,10 @@
 import BaseHTTPServer
 import cgi
-import threading
-import urllib
 import fcntl
 import logging
+import threading
+import urllib
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

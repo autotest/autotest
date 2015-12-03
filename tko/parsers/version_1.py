@@ -1,6 +1,6 @@
+import logging
 import os
 import re
-import logging
 
 from autotest.tko import models, status_lib, utils as tko_utils
 from autotest.tko.parsers import base, version_0

@@ -1,8 +1,9 @@
 #!/usr/bin/python
 
 import os
-import unittest
 import types
+import unittest
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

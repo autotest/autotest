@@ -5,6 +5,7 @@ The simple harness interface
 __author__ = """Copyright Andy Whitcroft, Martin J. Bligh 2006"""
 
 import os
+
 import harness
 
 

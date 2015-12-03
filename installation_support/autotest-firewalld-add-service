@@ -7,9 +7,9 @@ We don't expect this tool be run, and thus firewalld to be present on a system
 that does not have quite recent software, such as Python 2.7
 """
 
-import os
-import logging
 import argparse
+import logging
+import os
 from subprocess import Popen, PIPE
 # This script won't be executed on py 2.4, but has to be checked through pylint
 # pylint: disable=E0611

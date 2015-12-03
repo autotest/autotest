@@ -9,12 +9,12 @@ either in userspace tools or on the Linux kernel itself (via mount).
 
 __all__ = ['iso9660', 'Iso9660IsoInfo', 'Iso9660IsoRead', 'Iso9660Mount']
 
-
-import os
 import logging
-import tempfile
-import shutil
+import os
 import re
+import shutil
+import tempfile
+
 from autotest.client.shared import utils
 
 

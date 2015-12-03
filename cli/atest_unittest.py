@@ -5,9 +5,6 @@
 """Test for atest."""
 
 import unittest
-import os
-import sys
-import StringIO
 
 try:
     import autotest.common as common  # pylint: disable=W0611

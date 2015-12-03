@@ -7,9 +7,8 @@
 
 import copy
 import getpass
-import unittest
 import sys
-import os
+import unittest
 
 try:
     import autotest.common as common  # pylint: disable=W0611
@@ -19,7 +18,6 @@ from autotest.cli import cli_mock
 # pylint: disable=E0611
 from autotest.cli import job
 from autotest.cli import rpc
-from autotest.cli import topic_common
 from autotest.client.shared.test_utils import mock
 
 

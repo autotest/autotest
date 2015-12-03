@@ -5,7 +5,7 @@ import os
 import re
 
 try:
-    import autotest.common
+    import autotest.common  # pylint: disable=W0611
 except ImportError:
     import common  # pylint: disable=W0611
 from autotest.mirror import trigger

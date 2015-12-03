@@ -1,7 +1,8 @@
-import re
 import glob
-import math
 import logging
+import math
+import re
+
 from autotest.client import utils
 
 

@@ -1,17 +1,16 @@
-import pickle
-import time
-import socket
 import errno
-import threading
 import logging
+import pickle
 import signal
+import socket
+import threading
+import time
 
-from autotest.client.shared import error
-from autotest.client.shared import barrier
-from autotest.client.shared import utils
-from autotest.client.shared import autotemp
 from autotest.client import parallel
-
+from autotest.client.shared import autotemp
+from autotest.client.shared import barrier
+from autotest.client.shared import error
+from autotest.client.shared import utils
 
 _DEFAULT_PORT = 13234
 _DEFAULT_TIMEOUT = 10

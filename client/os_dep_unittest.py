@@ -18,13 +18,13 @@
 #  The full GNU General Public License is included in this distribution in
 #  the file called "COPYING".
 
-import os
-import unittest
-import sys
 import itertools
+import os
+import sys
+import unittest
 
-from autotest.client.shared.mock import patch, MagicMock, call
 from autotest.client import os_dep
+from autotest.client.shared.mock import patch, MagicMock, call
 
 
 def both_true(fun):
@@ -98,7 +98,7 @@ class TestWhich(unittest.TestCase):
         @empty_path
         def _test(access_mock, isfile_mock):
             from autotest.client.os_dep import which
-            from autotest.client.os_dep import common  # pylint: disable=W0611_BIN_PATHS
+            from autotest.client.os_dep import COMMON_BIN_PATHS
             assert which("more") in (os.path.abspath(os.path.join(p, "more"))
                                      for p in COMMON_BIN_PATHS)
         # pylint: disable=E1120

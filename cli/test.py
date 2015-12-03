@@ -14,10 +14,6 @@ The common options are:
 See topic_common.py for a High Level Design and Algorithm.
 """
 
-
-import os
-import sys
-
 from autotest.cli import topic_common, action_common
 
 

@@ -1,6 +1,7 @@
 import cPickle
-import os
 import logging
+import os
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

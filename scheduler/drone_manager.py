@@ -1,6 +1,7 @@
-import os
 import heapq
+import os
 import traceback
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

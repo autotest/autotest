@@ -13,7 +13,7 @@ import inspect
 import new
 import sys
 
-from autotest.cli import topic_common, label
+from autotest.cli import label
 
 
 class site_label(label.label):

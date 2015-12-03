@@ -1,14 +1,14 @@
-import os
-import shutil
-import re
 import glob
-import subprocess
-import logging
 import gzip
+import logging
+import os
+import re
+import shutil
+import subprocess
 
+from autotest.client import utils
 from autotest.client.shared import log, software_manager, utils_memory
 from autotest.client.shared.settings import settings
-from autotest.client import utils
 
 _LOG_INSTALLED_PACKAGES = settings.get_value('CLIENT', 'log_installed_packages',
                                              type=bool, default=False)

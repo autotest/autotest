@@ -11,6 +11,9 @@ inheritance with, just a collection of static methods.
 #
 # Copyright 2008 Google Inc. Released under the GPL v2
 
+import StringIO
+import glob
+import logging
 import os
 import pickle
 import random
@@ -19,22 +22,20 @@ import resource
 import select
 import shutil
 import signal
-import StringIO
-import glob
 import socket
+import string
 import struct
 import subprocess
 import sys
-import time
+import tarfile
 import textwrap
+import time
 import traceback
+import urllib2
 import urlparse
 import warnings
-import logging
-import urllib2
-import string
-import tarfile
 from threading import Thread, Event, Lock
+
 try:
     import hashlib
 except ImportError:

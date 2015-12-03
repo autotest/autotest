@@ -3,8 +3,9 @@
 __author__ = """Ashwin Ganti (aganti@google.com)"""
 
 import socket
-import unittest
 import threading
+import unittest
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

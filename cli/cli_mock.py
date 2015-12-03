@@ -3,16 +3,15 @@
 
 """Test for cli."""
 
-import unittest
 import os
 import sys
-import StringIO
+import unittest
 
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:
     import common  # pylint: disable=W0611
-from autotest.cli import atest, topic_common, rpc
+from autotest.cli import atest, rpc
 from autotest.frontend.afe import rpc_client_lib
 from autotest.frontend.afe.json_rpc import proxy
 from autotest.client.shared.test_utils import mock

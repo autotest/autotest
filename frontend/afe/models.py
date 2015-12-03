@@ -1,8 +1,10 @@
 import logging
 import os
 from datetime import datetime
-from django.db import models as dbmodels, connection
 from xml.sax import saxutils
+
+from django.db import models as dbmodels, connection
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

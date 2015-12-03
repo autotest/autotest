@@ -1,7 +1,7 @@
+import logging
 import os
 import shutil
 import tempfile
-import logging
 
 try:
     import autotest.common as common  # pylint: disable=W0611

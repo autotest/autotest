@@ -5,10 +5,10 @@ run_helper takes care about running command when parent process dies.
 
 It kills children when parent process dies.
 """
-import sys
 import os
-import signal
 import select
+import signal
+import sys
 
 
 def main():

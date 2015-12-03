@@ -2,13 +2,14 @@
 Autotest scheduler watcher main library.
 """
 
-import os
-import sys
-import signal
-import time
-import subprocess
 import logging
+import os
+import signal
+import subprocess
+import sys
+import time
 from optparse import OptionParser
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

@@ -4,8 +4,8 @@ Logic for control file generation.
 
 __author__ = 'showard@google.com (Steve Howard)'
 
-import re
 import os
+import re
 
 try:
     import autotest.common as common  # pylint: disable=W0611

@@ -7,12 +7,12 @@ a library while that pointing users to the job results, but it can also
 be used in the command line for debugging purposes.
 """
 
-import os
+import logging
 import sys
 import urllib2
-import logging
+
 try:
-    import autotest.common
+    import autotest.common  # pylint: disable=W0611
 except ImportError:
     import common  # pylint: disable=W0611
 

@@ -2,14 +2,14 @@ import cgi
 import re
 import time
 import urllib
-from django import http
+
 import django.core.exceptions
+import simplejson
+from autotest.frontend.afe import model_logic
+from autotest.frontend.shared import exceptions, query_lib
+from django import http
 from django.core import urlresolvers
 from django.utils import datastructures
-import simplejson
-from autotest.frontend.shared import exceptions, query_lib
-from autotest.frontend.afe import model_logic
-
 
 _JSON_CONTENT_TYPE = 'application/json'
 

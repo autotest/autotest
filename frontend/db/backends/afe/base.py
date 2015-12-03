@@ -1,7 +1,7 @@
 from django.db.backends.mysql.base import DatabaseCreation as MySQLCreation
+from django.db.backends.mysql.base import DatabaseIntrospection as MySQLIntrospection
 from django.db.backends.mysql.base import DatabaseOperations as MySQLOperations
 from django.db.backends.mysql.base import DatabaseWrapper as MySQLDatabaseWrapper
-from django.db.backends.mysql.base import DatabaseIntrospection as MySQLIntrospection
 
 try:
     import MySQLdb as Database

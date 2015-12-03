@@ -2,8 +2,9 @@
 
 # TODO(chavey) complete all the unit test in this file
 
-import unittest
 import os
+import unittest
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

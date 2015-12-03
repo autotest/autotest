@@ -1,6 +1,7 @@
-import shutil
-import os
 import logging
+import os
+import shutil
+
 from autotest.client import utils
 from autotest.client.shared import error, kernel_versions
 

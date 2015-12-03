@@ -31,16 +31,17 @@ try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:
     import common  # pylint: disable=W0611
-import logging
-import re
-import os
-import sys
-import optparse
 import compiler
-from autotest.frontend import setup_django_environment  # pylint: disable=W0611
-from autotest.frontend.afe import models
+import logging
+import optparse
+import os
+import re
+import sys
+
 from autotest.client.shared import control_data, utils
 from autotest.client.shared import logging_config, logging_manager
+from autotest.frontend import setup_django_environment  # pylint: disable=W0611
+from autotest.frontend.afe import models
 
 
 class TestImporterLoggingConfig(logging_config.LoggingConfig):

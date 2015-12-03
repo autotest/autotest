@@ -1,13 +1,12 @@
 #!/usr/bin/python
 
-import os
-import unittest
 import StringIO
-import socket
-import urllib2
-import shutil
-import subprocess
 import logging
+import os
+import socket
+import subprocess
+import unittest
+import urllib2
 
 try:
     import autotest.common as common  # pylint: disable=W0611

@@ -13,11 +13,12 @@ Depends on libpfm4: http://perfmon2.sf.net/
 git://perfmon2.git.sourceforge.net/gitroot/perfmon2/libpfm4
 """
 
-import sys
-import os
 import optparse
-import time
+import os
 import struct
+import sys
+import time
+
 import perfmon
 
 if __name__ == '__main__':

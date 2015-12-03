@@ -4,13 +4,13 @@ Module used to parse the autotest job status file and generate a JSON file.
 
 Optionally, we can also generate reports (HTML)
 """
-import os
 import datetime
-import time
-import optparse
 import logging
-import sys
+import optparse
+import os
 import re
+import sys
+import time
 
 try:
     import autotest.common as common  # pylint: disable=W0611

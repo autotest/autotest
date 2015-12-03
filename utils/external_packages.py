@@ -4,13 +4,14 @@
 import distutils.version
 import logging
 import os
+import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
 import urllib2
-import subprocess
-import re
+
 from autotest.client.shared import utils
 
 _READ_SIZE = 64 * 1024

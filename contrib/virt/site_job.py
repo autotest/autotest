@@ -1,12 +1,11 @@
-import os
-import sys
-import time
 import inspect
-import new
 import logging
+import new
+import os
 import string
+import sys
 import tempfile
-
+import time
 # pylint: disable=E0611
 from autotest.cli import job
 from autotest.client.shared import logging_config

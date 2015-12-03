@@ -62,9 +62,9 @@ import sys
 import textwrap
 import traceback
 import urllib2
+
 from autotest.cli import rpc
 from autotest.client.shared.test_utils import mock
-
 
 # Maps the AFE keys to printable names.
 KEYS_TO_NAMES_EN = {'hostname': 'Host',

@@ -1,7 +1,7 @@
 from autotest.client.shared import error, settings
 from autotest.server import autotest_remote, utils as server_utils
-from autotest.server.hosts import site_factory, ssh_host, serial
 from autotest.server.hosts import logfile_monitor
+from autotest.server.hosts import site_factory, ssh_host, serial
 
 DEFAULT_FOLLOW_PATH = '/var/log/kern.log'
 DEFAULT_PATTERNS_PATH = 'console_patterns'

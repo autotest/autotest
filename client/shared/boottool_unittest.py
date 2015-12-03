@@ -1,9 +1,10 @@
 #!/usr/bin/python
 
-import unittest
+import logging
 import os
 import sys
-import logging
+import unittest
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:
@@ -11,6 +12,7 @@ except ImportError:
 
 from autotest.client.shared.test_utils import mock
 from autotest.client.shared import boottool
+from autotest.client.tools import boottool as boot_tool
 
 
 class TestEfiSys(unittest.TestCase):
@@ -28,7 +30,7 @@ class TestEfiSys(unittest.TestCase):
         sys.exit.expect_call(-1)
 
         # Run
-        self.efi_tool = boottool.EfiToolSys()
+        self.efi_tool = boot_tool.EfiToolSys()
         self.god.check_playback()
 
 

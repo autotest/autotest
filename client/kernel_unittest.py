@@ -1,11 +1,12 @@
 #!/usr/bin/python
 
-import unittest
-import os
-import time
-import re
 import glob
 import logging
+import os
+import re
+import time
+import unittest
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

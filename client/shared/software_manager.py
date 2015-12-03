@@ -15,11 +15,11 @@ implement the given backend class.
 :copyright: IBM 2008-2009
 :copyright: Red Hat 2009-2010
 """
+import ConfigParser
+import logging
+import optparse
 import os
 import re
-import logging
-import ConfigParser
-import optparse
 
 try:
     import yum

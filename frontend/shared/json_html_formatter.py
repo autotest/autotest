@@ -28,7 +28,6 @@ THE SOFTWARE.
 ---
 """
 
-import re
 import simplejson
 
 _HTML_DOCUMENT_TEMPLATE = """

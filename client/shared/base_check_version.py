@@ -1,8 +1,8 @@
 # This file must use Python 1.5 syntax.
-import sys
-import os
 import glob
+import os
 import re
+import sys
 
 
 class base_check_python_version:

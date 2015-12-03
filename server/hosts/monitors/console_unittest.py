@@ -2,14 +2,18 @@
 
 """Tests for console.py"""
 
+import StringIO
 import os
 import shutil
 import signal
-import StringIO
 import tempfile
 import unittest
 
-import common  # pylint: disable=W0611
+try:
+    import autotest.common as common  # pylint: disable=W0611
+except ImportError:
+    import common  # pylint: disable=W0611
+
 from autotest.client.shared.test_utils import mock
 from autotest.server.hosts.monitors import console
 

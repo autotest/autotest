@@ -21,9 +21,6 @@ See topic_common.py for a High Level Design and Algorithm.
 
 """
 
-import os
-import sys
-import socket
 from autotest.cli import topic_common, action_common
 from autotest.client.shared import host_protections
 

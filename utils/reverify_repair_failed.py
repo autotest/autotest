@@ -9,7 +9,6 @@ hosts have overcome whatever issue caused the failure and are useful again.
 """
 
 import optparse
-import os
 import sys
 
 try:

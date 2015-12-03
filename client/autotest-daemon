@@ -1,13 +1,13 @@
 #!/usr/bin/python
 
 try:
-    import autotest.common
+    import autotest.common  # pylint: disable=W0611
 except ImportError:
     import common  # pylint: disable=W0611
-import sys
+import fcntl
 import os
 import subprocess
-import fcntl
+import sys
 
 from autotest.client import os_dep
 

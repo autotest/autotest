@@ -3,6 +3,7 @@ try:
 except ImportError:
     import common  # pylint: disable=W0611
 import logging
+
 from autotest.client.shared import logging_config
 
 

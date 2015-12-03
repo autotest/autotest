@@ -6,7 +6,6 @@ Define some helper functions as required.
 """
 
 import optparse
-import os
 import sys
 from os import path
 try:

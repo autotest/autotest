@@ -1,10 +1,10 @@
 import os
 import re
 
-from autotest.tko import utils
 from autotest.frontend import setup_django_environment  # pylint: disable=W0611
-from autotest.frontend.tko import models_utils as tko_models_utils
 from autotest.frontend.tko import models as tko_models
+from autotest.frontend.tko import models_utils as tko_models_utils
+from autotest.tko import utils
 
 
 def insert_patch(tko_kernel, patch):

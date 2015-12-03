@@ -1,5 +1,7 @@
 import csv
+
 import django.http
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

@@ -1,5 +1,5 @@
-import sys
 import re
+import sys
 import traceback
 
 # these statuses are ordered such that a status earlier in the list will

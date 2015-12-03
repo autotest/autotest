@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import subprocess
+
 from autotest.client import profiler, os_dep
 from autotest.client.shared import utils, error
 

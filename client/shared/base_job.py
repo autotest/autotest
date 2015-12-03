@@ -1,14 +1,15 @@
-import os
+import cPickle as pickle
 import copy
-import logging
 import errno
 import fcntl
-import time
+import logging
+import os
 import re
-import weakref
-import traceback
 import tarfile
-import cPickle as pickle
+import time
+import traceback
+import weakref
+
 from autotest.client.shared import autotemp, error, log
 from autotest.client.shared.settings import settings
 

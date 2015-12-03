@@ -2,11 +2,12 @@
 
 __author__ = """Jiri Zupka (jzupka@redhat.com)"""
 
+import os
+import pickle
 import socket
 import threading
 import time
-import pickle
-import os
+
 try:
     import autotest.common as common  # pylint: disable=W0611
 except ImportError:

@@ -6,12 +6,13 @@ and formatting.
 :author: Martin Bligh (mbligh@google.com)
 """
 
+import fcntl
+import logging
 import os
 import re
 import string
 import sys
-import fcntl
-import logging
+
 from autotest.client import os_dep, utils
 from autotest.client.shared import error
 

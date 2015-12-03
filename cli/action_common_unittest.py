@@ -4,9 +4,9 @@
 
 """Tests for action_common."""
 
-import unittest
-import sys
 import copy
+import sys
+import unittest
 
 try:
     import autotest.common as common  # pylint: disable=W0611
