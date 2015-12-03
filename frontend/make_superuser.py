@@ -1,11 +1,12 @@
 #!/usr/bin/python
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
-import MySQLdb
+    import common  # pylint: disable=W0611
 import sys
+
+import MySQLdb
 from autotest.client.shared.settings import settings
 
 if (len(sys.argv) < 2 or

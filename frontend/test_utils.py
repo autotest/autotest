@@ -1,9 +1,9 @@
 import datetime
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
-from autotest.frontend import setup_test_environment
+    import common  # pylint: disable=W0611
+from autotest.frontend import setup_test_environment  # pylint: disable=W0611
 from autotest.frontend import thread_local
 from autotest.frontend.afe import models, model_attributes
 from autotest.client.shared.settings import settings

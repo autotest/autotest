@@ -1,20 +1,20 @@
 # Copyright 2007 Google Inc. Released under the GPL v2
 
-import re
-import os
-import sys
-import traceback
-import time
 import glob
-import tempfile
 import logging
-from autotest.server import installable_object, prebuild, utils
+import os
+import re
+import sys
+import tempfile
+import time
+import traceback
+
 from autotest.client import os_dep
 from autotest.client import utils as client_utils
-from autotest.client.shared import base_job, log, error, autotemp
+from autotest.client.shared import base_job, error, autotemp
 from autotest.client.shared import packages
 from autotest.client.shared.settings import settings, SettingsError
-
+from autotest.server import installable_object, prebuild, utils
 
 autoserv_prebuild = settings.get_value('AUTOSERV', 'enable_server_prebuild',
                                        type=bool, default=False)

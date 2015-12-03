@@ -10,6 +10,7 @@ you might need to do 'cat < /dev/null > /usr/include/linux/config.h'.
 But read the FAQ first.
 """
 import os
+
 from autotest.client import utils, profiler
 
 

@@ -6,15 +6,16 @@ Helpers for cgroup testing.
 :copyright: 2011 Red Hat Inc.
 :author: Lukas Doktor <ldoktor@redhat.com>
 """
+import commands
 import logging
 import os
+import random
+import re
 import shutil
 import subprocess
 import time
-import re
-import random
-import commands
 from tempfile import mkdtemp
+
 from autotest.client import utils
 from autotest.client.shared import error
 

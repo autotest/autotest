@@ -23,16 +23,17 @@ The interface between the client and beaker lab controller.
 """
 __author__ = """Don Zickus 2013"""
 
-import os
 import logging
-import harness
-import time
+import os
 import re
 import sys
+import time
+
+from autotest.client.bkr_proxy import BkrProxy
+from autotest.client.bkr_xml import BeakerXMLParser
 from autotest.client.shared import utils, error
 
-from autotest.client.bkr_xml import BeakerXMLParser
-from autotest.client.bkr_proxy import BkrProxy
+import harness
 
 '''Use 5 minutes for console heartbeat'''
 BEAKER_CONSOLE_HEARTBEAT = 60 * 5

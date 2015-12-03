@@ -1,5 +1,5 @@
-import os
 import logging
+import os
 
 from autotest.client.shared import utils
 from autotest.tko import utils as tko_utils

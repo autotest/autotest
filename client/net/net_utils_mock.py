@@ -5,8 +5,9 @@ for the network libraries.
 """
 
 import socket
-from autotest.client.shared.test_utils import mock
+
 from autotest.client.net import net_utils
+from autotest.client.shared.test_utils import mock
 
 
 def os_open(*args, **kwarg):

@@ -1,13 +1,14 @@
 #!/usr/bin/python
 
-import unittest
 import os
+import unittest
+
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
-from autotest.frontend import setup_django_environment
-from autotest.frontend import setup_test_environment
+    import common  # pylint: disable=W0611
+from autotest.frontend import setup_django_environment  # pylint: disable=W0611
+from autotest.frontend import setup_test_environment  # pylint: disable=W0611
 from autotest.frontend.afe import test
 from autotest.client.shared import settings
 

@@ -2,11 +2,10 @@
 Autotest client/local option parser
 '''
 
-import sys
 import optparse
+import sys
 
 from autotest.client.cmdparser import CommandParser
-
 
 __all__ = ['AutotestLocalOptionParser']
 

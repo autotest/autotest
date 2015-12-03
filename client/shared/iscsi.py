@@ -7,10 +7,10 @@ target name. And it can support the real iscsi access and emulated
 iscsi in localhost then access it.
 """
 
-
-import re
-import os
 import logging
+import os
+import re
+
 from autotest.client import os_dep
 from autotest.client.shared import utils, error
 

@@ -7,16 +7,15 @@ Mostly test if the serialized object has the expected content.
 """
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 import datetime
 import os
+import sys
 import tempfile
 import time
-import sys
 import unittest
-
 # Check the Makefile on this directory
 # for information on how to install the
 # dependencies for this unittest.

@@ -1,4 +1,4 @@
-from autotest.frontend.shared import query_lib, resource_lib
+from autotest.frontend.shared import resource_lib
 from autotest.frontend.tko import models
 
 

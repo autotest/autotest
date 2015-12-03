@@ -2,8 +2,8 @@
 # Copyright Martin J. Bligh (mbligh@google.com)
 # Released under the GPL, v2
 
-import sys
 import re
+import sys
 
 results_per_sign = 10
 

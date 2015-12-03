@@ -1,12 +1,12 @@
 import os
 import sys
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
     rootdir = os.path.abspath(os.path.dirname(common.__file__))
     autodir = os.path.join(rootdir, 'client')
     autodirbin = os.path.join(rootdir, 'client', 'bin')
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
     autodirbin = os.path.realpath(sys.argv[0])
     autodir = os.path.dirname(autodirbin)
     sys.path.insert(0, autodirbin)

@@ -2,8 +2,6 @@
 Dummy implementation of the database manager interface
 """
 
-import logging
-
 from autotest.installation_support.database_manager import base
 
 

@@ -6,6 +6,9 @@ Copyright Andy Whitcroft, Martin J. Bligh 2006
 """
 
 import copy
+import getpass
+import glob
+import logging
 import os
 import re
 import shutil
@@ -13,21 +16,17 @@ import sys
 import time
 import traceback
 import types
-import glob
-import logging
-import getpass
 import weakref
 
 from autotest.client import client_logging_config
-from autotest.client import utils, parallel, kernel, xen
-from autotest.client import profilers, harness
 from autotest.client import config, sysinfo, test, local_host
 from autotest.client import partition as partition_lib
+from autotest.client import profilers, harness
+from autotest.client import utils, parallel, kernel, xen
 from autotest.client.shared import base_job, boottool, utils_memory
-from autotest.client.shared import error, barrier, logging_manager
 from autotest.client.shared import base_packages, packages, report
+from autotest.client.shared import error, barrier, logging_manager
 from autotest.client.shared.settings import settings
-
 
 LAST_BOOT_TAG = object()
 JOB_PREAMBLE = """

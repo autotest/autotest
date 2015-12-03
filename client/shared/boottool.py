@@ -13,11 +13,9 @@ Copyright 2012 Red Hat, Inc.
 Released under the GPL v2
 '''
 
-import os
-import sys
 from autotest.client.shared import error
-from autotest.client.tools.boottool import Grubby, install_grubby_if_necessary, EfiToolSys
 from autotest.client.tools.boottool import GRUBBY_DEFAULT_SYSTEM_PATH
+from autotest.client.tools.boottool import Grubby, install_grubby_if_necessary
 
 
 class boottool(Grubby):

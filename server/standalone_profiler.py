@@ -11,9 +11,9 @@ __author__ = 'cranger@google.com (Colby Ranger)'
 
 import platform
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.client.shared import barrier
 
 # Client control file snippet used to synchronize profiler start & stop.

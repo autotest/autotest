@@ -1,15 +1,15 @@
 #!/usr/bin/python
 
-import os
-import unittest
-import time
 import datetime
 import itertools
+import os
+import time
+import unittest
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.client.shared.test_utils import mock
 from autotest.tko import utils
 

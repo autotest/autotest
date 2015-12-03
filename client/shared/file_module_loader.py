@@ -19,9 +19,9 @@
 #  the file called "COPYING".
 
 
+import imp
 import os
 import sys
-import imp
 
 
 def preserve_value(namespace, name):

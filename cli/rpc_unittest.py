@@ -4,12 +4,13 @@
 
 """Test for the rpc proxy class."""
 
-import unittest
 import os
+import unittest
+
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.cli import rpc
 from autotest.client.shared.settings import settings
 

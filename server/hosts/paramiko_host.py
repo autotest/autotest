@@ -1,13 +1,13 @@
-import os
-import time
-import signal
-import socket
-import re
 import fnmatch
 import logging
+import os
+import re
+import signal
+import socket
 import threading
-import paramiko
+import time
 
+import paramiko
 from autotest.client.shared import utils, error
 from autotest.client.shared.settings import settings
 from autotest.server import subcommand

@@ -1,15 +1,16 @@
 #!/usr/bin/python
 
+import StringIO
 import logging
 import os
-import StringIO
+import select
 import subprocess
 import unittest
-import select
+
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.client.shared import logging_manager, logging_config
 
 

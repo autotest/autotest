@@ -1,15 +1,16 @@
 #!/usr/bin/python
 
+import StringIO
 import logging
 import os
 import shutil
 import sys
-import StringIO
 import unittest
+
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 
 from autotest.client import job, config, sysinfo, harness
 from autotest.client import xen, kernel, utils

@@ -1,7 +1,7 @@
 import django.http
-from autotest.frontend.tko import rpc_interface, graphing_utils
+from autotest.frontend.afe import rpc_handler
 from autotest.frontend.tko import csv_encoder
-from autotest.frontend.afe import rpc_handler, rpc_utils
+from autotest.frontend.tko import rpc_interface, graphing_utils
 
 rpc_handler_obj = rpc_handler.RpcHandler((rpc_interface,),
                                          document_module=rpc_interface)

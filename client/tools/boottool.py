@@ -6,18 +6,18 @@ A boottool clone, but written in python and relying mostly on grubby[1].
 [1] - http://git.fedorahosted.org/git/?p=grubby.git
 '''
 
-import os
-import re
-import sys
-import optparse
 import logging
-import subprocess
-import urllib
-import tarfile
-import tempfile
+import optparse
+import os
+import platform
+import re
 import shutil
 import struct
-import platform
+import subprocess
+import sys
+import tarfile
+import tempfile
+import urllib
 
 #
 # Get rid of DeprecationWarning messages on newer Python version while still

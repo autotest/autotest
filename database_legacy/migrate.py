@@ -1,16 +1,16 @@
 #!/usr/bin/python -u
 
-import os
-import sys
-import re
-import tempfile
-import optparse
 import logging
+import optparse
+import os
+import re
+import sys
+import tempfile
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 
 from autotest.client.shared import utils
 from autotest.database_legacy import database_connection

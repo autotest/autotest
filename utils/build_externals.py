@@ -15,17 +15,12 @@ Usage?  Just run it.
 import compileall
 import logging
 import os
-import shutil
 import sys
-import tempfile
-import time
-import urllib2
-import subprocess
-import re
+
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.client.shared import logging_config, logging_manager
 from autotest.client.shared import utils
 from autotest.utils import external_packages

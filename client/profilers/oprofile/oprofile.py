@@ -9,9 +9,9 @@ and several post-profiling tools for turning data into information.
 More Info: http://oprofile.sourceforge.net/
 Will need some libaries to compile. Do 'apt-get build-dep oprofile'
 """
+import logging
 import os
 import time
-import logging
 
 from autotest.client import utils, profiler
 from autotest.client.shared import error

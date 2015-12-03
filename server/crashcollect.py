@@ -1,12 +1,11 @@
-import os
-import time
-import logging
-import shutil
 import gzip
+import logging
+import os
+import shutil
+import time
 
 from autotest.client.shared import settings
 from autotest.server import utils
-
 
 # import any site hooks for the crashdump and crashinfo collection
 get_site_crashdumps = utils.import_site_function(

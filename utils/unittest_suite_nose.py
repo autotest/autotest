@@ -3,23 +3,22 @@
 
 __author__ = 'Jorge Niedbalski R. <jnr@pyrosome.org>'
 
-from nose.selector import Selector
-
-from nose.plugins import Plugin
-from nose.plugins.attrib import AttributeSelector
-from nose.plugins.xunit import Xunit
-from nose.plugins.cover import Coverage
-
 import logging
 import os
-import nose
 import sys
+
+import nose
+from nose.plugins import Plugin
+from nose.plugins.attrib import AttributeSelector
+from nose.plugins.cover import Coverage
+from nose.plugins.xunit import Xunit
+from nose.selector import Selector
 
 # we can replace this with a @attr(duration='long') on each test
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 
 REQUIRES_DJANGO = set((
     'monitor_db_unittest.py',

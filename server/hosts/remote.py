@@ -1,11 +1,12 @@
 """This class defines the Remote host class, mixing in the SiteHost class
 if it is available."""
 
-import os
 import logging
-import urllib
+import os
 import socket
 import time
+import urllib
+
 from autotest.client.shared import error
 from autotest.client.shared.settings import settings
 from autotest.server import utils

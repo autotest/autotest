@@ -6,7 +6,6 @@ functionality, that is, direct database access via frontend models.
 import optparse
 
 import django.conf
-
 from autotest.client.shared import settings
 
 

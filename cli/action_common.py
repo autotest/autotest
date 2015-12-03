@@ -40,9 +40,8 @@ For 'atest label add':
 
 """
 
-import re
-import socket
 import types
+
 from autotest.cli import topic_common
 
 

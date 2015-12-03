@@ -1,9 +1,8 @@
-from django.contrib.auth.models import User, Group
-from django.contrib.auth import backends
-from django.contrib import auth
-
 from autotest.frontend import thread_local
 from autotest.frontend.afe import models, management
+from django.contrib import auth
+from django.contrib.auth import backends
+from django.contrib.auth.models import User, Group
 
 DEBUG_USER = 'debug_user'
 

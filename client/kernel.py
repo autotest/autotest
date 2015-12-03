@@ -1,11 +1,11 @@
-import os
 import copy
+import glob
+import logging
+import os
 import pickle
 import re
-import glob
-import time
-import logging
 import shutil
+import time
 
 from autotest.client import kernel_config, os_dep, kernelexpand
 from autotest.client import utils

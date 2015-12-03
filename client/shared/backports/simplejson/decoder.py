@@ -1,8 +1,8 @@
 """Implementation of JSONDecoder
 """
 import re
-import sys
 import struct
+import sys
 
 from simplejson.scanner import make_scanner
 

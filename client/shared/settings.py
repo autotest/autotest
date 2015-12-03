@@ -6,9 +6,10 @@ provides access to global configuration file.
 
 __author__ = 'raphtee@google.com (Travis Miller)'
 
+import ConfigParser
 import os
 import sys
-import ConfigParser
+
 from autotest.client.shared import error
 
 

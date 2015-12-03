@@ -8,9 +8,10 @@ Heavily inspired / shamelessly copied from the kvm_stat profiler.
 :copyright: Red Hat 2013
 :author: Cleber Rosa <cleber@redhat.com>
 """
+import logging
 import os
 import subprocess
-import logging
+
 from autotest.client import profiler, os_dep
 
 

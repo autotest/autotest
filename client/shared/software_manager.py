@@ -15,11 +15,11 @@ implement the given backend class.
 :copyright: IBM 2008-2009
 :copyright: Red Hat 2009-2010
 """
+import ConfigParser
+import logging
+import optparse
 import os
 import re
-import logging
-import ConfigParser
-import optparse
 
 try:
     import yum
@@ -28,9 +28,9 @@ except ImportError:
     HAS_YUM_MODULE = False
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 
 from autotest.client import os_dep, utils
 from autotest.client.shared import error, distro

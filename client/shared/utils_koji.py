@@ -1,8 +1,9 @@
-import HTMLParser
 import ConfigParser
-import os
+import HTMLParser
 import logging
+import os
 import urllib
+
 from autotest.client import os_dep, utils
 
 try:

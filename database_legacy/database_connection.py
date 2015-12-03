@@ -1,12 +1,13 @@
+import logging
 import re
+import sys
 import time
 import traceback
-import logging
-import sys
+
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.client.shared.settings import settings
 
 RECONNECT_FOREVER = object()

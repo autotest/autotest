@@ -1,5 +1,5 @@
-from django.db.backends.mysql import compiler as mysql_compiler
 from autotest.frontend.afe.model_logic import _quote_name
+from django.db.backends.mysql import compiler as mysql_compiler
 
 
 class SQLCompiler(mysql_compiler.SQLCompiler):

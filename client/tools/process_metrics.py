@@ -12,11 +12,11 @@ so that the jenkins measurement-plots plugin can parse them.
  Public License, Version 2 or later. See http://www.gnu.org/copyleft/gpl.html
  for details.
 """
-from sys import argv, stdout, stderr, exit
-from getopt import getopt, GetoptError
-import os
 import json
-from datetime import datetime, date
+import os
+from datetime import datetime
+from getopt import getopt, GetoptError
+from sys import argv, stderr
 
 
 def main(path):

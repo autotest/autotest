@@ -1,17 +1,17 @@
 #!/usr/bin/python
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 import unittest
 
 # This has to be done very early.
 from autotest.client.shared.settings import settings
 settings.override_value('HOSTS', 'default_protection', 'NO_PROTECTION')
 
-from autotest.frontend import setup_django_environment
-from autotest.frontend import setup_test_environment
+from autotest.frontend import setup_django_environment  # pylint: disable=W0611
+from autotest.frontend import setup_test_environment  # pylint: disable=W0611
 from autotest.frontend.shared import resource_test_utils
 from autotest.frontend.afe import control_file, models, model_attributes
 

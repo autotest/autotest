@@ -20,9 +20,8 @@ module to parse beaker xml recipe
 """
 __author__ = """Copyright Jan Stancek 2011"""
 
-
-import os
 import logging
+import os
 from xml.dom import minidom
 
 log = logging

@@ -2,10 +2,10 @@
 
 import unittest
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
-from autotest.frontend import setup_django_environment
+    import common  # pylint: disable=W0611
+from autotest.frontend import setup_django_environment  # pylint: disable=W0611
 from autotest.frontend import test_utils
 from autotest.frontend.tko import models
 

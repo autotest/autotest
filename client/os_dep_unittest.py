@@ -18,13 +18,13 @@
 #  The full GNU General Public License is included in this distribution in
 #  the file called "COPYING".
 
-import os
-import unittest
-import sys
 import itertools
+import os
+import sys
+import unittest
 
-from autotest.client.shared.mock import patch, MagicMock, call
 from autotest.client import os_dep
+from autotest.client.shared.mock import patch, MagicMock, call
 
 
 def both_true(fun):

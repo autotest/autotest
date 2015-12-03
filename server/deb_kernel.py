@@ -7,6 +7,7 @@ This module defines the Kernel class
 """
 
 import os
+
 from autotest.client.shared import error
 from autotest.server import kernel, utils
 

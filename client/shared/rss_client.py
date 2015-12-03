@@ -6,12 +6,12 @@ Client for file transfer services offered by RSS (Remote Shell Server).
 :copyright: 2008-2010 Red Hat Inc.
 """
 
+import glob
+import os
 import socket
 import struct
-import time
 import sys
-import os
-import glob
+import time
 
 # Globals
 CHUNKSIZE = 65536

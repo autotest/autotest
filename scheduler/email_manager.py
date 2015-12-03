@@ -1,15 +1,16 @@
-import traceback
-import socket
-import os
-import time
-import smtplib
-import re
 import getpass
 import logging
+import os
+import re
+import smtplib
+import socket
+import time
+import traceback
+
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.client.shared.settings import settings
 
 CONFIG_SECTION = 'SCHEDULER'

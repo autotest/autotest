@@ -2,13 +2,14 @@
 
 __author__ = """Copyright Andy Whitcroft 2006"""
 
-import sys
+import gc
 import logging
 import os
 import pickle
-import traceback
-import gc
+import sys
 import time
+import traceback
+
 from autotest.client.shared import error, utils
 
 

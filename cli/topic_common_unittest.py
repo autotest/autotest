@@ -4,18 +4,16 @@
 
 """Test for atest."""
 
-import unittest
 import os
 import sys
-import StringIO
+import unittest
 import urllib2
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.cli import cli_mock, topic_common, rpc
-from autotest.frontend.afe.json_rpc import proxy
 
 
 class topic_common_misc_tests(unittest.TestCase):

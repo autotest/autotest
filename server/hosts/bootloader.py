@@ -7,10 +7,11 @@ This module defines the Bootloader class.
         Bootloader: a program to boot Kernels on a Host.
 """
 
+import imp
 import os
 import sys
-import imp
 import weakref
+
 from autotest.client.shared import error
 from autotest.server import utils
 

@@ -1,12 +1,11 @@
-import os
-import sys
-import subprocess
 import logging
+import os
+import subprocess
+import sys
 
 from autotest.client.shared import utils, error
 from autotest.server import utils as server_utils
 from autotest.server.hosts import remote
-
 
 SiteHost = utils.import_site_class(
     __file__, "autotest.server.hosts.site_host", "SiteHost",

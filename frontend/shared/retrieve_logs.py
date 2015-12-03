@@ -1,6 +1,5 @@
-from django.http import HttpResponsePermanentRedirect
-
 from autotest.tko.retrieve_logs import retrieve_logs
+from django.http import HttpResponsePermanentRedirect
 
 
 class RetrieveLogsHtmlMiddleware(object):

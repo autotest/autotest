@@ -1,9 +1,10 @@
 import operator
 import unittest
+
 import simplejson
-from django.test import client
 from autotest.frontend import test_utils
 from autotest.frontend.afe import models as afe_models
+from django.test import client
 
 
 class ResourceTestCase(unittest.TestCase,

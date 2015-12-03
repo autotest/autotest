@@ -2,15 +2,15 @@
 Autotest AFE Cleanup used by the scheduler
 """
 
-
-import time
 import logging
 import random
 import socket
-from autotest.frontend.afe import models
-from autotest.scheduler import scheduler_config
+import time
+
 from autotest.client.shared import host_protections, mail
 from autotest.client.shared.settings import settings
+from autotest.frontend.afe import models
+from autotest.scheduler import scheduler_config
 from autotest.server.hosts import remote
 
 

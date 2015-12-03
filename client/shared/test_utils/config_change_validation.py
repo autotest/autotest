@@ -6,9 +6,9 @@ Module for testing config file changes.
 @license: GPL v2
 """
 
+import commands
 import os
 import shutil
-import commands
 
 
 def get_temp_file_path(file_path):

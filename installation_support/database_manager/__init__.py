@@ -9,8 +9,8 @@ import logging
 
 from autotest.client.shared import settings
 
-from mysql import MySQLDatabaseManager
 from dummy import DummyDatabaseManager
+from mysql import MySQLDatabaseManager
 
 
 #

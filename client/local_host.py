@@ -7,8 +7,9 @@ This file contains the implementation of a host object for the local machine.
 import glob
 import os
 import platform
-from autotest.client.shared import hosts, error
+
 from autotest.client import utils
+from autotest.client.shared import hosts, error
 
 
 class LocalHost(hosts.Host):

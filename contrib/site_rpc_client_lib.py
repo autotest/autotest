@@ -7,9 +7,9 @@ To actually use this, put it in the cli/ directory.
 :author: Nishanth Aravamudan <nacc@linux.vnet.ibm.com>
 """
 
+import base64
 import getpass
 import os
-import base64
 
 
 def authorization_headers(username, server):

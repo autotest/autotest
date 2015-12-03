@@ -1,8 +1,8 @@
 import os
 import re
-import sys
-import subprocess
 import socket
+import subprocess
+import sys
 
 from autotest.client.shared import utils, error
 from autotest.server.hosts import remote

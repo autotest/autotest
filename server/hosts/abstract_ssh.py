@@ -1,16 +1,16 @@
-import os
-import time
-import socket
-import shutil
 import glob
 import logging
-import traceback
+import os
+import shutil
+import socket
 import tempfile
+import time
+import traceback
+
 from autotest.client.shared import autotemp, error
+from autotest.client.shared.settings import settings
 from autotest.server import utils, autotest_remote
 from autotest.server.hosts import remote
-from autotest.client.shared.settings import settings
-
 
 enable_master_ssh = settings.get_value('AUTOSERV', 'enable_master_ssh',
                                        type=bool, default=False)

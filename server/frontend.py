@@ -16,13 +16,14 @@ For docs, see:
 
 import getpass
 import os
+import re
 import time
 import traceback
-import re
+
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.frontend.afe import rpc_client_lib
 from autotest.client.shared.settings import settings
 from autotest.client.shared import mail

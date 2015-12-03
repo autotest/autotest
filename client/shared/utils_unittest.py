@@ -1,18 +1,17 @@
 #!/usr/bin/python
 
-import os
-import unittest
 import StringIO
-import socket
-import urllib2
-import shutil
-import subprocess
 import logging
+import os
+import socket
+import subprocess
+import unittest
+import urllib2
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.client.shared.mock import MagicMock, patch
 from autotest.client.shared import utils, autotemp
 from autotest.client.shared.test_utils import mock

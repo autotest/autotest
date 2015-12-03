@@ -3,12 +3,13 @@
 __author__ = """Ashwin Ganti (aganti@google.com)"""
 
 import socket
-import unittest
 import threading
+import unittest
+
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.client.shared import error, barrier, base_barrier
 from autotest.client.shared.test_utils import mock
 

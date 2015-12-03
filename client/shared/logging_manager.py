@@ -1,9 +1,10 @@
 import logging
 import os
+import re
 import signal
 import sys
 import warnings
-import re
+
 
 # primary public APIs
 

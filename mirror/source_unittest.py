@@ -1,16 +1,16 @@
 #!/usr/bin/python
 # Copyright 2009 Google Inc. Released under the GPL v2
 
-import unittest
 import cStringIO
 import httplib
-import time
 import os
+import time
+import unittest
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.mirror import source
 from autotest.client.shared.test_utils import mock
 

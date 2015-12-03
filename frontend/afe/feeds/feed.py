@@ -1,6 +1,6 @@
 import django.http
-from django.contrib.syndication import views
 from autotest.frontend.afe import models
+from django.contrib.syndication import views
 
 
 def feed_view(request, url, feed_dict=None):

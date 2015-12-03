@@ -2,6 +2,7 @@ import logging
 import os
 import sys
 import time
+
 from autotest.client.shared.settings import settings
 
 

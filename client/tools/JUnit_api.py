@@ -5,9 +5,8 @@
 # Generated Thu Dec  1 09:58:36 2011 by generateDS.py version 2.7a.
 #
 
-import sys
-import getopt
 import re as re_
+import sys
 
 etree_ = None
 Verbose_import_ = False

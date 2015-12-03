@@ -12,9 +12,8 @@ It is required that the unique_id param is supplied when a temp dir/file is
 created.
 """
 
-import shutil
-import os
 import logging
+import os
 import tempfile as module_tempfile
 
 from autotest.client import utils

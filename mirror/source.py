@@ -1,14 +1,14 @@
 # Copyright 2009 Google Inc. Released under the GPL v2
 
+import HTMLParser
 import os
 import re
 import time
 import urllib2
 import urlparse
-import HTMLParser
 
-from autotest.mirror import database
 from autotest.client.shared import utils
+from autotest.mirror import database
 
 
 class source(object):

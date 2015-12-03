@@ -8,15 +8,15 @@ a <jobdir>/.tko_published flag file to determine if a jobdir results directory
 has been published yet).
 """
 
-import sys
+import optparse
 import os
 import re
-import optparse
+import sys
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.client.shared import utils
 from autotest.server import frontend
 

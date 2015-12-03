@@ -1,20 +1,21 @@
 """Base support for parser scenario testing.
 """
 
-from os import path
 import ConfigParser
+import difflib
+import itertools
 import os
 import shelve
 import shutil
 import sys
 import tarfile
 import time
-import difflib
-import itertools
+from os import path
+
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.client.shared import utils, autotemp
 from autotest.tko import status_lib
 from autotest.tko.parsers.test import templates

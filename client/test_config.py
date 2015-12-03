@@ -4,12 +4,13 @@ Wrapper around ConfigParser to manage testcases configuration.
 :author: rsalveti@linux.vnet.ibm.com (Ricardo Salveti de Araujo)
 """
 
+import re
+import string
+import types
 from ConfigParser import ConfigParser
 from StringIO import StringIO
 from os import path
-import types
-import re
-import string
+
 from autotest.client.shared import utils
 
 __all__ = ['config_loader']

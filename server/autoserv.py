@@ -2,19 +2,19 @@
 Library for autotest-remote usage.
 """
 
-import sys
+import getpass
+import logging
 import os
 import re
-import traceback
 import signal
+import sys
 import time
-import logging
-import getpass
+import traceback
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 
 from autotest.client.shared.settings import settings
 require_atfork = settings.get_value('AUTOSERV', 'require_atfork_module',

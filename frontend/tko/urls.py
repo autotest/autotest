@@ -1,8 +1,8 @@
 from django.conf.urls import defaults
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.frontend import settings, urls_common
 from autotest.frontend.tko import resources
 

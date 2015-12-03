@@ -18,15 +18,14 @@
 #  The full GNU General Public License is included in this distribution in
 #  the file called "COPYING".
 
-import unittest
-import sys
 import pickle
-import doctest
+import sys
+import unittest
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.client.shared import backports
 from autotest.client.shared.backports.collections import namedtuple
 

@@ -43,15 +43,14 @@ this will exit 0 whether pattern displays anything or not
 __author__ = 'jmeurin@google.com (Jean-Marc Eurin)'
 
 import os
-import sys
-import optparse
 import re
+import sys
 import traceback
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.cli import topic_common
 
 

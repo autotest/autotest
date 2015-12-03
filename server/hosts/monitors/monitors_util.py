@@ -6,7 +6,6 @@ import re
 import select
 import signal
 import subprocess
-import sys
 import time
 
 TERM_MSG = 'Console connection unexpectedly lost. Terminating monitor.'

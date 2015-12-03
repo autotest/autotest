@@ -2,10 +2,12 @@
 Autotest scheduler main library.
 """
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 import datetime
+import gc
+import logging
 import optparse
 import os
 import signal
@@ -13,25 +15,21 @@ import sys
 import time
 import traceback
 import urllib
-import logging
-import gc
-
-from autotest.scheduler import scheduler_logging_config
-from autotest.frontend import setup_django_environment
 
 import django.db
-
 from autotest.client import os_dep
+from autotest.client.shared import host_protections, utils
 from autotest.client.shared import logging_manager, mail
 from autotest.client.shared.settings import settings
-from autotest.client.shared import host_protections, utils
 from autotest.database_legacy import database_connection
-from autotest.frontend.afe import models, rpc_utils, readonly_connection
+from autotest.frontend import setup_django_environment  # pylint: disable=W0611
 from autotest.frontend.afe import model_attributes
+from autotest.frontend.afe import models, rpc_utils, readonly_connection
 from autotest.scheduler import drone_manager, drones
 from autotest.scheduler import gc_stats, host_scheduler, monitor_db_cleanup
-from autotest.scheduler import status_server, scheduler_config
+from autotest.scheduler import scheduler_logging_config
 from autotest.scheduler import scheduler_models
+from autotest.scheduler import status_server, scheduler_config
 
 WATCHER_PID_FILE_PREFIX = 'autotest-scheduler-watcher'
 PID_FILE_PREFIX = 'autotest-scheduler'

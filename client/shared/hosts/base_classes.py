@@ -21,9 +21,9 @@ import logging
 import os
 import re
 
+from autotest.client import partition
 from autotest.client.shared import error, utils
 from autotest.client.shared import host_protections
-from autotest.client import partition
 from autotest.client.shared.settings import settings
 
 

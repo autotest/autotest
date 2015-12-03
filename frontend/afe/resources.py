@@ -1,9 +1,9 @@
-from django import http
-from autotest.frontend.shared import query_lib, resource_lib, exceptions
+from autotest.client.shared import host_protections
+from autotest.frontend import thread_local
 from autotest.frontend.afe import control_file, models, rpc_utils
 from autotest.frontend.afe import model_attributes
-from autotest.frontend import thread_local
-from autotest.client.shared import host_protections
+from autotest.frontend.shared import query_lib, resource_lib, exceptions
+from django import http
 
 
 class EntryWithInvalid(resource_lib.InstanceEntry):

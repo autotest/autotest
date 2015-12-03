@@ -1,15 +1,16 @@
 #!/usr/bin/python
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 import unittest
-from autotest.frontend import setup_django_environment
-from autotest.frontend import setup_test_environment
+
+from autotest.frontend import setup_django_environment  # pylint: disable=W0611
+from autotest.frontend import setup_test_environment  # pylint: disable=W0611
 from autotest.client.shared.test_utils import mock
 from autotest.frontend.shared import resource_test_utils
-from autotest.frontend.tko import models, rpc_interface_unittest
+from autotest.frontend.tko import rpc_interface_unittest
 
 
 class TkoResourceTestCase(resource_test_utils.ResourceTestCase,

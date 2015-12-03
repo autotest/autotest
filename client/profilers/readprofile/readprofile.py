@@ -10,6 +10,7 @@ the procedure. The output is filled with blanks to ease readability.
 """
 import os
 import shutil
+
 from autotest.client import utils, profiler
 from autotest.client.shared import error
 

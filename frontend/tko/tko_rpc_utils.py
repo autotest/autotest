@@ -1,5 +1,5 @@
-from autotest.frontend.afe import rpc_utils
 from autotest.client.shared import kernel_versions
+from autotest.frontend.afe import rpc_utils
 from autotest.frontend.tko import models
 
 

@@ -20,9 +20,8 @@
 
 import os
 import sys
-
-from tempfile import mkstemp
 import unittest
+from tempfile import mkstemp
 
 import file_module_loader
 

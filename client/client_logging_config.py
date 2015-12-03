@@ -1,9 +1,10 @@
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 
 import os
+
 from autotest.client.shared import logging_config
 from autotest.client.shared.settings import settings
 

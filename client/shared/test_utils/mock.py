@@ -1,11 +1,9 @@
 __author__ = "raphtee@google.com (Travis Miller)"
 
-
-import re
-import collections
 import StringIO
+import collections
+import re
 import sys
-import unittest
 
 
 class StubNotFoundError(Exception):

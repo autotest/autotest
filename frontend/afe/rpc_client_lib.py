@@ -7,8 +7,10 @@ __author__ = 'showard@google.com (Steve Howard)'
 
 import getpass
 import os
-from json_rpc import proxy
+
 from autotest.client.shared import utils
+
+from json_rpc import proxy
 
 
 class AuthError(Exception):

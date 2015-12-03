@@ -13,14 +13,15 @@ http://www.kernel.org/pub/linux/kernel/v3.x/linux-3.1.tar.bz2
 :see: Inspired by kernelexpand by Martin J. Bligh, 2003
 """
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
+
+import re
+import sys
+import urllib2
 
 from autotest.client.shared.settings import settings
-import sys
-import re
-import urllib2
 
 
 def get_mappings_2x():

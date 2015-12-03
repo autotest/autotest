@@ -6,9 +6,9 @@ only RPC interface functions go into that file.
 __author__ = 'showard@google.com (Steve Howard)'
 
 import datetime
-import os
-import sys
 import inspect
+import os
+
 import django.http
 from autotest.frontend.afe import models, model_logic, model_attributes
 

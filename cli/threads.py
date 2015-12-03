@@ -2,8 +2,8 @@
 # Copyright 2008 Google Inc.
 # Released under the GPLv2
 
-import threading
 import Queue
+import threading
 
 
 class ThreadPool:

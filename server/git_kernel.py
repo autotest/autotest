@@ -4,8 +4,10 @@ This module defines the GitKernel class.
 
 import logging
 import os
-import source_kernel
+
 from autotest.client.shared import git
+
+import source_kernel
 
 
 class GitKernel(git.GitRepoHelper):

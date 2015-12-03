@@ -1,14 +1,11 @@
 #!/usr/bin/python
 
 import os
-import shutil
-import tempfile
 import unittest
-import logging
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.client import utils
 
 _AUTOTEST_DIR = common.autotest_dir

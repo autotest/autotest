@@ -3,9 +3,8 @@ Internal global error types
 """
 
 import sys
-import traceback
 import threading
-import logging
+import traceback
 from traceback import format_exception
 
 # Add names you want to be imported by 'from errors import *' to this list.

@@ -48,7 +48,7 @@ Without Eclipse
 
    ::
 
-       >>> import common
+       >>> import common  # pylint: disable=W0611
        >>> from frontend.afe import rpc_client_lib
        >>> proxy = rpc_client_lib.get_proxy('http://localhost:8000/afe/server/rpc/', headers={})
        >>> proxy.get_tests(name='sleeptest')

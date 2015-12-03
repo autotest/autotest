@@ -1,13 +1,13 @@
 #!/usr/bin/python
 """Service launcher that creates pidfiles and can redirect output to a file."""
+import grp
+import optparse
+import os
+import pwd
+import re
+import signal
 import subprocess
 import sys
-import os
-import optparse
-import signal
-import pwd
-import grp
-import re
 
 
 def stop_service(pidfile):

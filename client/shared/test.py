@@ -18,18 +18,18 @@
 
 import fcntl
 import getpass
+import logging
 import os
 import re
-import sys
 import shutil
+import sys
 import tempfile
 import time
 import traceback
-import logging
 
+from autotest.client import utils
 from autotest.client.shared import error, utils_memory
 from autotest.client.shared.settings import settings
-from autotest.client import utils
 
 
 class base_test(object):

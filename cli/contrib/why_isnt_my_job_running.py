@@ -1,12 +1,12 @@
 #!/usr/bin/python
 
-import sys
 import optparse
+import sys
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.cli import rpc, host
 from autotest.client.shared import host_queue_entry_states
 

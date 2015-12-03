@@ -1,14 +1,12 @@
 import logging
 import os
-import sys
 import subprocess
-import tempfile
-import traceback
-import time
+import sys
 import threading
+import time
+import traceback
 
 from autotest.client.shared import utils
-from autotest.server import utils as server_utils
 from autotest.server.hosts import abstract_ssh, monitors
 
 MONITORDIR = monitors.__path__[0]

@@ -15,9 +15,9 @@
 """
 Program that parses the autotest results and generates JUnit test results in XML format.
 """
-from sys import argv, stdout, stderr, exit
 import os
 from datetime import date
+from sys import argv, stdout, stderr, exit
 #from traceback                       import format_exc
 #from string                          import maketrans
 #import uuid

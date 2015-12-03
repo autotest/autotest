@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import os
+
 from autotest.client import utils
 
 version = 3

@@ -7,14 +7,12 @@ Please note that this module deals with Linux Distributions not necessarily
 installed on the running system.
 """
 
-
-import os
 import bz2
+import os
 import pickle
 
 from autotest.client import os_dep, utils
 from autotest.client.shared import distro
-
 
 __all__ = ['save', 'load', 'load_from_tree', 'SoftwarePackage', 'DistroDef',
            'DISTRO_PKG_INFO_LOADERS']

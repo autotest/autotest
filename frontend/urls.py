@@ -1,9 +1,8 @@
 import os
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
-from autotest.shared import rpc
+    import common  # pylint: disable=W0611
 from autotest.shared import frontend
 from django.conf.urls import defaults
 from django.conf import settings

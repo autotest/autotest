@@ -2,9 +2,9 @@
 
 import unittest
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 from autotest.database_legacy import database_connection, migrate
 
 # Which section of the global config to pull info from.  We won't actually use

@@ -1,12 +1,13 @@
 #!/usr/bin/python
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 import cStringIO
 import os
 import unittest
+
 from autotest.server.hosts.monitors import monitors_util
 
 

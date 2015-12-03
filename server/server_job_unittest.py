@@ -3,9 +3,9 @@
 import unittest
 
 try:
-    import autotest.common as common
+    import autotest.common as common  # pylint: disable=W0611
 except ImportError:
-    import common
+    import common  # pylint: disable=W0611
 
 from autotest.server import server_job
 from autotest.client.shared import base_job_unittest

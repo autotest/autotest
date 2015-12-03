@@ -4,15 +4,16 @@ Autotest command parser
 :copyright: Don Zickus <dzickus@redhat.com> 2011
 """
 
+import logging
 import os
 import re
 import sys
-import logging
+
+from autotest.client import harness
 from autotest.client import os_dep, utils
 from autotest.client.shared import logging_config, logging_manager
-from autotest.client.shared.settings import settings
 from autotest.client.shared import packages, error
-from autotest.client import harness
+from autotest.client.shared.settings import settings
 
 LOCALDIRTEST = "tests"
 GLOBALDIRTEST = settings.get_value('COMMON', 'test_dir', default="")

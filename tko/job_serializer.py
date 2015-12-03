@@ -10,12 +10,8 @@ responsible for serializing the job instance via protocol buffers.
 """
 
 # import python libraries
-import os
 import datetime
 import time
-import random
-import re
-
 # import autotest libraries
 from autotest.tko import models
 from autotest.tko import tko_pb2
