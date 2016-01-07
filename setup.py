@@ -21,8 +21,14 @@ import installation_support.setup
 # pylint: disable=E0611
 from distutils.core import setup
 
-from sphinx.setup_command import BuildDoc
-cmdclass = {'build_doc': BuildDoc}
+try:
+    from sphinx.setup_command import BuildDoc
+    cmdclass = {'build_doc': BuildDoc}
+    command_options = {'build_doc': {'source_dir':
+                                     ('setup.py', 'documentation/source')}}
+except ImportError:
+    cmdclass = {}
+    command_options = {}
 
 from autotest.client.shared import version
 
@@ -134,8 +140,7 @@ def run():
           scripts=get_scripts(),
           data_files=get_data_files(),
           cmdclass=cmdclass,
-          command_options={'build_doc': {'source_dir':
-                                         ('setup.py', 'documentation/source')}}
+          command_options=command_options,
           )
 
 
