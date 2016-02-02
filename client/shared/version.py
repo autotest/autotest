@@ -35,6 +35,7 @@ __all__ = ("get_version",)
 
 import datetime
 import os
+import re
 import sys
 
 try:
@@ -49,6 +50,8 @@ _ROOT_PATH = os.path.join(sys.modules[__name__].__file__, "..", "..", "..")
 _ROOT_PATH = os.path.abspath(_ROOT_PATH)
 
 RELEASE_VERSION_PATH = os.path.join(_ROOT_PATH, 'RELEASE-VERSION')
+
+VERSION_FORM = re.compile(r'(\d+)\.(\d+)\.(.+)')
 
 
 def call_git_describe(abbrev=4):
@@ -93,7 +96,7 @@ def get_version(abbrev=4):
     release_version = read_release_version()
     version = call_git_describe(abbrev)
 
-    if version is None:
+    if version is None or VERSION_FORM.match(version) is None:
         version = release_version
 
     if version is None:
