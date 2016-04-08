@@ -3164,7 +3164,7 @@ def is_mounted(src, mount_point, fstype, perm=None, verbose=True,
         fstype_mtab = fstype
 
     mount_point = os.path.realpath(mount_point)
-    if fstype not in ['nfs', 'smbfs', 'glusterfs', 'hugetlbfs']:
+    if fstype not in ['nfs', 'smbfs', 'glusterfs', 'hugetlbfs', 'ubifs']:
         if src:
             src = os.path.realpath(src)
         else:
