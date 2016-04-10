@@ -245,6 +245,15 @@ def vg_remove(vg_name):
     logging.info(result.stdout.rstrip())
 
 
+def lv_list(vg_name):
+    cmd = "lvs %s" % vg_name
+    result = utils.run(cmd)
+
+    logging.debug("Logical volumes in %s:\n%s", vg_name, result)
+    lvpattern = r"(\w+)\s+%s" % vg_name
+    return re.findall(lvpattern, result.stdout.rstrip())
+
+
 def lv_check(vg_name, lv_name):
     """
     Check whether provided logical volume exists.
