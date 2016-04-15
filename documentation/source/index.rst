@@ -9,6 +9,10 @@ other general user space program testing under linux platforms. It's an
 open-source project under the GPL and is used and developed by a number
 of organizations, including Google, IBM, Red Hat, and many others.
 
+Please check Avocado, a next generation test automation framework being
+developed by several of the original Autotest team members:
+http://avocado-framework.github.io/
+
 
 .. toctree::
    :maxdepth: 2

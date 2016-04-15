@@ -133,3 +133,9 @@ Downloading stable versions
 https://github.com/autotest/autotest/releases
 
 
+Next Generation Testing Framework
+---------------------------------
+Please check Avocado, a next generation test automation framework being
+developed by several of the original Autotest team members:
+
+http://avocado-framework.github.io/
