@@ -402,13 +402,17 @@ def get_file_arch(filename):
 
 
 def count_cpus():
-    """number of CPUs in the local machine according to /proc/cpuinfo"""
-    f = file('/proc/cpuinfo', 'r')
-    cpus = 0
-    for line in f.readlines():
-        if line.lower().startswith('processor'):
-            cpus += 1
-    return cpus
+    """Total number of CPUs in the local machine"""
+    if os.path.isfile("/sys/devices/system/cpu/present"):
+        cpus = utils.system_output("echo $( expr $(cat /sys/devices/system/cpu/present|awk -F'-' '{print $2}') + 1 )")
+        return int(cpus)
+    else:
+        f = file('/proc/cpuinfo', 'r')
+        cpus = 0
+        for line in f.readlines():
+            if line.lower().startswith('processor'):
+                cpus += 1
+        return cpus
 
 
 def sysctl(key, value=None):
