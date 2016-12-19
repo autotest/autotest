@@ -402,17 +402,8 @@ def get_file_arch(filename):
 
 
 def count_cpus():
-    """Total number of CPUs in the local machine"""
-    if os.path.isfile("/sys/devices/system/cpu/present"):
-        cpus = utils.system_output("echo $( expr $(cat /sys/devices/system/cpu/present|awk -F'-' '{print $2}') + 1 )")
-        return int(cpus)
-    else:
-        f = file('/proc/cpuinfo', 'r')
-        cpus = 0
-        for line in f.readlines():
-            if line.lower().startswith('processor'):
-                cpus += 1
-        return cpus
+    """Total number of online CPUs in the local machine"""
+    return os.sysconf('SC_NPROCESSORS_ONLN')
 
 
 def sysctl(key, value=None):
