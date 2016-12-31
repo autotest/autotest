@@ -44,7 +44,8 @@ from autotest.client.shared import error
 
 @error.context_aware
 def vg_ramdisk(vg_name, ramdisk_vg_size,
-               ramdisk_basedir, ramdisk_sparse_filename):
+               ramdisk_basedir, ramdisk_sparse_filename,
+               use_tmpfs=True):
     """
     Create vg on top of ram memory to speed up lv performance.
     """
@@ -55,13 +56,15 @@ def vg_ramdisk(vg_name, ramdisk_vg_size,
     ramdisk_filename = os.path.join(vg_ramdisk_dir,
                                     ramdisk_sparse_filename)
 
-    vg_ramdisk_cleanup(ramdisk_filename, vg_ramdisk_dir, vg_name)
+    vg_ramdisk_cleanup(ramdisk_filename, vg_ramdisk_dir,
+                       vg_name, use_tmpfs)
     result = ""
     if not os.path.exists(vg_ramdisk_dir):
         os.mkdir(vg_ramdisk_dir)
     try:
-        logging.info("Mounting tmpfs")
-        result = utils.run("mount -t tmpfs tmpfs %s" % vg_ramdisk_dir)
+        if use_tmpfs:
+            logging.info("Mounting tmpfs")
+            result = utils.run("mount -t tmpfs tmpfs %s" % vg_ramdisk_dir)
 
         logging.info("Converting and copying /dev/zero")
         cmd = ("dd if=/dev/zero of=%s bs=1M count=1 seek=%s" %
@@ -72,7 +75,8 @@ def vg_ramdisk(vg_name, ramdisk_vg_size,
         result = utils.run("losetup --find", verbose=True)
     except error.CmdError, ex:
         logging.error(ex)
-        vg_ramdisk_cleanup(ramdisk_filename, vg_ramdisk_dir, vg_name)
+        vg_ramdisk_cleanup(ramdisk_filename, vg_ramdisk_dir,
+                           vg_name, use_tmpfs)
         raise ex
 
     loop_device = result.stdout.rstrip()
@@ -87,7 +91,7 @@ def vg_ramdisk(vg_name, ramdisk_vg_size,
     except error.CmdError, ex:
         logging.error(ex)
         vg_ramdisk_cleanup(ramdisk_filename, vg_ramdisk_dir,
-                           vg_name, loop_device)
+                           vg_name, loop_device, use_tmpfs)
         raise ex
 
     logging.info(result.stdout.rstrip())
@@ -109,7 +113,7 @@ def lv_ramdisk(vg_name, pool_name, pool_size):
 
 
 def vg_ramdisk_cleanup(ramdisk_filename=None, vg_ramdisk_dir=None,
-                       vg_name=None, loop_device=None):
+                       vg_name=None, loop_device=None, use_tmpfs=True):
     """
     Inline cleanup function in case of test error.
     """
@@ -155,11 +159,12 @@ def vg_ramdisk_cleanup(ramdisk_filename=None, vg_ramdisk_dir=None,
             vg_ramdisk_dir = os.path.dirname(ramdisk_filename)
 
     if vg_ramdisk_dir is not None:
-        utils.run("umount %s" % vg_ramdisk_dir, ignore_status=True)
-        if result.exit_status == 0:
-            logging.info("Successfully unmounted tmpfs from %s", vg_ramdisk_dir)
-        else:
-            logging.debug("%s -> %s", result.command, result.stderr)
+        if use_tmpfs:
+            utils.run("umount %s" % vg_ramdisk_dir, ignore_status=True)
+            if result.exit_status == 0:
+                logging.info("Successfully unmounted tmpfs from %s", vg_ramdisk_dir)
+            else:
+                logging.debug("%s -> %s", result.command, result.stderr)
 
         if os.path.exists(vg_ramdisk_dir):
             try:
