@@ -44,7 +44,8 @@ from autotest.client.shared import error
 
 @error.context_aware
 def vg_ramdisk(vg_name, ramdisk_vg_size,
-               ramdisk_basedir, ramdisk_sparse_filename):
+               ramdisk_basedir, ramdisk_sparse_filename,
+               use_tmpfs=True):
     """
     Create vg on top of ram memory to speed up lv performance.
     """
@@ -55,13 +56,15 @@ def vg_ramdisk(vg_name, ramdisk_vg_size,
     ramdisk_filename = os.path.join(vg_ramdisk_dir,
                                     ramdisk_sparse_filename)
 
-    vg_ramdisk_cleanup(ramdisk_filename, vg_ramdisk_dir, vg_name)
+    vg_ramdisk_cleanup(ramdisk_filename, vg_ramdisk_dir,
+                       vg_name, use_tmpfs)
     result = ""
     if not os.path.exists(vg_ramdisk_dir):
         os.mkdir(vg_ramdisk_dir)
     try:
-        logging.info("Mounting tmpfs")
-        result = utils.run("mount -t tmpfs tmpfs %s" % vg_ramdisk_dir)
+        if use_tmpfs:
+            logging.info("Mounting tmpfs")
+            result = utils.run("mount -t tmpfs tmpfs %s" % vg_ramdisk_dir)
 
         logging.info("Converting and copying /dev/zero")
         cmd = ("dd if=/dev/zero of=%s bs=1M count=1 seek=%s" %
@@ -72,7 +75,8 @@ def vg_ramdisk(vg_name, ramdisk_vg_size,
         result = utils.run("losetup --find", verbose=True)
     except error.CmdError, ex:
         logging.error(ex)
-        vg_ramdisk_cleanup(ramdisk_filename, vg_ramdisk_dir, vg_name)
+        vg_ramdisk_cleanup(ramdisk_filename, vg_ramdisk_dir,
+                           vg_name, use_tmpfs)
         raise ex
 
     loop_device = result.stdout.rstrip()
@@ -87,14 +91,29 @@ def vg_ramdisk(vg_name, ramdisk_vg_size,
     except error.CmdError, ex:
         logging.error(ex)
         vg_ramdisk_cleanup(ramdisk_filename, vg_ramdisk_dir,
-                           vg_name, loop_device)
+                           vg_name, loop_device, use_tmpfs)
         raise ex
 
     logging.info(result.stdout.rstrip())
 
 
+@error.context_aware
+def lv_ramdisk(vg_name, pool_name, pool_size):
+    error.context("Creating thin pool for thinly provisioned volumes",
+                  logging.info)
+
+    if not vg_check(vg_name):
+        raise error.TestError("Volume group could not be found")
+    if lv_check(vg_name, pool_name):
+        raise error.TestError("Thin pool already exists")
+
+    cmd = "lvcreate -L %s --thin %s/%s" % (pool_size, vg_name, pool_name)
+    result = utils.run(cmd)
+    logging.info(result.stdout.rstrip())
+
+
 def vg_ramdisk_cleanup(ramdisk_filename=None, vg_ramdisk_dir=None,
-                       vg_name=None, loop_device=None):
+                       vg_name=None, loop_device=None, use_tmpfs=True):
     """
     Inline cleanup function in case of test error.
     """
@@ -104,14 +123,14 @@ def vg_ramdisk_cleanup(ramdisk_filename=None, vg_ramdisk_dir=None,
         if loop_device is not None:
             loop_device = loop_device.group(1)
 
-        result = utils.run("vgremove %s" % vg_name, ignore_status=True)
+        result = utils.run("vgremove -f %s" % vg_name, ignore_status=True)
         if result.exit_status == 0:
             logging.info(result.stdout.rstrip())
         else:
             logging.debug("%s -> %s", result.command, result.stderr)
 
     if loop_device is not None:
-        result = utils.run("pvremove %s" % loop_device, ignore_status=True)
+        result = utils.run("pvremove -f %s" % loop_device, ignore_status=True)
         if result.exit_status == 0:
             logging.info(result.stdout.rstrip())
         else:
@@ -140,11 +159,12 @@ def vg_ramdisk_cleanup(ramdisk_filename=None, vg_ramdisk_dir=None,
             vg_ramdisk_dir = os.path.dirname(ramdisk_filename)
 
     if vg_ramdisk_dir is not None:
-        utils.run("umount %s" % vg_ramdisk_dir, ignore_status=True)
-        if result.exit_status == 0:
-            logging.info("Successfully unmounted tmpfs from %s", vg_ramdisk_dir)
-        else:
-            logging.debug("%s -> %s", result.command, result.stderr)
+        if use_tmpfs:
+            utils.run("umount %s" % vg_ramdisk_dir, ignore_status=True)
+            if result.exit_status == 0:
+                logging.info("Successfully unmounted tmpfs from %s", vg_ramdisk_dir)
+            else:
+                logging.debug("%s -> %s", result.command, result.stderr)
 
         if os.path.exists(vg_ramdisk_dir):
             try:
@@ -230,15 +250,24 @@ def vg_remove(vg_name):
     logging.info(result.stdout.rstrip())
 
 
+def lv_list(vg_name):
+    cmd = "lvs %s" % vg_name
+    result = utils.run(cmd)
+
+    logging.debug("Logical volumes in %s:\n%s", vg_name, result)
+    lvpattern = r"(\w+)\s+%s" % vg_name
+    return re.findall(lvpattern, result.stdout.rstrip())
+
+
 def lv_check(vg_name, lv_name):
     """
     Check whether provided logical volume exists.
     """
-    cmd = "lvdisplay"
+    cmd = "lvdisplay %s" % vg_name
     result = utils.run(cmd, ignore_status=True)
 
     # unstable approach but currently works
-    lvpattern = r"LV Path\s+/dev/%s/%s\s+" % (vg_name, lv_name)
+    lvpattern = r"LV Name\s+%s\s+" % lv_name
     match = re.search(lvpattern, result.stdout.rstrip())
     if match:
         logging.debug("Provided logical volume %s exists in %s", lv_name, vg_name)
@@ -253,7 +282,7 @@ def lv_remove(vg_name, lv_name):
     Remove a logical volume.
     """
     error.context("Removing volume /dev/%s/%s" %
-                  (vg_name, lv_name), logging.info)
+                  (vg_name, lv_name), logging.debug)
 
     if not vg_check(vg_name):
         raise error.TestError("Volume group could not be found")
@@ -266,21 +295,19 @@ def lv_remove(vg_name, lv_name):
 
 
 @error.context_aware
-def lv_create(vg_name, lv_name, lv_size, force_flag=True):
+def lv_create(vg_name, lv_name, lv_size):
     """
     Create a logical volume in a volume group.
 
     The volume group must already exist.
     """
     error.context("Creating original lv to take a snapshot from",
-                  logging.info)
+                  logging.debug)
 
     if not vg_check(vg_name):
         raise error.TestError("Volume group could not be found")
-    if lv_check(vg_name, lv_name) and not force_flag:
+    if lv_check(vg_name, lv_name):
         raise error.TestError("Logical volume already exists")
-    elif lv_check(vg_name, lv_name) and force_flag:
-        lv_remove(vg_name, lv_name)
 
     cmd = "lvcreate --size %s --name %s %s" % (lv_size, lv_name, vg_name)
     result = utils.run(cmd)
@@ -352,13 +379,36 @@ def thin_lv_create(vg_name, thinpool_name="lvthinpool", thinpool_size="1.5G",
 
 
 @error.context_aware
+def lv_create_thin(vg_name, pool_name, lv_name, lv_size):
+    """
+    Create a thinly provisioned logical volume in a volume group.
+
+    The volume group must already exist.
+    """
+    error.context("Creating original thin lv to take a snapshot from",
+                  logging.debug)
+
+    if not vg_check(vg_name):
+        raise error.TestError("The volume group could not be found")
+    if not lv_check(vg_name, pool_name):
+        raise error.TestError("The thin pool could not be found")
+    if lv_check(vg_name, lv_name):
+        raise error.TestError("The logical volume already exists")
+
+    cmd = "lvcreate --virtualsize %s --thin %s/%s --name %s" % (lv_size, vg_name,
+                                                                pool_name, lv_name)
+    result = utils.run(cmd)
+    logging.info(result.stdout.rstrip())
+
+
+@error.context_aware
 def lv_take_snapshot(vg_name, lv_name,
                      lv_snapshot_name, lv_snapshot_size):
     """
     Take a snapshot of the original logical volume.
     """
-    error.context("Taking snapshot from original logical volume",
-                  logging.info)
+    error.context("Taking a snapshot from original logical volume",
+                  logging.debug)
 
     if not vg_check(vg_name):
         raise error.TestError("Volume group could not be found")
@@ -367,8 +417,8 @@ def lv_take_snapshot(vg_name, lv_name,
     if not lv_check(vg_name, lv_name):
         raise error.TestError("Snapshot's origin could not be found")
 
-    cmd = ("lvcreate --size %s --snapshot --name %s /dev/%s/%s" %
-           (lv_snapshot_size, lv_snapshot_name, vg_name, lv_name))
+    cmd = ("lvcreate -s --name %s /dev/%s/%s --size %s" %
+           (lv_snapshot_name, vg_name, lv_name, lv_snapshot_size))
     try:
         result = utils.run(cmd)
     except error.CmdError, ex:
@@ -387,12 +437,57 @@ def lv_take_snapshot(vg_name, lv_name,
 
 
 @error.context_aware
+def lv_take_thin_snapshot(vg_name, lv_name, lv_snapshot_name):
+    """
+    Take a thinly provisioned snapshot of a thin logical volume.
+    """
+    error.context("Taking a thin snapshot from a thin logical volume",
+                  logging.debug)
+
+    if not vg_check(vg_name):
+        raise error.TestError("Volume group could not be found")
+    if lv_check(vg_name, lv_snapshot_name):
+        raise error.TestError("Snapshot already exists")
+    if not lv_check(vg_name, lv_name):
+        raise error.TestError("Snapshot's origin could not be found")
+
+    cmd = ("lvcreate -s --name %s /dev/%s/%s --ignoreactivationskip" %
+           (lv_snapshot_name, vg_name, lv_name))
+    # lvcreate -s --thinpool vg001/pool origin_volume --name mythinsnap
+    result = utils.run(cmd)
+    logging.info(result.stdout.rstrip())
+
+
+@error.context_aware
+def lv_take_thin_snapshot_from_external(vg_name, pool_name, lv_name, lv_snapshot_name):
+    """
+    Take a thinly provisioned snapshot of external logical volume.
+    """
+    error.context("Taking a thin snapshot from an external logical volume",
+                  logging.debug)
+
+    if not vg_check(vg_name):
+        raise error.TestError("Volume group could not be found")
+    if not lv_check(vg_name, pool_name):
+        raise error.TestError("Snapshot's thin pool could not be found")
+    if lv_check(vg_name, lv_snapshot_name):
+        raise error.TestError("Snapshot already exists")
+    if not lv_check(vg_name, lv_name):
+        raise error.TestError("Snapshot's origin could not be found")
+
+    cmd = ("lvcreate -s --thinpool %s/%s %s --name %s --ignoreactivationskip" %
+           (vg_name, pool_name, lv_name, lv_snapshot_name))
+    result = utils.run(cmd)
+    logging.info(result.stdout.rstrip())
+
+
+@error.context_aware
 def lv_revert(vg_name, lv_name, lv_snapshot_name):
     """
     Revert the origin to a snapshot.
     """
     error.context("Reverting original logical volume to snapshot",
-                  logging.info)
+                  logging.debug)
     try:
         if not vg_check(vg_name):
             raise error.TestError("Volume group could not be found")
@@ -405,7 +500,7 @@ def lv_revert(vg_name, lv_name, lv_snapshot_name):
                                                                  lv_name)):
             raise error.TestError("Snapshot origin could not be found")
 
-        cmd = ("lvconvert --merge /dev/%s/%s" % (vg_name, lv_snapshot_name))
+        cmd = ("lvconvert --merge --interval 1 /dev/%s/%s" % (vg_name, lv_snapshot_name))
         result = utils.run(cmd)
         if (("Merging of snapshot %s will start next activation." %
              lv_snapshot_name) in result.stdout):
@@ -440,7 +535,7 @@ def lv_revert_with_snapshot(vg_name, lv_name,
     Perform logical volume merge with snapshot and take a new snapshot.
     """
     error.context("Reverting to snapshot and taking a new one",
-                  logging.info)
+                  logging.debug)
 
     lv_revert(vg_name, lv_name, lv_snapshot_name)
     lv_take_snapshot(vg_name, lv_name, lv_snapshot_name, lv_snapshot_size)
@@ -473,7 +568,7 @@ def lv_mount(vg_name, lv_name, mount_loc, create_filesystem=""):
     if the filesystem was already created and the mkfs process is skipped.
     """
     error.context("Mounting the logical volume",
-                  logging.info)
+                  logging.debug)
 
     try:
         if create_filesystem:
@@ -493,7 +588,7 @@ def lv_umount(vg_name, lv_name, mount_loc):
     Unmount a logical volume from a mount location.
     """
     error.context("Unmounting the logical volume",
-                  logging.info)
+                  logging.debug)
 
     try:
         utils.run("umount /dev/%s/%s" % (vg_name, lv_name))
