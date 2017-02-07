@@ -6,6 +6,7 @@ __author__ = 'Jorge Niedbalski R. <jnr@pyrosome.org>'
 import logging
 import os
 import sys
+import re
 
 import nose
 from nose.plugins import Plugin
@@ -52,6 +53,16 @@ logger = logging.getLogger(__name__)
 class AutoTestSelector(Selector):
 
     def wantDirectory(self, dirname):
+        skip_dirs = []
+        if self.config.options.skip_dirs != []:
+            skip_dirs = re.split(os.sep + "{0,1}\s+|" + os.sep + "{0,1}\Z", self.config.options.skip_dirs)
+
+        skip_dirs = filter(None, skip_dirs)
+
+        for dir in skip_dirs:
+            if re.match(os.path.abspath(dir), dirname):
+                logger.debug('Skipping tests in directory: %s' % dirname)
+                return False
         return True
 
     def wantModule(self, module):
@@ -109,6 +120,11 @@ class AutoTestRunner(Plugin):
                           dest="skip_tests",
                           default=[],
                           help='A space separated list of tests to skip')
+
+        parser.add_option("--autotest-skip-dirs",
+                          dest="skip_dirs",
+                          default=[],
+                          help='A space separated list of directories to skip')
 
     def prepareTestLoader(self, loader):
         loader.selector = AutoTestSelector(loader.config)
