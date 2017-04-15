@@ -50,7 +50,7 @@ from autotest.client.shared.settings import settings
 # IMPORTANT: please update INTERFACE_VERSION with the current date whenever
 # the interface changes, so that RPC clients can handle the changes
 #
-INTERFACE_VERSION = (2013, 9, 11)
+INTERFACE_VERSION = (2014, 1, 17)
 
 
 # labels
@@ -584,6 +584,11 @@ def get_tests(**filter_data):
     """
     return rpc_utils.prepare_for_serialization(
         models.Test.list_objects(filter_data))
+
+
+def get_control_file_from_test(id):
+    control_file = models.Test.smart_get(id).get_control_file()
+    return rpc_utils.prepare_for_serialization(control_file)
 
 
 # profilers
