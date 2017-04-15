@@ -3,8 +3,8 @@
 Program that parses standard format results,
 compute and check regression bug.
 
-:copyright: Red Hat 2011-2012
-:author: Amos Kong <akong@redhat.com>
+@copyright: Red Hat 2011-2012
+@author: Amos Kong <akong@redhat.com>
 """
 import ConfigParser
 import commands
@@ -111,6 +111,12 @@ class Sample(object):
                         f.append(l.strip())
                 self.files_dict.append(f)
                 fd.close()
+            web_link = "http://kvm-perf.englab.nay.redhat.com/"
+            self.job_link = web_link + \
+                "/".join(files[0].split("/")[4:7]) + "/job_report.html"
+            configure = files[0].split("/")[7].split(".")
+            self.config = ".".join(configure[3:9]) + "." + configure[
+                10] + "." + "Guest_" + ".".join(configure[11:14])
         elif type == 'database':
             jobid = arg
             self.kvmver = get_test_keyval(jobid, "kvm-userspace-ver")
@@ -303,8 +309,9 @@ class Sample(object):
         return ret_lines
 
 
-def display(lists, rates, allpvalues, f, ignore_col, sum="Augment Rate",
-            prefix0=None, prefix1=None, prefix2=None, prefix3=None):
+def display(lists, rates, allpvalues, f, ignore_col,
+            important_level, increase_good, p_value, a_value,
+            sum="Augment Rate", prefix0=None, prefix1=None, prefix2=None, prefix3=None):
     """
     Display lists data to standard format
 
@@ -326,26 +333,70 @@ def display(lists, rates, allpvalues, f, ignore_col, sum="Augment Rate",
             return "|".join(str[ignore_col:])
         return "|".join(str)
 
-    def tee_line(content, file, n=None):
+    def tee_line(content, file, n=None, span=None):
         fd = open(file, "a")
-        print content
         str = ""
         str += "<TR ALIGN=CENTER>"
         content = content.split("|")
         for i in range(len(content)):
-            if n and i >= 2 and i < ignore_col + 2:
-                str += "<TD ROWSPAN=%d WIDTH=1%% >%s</TD>" % (n, content[i])
+            if span and i >= 2 and i < ignore_col + 2:
+                str += "<TD ROWSPAN=%d WIDTH=1%% >%s</TD>" % (span, content[i])
             else:
-                str += "<TD WIDTH=1%% >%s</TD>" % content[i]
+                if n == 0 and i == (int(important_level) + 2):
+                    str += "<TD WIDTH=1%% bgcolor=gray>%s</TD>" % content[i]
+                elif n == None and i == (int(important_level) - ignore_col + 2):
+                    str += "<TD WIDTH=1%% bgcolor=gray>%s</TD>" % content[i]
+                else:
+                    str += "<TD WIDTH=1%% >%s</TD>" % content[i]
         str += "</TR>"
         fd.write(str + "\n")
+        fd.close()
+
+    def tee_mark(prefix, value1, value2, file):
+        fd = open(file, "a")
+        str_line = ""
+        str_line += "<TR ALIGN=CENTER>"
+        value1 = value1.split("|")[ignore_col:]
+        if value2:
+            value2 = value2.split("|")[ignore_col:]
+        increase_col = increase_good.split(",")
+
+        if "%" in value1[0]:
+            avg = value1
+            pvalue = value2
+        else:
+            avg = value2
+            pvalue = value1
+
+        for i in prefix.split("|"):
+            str_line += "<TD WIDTH=1%% >%s</TD>" % i
+
+        if avg == None:
+            for i in range(ignore_col):
+                str_line += "<TD WIDTH=1%% > </TD>"
+        for i in range(len(pvalue)):
+            if ((avg == None or float(avg[i][1:-1]) > float(a_value[:-1])) and (float(pvalue[i][1:]) > (1 - float(p_value)))):
+                if (((str(i + ignore_col) in increase_good and pvalue[i][0] == "-") or
+                   (str(i + ignore_col) not in increase_good and pvalue[i][0] == "+"))):
+                    str_line += "<TD WIDTH=1%% bgcolor='red' >%s</TD>" % value1[
+                        i]
+                else:
+                    str_line += "<TD WIDTH=1%% bgcolor='green' >%s</TD>" % value1[
+                        i]
+            else:
+                if i == (int(important_level) - ignore_col):
+                    str_line += "<TD WIDTH=1%% bgcolor='gray' >%s</TD>" % value1[
+                        i]
+                else:
+                    str_line += "<TD WIDTH=1%% >%s</TD>" % value1[i]
+        str_line += "</TR>"
+        fd.write(str_line + "\n")
         fd.close()
 
     for l in range(len(lists[0])):
         if not re.findall("[a-zA-Z]", lists[0][l]):
             break
-    tee("<TABLE BORDER=1 CELLSPACING=1 CELLPADDING=1 width=10%><TBODY>",
-        f)
+    tee("<TABLE BORDER=1 CELLSPACING=1 CELLPADDING=1 width=10%><TBODY>", f)
     tee("<h3>== %s " % sum + "==</h3>", f)
     category = 0
     for i in range(len(lists[0])):
@@ -362,17 +413,18 @@ def display(lists, rates, allpvalues, f, ignore_col, sum="Augment Rate",
                 pfix = prefix1[n]
             if is_diff:
                 if n == 0:
-                    tee_line(pfix + lists[n][i], f, n=len(lists) + len(rates))
+                    tee_line(
+                        pfix + lists[n][i], f, n, span=len(lists) + len(rates))
                 else:
                     tee_line(pfix + str_ignore(lists[n][i], True), f)
             if not is_diff and n == 0:
                 if '|' in lists[n][i]:
-                    tee_line(prefix0 + lists[n][i], f)
+                    tee_line(prefix0 + lists[n][i], f, n)
                 elif "Category:" in lists[n][i]:
                     if category != 0 and prefix3:
                         if len(allpvalues[category - 1]) > 0:
-                            tee_line(prefix3 + str_ignore(
-                                     allpvalues[category - 1][0]), f)
+                            tee_mark(
+                                prefix3, allpvalues[category - 1][0], None, f)
                         tee("</TBODY></TABLE>", f)
                         tee("<br>", f)
                         tee("<TABLE BORDER=1 CELLSPACING=1 CELLPADDING=1 "
@@ -382,26 +434,55 @@ def display(lists, rates, allpvalues, f, ignore_col, sum="Augment Rate",
                 else:
                     tee("<TH colspan=3 >%s</TH>" % lists[n][i], f)
         for n in range(len(rates)):
-            if lists[0][i] != rates[n][i] and not re.findall("[a-zA-Z]",
-                                                             rates[n][i]):
-                tee_line(prefix2[n] + str_ignore(rates[n][i], True), f)
+            if (lists[0][i] != rates[n][i] and not re.findall("[a-zA-Z]", rates[n][i])):
+                if len(rates) > 1 and n == 0:
+                    tee_mark(prefix2[n], rates[n][i], rates[n + 1][i], f)
+                else:
+                    tee_mark(prefix2[n], rates[n][i], rates[n - 1][i], f)
     if prefix3 and len(allpvalues[-1]) > 0:
-        tee_line(prefix3 + str_ignore(allpvalues[category - 1][0]), f)
+        tee_mark(prefix3, allpvalues[category - 1][0], None, f)
     tee("</TBODY></TABLE>", f)
+
+
+def version_mark(s1, s2, arg):
+    config = []
+    ver = ""
+
+    config.append("<pre>####1. Description of setup#1 ---> ")
+    config.append(s1.config + " (")
+    config.append("<a href=%s>" %
+                  s1.job_link + arg.split("/")[5] + "</a>" + ")\n")
+
+    ver1 = s1.version.split("\n")
+    ver2 = s2.version.split("\n")
+    for i in range(len(ver1)):
+        if ver1[i] == ver2[i]:
+            config.append(ver1[i] + "\n")
+        else:
+            config.append("<font color=red>" + ver1[i] + "</font>" + "\n")
+    config.append("</pre>")
+
+    for i in range(len(config)):
+        ver += config[i]
+
+    return ver
 
 
 def analyze(test, type, arg1, arg2, configfile):
     """ Compute averages/p-vales of two samples, print results nicely """
     config = ConfigParser.ConfigParser()
     config.read(configfile)
-    ignore_col = int(config.get(test, "ignore_col"))
+    ignore_col = config.getint(test, "ignore_col")
     avg_update = config.get(test, "avg_update")
+    important_level = config.get(test, "important_level")
+    increase_good = config.get(test, "increase_good")
+    p_value = config.get(test, "p_value_threshold")
+    a_value = config.get(test, "avg_threshold")
     desc = config.get(test, "desc")
 
     def get_list(dir):
         result_file_pattern = config.get(test, "result_file_pattern")
         cmd = 'find %s|grep "%s.*/%s"' % (dir, test, result_file_pattern)
-        print cmd
         return commands.getoutput(cmd)
 
     if type == 'file':
@@ -442,32 +523,36 @@ def analyze(test, type, arg1, arg2, configfile):
         allpvalues.append(s1.getTtestPvalue(navg1[i], navg2[i], True))
 
     pvalues = s1.getTtestPvalue(s1.files_dict, s2.files_dict, False)
+
     rlist = [avgs_rate]
     if pvalues:
         # p-value list isn't null
         rlist.append(pvalues)
-
     desc = desc % s1.len
 
-    tee("<pre>####1. Description of setup#1\n" + s1.version + "</pre>",
-        test + ".html")
-    tee("<pre>####2. Description of setup#2\n" + s2.version + "</pre>",
-        test + ".html")
+    ver1 = version_mark(s1, s2, arg1)
+    ver2 = version_mark(s2, s1, arg2)
+
+    tee(ver1, test + ".html")
+    tee(ver2, test + ".html")
     tee("<pre>" + '\n'.join(desc.split('\\n')) + "</pre>", test + ".html")
     tee("<pre>" + s1.desc + "</pre>", test + ".html")
 
     display([avg1, sd1, avg2, sd2], rlist, allpvalues, test + ".html",
-            ignore_col, sum="Regression Testing: %s" % test, prefix0="#|Tile|",
+            ignore_col, important_level, increase_good, p_value, a_value,
+            sum="Regression Testing: %s" % test, prefix0="#|Tile|",
             prefix1=["1|Avg|", " |%SD|", "2|Avg|", " |%SD|"],
-            prefix2=["-|%Diff between Avg|", "-|Significance|"],
-            prefix3="-|Total Significance|")
+            prefix2=["-|%Diff between Avg", "-|Significance"],
+            prefix3="-|Total Significance")
 
     display(s1.files_dict, [avg1], [], test + ".avg.html", ignore_col,
+            important_level, increase_good, p_value, a_value,
             sum="Raw data of sample 1", prefix0="#|Tile|",
             prefix1=[" |    |"],
             prefix2=["-|Avg |"], prefix3="")
 
     display(s2.files_dict, [avg2], [], test + ".avg.html", ignore_col,
+            important_level, increase_good, p_value, a_value,
             sum="Raw data of sample 2", prefix0="#|Tile|",
             prefix1=[" |    |"],
             prefix2=["-|Avg |"], prefix3="")
