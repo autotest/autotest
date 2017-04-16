@@ -57,7 +57,7 @@ class AbstractSSHHost(SiteHost):
         self.port = port
         self.password = password
         self._use_rsync = None
-        self.known_hosts_file = tempfile.mkstemp()[1]
+        (self.known_hosts_fd, self.known_hosts_file) = tempfile.mkstemp()
 
         """
         Master SSH connection background job, socket temp directory and socket
@@ -555,6 +555,7 @@ class AbstractSSHHost(SiteHost):
     def close(self):
         super(AbstractSSHHost, self).close()
         self._cleanup_master_ssh()
+	os.close(self.known_hosts_fd)
         os.remove(self.known_hosts_file)
 
     def _cleanup_master_ssh(self):
