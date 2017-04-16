@@ -23,7 +23,7 @@ script:
     - inspekt indent
     - ./utils/unittest_suite_nose.py -c .nose.cfg
     - inspekt lint
-    - rm -f tko/tko_pb2.py
+#    - rm -f tko/tko_pb2.py remove as file does not exist
     - inspekt style
 
 notifications:
