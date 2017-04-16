@@ -406,6 +406,13 @@ def count_cpus():
     return os.sysconf('SC_NPROCESSORS_ONLN')
 
 
+def get_cpu_lists():
+    """Get all CPUs list in local machine according to /proc/cpuinfo"""
+    cpus_result = utils.run("x=$(cat /proc/cpuinfo |grep processor|cut -d: -f2);echo $x")
+    cpus_list = [int(y) for y in cpus_result.stdout.strip().split()]
+    return cpus_list
+
+
 def sysctl(key, value=None):
     """Generic implementation of sysctl, to read and write.
 
