@@ -239,6 +239,13 @@ class BaseAutotest(installable_object.InstallableObject):
             commands.append("touch '%s'/__init__.py" % abs_path)
         host.run(';'.join(commands))
 
+        extra_src_dir = os.path.join(self.source_material, "tests")
+        light_files = [os.path.join(extra_src_dir, f)
+                       for f in os.listdir(extra_src_dir)
+                       if f != "virt"]
+        tests_autodir = os.path.join(autodir, "tests")
+        host.send_file(light_files, tests_autodir, delete_dest=True)
+
     def _install(self, host=None, autodir=None, use_autoserv=True,
                  use_packaging=True):
         """
