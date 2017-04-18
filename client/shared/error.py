@@ -13,6 +13,7 @@ from traceback import format_exception
 __all__ = ['format_error', 'context_aware', 'context', 'get_context',
            'exception_context']
 
+DEFAULT_LOG = logging.info
 
 def format_error():
     t, o, tb = sys.exc_info()
@@ -70,7 +71,7 @@ def _pop_context():
     ctx.contexts.pop()
 
 
-def context(s="", log=None):
+def context(s="", log=DEFAULT_LOG):
     """
     Set the context for the currently executing function and optionally log it.
 
