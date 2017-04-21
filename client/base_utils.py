@@ -406,6 +406,11 @@ def count_cpus():
     return os.sysconf('SC_NPROCESSORS_ONLN')
 
 
+def count_total_cpus():
+    """Total number of (online+offline) CPUs in the local machine"""
+    return os.sysconf('SC_NPROCESSORS_CONF')
+
+
 def sysctl(key, value=None):
     """Generic implementation of sysctl, to read and write.
 
