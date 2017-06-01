@@ -48,6 +48,7 @@ def get_packages():
             'autotest.client.net',
             'autotest.client.tools',
             'autotest.client.profilers',
+            'autotest.client.deps'
             'autotest.client',
             'autotest']
 
