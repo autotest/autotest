@@ -49,7 +49,7 @@ class base_check_python_version:
         best_python = (0, 0), ''
         for python in pythons:
             version = self.extract_version(python)
-            if version >= (2, 4):
+            if version and version >= (2, 4):
                 possible_versions.append((version, python))
 
         possible_versions.sort()
