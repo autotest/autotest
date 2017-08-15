@@ -172,13 +172,13 @@ class map_action(base_action):
         """
         if kver in klist:
             return kver
-        l = list(klist)
-        l.append(kver)
-        l.sort(cmp=cls._kver_cmp)
-        i = l.index(kver)
+        kversions = list(klist)
+        kversions.append(kver)
+        kversions.sort(cmp=cls._kver_cmp)
+        i = kversions.index(kver)
         if i == 0:
-            return l[1]
-        return l[i - 1]
+            return kversions[1]
+        return kversions[i - 1]
 
     def _generate_control(self, test, kernel, kernel_config):
         """

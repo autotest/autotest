@@ -299,7 +299,7 @@ class harness_beaker(harness.harness):
             autotest_init = os.path.join(autodir, 'tools/autotest')
             ret = os.system('chcon system_u:object_r:unconfined_exec_t:s0 %s' % autotest_init)
             logging.debug('chcon returned <%s>', ret)
-        except:
+        except Exception:
             logging.warning('Linking init scripts failed')
 
     def get_test_name(self, task):

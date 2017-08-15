@@ -120,7 +120,7 @@ class ServiceHandler(object):
     def translateRequest(data):
         try:
             req = json_decoder.decode(data)
-        except:
+        except Exception:
             raise ServiceRequestNotTranslatable(data)
         req = customConvertJson(req)
         return req

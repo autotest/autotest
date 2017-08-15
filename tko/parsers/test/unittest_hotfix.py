@@ -67,7 +67,7 @@ class TestCase(unittest.TestCase):
                 self.setUp()
             except KeyboardInterrupt:
                 raise
-            except:
+            except Exception:
                 result.addError(self, exc_info())
                 return
 
@@ -81,14 +81,14 @@ class TestCase(unittest.TestCase):
                 result.addSkipped(self, exc_info())
             except KeyboardInterrupt:
                 raise
-            except:
+            except Exception:
                 result.addError(self, exc_info())
 
             try:
                 self.tearDown()
             except KeyboardInterrupt:
                 raise
-            except:
+            except Exception:
                 result.addError(self, exc_info())
                 ok = False
             if ok:

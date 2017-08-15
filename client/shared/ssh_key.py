@@ -127,7 +127,7 @@ def setup_ssh_key(hostname, user, password, port=22):
         logging.debug('SSH key setup has failed: %s', err)
         try:
             session.close()
-        except:
+        except Exception:
             pass
 
 
@@ -176,5 +176,5 @@ def setup_remote_ssh_key(hostname1, user1, password1,
         try:
             session1.close()
             session2.close()
-        except:
+        except Exception:
             pass

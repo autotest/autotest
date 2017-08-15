@@ -200,11 +200,11 @@ def prepare_generate_control_file(tests, kernel, label, profilers):
     try:
         test_type = get_consistent_value(test_objects, 'test_type')
     except InconsistencyException, exc:
-        test1, test2 = exc.args
+        test1 = exc.args[0]
+        test2 = exc.args[1]
         raise model_logic.ValidationError(
-            {'tests': 'You cannot run both server- and client-side '
-             'tests together (tests %s and %s differ' % (
-                 test1.name, test2.name)})
+            {'tests': 'You cannot run both server and client-side tests together (tests %s and %s differ)' %
+                      (test1.name, test2.name)})
 
     is_server = (test_type == model_attributes.TestTypes.SERVER)
     if test_objects:
@@ -382,7 +382,7 @@ def get_motd():
             text = fp.read()
         finally:
             fp.close()
-    except:
+    except Exception:
         pass
 
     return text

@@ -96,11 +96,11 @@ class _sysinfo_logger(object):
                 self.autotest = autotest_remote.Autotest(self.host)
                 self.autotest.install(autodir=tmp_dir)
                 self.outputdir = self.host.get_tmp_dir()
-            except:
+            except Exception:
                 # if installation fails roll back the host
                 try:
                     self.host.close()
-                except:
+                except Exception:
                     logging.exception("Unable to close host %s",
                                       self.host.hostname)
                 self.host = None

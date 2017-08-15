@@ -413,8 +413,8 @@ def generate_library_search_paths(lib, extra_dirs=COMMON_LIB_PATHS, ld_so_conf_f
         # is program already contains path then only check that path
         paths = [lib]
     else:
-        l = Ldconfig()
-        search_paths = l.ldconfig(ld_so_conf_filename, extra_dirs)
+        ldcfg = Ldconfig()
+        search_paths = ldcfg.ldconfig(ld_so_conf_filename, extra_dirs)
         paths = path_joiner(lib, search_paths)
 
     return paths

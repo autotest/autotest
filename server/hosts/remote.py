@@ -210,7 +210,7 @@ class RemoteHost(base_classes.Host):
                 self.run('test -f %s' % path)
                 logging.debug("Found remote path %s", path)
                 return path
-            except:
+            except Exception:
                 logging.debug("Remote path %s is missing", path)
 
         return None

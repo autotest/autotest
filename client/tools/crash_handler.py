@@ -196,7 +196,7 @@ if __name__ == "__main__":
     try:
         full_functionality = False
         try:
-            crashed_pid, crash_time, uid, signal, hostname, exe = sys.argv[1:]
+            crashed_pid, crash_time, uid, signal, hostname, exe = sys.argv[1:]  # pylint: disable=E0632
             full_functionality = True
         except ValueError, e:
             # Probably due a kernel bug, we can't exactly map the parameters

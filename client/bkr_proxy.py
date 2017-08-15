@@ -346,7 +346,7 @@ class BkrProxy(object):
         try:
             rpath = self.labc_url + make_path_recipe(self.recipe_id)
             utils.get_file(rpath, path)
-        except:
+        except Exception:
             # local will fall through to here
             if not os.path.isfile(path):
                 raise BkrProxyException("No remote or cached recipe %s" % self.recipe_id)

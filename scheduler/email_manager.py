@@ -66,7 +66,7 @@ class EmailNotificationManager(object):
             finally:
                 try:
                     mailer.quit()
-                except:
+                except Exception:
                     logging.exception('mailer.quit() failed:')
         except Exception:
             logging.exception('Sending email failed:')

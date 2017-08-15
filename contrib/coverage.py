@@ -72,7 +72,7 @@ from socket import gethostname
 # Python version compatibility
 try:
     strclass = basestring   # new to 2.3
-except:
+except Exception:
     strclass = str
 
 # 2. IMPLEMENTATION
@@ -153,9 +153,9 @@ class StatementFindingAstVisitor(compiler.visitor.ASTVisitor):
         # Pass statements have weird interactions with docstrings.  If this
         # pass statement is part of one of those pairs, claim that the statement
         # is on the later of the two lines.
-        l = node.lineno
-        if l:
-            lines = self.suite_spots.get(l, [l, l])
+        line_number = node.lineno
+        if line_number:
+            lines = self.suite_spots.get(line_number, [line_number, line_number])
             self.statements[lines[1]] = 1
 
     def visitDiscard(self, node):
@@ -250,7 +250,7 @@ class StatementFindingAstVisitor(compiler.visitor.ASTVisitor):
         for i in range(len(node.handlers)):
             a, b, h = node.handlers[i]
             if not a:
-                # It's a plain "except:".  Find the previous suite.
+                # It's a plain "except Exception:".  Find the previous suite.
                 if i > 0:
                     prev = node.handlers[i - 1][2]
                 else:
@@ -505,7 +505,7 @@ class coverage:
                 return cexecuted
             else:
                 return {}
-        except:
+        except Exception:
             return {}
 
     # collect(). Collect data in multiple files produced by parallel mode
@@ -632,13 +632,13 @@ class coverage:
     def is_string_constant(self, tree):
         try:
             return tree[0] == symbol.stmt and tree[1][1][1][0] == symbol.expr_stmt
-        except:
+        except Exception:
             return False
 
     def is_pass_stmt(self, tree):
         try:
             return tree[0] == symbol.stmt and tree[1][1][1][0] == symbol.pass_stmt
-        except:
+        except Exception:
             return False
 
     def record_multiline(self, spots, i, j):
@@ -858,7 +858,7 @@ class coverage:
                 total_executed = total_executed + m
             except KeyboardInterrupt:  # pragma: no cover
                 raise
-            except:
+            except Exception:
                 if not ignore_errors:
                     typ, msg = sys.exc_info()[:2]
                     print >>file, fmt_err % (name, typ, msg)
@@ -886,7 +886,7 @@ class coverage:
                 self.annotate_file(filename, statements, excluded, missing, directory)
             except KeyboardInterrupt:
                 raise
-            except:
+            except Exception:
                 if not ignore_errors:
                     raise
 

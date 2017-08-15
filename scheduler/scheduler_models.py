@@ -982,7 +982,7 @@ class Job(DBObject):
                     return lines[0]
                 else:
                     return default
-            except:
+            except Exception:
                 return default
 
         stats = {}

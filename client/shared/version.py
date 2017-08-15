@@ -79,7 +79,7 @@ def read_release_version():
             return version.strip()
         finally:
             f.close()
-    except:
+    except Exception:
         return None
 
 

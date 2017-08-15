@@ -160,7 +160,7 @@ def run_autoserv(pid_file_manager, results, parser):
             while job.hosts:
                 host = job.hosts.pop()
                 host.close()
-    except:
+    except Exception:
         exit_code = 1
         traceback.print_exc()
 
@@ -236,7 +236,7 @@ def main():
             run_autoserv(pid_file_manager, results, parser)
         except SystemExit, e:
             exit_code = e.code
-        except:
+        except Exception:
             traceback.print_exc()
             # If we don't know what happened, we'll classify it as
             # an 'abort' and return 1.
