@@ -20,11 +20,9 @@ install:
     - pip install -r requirements.txt
 
 script:
-    - inspekt indent
     - ./utils/unittest_suite_nose.py -c .nose.cfg
-    - inspekt lint
     - rm -f tko/tko_pb2.py
-    - inspekt style
+    - inspekt checkall --disable-lint W,R,C,E0012,E1002,E1101,E1103,E1120,F0401,I0011 --exclude frontend/apache_auth.py --no-license-check
 
 notifications:
   irc:
