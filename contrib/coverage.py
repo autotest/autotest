@@ -272,6 +272,7 @@ class StatementFindingAstVisitor(compiler.visitor.ASTVisitor):
         # trace function), so don't record their line numbers.
         pass
 
+
 the_coverage = None
 
 
@@ -935,6 +936,7 @@ class coverage:
         source.close()
         dest.close()
 
+
 # Singleton object.
 the_coverage = coverage()
 
@@ -987,6 +989,7 @@ def annotate(*args, **kw):
 
 def annotate_file(*args, **kw):
     return the_coverage.annotate_file(*args, **kw)
+
 
 # Save coverage data when Python exits.  (The atexit module wasn't
 # introduced until Python 2.0, so use sys.exitfunc when it's not

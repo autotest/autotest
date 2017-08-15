@@ -14,5 +14,6 @@ def setup(srcdir, tarball='libcap-2.16.tar.gz'):
     utils.make('-C libcap LIBATTR=no')
     os.chdir(topdir)
 
+
 srcdir = os.path.abspath('./src')
 utils.update_version(srcdir, False, version, setup, srcdir)

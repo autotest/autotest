@@ -241,6 +241,7 @@ def main(basedir, resfiles):
     testsuites.add_testsuite(ts)
     testsuites.export(stdout, 0)
 
+
 if __name__ == "__main__":
     if len(argv) < 2 or (argv[1] in ('-h', '--help')):
         print("Usage: %s <autotest-output>" % (argv[0]))

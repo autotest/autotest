@@ -214,6 +214,7 @@ better than None or ValueError
 def commands(*cmds):
     return [command(c) for c in cmds]
 
+
 # Don't be smart and try to guess the architecture because we could be
 # on a multi-arch system
 COMMON_LIB_BASE_PATHS = ['/lib', '/usr/lib', '/lib64', '/usr/lib64']
@@ -484,6 +485,7 @@ def generate_include_search_paths(hdr, extra_dirs):
         paths = path_joiner(hdr, search_paths)
         # `which` always returns the abspath
     return paths
+
 
 which_header = make_path_searcher(
     generate_include_search_paths, is_file_and_readable, os.path.abspath, frozenset([]))

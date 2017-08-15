@@ -51,6 +51,7 @@ def _client_system_wide_install(host):
             return False
     return True
 
+
 # For now, the only fully developed distro package is in Fedora/RHEL
 _yum_install_cmd = 'yum -y install autotest-framework'
 _yum_uninstall_cmd = 'yum -y remove autotest-framework'

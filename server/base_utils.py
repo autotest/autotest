@@ -136,6 +136,8 @@ def __clean_tmp_dirs():
             if e.errno == 2:
                 pass
     __tmp_dirs[pid] = []
+
+
 atexit.register(__clean_tmp_dirs)
 subcommand.subcommand.register_join_hook(lambda _: __clean_tmp_dirs())
 

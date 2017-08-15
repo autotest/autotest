@@ -5,6 +5,7 @@ def migrate_up(manager):
 def migrate_down(manager):
     manager.execute("DROP TABLE IF EXISTS `aborted_host_queue_entries`")
 
+
 CREATE_TABLE = """\
 CREATE TABLE `aborted_host_queue_entries` (
     `queue_entry_id` integer NOT NULL PRIMARY KEY,

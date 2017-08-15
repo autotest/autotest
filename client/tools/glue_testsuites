@@ -48,6 +48,7 @@ def main(argv):
     else:
         print("No files specified on the command line.")
 
+
 if __name__ == '__main__':
     main(sys.argv[1:])
 

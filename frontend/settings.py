@@ -25,6 +25,7 @@ MANAGERS = ADMINS
 def _get_config(config_key, default=None):
     return settings.get_value(_section, config_key, default=default)
 
+
 AUTOTEST_DEFAULT = {
     'ENGINE': 'autotest.frontend.db.backends.afe',
     'PORT': '',

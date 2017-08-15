@@ -64,6 +64,7 @@ def print_key(key):
         pct = 0
     print "%10d  %6.1f%% %s" % (diff[key], pct, key)
 
+
 keys = sorted(diff.keys(), key=lambda x: diff[x], reverse=True)
 
 for key in keys[:results_per_sign]:

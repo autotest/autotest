@@ -28,6 +28,7 @@ class MigrateLoggingConfig(logging_config.LoggingConfig):
             use_console=True,
             verbose=verbose)
 
+
 MIGRATE_TABLE = 'migrate_info'
 
 _AUTODIR = os.path.join(os.path.dirname(__file__), '..')

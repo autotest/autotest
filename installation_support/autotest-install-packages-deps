@@ -26,6 +26,7 @@ class AutotestInstallConfig(logging_config.LoggingConfig):
         super(AutotestInstallConfig, self).configure_logging(use_console=True,
                                                              verbose=verbose)
 
+
 if __name__ == '__main__':
     import optparse
     option_parser = optparse.OptionParser()

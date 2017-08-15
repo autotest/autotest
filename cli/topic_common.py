@@ -134,6 +134,7 @@ def __convert_platform(field):
 def _int_2_bool_string(value):
     return str(bool(value))
 
+
 KEYS_CONVERT = {'locked': _int_2_bool_string,
                 'invalid': lambda flag: str(bool(not flag)),
                 'only_if_needed': _int_2_bool_string,

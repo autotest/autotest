@@ -199,5 +199,6 @@ class SyncDataTest(unittest.TestCase):
         sock.close()
         return obj
 
+
 if __name__ == "__main__":
     unittest.main()

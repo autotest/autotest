@@ -5,6 +5,7 @@ def migrate_up(manager):
 def migrate_down(manager):
     manager.execute_script(DROP_TABLE)
 
+
 CREATE_TABLE = """\
 CREATE TABLE `recurring_run` (
     `id` integer AUTO_INCREMENT NOT NULL PRIMARY KEY,

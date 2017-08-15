@@ -397,6 +397,8 @@ _deleted = sentinel.DELETED
 
 class OldStyleClass:
     pass
+
+
 ClassType = type(OldStyleClass)
 
 
@@ -1819,6 +1821,7 @@ def _get_iter(self):
         return iter(ret_val)
     return __iter__
 
+
 _side_effect_methods = {
     '__eq__': _get_eq,
     '__ne__': _get_ne,
@@ -1948,6 +1951,7 @@ class _ANY(object):
 
     def __repr__(self):
         return '<ANY>'
+
 
 ANY = _ANY()
 

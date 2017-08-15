@@ -201,5 +201,6 @@ def main():
             kwargs['disable_fields'] = True
     print generate_dot(args, **kwargs)
 
+
 if __name__ == "__main__":
     main()

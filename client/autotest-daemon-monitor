@@ -20,6 +20,8 @@ stderr_start = int(sys.argv[3])  # nubmer of bytes we can skip on stderr
 
 def kill_self(signum, frame):
     os.kill(os.getpid(), signal.SIGTERM)
+
+
 signal.signal(signal.SIGCHLD, kill_self)
 
 devnull = open(os.devnull, 'w')
@@ -35,6 +37,8 @@ def launch_tail(filename, outstream, start):
         return subprocess.Popen(argv, stderr=devnull)
     else:
         return subprocess.Popen(argv, stdout=outstream, stderr=devnull)
+
+
 stdout_pump = launch_tail('stdout', sys.stdout, stdout_start)
 stderr_pump = launch_tail('stderr', sys.stderr, stderr_start)
 

@@ -23,6 +23,7 @@ for symbol in data1.keys() + data2.keys():
 def lookup_delta(symbol):
     return delta[symbol]
 
+
 sorted_deltas = sorted(delta.keys(), key=lookup_delta, reverse=True)
 
 if len(sorted_deltas) > 40:

@@ -13,6 +13,7 @@ def migrate_up(manager):
 def migrate_down(manager):
     manager.execute(DROP_COLUMN)
 
+
 job_timeout_default = settings.get_value('AUTOTEST_WEB',
                                          'job_timeout_default')
 ADD_COLUMN = ('ALTER TABLE jobs ADD COLUMN timeout INT NOT NULL DEFAULT %s' %
