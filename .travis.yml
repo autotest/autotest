@@ -17,7 +17,7 @@ before_script:
 
 install:
     - pip install sphinx tox simplejson MySQL-python
-    - pip install -r requirements.txt
+    - pip install -r requirements-travis.txt
 
 script:
     - ./utils/unittest_suite_nose.py -c .nose.cfg
