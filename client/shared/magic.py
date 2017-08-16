@@ -44,18 +44,18 @@ def _str_to_num(n):
         # hex
         n = string.lower(n[2:])
         while len(n) > 0:
-            l = n[len(n) - 1]
-            val = val + string.hexdigits.index(l) * col
+            lst = n[len(n) - 1]
+            val = val + string.hexdigits.index(lst) * col
             col = col * 16
             n = n[:len(n) - 1]
     elif n[0] == '\\':
         # octal
         n = n[1:]
         while len(n) > 0:
-            l = n[len(n) - 1]
-            if ord(l) < 48 or ord(l) > 57:
+            lst = n[len(n) - 1]
+            if ord(lst) < 48 or ord(lst) > 57:
                 break
-            val = val + int(l) * col
+            val = val + int(lst) * col
             col = col * 8
             n = n[:len(n) - 1]
     else:

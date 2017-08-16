@@ -134,5 +134,5 @@ def test_label_get_by_idx(test_label_idx):
     try:
         label = TestLabel.objects.get(pk=test_label_idx)
         return label
-    except:
+    except Exception:
         return None

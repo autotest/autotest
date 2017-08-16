@@ -41,5 +41,6 @@ class TestParseSSH(unittest.TestCase):
         ]:
             self.assertEqual(expected, base_packages.parse_ssh_path(val))
 
+
 if __name__ == "__main__":
     unittest.main()

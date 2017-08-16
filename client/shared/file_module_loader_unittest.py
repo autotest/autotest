@@ -98,5 +98,6 @@ bytecode_val = sys.dont_write_bytecode
         ]
         assert not hasattr(namespace, "wow")
 
+
 if __name__ == '__main__':
     unittest.main()

@@ -294,7 +294,7 @@ def main():
                 fcntl.flock(lockfile, fcntl.LOCK_UN)
                 lockfile.close()
 
-    except:
+    except Exception:
         pid_file_manager.close_file(1)
         raise
     else:

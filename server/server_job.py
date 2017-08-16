@@ -551,7 +551,7 @@ class base_server_job(base_job.base_job):
                         'Exception escaped control file, job aborting:')
                     self.record('INFO', None, None, str(e),
                                 {'job_abort_reason': str(e)})
-                except:
+                except Exception:
                     pass  # don't let logging exceptions here interfere
                 raise
         finally:

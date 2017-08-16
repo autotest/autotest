@@ -68,6 +68,7 @@ def handle_sigterm(signum, frame):
     utils.delete_pid_file_if_exists(monitor_db.WATCHER_PID_FILE_PREFIX)
     sys.exit(1)
 
+
 signal.signal(signal.SIGTERM, handle_sigterm)
 
 

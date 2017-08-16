@@ -30,7 +30,7 @@ log = logging
 def xml_attr(node, key, default=None):
     try:
         return str(node.attributes[key].value)
-    except:
+    except Exception:
         return default
 
 

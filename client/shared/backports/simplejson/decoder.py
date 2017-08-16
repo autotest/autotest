@@ -14,6 +14,8 @@ def _import_c_scanstring():
         return scanstring
     except ImportError:
         return None
+
+
 c_scanstring = _import_c_scanstring()
 
 __all__ = ['JSONDecoder']
@@ -29,6 +31,7 @@ def _floatconstants():
         _BYTES = _BYTES[:8][::-1] + _BYTES[8:][::-1]
     nan, inf = struct.unpack('dd', _BYTES)
     return nan, inf, -inf
+
 
 NaN, PosInf, NegInf = _floatconstants()
 

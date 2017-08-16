@@ -18,5 +18,6 @@ def setup(topdir):
 
     os.chdir(topdir)
 
+
 pwd = os.getcwd()
 utils.update_version(os.path.join(pwd, 'src'), True, version, setup, pwd)

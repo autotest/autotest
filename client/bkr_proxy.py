@@ -42,6 +42,7 @@ class BkrProxyException(Exception):
     def __init__(self, text):
         Exception.__init__(self, text)
 
+
 '''Hard coded internal paths'''
 
 
@@ -72,6 +73,7 @@ def make_path_bkrcache(r):
     """
 
     return AUTOTEST_CACHE_DIR + '/recipes/' + r + '/beaker_recipe.cache'
+
 
 '''End Hard coded internal paths'''
 
@@ -167,6 +169,7 @@ def make_path_log(r, t=None, i=None):
     ipath = i and '/results/' + i or ''
 
     return rpath + tpath + ipath + '/logs'
+
 
 '''End Hard coded paths'''
 
@@ -343,7 +346,7 @@ class BkrProxy(object):
         try:
             rpath = self.labc_url + make_path_recipe(self.recipe_id)
             utils.get_file(rpath, path)
-        except:
+        except Exception:
             # local will fall through to here
             if not os.path.isfile(path):
                 raise BkrProxyException("No remote or cached recipe %s" % self.recipe_id)

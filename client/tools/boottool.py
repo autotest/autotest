@@ -163,25 +163,25 @@ class EfiVar(object):
         '''
         Returns the variable name in a list ready for struct.pack()
         '''
-        l = []
+        lst = []
         for i in range(512):
-            l.append(0)
+            lst.append(0)
 
         for i in range(len(self.name)):
-            l[i] = ord(self.name[i])
-        return l
+            lst[i] = ord(self.name[i])
+        return lst
 
     def get_data(self):
         '''
         Returns the variable data in a list ready for struct.pack()
         '''
-        l = []
+        lst = []
         for i in range(512):
-            l.append(0)
+            lst.append(0)
 
         for i in range(len(self.data)):
-            l[i] = ord(self.data[i])
-        return l
+            lst[i] = ord(self.data[i])
+        return lst
 
     def get_packed(self):
         '''
@@ -788,7 +788,7 @@ class Grubby(object):
                                       stdin=subprocess.PIPE,
                                       stdout=subprocess.PIPE,
                                       close_fds=True).stdout.read()
-        except:
+        except Exception:
             pass
 
         if result is not None:
@@ -814,7 +814,7 @@ class Grubby(object):
                                       stdout=subprocess.PIPE,
                                       stderr=subprocess.PIPE,
                                       close_fds=True).stdout.read()
-        except:
+        except Exception:
             pass
 
         if result is not None:
@@ -1416,7 +1416,7 @@ class Grubby(object):
         if (os.path.exists(path) and not os.path.exists(backup_path)):
             try:
                 shutil.move(path, backup_path)
-            except:
+            except Exception:
                 self.log.warn('Failed to backup the current grubby binary')
 
     def grubby_install_fetch_tarball(self, topdir):
@@ -1429,7 +1429,7 @@ class Grubby(object):
         try:
             tarball = tarball_name
             f = open(tarball)
-        except:
+        except Exception:
             try:
                 # then the autotest source directory
                 # pylint: disable=E0611
@@ -1437,13 +1437,13 @@ class Grubby(object):
                 top_path = settings.get_value('COMMON', 'autotest_top_path')
                 tarball = os.path.join(top_path, tarball_name)
                 f = open(tarball)
-            except:
+            except Exception:
                 # then try to grab it from github
                 try:
                     tarball = os.path.join(topdir, tarball_name)
                     urllib.urlretrieve(GRUBBY_TARBALL_URI, tarball)
                     f = open(tarball)
-                except:
+                except Exception:
                     return None
 
         tarball_md5 = md5.md5(f.read()).hexdigest()
@@ -1542,7 +1542,7 @@ class Grubby(object):
                                          'binary to directory "%s"' % inst_dir)
         try:
             shutil.copy(grubby_bin, path)
-        except:
+        except Exception:
             raise GrubbyInstallException('Failed to copy grubby binary to '
                                          'directory "%s"' % inst_dir)
 

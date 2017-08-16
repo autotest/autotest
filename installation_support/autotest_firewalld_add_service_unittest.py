@@ -123,6 +123,7 @@ def load_module_from_file(module_file_path):
         module_file.close()
     return new_module
 
+
 MODULE_FILE = "autotest-firewalld-add-service"
 
 ETC_PATH = os.path.join(os.sep, "etc", "firewalld", "zones", "public.xml")
@@ -139,6 +140,8 @@ class MockArgParse(object):
 
         def add_argument(self, *args, **kwargs):
             pass
+
+
 sys.modules['argparse'] = MockArgParse
 autotest_firewall_module = load_module_from_file(
     os.path.join(test_path, MODULE_FILE))

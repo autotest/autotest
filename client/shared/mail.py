@@ -95,7 +95,7 @@ def send(from_address, to_addresses, cc_addresses, subject, body,
         finally:
             try:
                 mailer.quit()
-            except:
+            except Exception:
                 logging.exception('mailer.quit() failed:')
 
     except Exception:

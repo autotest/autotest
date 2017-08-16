@@ -70,6 +70,7 @@ def parsexml_(*args, **kwargs):
 # You can replace these methods by re-implementing the following class
 #   in a module named generatedssuper.py.
 
+
 try:
     from generatedssuper import GeneratedsSuper
 except ImportError, exp:

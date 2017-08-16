@@ -397,6 +397,8 @@ _deleted = sentinel.DELETED
 
 class OldStyleClass:
     pass
+
+
 ClassType = type(OldStyleClass)
 
 
@@ -1206,7 +1208,7 @@ class _patch(object):
 
                     args += tuple(extra_args)
                     return func(*args, **keywargs)
-                except:
+                except Exception:
                     if (patching not in entered_patchers and
                             _is_started(patching)):
                         # the patcher may have been started, but an exception
@@ -1819,6 +1821,7 @@ def _get_iter(self):
         return iter(ret_val)
     return __iter__
 
+
 _side_effect_methods = {
     '__eq__': _get_eq,
     '__ne__': _get_ne,
@@ -1948,6 +1951,7 @@ class _ANY(object):
 
     def __repr__(self):
         return '<ANY>'
+
 
 ANY = _ANY()
 

@@ -96,6 +96,7 @@ def usage():
     print "                                         (defaults to workspace/[jobname]/autotest/client).    \n",
     print "                                                                                             \n",
 
+
 if __name__ == "__main__":
     # process command line
     optsShort = ''

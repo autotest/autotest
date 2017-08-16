@@ -2649,6 +2649,7 @@ class VersionableClass(object):
         raise NotImplementedError("Method 'is_right_version' must be"
                                   " implemented in child class")
 
+
 if os.path.exists(os.path.join(os.path.dirname(__file__), 'site_utils.py')):
     # Here we are importing site utils only if it exists
     # pylint: disable=E0611

@@ -33,6 +33,7 @@ def setup(tarball, topdir):
 
     os.chdir(topdir)
 
+
 pwd = os.getcwd()
 tarball = os.path.join(pwd, 'mysql-5.0.45.tar.gz')
 utils.update_version(pwd + '/src', False, version, setup, tarball, pwd)

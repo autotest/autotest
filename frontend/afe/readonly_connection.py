@@ -122,4 +122,6 @@ def connection():
 # close any open connection when request finishes
 def _close_connection(**unused_kwargs):
     connection().close()
+
+
 signals.request_finished.connect(_close_connection)

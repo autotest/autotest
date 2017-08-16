@@ -46,6 +46,7 @@ def customConvertJson(value):
     else:
         return value
 
+
 json_encoder = encoder.JSONEncoder()
 json_decoder = decoder.JSONDecoder()
 
@@ -119,7 +120,7 @@ class ServiceHandler(object):
     def translateRequest(data):
         try:
             req = json_decoder.decode(data)
-        except:
+        except Exception:
             raise ServiceRequestNotTranslatable(data)
         req = customConvertJson(req)
         return req

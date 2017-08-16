@@ -314,7 +314,7 @@ def lv_create(vg_name, lv_name, lv_size):
     logging.info(result.stdout.rstrip())
 
 
-def lv_list():
+def lv_list_all():
     """
     List available group volumes.
     """

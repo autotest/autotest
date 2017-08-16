@@ -19,6 +19,7 @@ def setup(tarball, topdir):
 
     os.chdir(topdir)
 
+
 pwd = os.getcwd()
 tarball = os.path.join(pwd, 'postgresql-8.3.1.tar.bz2')
 utils.update_version(pwd + '/src', False, version, setup, tarball, pwd)

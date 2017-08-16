@@ -19,6 +19,7 @@ def TestResult__init__(self):
     self.testsRun = 0
     self.shouldStop = 0
 
+
 unittest.TestResult.__init__ = TestResult__init__
 
 
@@ -29,6 +30,7 @@ def TestResult_addSkipped(self, test, err):
     """
     self.skipped.append((test, str(err[1])))
 
+
 unittest.TestResult.addSkipped = TestResult_addSkipped
 
 
@@ -36,6 +38,7 @@ def TestResult__repr__(self):
     return "<%s run=%i errors=%i failures=%i skipped=%i>" % (
         unittest._strclass(self.__class__), self.testsRun,
         len(self.errors), len(self.failures), len(self.skipped))
+
 
 unittest.TestResult.__repr__ = TestResult__repr__
 
@@ -64,7 +67,7 @@ class TestCase(unittest.TestCase):
                 self.setUp()
             except KeyboardInterrupt:
                 raise
-            except:
+            except Exception:
                 result.addError(self, exc_info())
                 return
 
@@ -78,14 +81,14 @@ class TestCase(unittest.TestCase):
                 result.addSkipped(self, exc_info())
             except KeyboardInterrupt:
                 raise
-            except:
+            except Exception:
                 result.addError(self, exc_info())
 
             try:
                 self.tearDown()
             except KeyboardInterrupt:
                 raise
-            except:
+            except Exception:
                 result.addError(self, exc_info())
                 ok = False
             if ok:
@@ -112,6 +115,7 @@ def _TextTestResult_addSkipped(self, test, err):
         self.stream.writeln("SKIPPED" + msg)
     elif self.dots:
         self.stream.write('S')
+
 
 unittest._TextTestResult.addSkipped = _TextTestResult_addSkipped
 
@@ -150,5 +154,6 @@ def TextTestRunner_run(self, test):
         else:
             self.stream.writeln("OK")
     return result
+
 
 unittest.TextTestRunner.run = TextTestRunner_run

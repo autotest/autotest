@@ -53,7 +53,7 @@ def get_test_keyval(jobid, keyname, default=''):
         return exec_sql('select value from tko_test_attributes'
                         ' where test_idx=%s and attribute="%s"'
                         % (test_idx, keyname))[-1]
-    except:
+    except Exception:
         return default
 
 
@@ -96,19 +96,19 @@ class Sample(object):
             for i in range(len(files)):
                 fd = open(files[i], "r")
                 f = []
-                for l in fd.readlines():
-                    l = l.strip()
-                    if re.findall("^### ", l):
-                        if "kvm-userspace-ver" in l:
-                            self.kvmver = l.split(':')[-1]
-                        elif "kvm_version" in l:
-                            self.hostkernel = l.split(':')[-1]
-                        elif "guest-kernel-ver" in l:
-                            self.guestkernel = l.split(':')[-1]
-                        elif "session-length" in l:
-                            self.len = l.split(':')[-1]
+                for line in fd.readlines():
+                    line = line.strip()
+                    if re.findall("^### ", line):
+                        if "kvm-userspace-ver" in line:
+                            self.kvmver = line.split(':')[-1]
+                        elif "kvm_version" in line:
+                            self.hostkernel = line.split(':')[-1]
+                        elif "guest-kernel-ver" in line:
+                            self.guestkernel = line.split(':')[-1]
+                        elif "session-length" in line:
+                            self.len = line.split(':')[-1]
                     else:
-                        f.append(l.strip())
+                        f.append(line.strip())
                 self.files_dict.append(f)
                 fd.close()
         elif type == 'database':
@@ -126,8 +126,8 @@ class Sample(object):
             testidx = None
             job_dict = []
             test_dict = []
-            for l in data:
-                s = l.split()
+            for line in data:
+                s = line.split()
                 if not testidx:
                     testidx = s[0]
                 if testidx != s[0]:
@@ -280,9 +280,9 @@ class Sample(object):
 
         if avg_update:
             for i in avg_update.split('|'):
-                l = i.split(',')
-                ret[int(l[0])] = "%.2f" % (float(ret[int(l[1])]) /
-                                           float(ret[int(l[2])]))
+                line = i.split(',')
+                ret[int(line[0])] = "%.2f" % (float(ret[int(line[1])]) /
+                                              float(ret[int(line[2])]))
         if merge:
             return "|".join(ret)
         return ret

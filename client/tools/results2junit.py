@@ -122,7 +122,7 @@ def main(basedir, resfiles):
 
     try:
         hn = open(os.path.join(basedir, "sysinfo/hostname")).read()
-    except:
+    except Exception:
         hn = "localhost"
 
     testsuites = api.testsuites()
@@ -147,7 +147,7 @@ def main(basedir, resfiles):
                 rawcontents = open(os.path.join(basedir, "sysinfo", propitem)).read()
                 # the xml processor can only handle ascii
                 contents = ''.join([x for x in rawcontents if ord(x) < 128])
-            except:
+            except Exception:
                 contents = "Unable to open the file %s" % os.path.join(basedir, "sysinfo", propitem)
             tp = api.propertyType(propitem, contents)
             properties.add_property(tp)
@@ -240,6 +240,7 @@ def main(basedir, resfiles):
     # TODO find and include stdout and stderr
     testsuites.add_testsuite(ts)
     testsuites.export(stdout, 0)
+
 
 if __name__ == "__main__":
     if len(argv) < 2 or (argv[1] in ('-h', '--help')):

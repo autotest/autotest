@@ -366,5 +366,6 @@ def execWithCaptureStatus(command, argv, searchPath=0, root='/', stdin=0,
 
     return (rc, status)
 
+
 if __name__ == "__main__":
     main()

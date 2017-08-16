@@ -33,4 +33,5 @@ def create_admin_group(app, **kwargs):
     else:
         print 'Group "%s" already exists' % BASIC_ADMIN
 
+
 post_migrate.connect(create_admin_group)

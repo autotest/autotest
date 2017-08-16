@@ -10,6 +10,8 @@ def _import_c_make_scanner():
         return make_scanner
     except ImportError:
         return None
+
+
 c_make_scanner = _import_c_make_scanner()
 
 __all__ = ['make_scanner']
@@ -77,5 +79,6 @@ def py_make_scanner(context):
             memo.clear()
 
     return scan_once
+
 
 make_scanner = c_make_scanner or py_make_scanner

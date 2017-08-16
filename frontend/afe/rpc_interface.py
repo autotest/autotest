@@ -926,7 +926,7 @@ def create_parameterized_job(name, priority, test, parameters, kernel=None,
             parameterized_job=parameterized_job.id,
             control_type=control_type,
             **rpc_utils.get_create_job_common_args(args))
-    except:
+    except Exception:
         parameterized_job.delete()
         raise
 

@@ -195,6 +195,7 @@ def expectedFailure(func):
         raise _UnexpectedSuccess
     return wrapper
 
+
 __unittest = 1
 
 
@@ -1585,6 +1586,7 @@ Examples:
             testRunner = self.testRunner
         result = testRunner.run(self.test)
         sys.exit(not result.wasSuccessful())
+
 
 main = TestProgram
 

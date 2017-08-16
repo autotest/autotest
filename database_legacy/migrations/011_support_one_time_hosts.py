@@ -7,6 +7,7 @@ def migrate_up(manager):
 def migrate_down(manager):
     manager.execute(DROP_HOST_QUEUE_DELETED_COLUMN)
 
+
 CLEAN_DATABASE = """DELETE FROM acl_groups_hosts
                     WHERE host_id IN
                         (SELECT id FROM hosts WHERE invalid = TRUE);

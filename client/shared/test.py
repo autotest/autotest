@@ -412,7 +412,7 @@ class base_test(object):
             except Exception:
                 try:
                     logging.exception('Exception escaping from test:')
-                except:
+                except Exception:
                     pass  # don't let logging exceptions here interfere
 
                 # Save the exception while we run our cleanup() before
@@ -522,7 +522,7 @@ class Subtest(object):
                 res['output'] = ret
                 try:
                     logging.info(Subtest.result_to_string(res))
-                except:
+                except Exception:
                     self._num_decored = 0
                     raise
                 Subtest.result.append(res)

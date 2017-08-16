@@ -1055,5 +1055,6 @@ class test_AsyncJob(unittest.TestCase):
             assert job.string_stdin is None
         _()
 
+
 if __name__ == "__main__":
     unittest.main()

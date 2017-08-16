@@ -17,6 +17,7 @@ def setup(tarball, topdir):
 
     os.chdir(topdir)
 
+
 pwd = os.getcwd()
 # http://ftp.gnu.org/pub/gnu/dejagnu/dejagnu-1.4.4.tar.gz
 tarball = os.path.join(pwd, 'dejagnu-1.4.4.tar.bz2')

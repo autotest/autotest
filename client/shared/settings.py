@@ -20,6 +20,7 @@ class SettingsError(error.AutotestError):
 class SettingsValueError(SettingsError):
     pass
 
+
 settings_filename = 'global_config.ini'
 shadow_config_filename = 'shadow_config.ini'
 

@@ -14,7 +14,7 @@ import datetime
 import time
 # import autotest libraries
 from autotest.tko import models
-from autotest.tko import tko_pb2
+from autotest.tko import tko_pb2  # pylint: disable=E0611
 from autotest.tko import utils
 
 __author__ = 'darrenkuo@google.com (Darren Kuo)'

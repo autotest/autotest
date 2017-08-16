@@ -196,42 +196,42 @@ class TestLibrary(unittest.TestCase):
 
     @staticmethod
     def test_add_single_dir_reject_duplicates_same_path():
-        l = os_dep.Ldconfig()
+        ldconfig = os_dep.Ldconfig()
         a = os_dep.Ldconfig.DirEntry("a", "", 1, 2)
-        l.lddirs = [a]
-        l._add_single_dir(a)
-        assert l.lddirs == [a]
+        ldconfig.lddirs = [a]
+        ldconfig._add_single_dir(a)
+        assert ldconfig.lddirs == [a]
 
     @staticmethod
     def test_add_single_dir_reject_duplicates_not_same_path():
-        l = os_dep.Ldconfig()
+        ldconfig = os_dep.Ldconfig()
         a = os_dep.Ldconfig.DirEntry("a", "", 1, 2)
-        l.lddirs = [a]
+        ldconfig.lddirs = [a]
         # rejects because ino and dev are the same
-        l._add_single_dir(os_dep.Ldconfig.DirEntry("b", "", 1, 2))
-        assert l.lddirs == [a]
+        ldconfig._add_single_dir(os_dep.Ldconfig.DirEntry("b", "", 1, 2))
+        assert ldconfig.lddirs == [a]
 
     @staticmethod
     def test_add_single_dir_adds():
-        l = os_dep.Ldconfig()
+        ldconfig = os_dep.Ldconfig()
         a = os_dep.Ldconfig.DirEntry("a", "", 1, 2)
         b = os_dep.Ldconfig.DirEntry("b", "", 2, 3)
-        l.lddirs = [a]
-        l._add_single_dir(b)
-        assert l.lddirs == [a, b]
+        ldconfig.lddirs = [a]
+        ldconfig._add_single_dir(b)
+        assert ldconfig.lddirs == [a, b]
 
     @staticmethod
     def test_add_dir_calls_stat():
         @patch.object(sys.modules['os'], "stat", side_effect={"asdf": MagicMock(st_ino=2, st_dev=2)}.get)
         def _test(stat_mock):
             from autotest.client.os_dep import Ldconfig
-            l = Ldconfig()
-            l._add_dir("asdf")
-            assert l.lddirs[0] == Ldconfig.DirEntry("asdf", "", 2, 2)
-            assert l.lddirs[0].path == "asdf"
-            assert l.lddirs[0].flag == ""
-            assert l.lddirs[0].ino == 2
-            assert l.lddirs[0].dev == 2
+            ldconfig = Ldconfig()
+            ldconfig._add_dir("asdf")
+            assert ldconfig.lddirs[0] == Ldconfig.DirEntry("asdf", "", 2, 2)
+            assert ldconfig.lddirs[0].path == "asdf"
+            assert ldconfig.lddirs[0].flag == ""
+            assert ldconfig.lddirs[0].ino == 2
+            assert ldconfig.lddirs[0].dev == 2
         # pylint: disable=E1120
         _test()
 
@@ -242,11 +242,11 @@ class TestLibrary(unittest.TestCase):
             "qwer": MagicMock(st_ino=3, st_dev=3)}.get)
         def _test(stat_mock):
             from autotest.client.os_dep import Ldconfig
-            l = Ldconfig()
-            l._add_dir("asdf=glibc2")
-            assert l.lddirs[0] == Ldconfig.DirEntry("asdf", "glibc2", 2, 2)
-            l._add_dir("qwer%s      =glibc2" % os.sep)
-            assert l.lddirs[1] == Ldconfig.DirEntry("qwer", "glibc2", 3, 3)
+            ldconfig = Ldconfig()
+            ldconfig._add_dir("asdf=glibc2")
+            assert ldconfig.lddirs[0] == Ldconfig.DirEntry("asdf", "glibc2", 2, 2)
+            ldconfig._add_dir("qwer%s      =glibc2" % os.sep)
+            assert ldconfig.lddirs[1] == Ldconfig.DirEntry("qwer", "glibc2", 3, 3)
         # pylint: disable=E1120
         _test()
 
@@ -255,9 +255,9 @@ class TestLibrary(unittest.TestCase):
         @patch.object(sys.modules['os'], "stat", side_effect=IOError)
         @patch.object(os_dep, "logging")
         def _test(logging_mock, stat_mock):
-            l = os_dep.Ldconfig()
-            l._add_dir("asdf")
-            assert l.lddirs == []
+            ldconfig = os_dep.Ldconfig()
+            ldconfig._add_dir("asdf")
+            assert ldconfig.lddirs == []
             assert logging_mock.debug.called
         # pylint: disable=E1120
         _test()
@@ -267,24 +267,24 @@ class TestLibrary(unittest.TestCase):
         @patch.object(sys.modules['os'], "stat", side_effect=OSError)
         @patch.object(os_dep, "logging")
         def _test(logging_mock, stat_mock):
-            l = os_dep.Ldconfig()
-            l._add_dir("asdf")
-            assert l.lddirs == []
+            ldconfig = os_dep.Ldconfig()
+            ldconfig._add_dir("asdf")
+            assert ldconfig.lddirs == []
             assert logging_mock.debug.called
         # pylint: disable=E1120
         _test()
 
     @staticmethod
     def test_read_config_file():
-        l = os_dep.Ldconfig()
+        ldconfig = os_dep.Ldconfig()
 
-        @patch.object(l, "_add_dir")
-        @patch.object(l, "_parse_conf_include")
+        @patch.object(ldconfig, "_add_dir")
+        @patch.object(ldconfig, "_parse_conf_include")
         def _test(parse_conf_include_mock, add_dir_mock):
-            l._parse_config_line(["include foo", "  # comment", "",
-                                  "hwcap 0 nosegneg", "asdf",
-                                  "include *",
-                                  "include glob1 glob2    glob3 \t \t \t glob4"], "filename", 55)
+            ldconfig._parse_config_line(["include foo", "  # comment", "",
+                                         "hwcap 0 nosegneg", "asdf",
+                                         "include *",
+                                         "include glob1 glob2    glob3 \t \t \t glob4"], "filename", 55)
             assert add_dir_mock.call_args_list == [call("asdf")]
             assert parse_conf_include_mock.call_args_list == [call(
                 "filename", "foo", 55),
@@ -306,8 +306,8 @@ class TestLibrary(unittest.TestCase):
     def test_parse_conf_stops_at_max_recursion():
         @patch.object(os_dep, "open", create=True)
         def _test(open_mock):
-            l = os_dep.Ldconfig()
-            l.parse_conf("", l.MAX_RECURSION_DEPTH + 2)
+            ldconfig = os_dep.Ldconfig()
+            ldconfig.parse_conf("", ldconfig.MAX_RECURSION_DEPTH + 2)
             assert not open_mock.called
         # pylint: disable=E1120
         _test()
@@ -316,8 +316,8 @@ class TestLibrary(unittest.TestCase):
     def test_parse_conf_opens_mock():
         @patch.object(os_dep, "open", create=True)
         def _test(open_mock):
-            l = os_dep.Ldconfig()
-            l.parse_conf("")
+            ldconfig = os_dep.Ldconfig()
+            ldconfig.parse_conf("")
             assert open_mock.called
         # pylint: disable=E1120
         _test()
@@ -326,8 +326,8 @@ class TestLibrary(unittest.TestCase):
     def test_parse_conf_ignores_open_exception():
         @patch.object(os_dep, "open", create=True, side_effect=IOError)
         def _test(open_mock):
-            l = os_dep.Ldconfig()
-            l.parse_conf("")
+            ldconfig = os_dep.Ldconfig()
+            ldconfig.parse_conf("")
             assert open_mock.called
         # pylint: disable=E1120
         _test()
@@ -337,9 +337,9 @@ class TestLibrary(unittest.TestCase):
         @patch.object(os_dep, "glob", return_value=[])
         @patch.object(os_dep.Ldconfig, "parse_conf")
         def _test(parse_conf, glob_mock):
-            l = os_dep.Ldconfig()
-            l._parse_conf_include(os.path.join(os.sep, "etc", "ld.so.conf"),
-                                  os.path.join("a", "b", "c"), 1)
+            ldconfig = os_dep.Ldconfig()
+            ldconfig._parse_conf_include(os.path.join(os.sep, "etc", "ld.so.conf"),
+                                         os.path.join("a", "b", "c"), 1)
             assert glob_mock.call_args_list == [
                 call(os.path.join(os.path.join(os.sep, "etc"),
                                   os.path.join("a", "b", "c")))]
@@ -351,9 +351,9 @@ class TestLibrary(unittest.TestCase):
         @patch.object(os_dep, "glob", return_value=[])
         @patch.object(os_dep.Ldconfig, "parse_conf")
         def _test(parse_conf, glob_mock):
-            l = os_dep.Ldconfig()
-            l._parse_conf_include(os.path.join(os.sep, "etc", "ld.so.conf"),
-                                  "foo", 1)
+            ldconfig = os_dep.Ldconfig()
+            ldconfig._parse_conf_include(os.path.join(os.sep, "etc", "ld.so.conf"),
+                                         "foo", 1)
             assert glob_mock.call_args_list == [
                 call(os.path.join(os.path.join(os.sep, "etc"),
                                   "foo"))]
@@ -364,11 +364,11 @@ class TestLibrary(unittest.TestCase):
     def test_parse_conf_include_does_not_join_when_no_slash_in_filename():
         @patch.object(os_dep, "glob", return_value=[])
         def _test(glob_mock):
-            l = os_dep.Ldconfig()
+            ldconfig = os_dep.Ldconfig()
 
-            @patch.object(l, "parse_conf")
+            @patch.object(ldconfig, "parse_conf")
             def _test2(parse_conf_mock):
-                l._parse_conf_include("noslash", "foo", 1)
+                ldconfig._parse_conf_include("noslash", "foo", 1)
                 assert glob_mock.call_args_list == [call("foo")]
             # pylint: disable=E1120
             _test2()
@@ -379,11 +379,11 @@ class TestLibrary(unittest.TestCase):
     def test_parse_conf_include_iterates_over_globs():
         @patch.object(os_dep, "glob", return_value=["a", "b", "c"])
         def _test(glob_mock):
-            l = os_dep.Ldconfig()
+            ldconfig = os_dep.Ldconfig()
 
-            @patch.object(l, "parse_conf")
+            @patch.object(ldconfig, "parse_conf")
             def _test2(parse_conf_mock):
-                l._parse_conf_include(
+                ldconfig._parse_conf_include(
                     os.path.join(os.sep, "etc", "ld.so.conf"),
                     "foo", 1)
                 assert glob_mock.call_args_list == [

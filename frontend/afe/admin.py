@@ -49,6 +49,7 @@ class AtomicGroupAdmin(SiteAdmin):
     def queryset(self, request):
         return models.AtomicGroup.valid_objects
 
+
 admin.site.register(models.AtomicGroup, AtomicGroupAdmin)
 
 
@@ -70,12 +71,14 @@ class LabelAdmin(SiteAdmin):
     def queryset(self, request):
         return models.Label.valid_objects
 
+
 admin.site.register(models.Label, LabelAdmin)
 
 
 class UserAdmin(SiteAdmin):
     list_display = ('login', 'access_level')
     search_fields = ('login',)
+
 
 admin.site.register(models.User, UserAdmin)
 
@@ -100,6 +103,7 @@ class HostAdmin(SiteAdmin):
     def queryset(self, request):
         return models.Host.valid_objects
 
+
 admin.site.register(models.Host, HostAdmin)
 
 
@@ -112,12 +116,14 @@ class TestAdmin(SiteAdmin):
     search_fields = ('name',)
     filter_horizontal = ('dependency_labels',)
 
+
 admin.site.register(models.Test, TestAdmin)
 
 
 class ProfilerAdmin(SiteAdmin):
     list_display = ('name', 'description')
     search_fields = ('name',)
+
 
 admin.site.register(models.Profiler, ProfilerAdmin)
 
@@ -140,6 +146,7 @@ class AclGroupAdmin(SiteAdmin):
 
         form.save_m2m = save_m2m
 
+
 admin.site.register(models.AclGroup, AclGroupAdmin)
 
 
@@ -159,6 +166,7 @@ class DroneSetForm(forms.ModelForm):
 class DroneSetAdmin(SiteAdmin):
     filter_horizontal = ('drones',)
     form = DroneSetForm
+
 
 admin.site.register(models.DroneSet, DroneSetAdmin)
 

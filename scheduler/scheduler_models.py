@@ -390,7 +390,7 @@ class ACLGroup(DBObject):
 
     def __repr__(self):
         return 'ACLGroup(name=%r, id=%d, description=%r)' % (
-             self.name, self.id, self.description)
+            self.name, self.id, self.description)
 
 
 class Host(DBObject):
@@ -982,7 +982,7 @@ class Job(DBObject):
                     return lines[0]
                 else:
                     return default
-            except:
+            except Exception:
                 return default
 
         stats = {}

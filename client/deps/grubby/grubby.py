@@ -16,6 +16,7 @@ def setup(tarball, topdir):
     utils.make('install')
     os.chdir(topdir)
 
+
 pwd = os.getcwd()
 tarball = os.path.join(pwd, 'grubby-8.15.tar.bz2')
 utils.update_version(os.path.join(pwd, 'src'),

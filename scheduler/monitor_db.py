@@ -261,7 +261,7 @@ def main_without_exception_handling():
         while not _shutdown and not server._shutdown_scheduler:
             dispatcher.tick()
             time.sleep(scheduler_config.config.tick_pause_sec)
-    except:
+    except Exception:
         e_msg = "Uncaught exception, terminating scheduler"
         mail.manager.enqueue_exception_admin(e_msg)
 
@@ -277,7 +277,7 @@ def main():
             main_without_exception_handling()
         except SystemExit:
             raise
-        except:
+        except Exception:
             logging.exception('Exception escaping in scheduler')
             raise
     finally:

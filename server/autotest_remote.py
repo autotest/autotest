@@ -47,9 +47,10 @@ def _client_system_wide_install(host):
     for path in SYSTEM_WIDE_PATHS:
         try:
             host.run('test -x %s' % utils.sh_escape(path))
-        except:
+        except Exception:
             return False
     return True
+
 
 # For now, the only fully developed distro package is in Fedora/RHEL
 _yum_install_cmd = 'yum -y install autotest-framework'
@@ -423,7 +424,7 @@ class BaseAutotest(installable_object.InstallableObject):
                 client_disconnect_timeout):
         try:
             atrun.verify_machine()
-        except:
+        except Exception:
             logging.error("Verify failed on %s. Reinstalling autotest",
                           host.hostname)
             self.install(host)
@@ -568,7 +569,7 @@ class _BaseRun(object):
         binary = os.path.join(self.autodir, CLIENT_BINARY)
         try:
             self.host.run('test -x %s' % binary)
-        except:
+        except Exception:
             raise error.AutoservInstallError("Autotest does not appear "
                                              "to be installed")
 

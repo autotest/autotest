@@ -20,6 +20,7 @@ def setup(tarball, topdir):
 
     os.chdir(topdir)
 
+
 pwd = os.getcwd()
 tarball = os.path.join(pwd, 'libnet.tar.gz')
 utils.update_version(pwd + '/src', False, version, setup, tarball, pwd)

@@ -119,6 +119,8 @@ def _import_OrderedDict():
     except AttributeError:
         import ordered_dict
         return ordered_dict.OrderedDict
+
+
 OrderedDict = _import_OrderedDict()
 
 
@@ -129,6 +131,7 @@ def _import_c_make_encoder():
         return make_encoder
     except ImportError:
         return None
+
 
 _default_encoder = JSONEncoder(
     skipkeys=False,
