@@ -5,6 +5,6 @@ nosexcover==1.0.8
 tox==1.5.0
 virtualenv==1.9.1
 django==1.5.1
-aexpect==1.0.0
+aexpect==1.4.0
 inspektor==0.4.5
 protobuf==2.6.1
