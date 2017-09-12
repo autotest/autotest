@@ -28,7 +28,11 @@ shared_dir = os.path.dirname(sys.modules[__name__].__file__)
 client_dir = os.path.dirname(shared_dir)
 root_dir = os.path.dirname(client_dir)
 
-system_wide_dir = os.environ.get('AUTOTEST_TOP_PATH', '/etc/autotest')
+if hasattr(sys, "real_prefix"):
+    default_autotest_top = os.path.join(sys.prefix, "etc", "autotest")
+else:
+    default_autotest_top = "/etc/autotest"
+system_wide_dir = os.environ.get('AUTOTEST_TOP_PATH', default_autotest_top)
 
 # Check if the config files are in the system wide directory
 settings_path_system_wide = os.path.join(system_wide_dir,
