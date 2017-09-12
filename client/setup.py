@@ -1,5 +1,6 @@
 # pylint: disable=E0611
 import os
+import sys
 from distutils.core import setup
 
 try:
@@ -60,7 +61,11 @@ def get_scripts():
 
 
 def get_data_files():
-    return [(os.environ.get('AUTOTEST_TOP_PATH', '/etc/autotest'),
+    if hasattr(sys, "real_prefix"):
+        default_autotest_top = os.path.join(sys.prefix, "etc", "autotest")
+    else:
+        default_autotest_top = "/etc/autotest"
+    return [(os.environ.get('AUTOTEST_TOP_PATH', default_autotest_top),
              [autotest_dir + '/global_config.ini',
               autotest_dir + '/shadow_config.ini', ]), ]
 
