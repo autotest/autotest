@@ -233,10 +233,12 @@ class AsyncSSHMixin(object):
 
         # Start a master SSH connection if necessary.
         self.start_master_ssh()
-
+        run_helper_path = self.job.tmpdir
+        # Create directory for run_helper.py
+        self.run("mkdir -p %s" % run_helper_path)
         self.send_file(os.path.join(self.job.clientdir, "shared", "hosts",
                                     "scripts", "run_helper.py"),
-                       os.path.join(self.job.tmpdir, "run_helper.py"))
+                       os.path.join(run_helper_path, "run_helper.py"))
 
         env = " ".join("=".join(pair) for pair in self.env.iteritems())
 
@@ -250,7 +252,7 @@ class AsyncSSHMixin(object):
         full_cmd = '{ssh_cmd} "{env} {cmd}"'.format(
             ssh_cmd=ssh_cmd, env=env,
             cmd=utils.sh_escape("%s (%s '%s')" % (cmd_outside_subshell,
-                                                  os.path.join(self.job.tmpdir, "run_helper.py"),
+                                                  os.path.join(run_helper_path, "run_helper.py"),
                                                   utils.sh_escape(command))))
 
         job = utils.AsyncJob(full_cmd, stdout_tee=stdout_tee,
