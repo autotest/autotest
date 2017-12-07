@@ -5,8 +5,8 @@ import traceback
 # these statuses are ordered such that a status earlier in the list will
 # override a status later in a list (e.g. ERROR during a test will override
 # prior GOOD results, but WARN will not override a FAIL)
-job_statuses = ["TEST_NA", "ABORT", "ERROR", "FAIL", "WARN", "GOOD", "ALERT",
-                "RUNNING", "NOSTATUS"]
+job_statuses = ["TEST_NA", "ABORT", "ERROR", "FAIL", "WARN", "GOOD", "BUG",
+                "ALERT", "RUNNING", "NOSTATUS"]
 
 
 def is_valid_status(status):

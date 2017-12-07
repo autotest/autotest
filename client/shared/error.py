@@ -230,6 +230,12 @@ class TestFail(TestBaseException):
     exit_status = "FAIL"
 
 
+class TestBug(TestBaseException):
+
+    """Indicates that the test failed, but the fail was expected."""
+    exit_status = "BUG"
+
+
 class TestWarn(TestBaseException):
 
     """Indicates that bad things (may) have happened, but not an explicit
