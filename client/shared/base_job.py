@@ -33,7 +33,6 @@ JOB_STATUSES = {"TEST_NA": False,
 
 
 class job_directory(object):
-
     """Represents a job.*dir directory."""
 
     class JobDirectoryException(error.AutotestError):
@@ -140,6 +139,7 @@ class job_directory(object):
 
         :returns: A read-only property object that exposes a job_directory path
         """
+
         @property
         def dir_property(self):
             underlying_attribute = getattr(self, '_' + attribute)
@@ -147,6 +147,7 @@ class job_directory(object):
                 return None
             else:
                 return underlying_attribute.path
+
         return dir_property
 
 
@@ -169,6 +170,7 @@ def with_backing_lock(method):
         finally:
             if not already_have_lock:
                 self._unlock_backing_file()
+
     wrapped_method.__name__ = method.__name__
     wrapped_method.__doc__ = method.__doc__
     return wrapped_method
@@ -185,6 +187,7 @@ def with_backing_file(method):
     should be decorated with this method to ensure that backing file
     state is consistently maintained.
     """
+
     @with_backing_lock
     def wrapped_method(self, *args, **dargs):
         self._read_from_backing_file()
@@ -192,13 +195,13 @@ def with_backing_file(method):
             return method(self, *args, **dargs)
         finally:
             self._write_to_backing_file()
+
     wrapped_method.__name__ = method.__name__
     wrapped_method.__doc__ = method.__doc__
     return wrapped_method
 
 
 class job_state(object):
-
     """
     A class for managing explicit job and user state, optionally persistent.
 
@@ -464,6 +467,7 @@ class job_state(object):
         :returns: A read-write property object that performs self.get calls
                   to read the value and self.set calls to set it.
         """
+
         def getter(job):
             state = getattr(job, state_attribute)
             return state.get(namespace, property_attribute, default)
@@ -471,11 +475,11 @@ class job_state(object):
         def setter(job, value):
             state = getattr(job, state_attribute)
             state.set(namespace, property_attribute, value)
+
         return property(getter, setter)
 
 
 class status_log_entry(object):
-
     """
     Represents a single status log entry.
     """
@@ -620,10 +624,10 @@ class status_log_entry(object):
 
 
 class status_indenter(object):
-
     """
     Abstract interface that a status log indenter should use.
     """
+
     @property
     def indent(self):
         raise NotImplementedError
@@ -637,7 +641,6 @@ class status_indenter(object):
 
 
 class status_logger(object):
-
     """
     Represents a status log file. Responsible for translating messages
     into on-disk status log lines.
@@ -746,7 +749,6 @@ class status_logger(object):
 
 
 class TAPReport(object):
-
     """
     Deal with TAP reporting for the Autotest client.
     """
@@ -814,7 +816,7 @@ class TAPReport(object):
             if not key:
                 key = 'root'
 
-            if not self._reports_container.has_key(key):
+            if key not in self._reports_container:
                 self._reports_container[key] = []
 
             if log_entry.operation:
@@ -924,7 +926,6 @@ class TAPReport(object):
 
 
 class base_job(object):
-
     """
     An abstract base class for the various autotest job classes.
 
@@ -1055,6 +1056,7 @@ class base_job(object):
             self._sequence_number = 1
         else:
             self._sequence_number = None
+
     use_sequence_number = property(_get_use_sequence_number,
                                    _set_use_sequence_number)
 
@@ -1078,7 +1080,7 @@ class base_job(object):
         self._state = self._job_state()
 
         # initialize tap reporting
-        if dargs.has_key('options'):
+        if 'options' in dargs:
             self._tap = self._tap_init(dargs['options'].tap_report)
         else:
             self._tap = self._tap_init(False)
@@ -1094,6 +1096,7 @@ class base_job(object):
         Initializes all the secondary self.*dir properties. Requires autodir,
         clientdir and serverdir to already be initialized.
         """
+
         # create some stubs for use as shortcuts
         def readonly_dir(*args):
             return self._job_directory(os.path.join(*args))
