@@ -98,8 +98,7 @@ def get_packages():
 
 
 def get_data_files():
-    return (client.setup.get_data_files() +
-            tko.setup.get_data_files() +
+    return (tko.setup.get_data_files() +
             utils.setup.get_data_files() +
             mirror.setup.get_data_files())
 
@@ -141,6 +140,7 @@ def run():
           data_files=get_data_files(),
           cmdclass=cmdclass,
           command_options=command_options,
+          include_package_data=True,
           )
 
 
