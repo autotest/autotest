@@ -1617,7 +1617,10 @@ class failureType(GeneratedsSuper):
         self.exportAttributes(outfile, level, already_processed, namespace_, name_='failureType')
         if self.hasContent_():
             outfile.write('>')
-            outfile.write(str(self.valueOf_).encode(ExternalEncoding))
+            try:
+                outfile.write(str(self.valueOf_).encode(ExternalEncoding))
+            except UnicodeDecodeError as err:
+                print("Unable to display failure log as content encode error: %s" % err)
             self.exportChildren(outfile, level + 1, namespace_, name_)
             outfile.write('</%s%s>\n' % (namespace_, name_))
         else:
