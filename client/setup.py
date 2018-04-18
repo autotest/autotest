@@ -1,6 +1,5 @@
 # pylint: disable=E0611
 import os
-import sys
 from distutils.core import setup
 
 try:
@@ -60,16 +59,6 @@ def get_scripts():
             os.path.join(client_dir, 'autotest-daemon-monitor')]
 
 
-def get_data_files():
-    if hasattr(sys, "real_prefix"):
-        default_autotest_top = os.path.join(sys.prefix, "etc", "autotest")
-    else:
-        default_autotest_top = "/etc/autotest"
-    return [(os.environ.get('AUTOTEST_TOP_PATH', default_autotest_top),
-             [autotest_dir + '/global_config.ini',
-              autotest_dir + '/shadow_config.ini', ]), ]
-
-
 def get_package_dir():
     return {'autotest.client': client_dir, 'autotest': autotest_dir}
 
@@ -88,8 +77,7 @@ def run():
           package_dir=get_package_dir(),
           package_data=get_package_data(),
           packages=get_packages(),
-          scripts=get_scripts(),
-          data_files=get_data_files())
+          scripts=get_scripts())
 
 
 if __name__ == '__main__':

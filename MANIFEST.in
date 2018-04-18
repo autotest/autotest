@@ -1,3 +1,5 @@
 include RELEASE-VERSION
 include README.rst
 include LICENSE
+include global_config.ini
+include shadow_config.ini

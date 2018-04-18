@@ -11,6 +11,7 @@ import os
 import sys
 
 from autotest.client.shared import error
+from pkg_resources import resource_filename
 
 
 class SettingsError(error.AutotestError):
@@ -28,17 +29,28 @@ shared_dir = os.path.dirname(sys.modules[__name__].__file__)
 client_dir = os.path.dirname(shared_dir)
 root_dir = os.path.dirname(client_dir)
 
-if hasattr(sys, "real_prefix"):
-    default_autotest_top = os.path.join(sys.prefix, "etc", "autotest")
+# Get the system-wide installed config files
+if "AUTOTEST_TOP_PATH" in os.environ:
+    _autotest_top_path = os.environ["AUTOTEST_TOP_PATH"]
+    settings_path_system_wide = os.path.join(_autotest_top_path,
+                                             settings_filename)
+    shadow_config_path_system_wide = os.path.join(_autotest_top_path,
+                                                  shadow_config_filename)
 else:
-    default_autotest_top = "/etc/autotest"
-system_wide_dir = os.environ.get('AUTOTEST_TOP_PATH', default_autotest_top)
+    settings_path_system_wide = resource_filename("autotest",
+                                                  settings_filename)
+    shadow_config_path_system_wide = resource_filename("autotest",
+                                                       shadow_config_filename)
+    # When not in virtual env prefer /etc config files (compatibility)
+    if not hasattr(sys, "real_prefix"):
+        _settings_path_etc = os.path.join("/etc/autotest", settings_filename)
+        _shadow_config_path_etc = os.path.join("/etc/autotest",
+                                               shadow_config_filename)
+        if os.path.exists(_settings_path_etc):
+            settings_path_system_wide = _settings_path_etc
+        if os.path.exists(_shadow_config_path_etc):
+            settings_path_system_wide = _shadow_config_path_etc
 
-# Check if the config files are in the system wide directory
-settings_path_system_wide = os.path.join(system_wide_dir,
-                                         settings_filename)
-shadow_config_path_system_wide = os.path.join(system_wide_dir,
-                                              shadow_config_filename)
 config_in_system_wide = os.path.exists(settings_path_system_wide)
 
 # Check if the config files are at autotest's root dir
