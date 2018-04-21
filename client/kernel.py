@@ -668,7 +668,7 @@ class kernel(BootableKernel):
         temp = copy.copy(self)
         temp.job = None
         temp.logfile = None
-        pickle.dump(temp, open(filename, 'w'))
+        pickle.dump(temp, open(filename, 'wb'))
 
 
 class rpm_kernel(BootableKernel):

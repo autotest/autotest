@@ -820,7 +820,7 @@ def update_version(srcdir, preserve_srcdir, new_version, install,
     install_needed = True
 
     if os.path.exists(versionfile):
-        old_version = pickle.load(open(versionfile))
+        old_version = pickle.load(open(versionfile, "rb"))
         if old_version == new_version:
             install_needed = False
 
@@ -863,7 +863,7 @@ def update_version(srcdir, preserve_srcdir, new_version, install,
             shutil.copyfile(patch_src, patch_dst)
 
         install(*args, **dargs)
-        pickle.dump(new_version, open(versionfile, 'w'))
+        pickle.dump(new_version, open(versionfile, 'wb'))
 
 
 def get_stderr_level(stderr_is_expected):

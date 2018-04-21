@@ -3,7 +3,7 @@
 # This file contains the classes used for the known kernel versions persistent
 # storage
 
-import cPickle
+import pickle
 import fcntl
 import os
 import tempfile
@@ -81,7 +81,7 @@ class dict_database(database):
             res = {}
         else:
             try:
-                res = cPickle.load(fd)
+                res = pickle.load(fd)
             finally:
                 fd.close()
 
@@ -123,8 +123,8 @@ class dict_database(database):
             write_file = os.fdopen(fd, 'wb')
             try:
                 try:
-                    cPickle.dump(contents, write_file,
-                                 protocol=cPickle.HIGHEST_PROTOCOL)
+                    pickle.dump(contents, write_file,
+                                protocol=pickle.HIGHEST_PROTOCOL)
                 finally:
                     write_file.close()
 

@@ -606,7 +606,7 @@ def extract_all_time_results(results_string):
 
 
 def pickle_load(filename):
-    return pickle.load(open(filename, 'r'))
+    return pickle.load(open(filename, 'rb'))
 
 
 # Return the kernel version and build timestamp.

@@ -154,7 +154,7 @@ def setup_test(client_test):
             # host. See client/shared/utils.py update_version()
             if os.path.exists(client_test.srcdir):
                 versionfile = os.path.join(client_test.srcdir, '.version')
-                pickle.dump(client_test.version, open(versionfile, 'w'))
+                pickle.dump(client_test.version, open(versionfile, 'wb'))
             good_setup = True
         except Exception as err:
             logging.error(err)

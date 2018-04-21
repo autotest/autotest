@@ -43,7 +43,7 @@ def fork_start(tmp, l):
                 if not os.path.exists(output_dir):
                     os.makedirs(output_dir)
                 ename = os.path.join(output_dir, "error-%d" % os.getpid())
-                pickle.dump(detail, open(ename, "w"))
+                pickle.dump(detail, open(ename, "wb"))
 
                 sys.stdout.flush()
                 sys.stderr.flush()
@@ -66,7 +66,7 @@ def _check_for_subprocess_exception(temp_dir, pid):
     ename = temp_dir + "/debug/error-%d" % pid
     if os.path.exists(ename):
         try:
-            e = pickle.load(file(ename, 'r'))
+            e = pickle.load(open(ename, 'rb'))
         except ImportError:
             logging.error("Unknown exception to unpickle. Exception must be"
                           " defined in error module.")

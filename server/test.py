@@ -21,7 +21,7 @@ from autotest.client import test
 mytest = test.test(job, '', %r)
 job.sysinfo.log_before_each_test(mytest)
 sysinfo_pickle = os.path.join(mytest.outputdir, 'sysinfo.pickle')
-pickle.dump(job.sysinfo, open(sysinfo_pickle, 'w'))
+pickle.dump(job.sysinfo, open(sysinfo_pickle, 'wb'))
 job.record('GOOD', '', 'sysinfo.before')
 """
 
@@ -31,7 +31,7 @@ from autotest.client import test
 mytest = test.test(job, '', %r)
 sysinfo_pickle = os.path.join(mytest.outputdir, 'sysinfo.pickle')
 if os.path.exists(sysinfo_pickle):
-    job.sysinfo = pickle.load(open(sysinfo_pickle))
+    job.sysinfo = pickle.load(open(sysinfo_pickle, 'rb'))
     job.sysinfo.__init__(job.resultdir)
 job.sysinfo.log_after_each_test(mytest)
 job.record('GOOD', '', 'sysinfo.after')
@@ -47,10 +47,10 @@ from autotest.client import test
 mytest = test.test(job, '', %r)
 sysinfo_pickle = os.path.join(mytest.outputdir, 'sysinfo.pickle')
 if os.path.exists(sysinfo_pickle):
-    job.sysinfo = pickle.load(open(sysinfo_pickle))
+    job.sysinfo = pickle.load(open(sysinfo_pickle, 'rb'))
     job.sysinfo.__init__(job.resultdir)
 job.sysinfo.%s(mytest, iteration=%d)
-pickle.dump(job.sysinfo, open(sysinfo_pickle, 'w'))
+pickle.dump(job.sysinfo, open(sysinfo_pickle, 'wb'))
 job.record('GOOD', '', 'sysinfo.iteration.%s')
 """
 

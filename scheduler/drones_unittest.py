@@ -2,7 +2,7 @@
 
 """Tests for autotest.scheduler.drones."""
 
-import cPickle
+import pickle
 
 try:
     import autotest.common as common  # pylint: disable=W0611
@@ -39,11 +39,11 @@ class RemoteDroneTest(unittest.TestCase):
         drones.drone_utility.create_host.expect_call('fakehost').and_return(
             self._mock_host)
         self._mock_host.is_up.expect_call().and_return(True)
-        mock_calls = ('foo',)
-        mock_result = utils.CmdResult(stdout=cPickle.dumps('mock return'))
+        mock_calls = (b'foo',)
+        mock_result = utils.CmdResult(stdout=pickle.dumps(b'mock return'))
         self._mock_host.run.expect_call(
             'python mock-drone-utility-path',
-            stdin=cPickle.dumps(mock_calls), stdout_tee=None,
+            stdin=pickle.dumps(mock_calls), stdout_tee=None,
             connect_timeout=mock.is_instance_comparator(int)).and_return(
             mock_result)
 

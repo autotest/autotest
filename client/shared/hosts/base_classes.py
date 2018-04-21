@@ -15,7 +15,7 @@ poirier@google.com (Benjamin Poirier),
 stutsman@google.com (Ryan Stutsman)
 """
 
-import cPickle
+import pickle
 import cStringIO
 import logging
 import os
@@ -561,7 +561,7 @@ class Host(object):
                   "cPickle.dump(glob.glob(sys.argv[1]), sys.stdout, 0)'")
         output = self.run(SCRIPT, args=(glob,), stdout_tee=None,
                           timeout=60).stdout
-        return cPickle.loads(output)
+        return pickle.loads(output)
 
     def symlink_closure(self, paths):
         """
@@ -587,10 +587,10 @@ class Host(object):
                   "        if link_to not in closure.keys():\n"
                   "            paths[link_to] = None\n"
                   "cPickle.dump(closure.keys(), sys.stdout, 0)'")
-        input_data = cPickle.dumps(dict((path, None) for path in paths), 0)
+        input_data = pickle.dumps(dict((path, None) for path in paths), 0)
         output = self.run(SCRIPT, stdout_tee=None, stdin=input_data,
                           timeout=60).stdout
-        return cPickle.loads(output)
+        return pickle.loads(output)
 
     def cleanup_kernels(self, boot_dir='/boot'):
         """

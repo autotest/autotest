@@ -28,7 +28,7 @@ def save(linux_distro, path):
     :type path: str
     :return: None
     '''
-    output = open(path, 'w')
+    output = open(path, 'wb')
     output.write(bz2.compress(pickle.dumps(linux_distro)))
     output.close()
 
@@ -42,7 +42,7 @@ def load(path):
     :return: an :class:`DistroDef` instance
     :rtype: DistroDef
     '''
-    return pickle.loads(bz2.decompress(open(path).read()))
+    return pickle.loads(bz2.decompress(open(path, "rb").read()))
 
 
 # pylint: disable=I0011,R0913

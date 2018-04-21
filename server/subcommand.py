@@ -1,6 +1,6 @@
 __author__ = """Copyright Andy Whitcroft, Martin J. Bligh - 2006, 2007"""
 
-import cPickle
+import pickle
 import logging
 import os
 import signal
@@ -44,7 +44,7 @@ def parallel(tasklist, timeout=None, return_results=False):
             if status != 0:
                 run_error = True
 
-        results.append(cPickle.load(task.result_pickle))
+        results.append(pickle.load(task.result_pickle, "rb"))
         task.result_pickle.close()
 
     if return_results:
@@ -160,7 +160,7 @@ class subcommand(object):
 
         if self.pid:                            # I am the parent
             os.close(w)
-            self.result_pickle = os.fdopen(r, 'r')
+            self.result_pickle = os.fdopen(r, 'rb')
             return
         else:
             os.close(r)
@@ -175,12 +175,12 @@ class subcommand(object):
             for hook in self.fork_hooks:
                 hook(self)
             result = self.lambda_function()
-            os.write(w, cPickle.dumps(result, cPickle.HIGHEST_PROTOCOL))
+            os.write(w, pickle.dumps(result, pickle.HIGHEST_PROTOCOL))
             exit_code = 0
         except Exception as e:
             logging.exception('function failed')
             exit_code = 1
-            os.write(w, cPickle.dumps(e, cPickle.HIGHEST_PROTOCOL))
+            os.write(w, pickle.dumps(e, pickle.HIGHEST_PROTOCOL))
 
         os.close(w)
 
