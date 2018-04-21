@@ -54,6 +54,7 @@ class test(common_test.base_test):
         self.crash_handling_enabled = False
 
         # make sure this script will run with a new enough python to work
+        # TODO: this will not work if for python version > 3.0
         cmd = ("python -c 'import sys; "
                "print sys.version_info[0], sys.version_info[1]'")
         result = utils.run(cmd, ignore_status=True, verbose=False)

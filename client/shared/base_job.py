@@ -735,7 +735,7 @@ class status_logger(object):
         for log_file in log_files:
             fileobj = open(log_file, 'a')
             try:
-                print >> fileobj, log_text
+                print(log_text, file=fileobj)
             finally:
                 fileobj.close()
 

@@ -156,7 +156,7 @@ class ServiceHandler(object):
             data = json_encoder.encode(json_dict)
         except TypeError, e:
             err_traceback = traceback.format_exc()
-            print err_traceback
+            print(err_traceback)
             err = {"name": "JSONEncodeException",
                    "message": "Result Object Not Serializable",
                    "traceback": err_traceback}

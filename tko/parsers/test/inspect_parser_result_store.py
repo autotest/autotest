@@ -26,7 +26,7 @@ if len(args) < 1:
 
 scenario_dirpath = path.normpath(args[0])
 if not path.exists(scenario_dirpath) or not path.isdir(scenario_dirpath):
-    print 'Invalid scenarios_dirpath:', scenario_dirpath
+    print('Invalid scenarios_dirpath:', scenario_dirpath)
     parser.print_help()
     sys.exit(1)
 
@@ -37,10 +37,10 @@ sto = scenario_base.load_parser_result_store(
 def compare(left_tag, right_tag):
     missing = set([left_tag, right_tag]).difference(sto.keys())
     if missing:
-        print 'Store does not have the following tag(s): ', ','.join(missing)
-        print 'Doing nothing.'
+        print('Store does not have the following tag(s): ', ','.join(missing))
+        print('Doing nothing.')
         return
 
     for diffline in scenario_base.compare_parser_results(
             sto[left_tag], sto[right_tag]):
-        print diffline
+        print(diffline)

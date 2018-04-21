@@ -10,7 +10,7 @@ from autotest.client import utils
 class xen(kernel.kernel):
 
     def log(self, msg):
-        print msg
+        print(msg)
         self.logfile.write('%s\n' % msg)
 
     def __init__(self, job, base_tree, results_dir, tmp_dir, build_dir,

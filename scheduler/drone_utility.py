@@ -432,7 +432,7 @@ def parse_input():
 
 
 def return_data(data):
-    print pickle.dumps(data)
+    print(pickle.dumps(data))
 
 
 def main():

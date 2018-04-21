@@ -13,8 +13,8 @@ from autotest.client.shared.settings import settings, SettingsError
 
 
 def usage():
-    print ("Usage: ./read_var_config.py SECTION.variable.\n"
-           "e.g. ./read_var_config.py SCHEDULER.drones TKO.host.\n")
+    print("Usage: ./read_var_config.py SECTION.variable.\n"
+          "e.g. ./read_var_config.py SCHEDULER.drones TKO.host.\n")
     sys.exit(1)
 
 
@@ -29,13 +29,13 @@ def main(args):
         try:
             section, var = entry.split('.')
         except ValueError:
-            print "Invalid SECTION.varable supplied: " + entry
+            print("Invalid SECTION.varable supplied: " + entry)
             usage()
 
         try:
-            print settings.get_value(section, var)
+            print(settings.get_value(section, var))
         except SettingsError:
-            print "Error reading %s.%s" % (section, var)
+            print("Error reading %s.%s" % (section, var))
 
 
 if __name__ == '__main__':

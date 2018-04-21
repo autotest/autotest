@@ -38,20 +38,20 @@ POWER_REBOOT = "outletReboot"
 
 
 def usage():
-    print "Usage:"
-    print ""
-    print "Options:"
-    print "  -a <ip>          IP address or hostname of MasterSwitch"
-    print "  -h               usage"
-    print "  -l <name>        Login name"
-    print "  -n <num>         Outlet number to change"
-    print "  -o <string>      Action: Reboot (default), Off or On"
-    print "  -p <string>      Login password"
-    print "  -q               quiet mode"
-    print "  -V               version"
-    print "  -v               Log to file /tmp/apclog"
+    print("Usage:")
+    print("")
+    print("Options:")
+    print("  -a <ip>          IP address or hostname of MasterSwitch")
+    print("  -h               usage")
+    print("  -l <name>        Login name")
+    print("  -n <num>         Outlet number to change")
+    print("  -o <string>      Action: Reboot (default), Off or On")
+    print("  -p <string>      Login password")
+    print("  -q               quiet mode")
+    print("  -V               version")
+    print("  -v               Log to file /tmp/apclog")
 
-    print sys.argv
+    print(sys.argv)
     sys.exit(0)
 
 
@@ -83,9 +83,9 @@ def main():
             if o == "-v":
                 verbose = True
             if o == "-V":
-                print "%s\n" % FENCE_RELEASE_NAME
-                print "%s\n" % REDHAT_COPYRIGHT
-                print "%s\n" % BUILD_DATE
+                print("%s\n" % FENCE_RELEASE_NAME)
+                print("%s\n" % REDHAT_COPYRIGHT)
+                print("%s\n" % BUILD_DATE)
                 sys.exit(0)
             if o in ("-h", "--help"):
                 usage()
@@ -222,7 +222,7 @@ def main():
             fd = open("/tmp/apclog", "w")
             fd.write("Attempting the following command: %s\n" % cmdstr_status)
         strr = os.system(cmdstr_status)
-        print strr
+        print(strr)
         if verbose:
             fd.write("Result: %s\n" % strr)
             fd.close()
@@ -239,7 +239,7 @@ def main():
                 fd.write("Result: %s\n" % strr)
                 fd.close()
             if strr.find(POWER_OFF) >= 0:
-                print "Success. Outlet off"
+                print("Success. Outlet off")
                 sys.exit(0)
             else:
                 if verbose:
@@ -260,10 +260,10 @@ def main():
             if strr.find(POWER_ON) >= 0:
                 if verbose:
                     fd.close()
-                print "Success. Outlet On."
+                print("Success. Outlet On.")
                 sys.exit(0)
             else:
-                print "Unable to power on apc outlet"
+                print("Unable to power on apc outlet")
                 if verbose:
                     fd.write("Unable to power on apc outlet")
                     fd.close()
@@ -280,7 +280,7 @@ def main():
             if verbose:
                 fd.write("Result: %s\n" % strr)
             if strr.find(POWER_OFF) < 0:
-                print "Unable to power off apc outlet"
+                print("Unable to power off apc outlet")
                 if verbose:
                     fd.write("Unable to power off apc outlet")
                     fd.close()
@@ -297,10 +297,10 @@ def main():
             if strr.find(POWER_ON) >= 0:
                 if verbose:
                     fd.close()
-                print "Success: Outlet Rebooted."
+                print("Success: Outlet Rebooted.")
                 sys.exit(0)
             else:
-                print "Unable to power on apc outlet"
+                print("Unable to power on apc outlet")
                 if verbose:
                     fd.write("Unable to power on apc outlet")
                     fd.close()
@@ -357,7 +357,7 @@ def execWithCaptureStatus(command, argv, searchPath=0, root='/', stdin=0,
     try:
         (pid, status) = os.waitpid(childpid, 0)
     except OSError, (errno, msg):
-        print __name__, "waitpid:", msg
+        print(__name__, "waitpid:", msg)
 
     if os.WIFEXITED(status) and (os.WEXITSTATUS(status) == 0):
         status = os.WEXITSTATUS(status)

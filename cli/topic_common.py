@@ -268,18 +268,18 @@ class atest(object):
             self.failure(rest, item="", what_failed=msg)
 
     def invalid_syntax(self, msg):
-        print
-        print >> sys.stderr, msg
-        print
-        print "usage:",
-        print self._get_usage()
-        print
+        print()
+        print(msg, file=sys.stderr)
+        print()
+        print("usage:", end='')
+        print(self._get_usage())
+        print()
         sys.exit(1)
 
     def generic_error(self, msg):
         if self.debug:
             traceback.print_exc()
-        print >> sys.stderr, msg
+        print(msg, file=sys.stderr)
         sys.exit(1)
 
     def parse_json_exception(self, full_error):
@@ -307,7 +307,7 @@ class atest(object):
             errmsg = str(full_error).split('Traceback')[0].rstrip('\n')
 
         if self.kill_on_failure or fatal:
-            print >> sys.stderr, "%s\n    %s" % (what_failed, errmsg)
+            print("%s\n    %s" % (what_failed, errmsg), file=sys.stderr)
             sys.exit(1)
 
         # Build a dictionary with the 'what_failed' as keys.  The
@@ -329,26 +329,26 @@ class atest(object):
         if not self.failed:
             return 0
         for what_failed in self.failed.keys():
-            print >> sys.stderr, what_failed + ':'
+            print(what_failed + ':', file=sys.stderr)
             for (errmsg, items) in self.failed[what_failed].iteritems():
                 if len(items) == 0:
-                    print >> sys.stderr, errmsg
+                    print(errmsg, file=sys.stderr)
                 elif items == set(['']):
-                    print >> sys.stderr, '    ' + errmsg
+                    print('    ' + errmsg, file=sys.stderr)
                 elif len(items) == 1:
                     # Restore the only item
                     if FAIL_TAG in errmsg:
                         errmsg = errmsg.replace(FAIL_TAG, items.pop())
                     else:
                         errmsg = '%s (%s)' % (errmsg, items.pop())
-                    print >> sys.stderr, '    ' + errmsg
+                    print('    ' + errmsg, file=sys.stderr)
                 else:
-                    print >> sys.stderr, '    ' + errmsg + ' with <XYZ> in:'
+                    print('    ' + errmsg + ' with <XYZ> in:', file=sys.stderr)
                     twrap = textwrap.TextWrapper(initial_indent='        ',
                                                  subsequent_indent='        ')
                     items = list(items)
                     items.sort()
-                    print >> sys.stderr, twrap.fill(', '.join(items))
+                    print(twrap.fill(', '.join(items)), file=sys.stderr)
         return 1
 
     def __init__(self):
@@ -495,7 +495,7 @@ class atest(object):
                                  what_failed=("Error received from web server"))
                     raise CliError("Error from web server")
                 if self.debug:
-                    print 'retrying: %r %d' % (data, retry)
+                    print('retrying: %r %d' % (data, retry))
                 retry -= 1
                 if retry == 0:
                     if item:
@@ -522,22 +522,22 @@ class atest(object):
         if len(values) == 0:
             return
         elif len(values) == 1:
-            print msg + ': '
+            print(msg + ': ')
         elif len(values) > 1:
             if msg.endswith('s'):
-                print msg + ': '
+                print(msg + ': ')
             else:
-                print msg + 's: '
+                print(msg + 's: ')
 
         values.sort()
 
         if 'AUTOTEST_CLI_NO_WRAP' in os.environ:
-            print '\n'.join(values)
+            print('\n'.join(values))
             return
 
         twrap = textwrap.TextWrapper(initial_indent='\t',
                                      subsequent_indent='\t')
-        print twrap.fill(', '.join(values))
+        print(twrap.fill(', '.join(values)))
 
     def __conv_value(self, type, value):
         return KEYS_CONVERT.get(type, str)(value)
@@ -547,12 +547,12 @@ class atest(object):
         if not items:
             return
         if title:
-            print title
+            print(title)
         for item in items:
             for key in keys:
-                print '%s: %s' % (KEYS_TO_NAMES_EN[key],
+                print('%s: %s' % (KEYS_TO_NAMES_EN[key],
                                   self.__conv_value(key,
-                                                    _get_item_key(item, key)))
+                                                    _get_item_key(item, key))))
 
     def print_fields_parse(self, items, keys, title=None):
         """Print the keys in each item as comma
@@ -564,7 +564,7 @@ class atest(object):
                       for key in keys
                       if self.__conv_value(key,
                                            _get_item_key(item, key)) != '']
-            print self.parse_delim.join(values)
+            print(self.parse_delim.join(values))
 
     def __find_justified_fmt(self, items, keys):
         """Find the max length for each field."""
@@ -573,7 +573,7 @@ class atest(object):
         # lines when the max is overlaps but the current values
         # are smaller
         if not items:
-            print "No results"
+            print("No results")
             return
         for key in keys[:-1]:
             lens[key] = max(len(self.__conv_value(key,
@@ -592,17 +592,17 @@ class atest(object):
             return
         fmt = self.__find_justified_fmt(items, keys_header)
         header = tuple(KEYS_TO_NAMES_EN[key] for key in keys_header)
-        print fmt % header
+        print(fmt % header)
         for item in items:
             values = tuple(self.__conv_value(key,
                                              _get_item_key(item, key))
                            for key in keys_header)
-            print fmt % values
+            print(fmt % values)
             if sublist_keys:
                 for key in sublist_keys:
                     self.print_wrapped(KEYS_TO_NAMES_EN[key],
                                        _get_item_key(item, key))
-                print '\n'
+                print('\n')
 
     def print_table_parse(self, items, keys_header, sublist_keys=()):
         """Print a mix of header and lists in a user readable
@@ -620,7 +620,7 @@ class atest(object):
                  for key in sublist_keys
                  if len(_get_item_key(item, key))]
 
-            print self.parse_delim.join(values)
+            print(self.parse_delim.join(values))
 
     def print_by_ids_std(self, items, title=None, line_before=False):
         """Prints ID & names of items in a user readable form"""
@@ -629,7 +629,7 @@ class atest(object):
         if line_before:
             print
         if title:
-            print title + ':'
+            print(title + ':')
         self.print_table_std(items, keys_header=['id', 'name'])
 
     def print_by_ids_parse(self, items, title=None, line_before=False):
@@ -637,7 +637,7 @@ class atest(object):
         if not items:
             return
         if title:
-            print title + '=',
+            print(title + '=', end='')
         values = []
         for item in items:
             values += ['%s=%s' % (KEYS_TO_NAMES_EN[key],
@@ -646,17 +646,17 @@ class atest(object):
                        for key in ['id', 'name']
                        if self.__conv_value(key,
                                             _get_item_key(item, key)) != '']
-        print self.parse_delim.join(values)
+        print(self.parse_delim.join(values))
 
     def print_list_std(self, items, key):
         """Print a wrapped list of results"""
         if not items:
             return
-        print ' '.join(_get_item_key(item, key) for item in items)
+        print(' '.join(_get_item_key(item, key) for item in items))
 
     def print_list_parse(self, items, key):
         """Print a wrapped list of results"""
         if not items:
             return
-        print '%s=%s' % (KEYS_TO_NAMES_EN[key],
-                         ','.join(_get_item_key(item, key) for item in items))
+        print('%s=%s' % (KEYS_TO_NAMES_EN[key],
+                         ','.join(_get_item_key(item, key) for item in items)))

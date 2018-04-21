@@ -33,11 +33,11 @@ def main():
     # The old RPC interface didn't return anything.
     # A more recent one returns a list of hostnames to make this message useful.
     if hostnames:
-        print 'The following Repair Failed hosts on', options.server,
-        print 'will be reverified:'
-        print ' '.join(hostnames)
+        print('The following Repair Failed hosts on', options.server,)
+        print('will be reverified:')
+        print(' '.join(hostnames))
     else:
-        print 'Repair Failed hosts on', options.server, 'will be reverified.'
+        print('Repair Failed hosts on', options.server, 'will be reverified.')
 
 
 if __name__ == '__main__':

@@ -462,7 +462,7 @@ def dump_object(object):
     kind of like dir()
     """
     for item in object.__dict__.iteritems():
-        print item
+        print(item)
         try:
             (key, value) = item
             dump_object(value)

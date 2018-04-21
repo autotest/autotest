@@ -88,8 +88,8 @@ class RpcClient(object):
         headers = rpc_client_lib.authorization_headers(user, http_server)
         rpc_server = http_server + path
         if debug:
-            print 'SERVER: %s' % rpc_server
-            print 'HEADERS: %s' % headers
+            print('SERVER: %s' % rpc_server)
+            print('HEADERS: %s' % headers)
         self.proxy = rpc_client_lib.get_proxy(rpc_server, headers=headers)
 
     def run(self, call, **dargs):
@@ -98,19 +98,19 @@ class RpcClient(object):
         """
         rpc_call = getattr(self.proxy, call)
         if self.debug:
-            print 'DEBUG: %s %s' % (call, dargs)
+            print('DEBUG: %s %s' % (call, dargs))
         try:
             result = utils.strip_unicode(rpc_call(**dargs))
             if self.reply_debug:
-                print result
+                print(result)
             return result
         except Exception:
-            print 'FAILED RPC CALL: %s %s' % (call, dargs)
+            print('FAILED RPC CALL: %s %s' % (call, dargs))
             raise
 
     def log(self, message):
         if self.print_log:
-            print message
+            print(message)
 
 
 class Planner(RpcClient):
@@ -402,12 +402,12 @@ class AFE(RpcClient):
                                                    default='')
 
         body = '\n'.join(text)
-        print '---------------------------------------------------'
-        print 'Subject: ', subject
-        print body
-        print '---------------------------------------------------'
+        print('---------------------------------------------------')
+        print('Subject: ', subject)
+        print(body)
+        print('---------------------------------------------------')
         if email_from and email_to:
-            print 'Sending email ...'
+            print('Sending email ...')
             mail.send(from_address=email_from,
                       to_addresses=email_to,
                       subject=subject,
@@ -421,14 +421,14 @@ class AFE(RpcClient):
             job: a job object
         """
         if job.result is None:
-            print 'PENDING',
+            print('PENDING',)
         elif job.result is True:
-            print 'PASSED',
+            print('PASSED',)
         elif job.result is False:
-            print 'FAILED',
+            print('FAILED',)
         elif job.result == "Abort":
-            print 'ABORT',
-        print ' %s : %s' % (job.id, job.name)
+            print('ABORT',)
+        print(' %s : %s' % (job.id, job.name))
 
     def poll_all_jobs(self, tko, jobs, email_from=None, email_to=None):
         """
@@ -493,7 +493,7 @@ class AFE(RpcClient):
         hosts = [h for h in hosts if self._included_platform(h, platforms)]
         dead_statuses = self.host_statuses(live=False)
         host_list = [h.hostname for h in hosts if h.status not in dead_statuses]
-        print 'HOSTS: %s' % host_list
+        print('HOSTS: %s' % host_list)
         if pairing.atomic_group_sched:
             dargs['synch_count'] = pairing.synch_count
             dargs['atomic_group_name'] = pairing.machine_label
@@ -510,7 +510,7 @@ class AFE(RpcClient):
         if new_job:
             if pairing.testname:
                 new_job.testname = pairing.testname
-            print 'Invoked test %s : %s' % (new_job.id, job_name)
+            print('Invoked test %s : %s' % (new_job.id, job_name))
         return new_job
 
     def _job_test_results(self, tko, job, debug, tests=[]):
@@ -521,7 +521,7 @@ class AFE(RpcClient):
         try:
             test_statuses = tko.get_status_counts(job=job.id)
         except Exception:
-            print "Ignoring exception on poll job; RPC interface is flaky"
+            print("Ignoring exception on poll job; RPC interface is flaky")
             traceback.print_exc()
             return
 
@@ -533,7 +533,7 @@ class AFE(RpcClient):
             if tests and test_status.test_name not in tests:
                 continue
             if debug:
-                print test_status
+                print(test_status)
             hostname = test_status.hostname
             if hostname not in job.test_status:
                 job.test_status[hostname] = TestResults()
@@ -550,7 +550,7 @@ class AFE(RpcClient):
         try:
             job_statuses = self.get_host_queue_entries(job=job.id)
         except Exception:
-            print "Ignoring exception on poll job; RPC interface is flaky"
+            print("Ignoring exception on poll job; RPC interface is flaky")
             traceback.print_exc()
             return None
 
@@ -664,27 +664,27 @@ class AFE(RpcClient):
                     continue
                 detail.append('%s=%s' % (status, platform_map[platform][status]))
             if debug:
-                print '%20s %d/%d %s' % (platform, completed, total,
+                print('%20s %d/%d %s' % (platform, completed, total,)
                                          ' '.join(detail))
                 print
 
         if len(aborted_platforms) > 0:
             if debug:
-                print 'Result aborted - platforms: ',
-                print ' '.join(aborted_platforms)
+                print('Result aborted - platforms: ',)
+                print(' '.join(aborted_platforms))
             return "Abort"
         if len(failed_platforms) > 0:
             if debug:
-                print 'Result bad - platforms: ' + ' '.join(failed_platforms)
+                print('Result bad - platforms: ' + ' '.join(failed_platforms))
             return False
         if len(unknown_platforms) > 0:
             if debug:
                 platform_list = ' '.join(unknown_platforms)
-                print 'Result unknown - platforms: ', platform_list
+                print('Result unknown - platforms: ', platform_list)
             return None
         if debug:
             platform_list = ' '.join(good_platforms)
-            print 'Result good - all platforms passed: ', platform_list
+            print('Result good - all platforms passed: ', platform_list)
         return True
 
 
@@ -835,9 +835,9 @@ class Host(RpcObject):
 
     def show(self):
         labels = list(set(self.labels) - set([self.platform]))
-        print '%-6s %-7s %-7s %-16s %s' % (self.hostname, self.status,
+        print('%-6s %-7s %-7s %-16s %s' % (self.hostname, self.status,
                                            self.locked, self.platform,
-                                           ', '.join(labels))
+                                           ', '.join(labels)))
 
     def delete(self):
         return self.afe.run('delete_host', id=self.id)

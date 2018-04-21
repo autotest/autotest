@@ -80,7 +80,7 @@ class oprofile(profiler.profiler):
                 (self.local in (None, False) and
                  os.path.exists(src_opreport) and
                  os.path.exists(src_opcontrol))):
-            print "Using source-built copy of oprofile"
+            print("Using source-built copy of oprofile")
             self.opreport = src_opreport
             self.opcontrol = src_opcontrol
             perform_setup = True
@@ -89,7 +89,7 @@ class oprofile(profiler.profiler):
             # we're not running after setup() then delay the decision
             return
         else:
-            print "Using machine local copy of oprofile"
+            print("Using machine local copy of oprofile")
             self.opreport = '/usr/bin/opreport'
             self.opcontrol = '/usr/bin/opcontrol'
 

@@ -1025,7 +1025,7 @@ class base_server_job(base_job.base_job):
             msg = ("WARNING: An unexpected error occurred while "
                    "inserting test results into the database. "
                    "Ignoring error.\n" + traceback.format_exc())
-            print >> sys.stderr, msg
+            print(msg, file=sys.stderr)
 
     def preprocess_client_state(self):
         """

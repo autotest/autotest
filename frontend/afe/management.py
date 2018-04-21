@@ -9,7 +9,7 @@ def create_admin_group(app, **kwargs):
     Create a basic admin group with permissions for managing basic autotest
     objects.
     """
-    print "Creatin/updating Basic admin group"
+    print("Creatin/updating Basic admin group")
     admin_group, created = auth.models.Group.objects.get_or_create(
         name=BASIC_ADMIN)
     admin_group.save()  # must save before adding permissions
@@ -22,16 +22,16 @@ def create_admin_group(app, **kwargs):
             permissions = list(PermissionModel.objects.filter(
                 codename=codename))
             if len(permissions) == 0:
-                print '  No permission ' + codename
+                print('  No permission ' + codename)
                 continue
             for permission in permissions:
                 if permission not in have_permissions:
-                    print '  Adding permission ' + codename
+                    print('  Adding permission ' + codename)
                     admin_group.permissions.add(permission)
     if created:
-        print 'Created group "%s"' % BASIC_ADMIN
+        print('Created group "%s"' % BASIC_ADMIN)
     else:
-        print 'Group "%s" already exists' % BASIC_ADMIN
+        print('Group "%s" already exists' % BASIC_ADMIN)
 
 
 post_migrate.connect(create_admin_group)

@@ -25,7 +25,7 @@ def main():
     parser_result_tag = args[1]
 
     if not path.exists(scenario_dirpath) or not path.isdir(scenario_dirpath):
-        print 'Invalid scenarios_dirpath:', scenario_dirpath
+        print('Invalid scenarios_dirpath:', scenario_dirpath)
         parser.print_help()
         sys.exit(1)
 

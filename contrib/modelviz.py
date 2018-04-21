@@ -185,21 +185,21 @@ def main():
         opts, args = getopt.getopt(sys.argv[1:], "hd",
                                    ["help", "disable_fields"])
     except getopt.GetoptError, error:
-        print __doc__
+        print(__doc__)
         sys.exit(error)
     else:
         if not args:
-            print __doc__
+            print(__doc__)
             sys.exit()
 
     kwargs = {}
     for opt, arg in opts:
         if opt in ("-h", "--help"):
-            print __doc__
+            print(__doc__)
             sys.exit()
         if opt in ("-d", "--disable_fields"):
             kwargs['disable_fields'] = True
-    print generate_dot(args, **kwargs)
+    print(generate_dot(args, **kwargs))
 
 
 if __name__ == "__main__":

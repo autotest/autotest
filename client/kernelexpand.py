@@ -320,4 +320,4 @@ if __name__ == '__main__':
     # Dump them out
     for component in components:
         if component:
-            print " ".join(component)
+            print(" ".join(component))

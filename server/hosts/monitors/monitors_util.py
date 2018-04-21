@@ -79,7 +79,7 @@ def make_alert(warnfile, msg_type, msg_template, timestamp_format=None):
     def alert(*params):
         formatted_msg = msg_type + "\t" + msg_template % params
         timestamped_msg = prepend_timestamp(formatted_msg, timestamp_format)
-        print >> warnfile, timestamped_msg
+        print(timestamped_msg, file=warnfile)
     return alert
 
 

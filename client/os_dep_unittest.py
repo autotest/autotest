@@ -435,7 +435,7 @@ class TestLibrary(unittest.TestCase):
 #             str(ld_so_conf_dir.join("ld.so.conf")), extra_dirs=[]))
 #         print
 #         # for d in l.lddirs:
-#         #     print d
+#         #     print(d)
 #         assert l.lddirs[0].path.endswith("lib3")
 #         assert l.lddirs[1].path.endswith("lib1")
 #         assert l.lddirs[1].flag == "glibc2"

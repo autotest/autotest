@@ -53,13 +53,13 @@ def main():
 
     results_dirpath = path.normpath(args[0])
     if not path.exists(results_dirpath) or not path.isdir(results_dirpath):
-        print 'Invalid results_dirpath:', results_dirpath
+        print('Invalid results_dirpath:', results_dirpath)
         parser.print_help()
         sys.exit(1)
 
     scenarios_dirpath = path.normpath(args[1])
     if not path.exists(scenarios_dirpath) or not path.isdir(scenarios_dirpath):
-        print 'Invalid scenarios_dirpath:', scenarios_dirpath
+        print('Invalid scenarios_dirpath:', scenarios_dirpath)
         parser.print_help()
         sys.exit(1)
 
@@ -71,9 +71,8 @@ def main():
     scenario_package_dirpath = path.join(
         scenarios_dirpath, package_dirname)
     if path.exists(scenario_package_dirpath):
-        print (
-            'Scenario package already exists at path: %s' %
-            scenario_package_dirpath)
+        print('Scenario package already exists at path: %s' %
+              scenario_package_dirpath)
         parser.print_help()
         sys.exit(1)
 

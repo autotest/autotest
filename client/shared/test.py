@@ -117,7 +117,7 @@ class base_test(object):
                                tap_report=tap_report)
 
         keyval_path = os.path.join(self.resultsdir, "keyval")
-        print >> open(keyval_path, "a"), ""
+        print("", file=open(keyval_path, "a"))
 
     def analyze_perf_constraints(self, constraints):
         if not self._new_keyval:

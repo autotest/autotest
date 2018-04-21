@@ -2,7 +2,7 @@ def execute_safely(manager, statement):
     try:
         manager.execute(statement)
     except Exception:
-        print 'Statement %r failed (this is not fatal)' % statement
+        print('Statement %r failed (this is not fatal)' % statement)
 
 
 def delete_duplicates(manager, table, first_id, second_id):
@@ -16,7 +16,7 @@ def delete_duplicates(manager, table, first_id, second_id):
                         (table, first_id, second_id),
                         first_id_value, second_id_value)
     if rows:
-        print 'Deleted %s duplicate rows from %s' % (len(rows), table)
+        print('Deleted %s duplicate rows from %s' % (len(rows), table))
 
 
 def delete_invalid_foriegn_keys(manager, pivot_table, foreign_key_field,
@@ -30,8 +30,8 @@ def delete_invalid_foriegn_keys(manager, pivot_table, foreign_key_field,
              destination_table=destination_table))
     deleted_count = manager._database.rowcount
     if deleted_count:
-        print ('Deleted %s invalid foreign key references from %s (%s)' %
-               (deleted_count, pivot_table, foreign_key_field))
+        print('Deleted %s invalid foreign key references from %s (%s)' %
+              (deleted_count, pivot_table, foreign_key_field))
 
 
 def unique_index_name(table):

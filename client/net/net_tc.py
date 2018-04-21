@@ -181,7 +181,7 @@ class tcfilter(object):
         return self._tc_conf
 
     def tc_cmd(self, tc_conf):
-        print self._tc_cmd % tc_conf
+        print(self._tc_cmd % tc_conf)
 
     def setup(self, netif):
         pass
@@ -259,7 +259,7 @@ class qdisc(object):
         return '%s:0' % self._handle
 
     def tc_cmd(self, tc_conf):
-        print self._tc_cmd % tc_conf
+        print(self._tc_cmd % tc_conf)
 
     def setup(self, netif):
         tc_conf = self._get_tc_conf(netif)

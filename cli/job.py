@@ -596,7 +596,7 @@ class job_create(job_create_or_clone):
             if uploading_kernel:
                 default_timeout = socket.getdefaulttimeout()
                 socket.setdefaulttimeout(topic_common.UPLOAD_SOCKET_TIMEOUT)
-                print 'Uploading Kernel: this may take a while...',
+                print('Uploading Kernel: this may take a while...', end='')
                 sys.stdout.flush()
             try:
                 cf_info = self.execute_rpc(op='generate_control_file',
@@ -607,7 +607,7 @@ class job_create(job_create_or_clone):
                     socket.setdefaulttimeout(default_timeout)
 
             if uploading_kernel:
-                print 'Done'
+                print('Done')
             self.data['control_file'] = cf_info['control_file']
             if 'synch_count' not in self.data:
                 self.data['synch_count'] = cf_info['synch_count']
@@ -714,7 +714,7 @@ class job_abort(job, action_common.atest_delete):
     def execute(self):
         data = {'job__id__in': self.jobids}
         self.execute_rpc(op='abort_host_queue_entries', **data)
-        print 'Aborting jobs: %s' % ', '.join(self.jobids)
+        print('Aborting jobs: %s' % ', '.join(self.jobids))
 
     # The unittests will hide this method, well, for unittesting
     # pylint: disable=E0202

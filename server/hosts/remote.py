@@ -295,7 +295,7 @@ class RemoteHost(base_classes.Host):
                 self.bootloader.add_args(label, kernel_args)
 
         # define a function for the reboot and run it in a group
-        print "Reboot: initiating reboot"
+        print("Reboot: initiating reboot")
 
         def reboot():
             self.record("GOOD", None, "reboot.start")

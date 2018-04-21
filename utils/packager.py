@@ -81,7 +81,7 @@ def process_packages(pkgmgr, pkg_type, pkg_names, src_dir,
     exclude_string = None
     names = [p.strip() for p in pkg_names.split(',')]
     for name in names:
-        print "Processing %s ... " % name
+        print("Processing %s ... " % name)
         if pkg_type == 'client':
             pkg_dir = src_dir
             exclude_string = get_exclude_string(pkg_dir)
@@ -115,7 +115,7 @@ def process_packages(pkgmgr, pkg_type, pkg_names, src_dir,
                 shutil.rmtree(temp_dir)
         else:
             pkgmgr.remove_pkg(pkg_name, remove_checksum=True)
-        print "Done."
+        print("Done.")
 
 
 def tar_packages(pkgmgr, pkg_type, pkg_names, src_dir, temp_dir):
@@ -125,7 +125,7 @@ def tar_packages(pkgmgr, pkg_type, pkg_names, src_dir, temp_dir):
     exclude_string = None
     names = [p.strip() for p in pkg_names.split(',')]
     for name in names:
-        print "Processing %s ... " % name
+        print("Processing %s ... " % name)
         if pkg_type == 'client':
             pkg_dir = src_dir
             exclude_string = get_exclude_string(pkg_dir)
@@ -158,8 +158,8 @@ def process_all_packages(pkgmgr, client_dir, remove=False):
     try:
         base_packages.check_diskspace(temp_dir)
     except error.RepoDiskFullError, e:
-        print ("Temp destination for packages is full %s, aborting upload: %s"
-               % (temp_dir, e))
+        print("Temp destination for packages is full %s, aborting upload: %s"
+              % (temp_dir, e))
         os.rmdir(temp_dir)
         sys.exit(1)
 
@@ -219,7 +219,7 @@ def get_test_dir(name, client_dir):
     elif name in names_site_test:
         src_dir = os.path.join(client_dir, 'site_tests')
     else:
-        print "Test %s not found" % name
+        print("Test %s not found" % name)
         sys.exit(0)
     return src_dir
 

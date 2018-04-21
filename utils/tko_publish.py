@@ -59,7 +59,7 @@ def publish_job(jobdir):
     # mark the jobdir as published
     fd = open(os.path.join(jobdir, PUBLISH_FLAGFILE), 'w')
     fd.close()
-    print 'Published', jobdir
+    print('Published', jobdir)
 
 
 def main():
@@ -108,7 +108,7 @@ if __name__ == '__main__':
     options, args = parser.parse_args()
 
     if len(args) < 2:
-        print USAGE
+        print(USAGE)
         sys.exit(-1)
 
     options.resultsdir = args[0]

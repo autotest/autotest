@@ -37,7 +37,7 @@ class TestFileModuleLoader(unittest.TestCase):
                 tmpfile.write("""
 import sys
 some_value = 'some_value'
-print sys.dont_write_bytecode
+print(sys.dont_write_bytecode)
 bytecode_val = sys.dont_write_bytecode
 """)
                 tmpfile.flush()

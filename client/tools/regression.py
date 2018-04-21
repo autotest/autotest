@@ -24,7 +24,7 @@ def exec_sql(cmd, conf="../../global_config.ini"):
     db = config.get("AUTOTEST_WEB", "database")
     db_type = config.get("AUTOTEST_WEB", "db_type")
     if db_type != 'mysql':
-        print "regression.py: only support mysql database!"
+        print("regression.py: only support mysql database!")
         sys.exit(1)
 
     conn = MySQLdb.connect(host="localhost", user=user,
@@ -143,7 +143,7 @@ class Sample(object):
             self.kvmver, self.hostkernel, self.guestkernel)
         nrepeat = len(self.files_dict)
         if nrepeat < 2:
-            print "`nrepeat' should be larger than 1!"
+            print("`nrepeat' should be larger than 1!")
             sys.exit(1)
 
         self.desc = """ - Every Avg line represents the average value based on *%d* repetitions of the same test,
@@ -178,7 +178,7 @@ class Sample(object):
             from scipy import stats
             import numpy as np
         except ImportError:
-            print "No python scipy/numpy library installed!"
+            print("No python scipy/numpy library installed!")
             return None
 
         ret = []
@@ -328,7 +328,7 @@ def display(lists, rates, allpvalues, f, ignore_col, sum="Augment Rate",
 
     def tee_line(content, file, n=None):
         fd = open(file, "a")
-        print content
+        print(content)
         str = ""
         str += "<TR ALIGN=CENTER>"
         content = content.split("|")
@@ -401,7 +401,7 @@ def analyze(test, type, arg1, arg2, configfile):
     def get_list(dir):
         result_file_pattern = config.get(test, "result_file_pattern")
         cmd = 'find %s|grep "%s.*/%s"' % (dir, test, result_file_pattern)
-        print cmd
+        print(cmd)
         return commands.getoutput(cmd)
 
     if type == 'file':
@@ -486,13 +486,13 @@ def tee(content, file):
     fd = open(file, "a")
     fd.write(content + "\n")
     fd.close()
-    print content
+    print(content)
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 5:
         this = os.path.basename(sys.argv[0])
-        print 'Usage: %s <testname> file <dir1> <dir2>' % this
-        print '    or %s <testname> db <jobid1> <jobid2>' % this
+        print('Usage: %s <testname> file <dir1> <dir2>' % this)
+        print('    or %s <testname> db <jobid1> <jobid2>' % this)
         sys.exit(1)
     analyze(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], 'perf.conf')

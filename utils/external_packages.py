@@ -494,10 +494,10 @@ class SetuptoolsPackage(ExternalPackage):
         if not egg_path:
             return False
 
-        print '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n'
-        print 'About to run sudo to install setuptools', self.version
-        print 'on your system for use by', sys.executable, '\n'
-        print '!! ^C within', self.SUDO_SLEEP_DELAY, 'seconds to abort.\n'
+        print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n')
+        print('About to run sudo to install setuptools', self.version)
+        print('on your system for use by', sys.executable, '\n')
+        print('!! ^C within', self.SUDO_SLEEP_DELAY, 'seconds to abort.\n')
         time.sleep(self.SUDO_SLEEP_DELAY)
 
         # Copy the egg to the local filesystem /var/tmp so that root can

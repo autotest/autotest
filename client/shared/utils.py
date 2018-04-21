@@ -399,7 +399,7 @@ def get_field(data, param, linestart="", sep=" "):
     if find is not None:
         return re.split("%s" % sep, find.group(1))[param]
     else:
-        print "There is no line which starts with %s in data." % linestart
+        print("There is no line which starts with %s in data." % linestart)
         return None
 
 
@@ -2431,10 +2431,10 @@ class VersionableClass(object):
                 return False
 
             def func1(self):
-                print "func1"
+                print("func1")
 
             def func2(self):
-                print "func2"
+                print("func2")
 
         # get_version could be inherited.
         class VC3(VC2, VersionableClass):
@@ -2446,7 +2446,7 @@ class VersionableClass(object):
                 return False
 
             def func2(self):
-                print "func2_2"
+                print("func2_2")
 
         class M(VCP):
             pass
@@ -2483,7 +2483,7 @@ class VersionableClass(object):
                 return False
 
             def func1(self):
-                print "PP func1"
+                print("PP func1")
 
         class N(VCP, PP):
             pass

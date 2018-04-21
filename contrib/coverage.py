@@ -326,7 +326,7 @@ class coverage:
 
     def t(self, f, w, unused):  # pragma: no cover
         if w == 'line':
-            # print "Executing %s @ %d" % (f.f_code.co_filename, f.f_lineno)
+            # print("Executing %s @ %d" % (f.f_code.co_filename, f.f_lineno))
             self.c[(f.f_code.co_filename, f.f_lineno)] = 1
             for c in self.cstack:
                 c[(f.f_code.co_filename, f.f_lineno)] = 1
@@ -334,9 +334,9 @@ class coverage:
 
     def help(self, error=None):  # pragma: no cover
         if error:
-            print error
+            print(error)
             print
-        print __doc__
+        print(__doc__)
         sys.exit(1)
 
     def command_line(self, argv, help_fn=None):
@@ -710,7 +710,7 @@ class coverage:
         import parser
         tree = parser.suite(text + '\n\n').totuple(1)
         self.get_suite_spots(tree, suite_spots)
-        # print "Suite spots:", suite_spots
+        # print("Suite spots:", suite_spots)
 
         # Use the compiler module to parse the text and find the executable
         # statements.  We add newlines to be impervious to final partial lines.
@@ -836,8 +836,8 @@ class coverage:
             fmt_coverage = fmt_coverage + "   %s"
         if not file:
             file = sys.stdout
-        print >>file, header
-        print >>file, "-" * len(header)
+        print(header, file=file)
+        print("-" * len(header), file=file)
         total_statements = 0
         total_executed = 0
         for morf in morfs:
@@ -853,7 +853,7 @@ class coverage:
                 args = (name, n, m, pc)
                 if show_missing:
                     args = args + (readable,)
-                print >>file, fmt_coverage % args
+                print(fmt_coverage % args, file=file)
                 total_statements = total_statements + n
                 total_executed = total_executed + m
             except KeyboardInterrupt:  # pragma: no cover
@@ -861,9 +861,9 @@ class coverage:
             except Exception:
                 if not ignore_errors:
                     typ, msg = sys.exc_info()[:2]
-                    print >>file, fmt_err % (name, typ, msg)
+                    print(fmt_err % (name, typ, msg), file=file)
         if len(morfs) > 1:
-            print >>file, "-" * len(header)
+            print("-" * len(header), file=file)
             if total_statements > 0:
                 pc = 100.0 * total_executed / total_statements
             else:
@@ -871,7 +871,7 @@ class coverage:
             args = ("TOTAL", total_statements, total_executed, pc)
             if show_missing:
                 args = args + ("",)
-            print >>file, fmt_coverage % args
+            print(fmt_coverage % args, file=file)
 
     # annotate(morfs, ignore_errors).
 

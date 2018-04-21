@@ -66,19 +66,19 @@ class DoctestRunner(object):
         try:
             for module in modules:
                 failures, test_count = doctest.testmod(module)
-                print self._PRINT_AFTER % (test_count, module.__name__)
+                print(self._PRINT_AFTER % (test_count, module.__name__))
                 total_errors += failures
             for path in doctest_paths:
                 failures, test_count = doctest.testfile(path,
                                                         module_relative=False)
-                print self._PRINT_AFTER % (test_count, path)
+                print(self._PRINT_AFTER % (test_count, path))
                 total_errors += failures
         finally:
             connection.creation.destroy_test_db(old_db)
             django.test.utils.teardown_test_environment()
         print
         if total_errors == 0:
-            print 'OK'
+            print('OK')
         else:
-            print 'FAIL: %d errors' % total_errors
+            print('FAIL: %d errors' % total_errors)
         return total_errors

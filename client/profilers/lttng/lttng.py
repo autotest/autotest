@@ -102,7 +102,7 @@ class lttng(profiler.profiler):
                     channel = 'modules'
                 else:
                     channel = ''
-                print 'Connecting ' + tracepoint
+                print('Connecting ' + tracepoint)
                 utils.write_one_line('/proc/ltt', 'connect ' + tracepoint +
                                      ' default dynamic ' + channel)
 

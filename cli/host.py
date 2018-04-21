@@ -230,7 +230,7 @@ class host_stat(host):
 
     def output(self, results):
         for stats, acls, labels in results:
-            print '-' * 5
+            print('-' * 5)
             self.print_fields(stats,
                               keys=['hostname', 'platform',
                                     'status', 'locked', 'locked_by',
@@ -289,8 +289,8 @@ class host_jobs(host):
 
     def output(self, results):
         for host, jobs in results:
-            print '-' * 5
-            print 'Hostname: %s' % host
+            print('-' * 5)
+            print('Hostname: %s' % host)
             self.print_table(jobs, keys_header=['job_id',
                                                 'job_owner',
                                                 'job_name',

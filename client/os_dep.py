@@ -329,7 +329,7 @@ class Ldconfig(object):
                 self._add_dir(line)
 
     def parse_conf(self, filename=LD_SO_CONF, recursion=0):
-        # print filename
+        # print(filename)
         if recursion < self.MAX_RECURSION_DEPTH:
             # read lddirs from  main ld.so.conf file
             try:

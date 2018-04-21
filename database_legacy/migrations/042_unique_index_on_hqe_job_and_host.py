@@ -27,7 +27,7 @@ def null_out_duplicate_hqes(manager, hqe_ids):
                         'manually abort these HQE IDs: %s' % ids_to_null_string)
 
     # go ahead and null them out
-    print 'Nulling out duplicate HQE IDs: %s' % ids_to_null_string
+    print('Nulling out duplicate HQE IDs: %s' % ids_to_null_string)
     manager.execute('UPDATE host_queue_entries '
                     'SET host_id = NULL, active = FALSE, complete = TRUE, '
                     'aborted = TRUE, status = "Aborted" '

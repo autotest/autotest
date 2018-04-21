@@ -557,12 +557,12 @@ class KojiPkgSpec(object):
     If you do not specify a default tag, and give a package name without an
     explicit tag, your package specification is considered invalid:
 
-        >>> print kvm_utils.get_default_koji_tag()
+        >>> print(kvm_utils.get_default_koji_tag())
         None
-        >>> print kvm_utils.KojiPkgSpec('kernel').is_valid()
+        >>> print(kvm_utils.KojiPkgSpec('kernel').is_valid())
         False
 
-        >>> print kvm_utils.KojiPkgSpec(package='kernel').is_valid()
+        >>> print(kvm_utils.KojiPkgSpec(package='kernel').is_valid())
         False
     '''
 

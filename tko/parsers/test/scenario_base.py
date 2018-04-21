@@ -66,7 +66,7 @@ class ParserException(object):
           orig: Exception; To copy
         """
         self.classname = orig.__class__.__name__
-        print "Copying exception:", self.classname
+        print("Copying exception:", self.classname)
         for key, val in orig.__dict__.iteritems():
             setattr(self, key, val)
 

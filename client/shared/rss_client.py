@@ -503,7 +503,7 @@ def main():
     logger = None
     if options.verbose:
         def p(s):
-            print s
+            print(s)
         logger = p
 
     if options.download:

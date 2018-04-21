@@ -148,7 +148,7 @@ class NetconsoleHost(remote.RemoteHost):
             self.run('modprobe netconsole %s' % self.__netconsole_params)
         except error.AutoservRunError, e:
             # if it fails there isn't much we can do, just keep going
-            print "ERROR occurred while loading netconsole: %s" % e
+            print("ERROR occurred while loading netconsole: %s" % e)
 
     def __unload_netconsole_module(self):
         try:

@@ -73,7 +73,7 @@ def log_and_ignore_errors(msg):
             try:
                 fn(*args, **dargs)
             except Exception:
-                print msg
+                print(msg)
                 traceback.print_exc(file=sys.stdout)
         return decorated_func
     return decorator

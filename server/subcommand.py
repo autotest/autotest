@@ -205,16 +205,16 @@ class subcommand(object):
             raise RuntimeError("Unknown child exit status!")
 
         if self.returncode != 0:
-            print "subcommand failed pid %d" % self.pid
-            print "%s" % (self.func,)
-            print "rc=%d" % self.returncode
+            print("subcommand failed pid %d" % self.pid)
+            print("%s" % (self.func,))
+            print("rc=%d" % self.returncode)
             print
             if self.debug:
                 stderr_file = os.path.join(self.debug, 'autoserv.stderr')
                 if os.path.exists(stderr_file):
                     for line in open(stderr_file).readlines():
-                        print line,
-            print "\n--------------------------------------------\n"
+                        print(line, end='')
+            print("\n--------------------------------------------\n")
             raise error.AutoservSubcommandError(self.func, self.returncode)
 
     def poll(self):
@@ -251,8 +251,8 @@ class subcommand(object):
                 time.sleep(1)
 
             utils.nuke_pid(self.pid)
-            print "subcommand failed pid %d" % self.pid
-            print "%s" % (self.func,)
-            print "timeout after %ds" % timeout
+            print("subcommand failed pid %d" % self.pid)
+            print("%s" % (self.func,))
+            print("timeout after %ds" % timeout)
             print
             return None

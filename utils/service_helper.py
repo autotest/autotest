@@ -122,7 +122,7 @@ def main():
     options, args = parser.parse_args()
 
     if not options.pidfile:
-        print 'A pidfile must always be supplied'
+        print('A pidfile must always be supplied')
         parser.print_help()
         sys.exit(1)
 
@@ -132,7 +132,7 @@ def main():
     elif options.stop_service:
         stop_service(options.pidfile)
     else:
-        print 'Nothing to do, you must specify to start or stop a service'
+        print('Nothing to do, you must specify to start or stop a service')
         parser.print_help()
 
 

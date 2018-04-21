@@ -168,12 +168,12 @@ class LoggingManagerTest(unittest.TestCase):
         PipedStringIO.cleanup_all_instances()
 
     def _say(self, suffix):
-        print >>self.stdout, 'print %s' % suffix
+        print('print %s' % suffix, file=self.stdout)
         if self._real_system_calls:
             os.system('echo system %s >&%s' % (suffix,
                                                self._original_stdout.fileno()))
         else:
-            print >>self.stdout, 'system %s' % suffix
+            print('system %s' % suffix, file=self.stdout)
         logging.info('logging %s', suffix)
         PipedStringIO.read_all_pipes()
 
@@ -253,10 +253,10 @@ class LoggingManagerTest(unittest.TestCase):
         manager.start_logging()
 
         manager.tee_redirect_debug_dir('/fake/dir', tag='mytag')
-        print >>self.stdout, 'hello'
+        print('hello', file=self.stdout)
 
         manager.undo_redirect()
-        print >>self.stdout, 'goodbye'
+        print('goodbye', file=self.stdout)
 
         manager.stop_logging()
 

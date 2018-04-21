@@ -45,7 +45,7 @@ class readprofile(profiler.profiler):
         # There's no real way to stop readprofile, so we stash the
         # raw data at this point instead. BAD EXAMPLE TO COPY! ;-)
         self.rawprofile = test.profdir + '/profile.raw'
-        print "STOP"
+        print("STOP")
         shutil.copyfile('/proc/profile', self.rawprofile)
 
     def report(self, test):

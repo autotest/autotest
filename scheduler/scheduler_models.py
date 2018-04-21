@@ -1045,7 +1045,7 @@ class Job(DBObject):
 
         keyval_dict_list = []
         keyval_list = self.get_keyval_list()
-        print "DBG: kv list obtained from get_keyval_list: %s" % keyval_list
+        print("DBG: kv list obtained from get_keyval_list: %s" % keyval_list)
         if keyval_list:
             for kv in keyval_list:
                 keyval_dict = {}

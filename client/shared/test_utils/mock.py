@@ -447,8 +447,8 @@ class mock_god(object):
 
     def __method_playback(self, symbol, *args, **dargs):
         if self._debug:
-            print >> sys.__stdout__, (' * Mock call: ' +
-                                      _dump_function_call(symbol, args, dargs))
+            print((' * Mock call: ' + _dump_function_call(symbol, args, dargs)),
+                  file=sys.__stdout__)
 
         if len(self.recording) != 0:
             # self.recording is subscriptable (deque), ignore E1136
@@ -484,7 +484,7 @@ class mock_god(object):
 
     def _append_error(self, error):
         if self._debug:
-            print >> sys.__stdout__, ' *** ' + error
+            print(' *** ' + error, file=sys.__stdout__)
         if self._fail_fast:
             raise CheckPlaybackError(error)
         self.errors.append(error)
@@ -496,9 +496,9 @@ class mock_god(object):
         """
         if len(self.errors) > 0:
             if self._debug:
-                print '\nPlayback errors:'
+                print('\nPlayback errors:')
             for error in self.errors:
-                print >> sys.__stdout__, error
+                print(error, file=sys.__stdout__)
 
             if self._ut:
                 self._ut.fail('\n'.join(self.errors))
@@ -509,7 +509,7 @@ class mock_god(object):
             for func_call in self.recording:
                 error = "%s not called" % (func_call,)
                 errors.append(error)
-                print >> sys.__stdout__, error
+                print(error, sys.__stdout__)
 
             if self._ut:
                 self._ut.fail('\n'.join(errors))

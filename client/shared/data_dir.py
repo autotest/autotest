@@ -236,9 +236,9 @@ def clean_tmp_files():
 
 
 if __name__ == '__main__':
-    print "root dir:         " + ROOT_DIR
-    print "tmp dir:          " + TMP_DIR
-    print "data dir:         " + DATA_DIR
-    print "deps dir:         " + DEPS_DIR
-    print "backing data dir: " + BACKING_DATA_DIR
-    print "test providers dir: " + TEST_PROVIDERS_DIR
+    print("root dir:         " + ROOT_DIR)
+    print("tmp dir:          " + TMP_DIR)
+    print("data dir:         " + DATA_DIR)
+    print("deps dir:         " + DEPS_DIR)
+    print("backing data dir: " + BACKING_DATA_DIR)
+    print("test providers dir: " + TEST_PROVIDERS_DIR)

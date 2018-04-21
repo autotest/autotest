@@ -153,7 +153,7 @@ class url_source(source):
             info = urllib2.urlopen(url).info()
         except IOError, err:
             # file is referenced but does not exist
-            print 'WARNING: %s' % err
+            print('WARNING: %s' % err)
             return None
 
         size = info.get('content-length')

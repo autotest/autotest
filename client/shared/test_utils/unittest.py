@@ -1543,8 +1543,8 @@ Examples:
 
     def usageExit(self, msg=None):
         if msg:
-            print msg
-        print self.USAGE % self.__dict__
+            print(msg)
+        print(self.USAGE % self.__dict__)
         sys.exit(2)
 
     def parseArgs(self, argv):

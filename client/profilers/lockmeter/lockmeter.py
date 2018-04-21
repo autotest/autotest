@@ -36,7 +36,7 @@ class lockmeter(profiler.profiler):
         if not os.path.exists('/proc/lockmeter'):
             msg = ('Lockmeter is not compiled into your kernel'
                    'Please fix and try again')
-            print msg
+            print(msg)
             raise AssertionError(msg)
 
     def start(self, test):

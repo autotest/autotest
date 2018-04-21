@@ -89,4 +89,4 @@ class ProgressBar:
         '''
         Prints the updated text to the screen
         '''
-        print self.get_screen_text(), '\r',
+        print(self.get_screen_text(), '\r', end="")

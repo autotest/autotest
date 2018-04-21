@@ -31,7 +31,7 @@ class ControlData(object):
                        "%s.") % (self.path, ', '.join(diff))
             if raise_warnings:
                 raise ControlVariableException(warning)
-            print textwrap.wrap(warning, 80)
+            print(textwrap.wrap(warning, 80))
 
         for key, val in vars.iteritems():
             try:
@@ -39,7 +39,7 @@ class ControlData(object):
             except Exception, e:
                 if raise_warnings:
                     raise
-                print "WARNING: %s; skipping" % e
+                print("WARNING: %s; skipping" % e)
 
     def set_attr(self, attr, val, raise_warnings=False):
         attr = attr.lower()

@@ -479,42 +479,42 @@ class test_merge_trees(unittest.TestCase):
         utils.merge_trees(*self.paths("empty"))
 
     def test_file_only_at_src(self):
-        print >> open(self.src("src_only"), "w"), "line 1"
+        print("line 1", file=open(self.src("src_only"), "w"))
         utils.merge_trees(*self.paths("src_only"))
         self.assertFileEqual("src_only")
 
     def test_file_only_at_dest(self):
-        print >> open(self.dest("dest_only"), "w"), "line 1"
+        print("line 1", file=open(self.dest("dest_only", "w")))
         utils.merge_trees(*self.paths("dest_only"))
         self.assertEqual(False, os.path.exists(self.src("dest_only")))
         self.assertFileContents("line 1\n", "dest_only")
 
     def test_file_at_both(self):
-        print >> open(self.dest("in_both"), "w"), "line 1"
-        print >> open(self.src("in_both"), "w"), "line 2"
+        print("line 1", file=open(self.dest("in_both"), "w"))
+        print("line 2", file=open(self.src("in_both"), "w"))
         utils.merge_trees(*self.paths("in_both"))
         self.assertFileContents("line 1\nline 2\n", "in_both")
 
     def test_directory_with_files_in_both(self):
-        print >> open(self.dest("in_both"), "w"), "line 1"
-        print >> open(self.src("in_both"), "w"), "line 3"
+        print("line 1", file=open(self.dest("in_both"), "w"))
+        print("line 3", file=open(self.src("in_both"), "w"))
         utils.merge_trees(*self.paths())
         self.assertFileContents("line 1\nline 3\n", "in_both")
 
     def test_directory_with_mix_of_files(self):
-        print >> open(self.dest("in_dest"), "w"), "dest line"
-        print >> open(self.src("in_src"), "w"), "src line"
+        print("dest line", file=open(self.dest("in_dest"), "w"))
+        print("src line", file=open(self.src("in_src"), "w"))
         utils.merge_trees(*self.paths())
         self.assertFileContents("dest line\n", "in_dest")
         self.assertFileContents("src line\n", "in_src")
 
     def test_directory_with_subdirectories(self):
         os.mkdir(self.src("src_subdir"))
-        print >> open(self.src("src_subdir", "subfile"), "w"), "subdir line"
+        print("subdir line", file=open(self.src("src_subdir", "subfile"), "w"))
         os.mkdir(self.src("both_subdir"))
         os.mkdir(self.dest("both_subdir"))
-        print >> open(self.src("both_subdir", "subfile"), "w"), "src line"
-        print >> open(self.dest("both_subdir", "subfile"), "w"), "dest line"
+        print("src line", file=open(self.src("both_subdir", "subfile"), "w"))
+        print("dest line", file=open(self.dest("both_subdir", "subfile"), "w"))
         utils.merge_trees(*self.paths())
         self.assertFileContents("subdir line\n", "src_subdir", "subfile")
         self.assertFileContents("dest line\nsrc line\n", "both_subdir",
@@ -831,7 +831,7 @@ class test_VersionableClass(unittest.TestCase):
             return False
 
         def func1(self):
-            print "PP func1"
+            print("PP func1")
 
     class WP(utils.VersionableClass):
 
@@ -848,7 +848,7 @@ class test_VersionableClass(unittest.TestCase):
             return cls.version
 
         def func1(self):
-            print "WP func1"
+            print("WP func1")
 
     class N(VCP, PP):
         pass

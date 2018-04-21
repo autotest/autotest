@@ -1940,7 +1940,7 @@ class OptionParser(optparse.OptionParser):
         action = self.opts_get_action(opts)
         if action in ACTIONS_REQUIRE_TITLE:
             if opts.title is None:
-                print 'Action %s requires a --title parameter' % action
+                print('Action %s requires a --title parameter' % action)
                 raise SystemExit
 
         return (opts, args)
@@ -2029,7 +2029,7 @@ class BoottoolApp(object):
             if result is None:
                 result = 0
             elif isinstance(result, str):
-                print result
+                print(result)
                 result = 0
             sys.exit(result)
 
@@ -2045,12 +2045,12 @@ class BoottoolApp(object):
         '''
         version = self.grubby.get_grubby_version()
         if version is not None:
-            print "%s.%s" % version
+            print("%s.%s" % version)
             return
 
         version = self.grubby.get_grubby_version_raw()
         if version is not None:
-            print version
+            print(version)
 
     def action_grubby_version_check(self):
         '''
@@ -2107,14 +2107,14 @@ class BoottoolApp(object):
             entries = {info_index: self.grubby.get_entry(info_index)}
 
         for index, entry in entries.items():
-            print
+            print()
             for key, val in entry.items():
                 # remove quotes
                 if isinstance(val, str):
                     if val.startswith('"') and val.endswith('"'):
                         val = val[1:-1]
 
-                print '%-8s: %s' % (key, val)
+                print('%-8s: %s' % (key, val))
 
     def action_add_kernel(self):
         '''
@@ -2191,7 +2191,7 @@ class BoottoolApp(object):
         """
         Get the default entry index
         """
-        print self.grubby.get_default_index()
+        print(self.grubby.get_default_index())
 
     def action_set_default(self):
         """

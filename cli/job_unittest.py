@@ -725,7 +725,7 @@ class job_create_unittest(cli_mock.cli_unittest):
 
     kernel_ctrl_file = 'kernel = \'kernel\'\ndef step_init():\n    job.next_step([step_test])\n    testkernel = job.kernel(\'kernel\')\n    \n    testkernel.install()\n    testkernel.boot(args=\'console_always_print=1\')\n\ndef step_test():\n    job.next_step(\'step0\')\n\ndef step0():\n    AUTHOR = "Autotest Team"\n    NAME = "Sleeptest"\n    TIME = "SHORT"\n    TEST_CATEGORY = "Functional"\n    TEST_CLASS = "General"\n    TEST_TYPE = "client"\n    \n    DOC = """\n    This test simply sleeps for 1 second by default.  It\'s a good way to test\n    profilers and double check that autotest is working.\n    The seconds argument can also be modified to make the machine sleep for as\n    long as needed.\n    """\n    \n    job.run_test(\'sleeptest\', seconds = 1)'
 
-    trivial_ctrl_file = 'print "Hello"\n'
+    trivial_ctrl_file = 'print("Hello")\n'
 
     data = {'priority': 'Medium', 'control_file': ctrl_file, 'hosts': ['host0'],
             'name': 'test_job0', 'control_type': 'Client', 'email_list': '',

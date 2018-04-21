@@ -728,7 +728,7 @@ class BasePackageManager(object):
         results = subcommand.parallel(commands, timeout, return_results=True)
         for result in results:
             if result:
-                print str(result)
+                print(str(result))
 
     # TODO(aganti): Fix the bug with the current checksum logic where
     # packages' checksums that are not present consistently in all the

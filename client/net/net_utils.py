@@ -65,7 +65,7 @@ class network_utils(object):
         mpstat_keys = ['time', 'CPU', 'user', 'nice', 'sys', 'iowait', 'irq',
                        'soft', 'steal', 'idle', 'intr/s']
         if loud:
-            print mpstat_out
+            print(mpstat_out)
 
         # Remove the optional AM/PM appearing in time format
         mpstat_out = mpstat_out.replace('AM', '')
@@ -91,7 +91,7 @@ class network_utils(object):
             if len(x):
                 count = len(x)
             else:
-                print 'net_utils.network_utils.process_mpstat: count is 0!!!\n'
+                print('net_utils.network_utils.process_mpstat: count is 0!!!\n')
                 count = 1
             cpu_stats[key] = sum(x) / count
 

@@ -284,7 +284,7 @@ class Host(object):
         Raise: error.AutoservHostError if unfiltered unmounted partition found
         """
 
-        print 'Checking if non-swap partitions are mounted...'
+        print('Checking if non-swap partitions are mounted...')
 
         unmounted = partition.get_unmounted_partition_list(root_part,
                                                            filter_func=filter_func, open_func=self.get_open_func())
@@ -309,7 +309,7 @@ class Host(object):
                 'path = os.path.realpath(%r)\n'
                 "while path != '/' and not os.path.ismount(path):\n"
                 '    path, _ = os.path.split(path)\n'
-                'print path\n') % path
+                'print(path)\n') % path
         return self.run('python -c "%s"' % code,
                         stdout_tee=open(os.devnull, 'w')).stdout.rstrip()
 

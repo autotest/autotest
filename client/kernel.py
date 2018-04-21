@@ -222,7 +222,7 @@ class kernel(BootableKernel):
                 ]
 
         patches = kernelexpand.expand_classic(kernel, mirrors)
-        print patches
+        print(patches)
 
         return patches
 
@@ -233,8 +233,8 @@ class kernel(BootableKernel):
             self.get_kernel_tree(base_tree)
         else:
             base_components = self.kernelexpand(base_tree)
-            print 'kernelexpand: '
-            print base_components
+            print('kernelexpand: ')
+            print(base_components)
             self.get_kernel_tree(base_components.pop(0))
             if base_components:      # apply remaining patches
                 self.patch(*base_components)
@@ -245,7 +245,7 @@ class kernel(BootableKernel):
         """Apply a list of patches (in order)"""
         if not patches:
             return
-        print 'Applying patches: ', patches
+        print('Applying patches: ', patches)
         self.apply_patches(self.get_patches(patches))
 
     @log.record
@@ -269,8 +269,8 @@ class kernel(BootableKernel):
             dest = os.path.join(self.src_dir, os.path.basename(patch))
             # FIXME: this isn't unique. Append something to it
             # like wget does if it's not there?
-            print "get_file %s %s %s %s" % (patch, dest, self.src_dir,
-                                            os.path.basename(patch))
+            print("get_file %s %s %s %s" % (patch, dest, self.src_dir,
+                                            os.path.basename(patch)))
             utils.get_file(patch, dest)
             # probably safer to use the command, not python library
             md5sum = utils.system_output('md5sum ' + dest).split()[0]
@@ -292,7 +292,7 @@ class kernel(BootableKernel):
                 ref = self.job.relative_path(ref)
             patch_id = "%s %s %s" % (spec, ref, md5sum)
             log = "PATCH: " + patch_id + "\n"
-            print log
+            print(log)
             utils.cat_file_to_cmd(local, 'patch -p1 > /dev/null')
             self.logfile.write(log)
             self.applied_patches.append(patch_id)
@@ -302,7 +302,7 @@ class kernel(BootableKernel):
 
         # if base_tree is a dir, assume uncompressed kernel
         if os.path.isdir(base_tree):
-            print 'Symlinking existing kernel source'
+            print('Symlinking existing kernel source')
             if os.path.islink(self.build_dir):
                 os.remove(self.build_dir)
             os.symlink(base_tree, self.build_dir)
@@ -313,7 +313,7 @@ class kernel(BootableKernel):
             # Figure out local destination for tarball
             tarball = os.path.join(self.src_dir, os.path.basename(base_tree.split(';')[0]))
             utils.get_file(base_tree, tarball)
-            print 'Extracting kernel tarball:', tarball, '...'
+            print('Extracting kernel tarball:', tarball, '...')
             utils.extract_tarball_to_dir(tarball, self.build_dir)
 
     def extraversion(self, tag, append=True):
@@ -354,7 +354,7 @@ class kernel(BootableKernel):
         build_string = 'make -j %d %s %s' % (threads, make_opts,
                                              self.build_target)
         # eg make bzImage, or make zImage
-        print build_string
+        print(build_string)
         utils.system(build_string)
         if kernel_config.modules_needed('.config'):
             utils.system('make -j %d %s modules' % (threads, make_opts))
@@ -375,7 +375,7 @@ class kernel(BootableKernel):
         build_string = ("/usr/bin/time -o %s make %s -j %s vmlinux" %
                         (timefile, make_opts, threads))
         build_string += ' > %s 2>&1' % output
-        print build_string
+        print(build_string)
         utils.system(build_string)
 
         if (not os.path.isfile('vmlinux')):
@@ -387,7 +387,7 @@ class kernel(BootableKernel):
     def clean(self):
         """make clean in the kernel tree"""
         os.chdir(self.build_dir)
-        print "make clean"
+        print("make clean")
         utils.system('make clean > /dev/null 2> /dev/null')
 
     @log.record
@@ -408,7 +408,7 @@ class kernel(BootableKernel):
         d = distro.detect()
 
         if os.path.isfile(initrd):
-            print "Existing %s file, will remove it." % initrd
+            print("Existing %s file, will remove it." % initrd)
             os.remove(initrd)
 
         args = self.job.config_get('kernel.mkinitrd_extra_args')
@@ -603,7 +603,7 @@ class kernel(BootableKernel):
     def set_build_target(self, build_target):
         if build_target:
             self.build_target = build_target
-            print 'BUILD TARGET: %s' % self.build_target
+            print('BUILD TARGET: %s' % self.build_target)
 
     def set_cross_cc(self, target_arch=None, cross_compile=None,
                      build_target='bzImage'):

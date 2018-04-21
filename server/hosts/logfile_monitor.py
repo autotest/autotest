@@ -160,8 +160,8 @@ def _log_and_ignore_exceptions(f):
         try:
             return f(self, *args, **dargs)
         except Exception, e:
-            print "LogfileMonitor.%s failed with exception %s" % (f.__name__, e)
-            print "Exception ignored:"
+            print("LogfileMonitor.%s failed with exception %s" % (f.__name__, e))
+            print("Exception ignored:")
             traceback.print_exc(file=sys.stdout)
     wrapped.__name__ = f.__name__
     wrapped.__doc__ = f.__doc__

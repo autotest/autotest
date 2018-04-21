@@ -43,8 +43,8 @@ class MockDrone(drones._AbstractDrone):
         recorded_arg_list = self._recorded_calls[method_name]
         was_called = arguments in recorded_arg_list
         if not was_called:
-            print 'Recorded args:', recorded_arg_list
-            print 'Expected:', arguments
+            print('Recorded args:', recorded_arg_list)
+            print('Expected:', arguments)
         return was_called
 
     def was_call_queued(self, method, *args, **kwargs):

@@ -29,7 +29,7 @@ proxy = rpc.afe_comm(autotest_host)
 # job exists?
 jobs = proxy.run('get_jobs', id=job_id)
 if not jobs:
-    print 'No such job', job_id
+    print('No such job', job_id)
     sys.exit(1)
 job = jobs[0]
 owner = job['owner']
@@ -42,8 +42,8 @@ queue_entries = proxy.run('get_host_queue_entries', job__id=job_id)
 # Divine why an atomic group job is or is not running.
 if queue_entries and queue_entries[0]['atomic_group']:
     if queue_entries[0]['status'] in RUNNING_HQE_STATUSES:
-        print 'Job %d appears to have started (status: %s).' % (
-            job_id, queue_entries[0]['status'])
+        print('Job %d appears to have started (status: %s).' % (
+            job_id, queue_entries[0]['status']))
         sys.exit(0)
     # Hosts in Repairing or Repair Failed will have Queued queue entries.
     # We shouldn't consider those queue entries as a multi-group job.
@@ -53,7 +53,7 @@ if queue_entries and queue_entries[0]['atomic_group']:
             if queue_entry['host']['status'].startswith('Repair'):
                 repair_hostnames.append(queue_entry['host']['hostname'])
         if queue_entry['status'] in ('Completed', 'Stopped'):
-            print 'This job has already finished.'
+            print('This job has already finished.')
             sys.exit(0)
     queue_entries_with_hosts = [queue_entry for queue_entry in queue_entries
                                 if queue_entry['host']]
@@ -66,25 +66,25 @@ if queue_entries and queue_entries[0]['atomic_group']:
         # but is not running because too many of them are in Repairing or will
         # never run because hosts have exited Repairing into the Repair Failed
         # dead end.
-        print 'This script does not support multi-group atomic group jobs.'
-        print
-        print 'Jobs scheduled in that state are typically unintentional.'
-        print
-        print 'Did you perhaps schedule the job via the web frontend and ask'
-        print 'that it run on more than 1 (atomic group) of hosts via the '
-        print '"Run on any" box?  If so, always enter 1 there when scheduling'
-        print 'jobs on anything marked "(atomic group)".'
-        print
-        print len(queue_entries), 'non-started atomic group HostQueueEntries',
-        print 'found for job', job_id
+        print('This script does not support multi-group atomic group jobs.')
+        print()
+        print('Jobs scheduled in that state are typically unintentional.')
+        print()
+        print('Did you perhaps schedule the job via the web frontend and ask')
+        print('that it run on more than 1 (atomic group) of hosts via the ')
+        print('"Run on any" box?  If so, always enter 1 there when scheduling')
+        print('jobs on anything marked "(atomic group)".')
+        print()
+        print(len(queue_entries), 'non-started atomic group HostQueueEntries', end='')
+        print('found for job', job_id)
         sys.exit(1)
     atomic_group_name = queue_entries[0]['atomic_group']['name']
     # Get the list of labels associated with this atomic group.
     atomic_labels = proxy.run('get_labels',
                               atomic_group__name=atomic_group_name)
     if len(atomic_labels) < 1:
-        print 'Job requests atomic group %s but no labels' % atomic_group_name
-        print '(and thus no hosts) are associated with that atomic group.'
+        print('Job requests atomic group %s but no labels' % atomic_group_name)
+        print('(and thus no hosts) are associated with that atomic group.')
 
     job_sync_count = job['synch_count']
     # Ugh! This is returned as a comma separated str of label names.
@@ -110,16 +110,16 @@ if queue_entries and queue_entries[0]['atomic_group']:
     for label in atomic_labels:
         label_name = label['name']
         if meta_host and meta_host_name != label_name:
-            print 'Cannot run on atomic label %s due to meta_host %s.' % (
-                label_name, meta_host_name)
+            print('Cannot run on atomic label %s due to meta_host %s.' % (
+                label_name, meta_host_name))
             continue
         for dep_name in job_dependency_label_names:
             if dep_name != label_name:
-                print 'Not checking hosts in atomic label %s against' % (
-                    label_name,)
-                print 'job dependency label %s.  There may be less hosts' % (
-                    dep_name,)
-                print 'than examined below available to run this job.'
+                print('Not checking hosts in atomic label %s against' % (
+                    label_name,))
+                print('job dependency label %s.  There may be less hosts' % (
+                    dep_name,))
+                print('than examined below available to run this job.')
 
         # Get the list of hosts associated with this atomic group label.
         atomic_hosts = proxy.run('get_hosts', multiple_labels=[label_name])
@@ -188,20 +188,20 @@ if queue_entries and queue_entries[0]['atomic_group']:
 
     for label_name, reason_tuple in atomic_label_exclude_reasons.iteritems():
         job_reason, hosts_reasons = reason_tuple
-        print 'Atomic group "%s" via label "%s" CANNOT run job %d because:' % (
-            atomic_group_name, label_name, job_id)
-        print job_reason
+        print('Atomic group "%s" via label "%s" CANNOT run job %d because:' % (
+            atomic_group_name, label_name, job_id))
+        print(job_reason)
         for hostname in sorted(hosts_reasons.keys()):
             for reason in hosts_reasons[hostname]:
-                print '%s\t%s' % (hostname, reason)
-        print
+                print('%s\t%s' % (hostname, reason))
+        print()
 
     for label_name, host_list in runnable_atomic_label_names.iteritems():
-        print 'Atomic group "%s" via label "%s" is READY to run job %d on:' % (
-            atomic_group_name, label_name, job_id)
-        print ', '.join(host_list)
-        print 'Is the job scheduler healthy?'
-        print
+        print('Atomic group "%s" via label "%s" is READY to run job %d on:' % (
+            atomic_group_name, label_name, job_id))
+        print(', '.join(host_list))
+        print('Is the job scheduler healthy?')
+        print()
 
     sys.exit(0)
 
@@ -213,7 +213,7 @@ if len(args) != 2:
         hostname = queue_entries[0]['host']['hostname']
     else:
         parser.print_help()
-        print '\nERROR: A hostname associated with the job is required.'
+        print('\nERROR: A hostname associated with the job is required.')
         sys.exit(1)
 else:
     hostname = args[1]
@@ -221,7 +221,7 @@ else:
 # host exists?
 hosts = proxy.run('get_hosts', hostname=hostname)
 if not hosts:
-    print 'No such host', hostname
+    print('No such host', hostname)
     sys.exit(1)
 host = hosts[0]
 
@@ -244,15 +244,15 @@ if entries_for_this_host:
         'Multiple entries for this job assigned to this host!')
     entry = entries_for_this_host[0]
     if entry['active'] or entry['complete']:
-        print ('Job already ran or is running on this host! (status: %s)' %
-               entry['full_status'])
+        print('Job already ran or is running on this host! (status: %s)' %
+              entry['full_status'])
         sys.exit(0)
     is_metahost = False
 else:
     # no entry for this host -- maybe an eligible metahost entry?
     if not eligible_metahost_entries:
-        print ("Host isn't scheduled for this job, and no eligible metahost "
-               "entry exists")
+        print("Host isn't scheduled for this job, and no eligible metahost "
+              "entry exists")
         sys.exit(0)
     is_metahost = True
 
@@ -266,8 +266,8 @@ if host_atomic_group_labels:
     for label in host_atomic_group_labels:
         atomic_groups.add(label['atomic_group']['name'])
     if len(atomic_groups) != 1:
-        print 'Host has more than one atomic group!'
-        print list(atomic_groups)
+        print('Host has more than one atomic group!')
+        print(list(atomic_groups))
         sys.exit(1)
     host_atomic_group_label = host_atomic_group_labels[0]
     host_atomic_group_name = host_atomic_group_label['atomic_group']['name']
@@ -280,15 +280,15 @@ if job_atomic_group:
     job_atomic_group_name = job_atomic_group['name']
 
 if host_atomic_group_name != job_atomic_group_name:
-    print ('Job is for atomic group %s, but host is in atomic group %s '
-           '(label %s)' %
-           (job_atomic_group_name, host_atomic_group_name,
-            host_atomic_group_label['name']))
+    print('Job is for atomic group %s, but host is in atomic group %s '
+          '(label %s)' %
+          (job_atomic_group_name, host_atomic_group_name,
+           host_atomic_group_label['name']))
     job_will_run = False
 
 # host locked?
 if host['locked']:
-    print 'Host is locked by', host['locked_by'], 'no jobs will schedule on it.'
+    print('Host is locked by', host['locked_by'], 'no jobs will schedule on it.')
     job_will_run = False
 
 # acl accessible?
@@ -299,9 +299,9 @@ if not accessible:
                           proxy.run('get_acl_groups', hosts__hostname=hostname))
     owner_acls = ', '.join(group['name'] for group in
                            proxy.run('get_acl_groups', users__login=owner))
-    print 'Host not ACL-accessible to job owner', owner
-    print ' Host ACLs:', host_acls
-    print ' Owner Acls:', owner_acls
+    print('Host not ACL-accessible to job owner', owner)
+    print(' Host ACLs:', host_acls)
+    print(' Owner Acls:', owner_acls)
     job_will_run = False
 
 # meets dependencies?
@@ -311,8 +311,8 @@ if job_deps_list != ['']:
     job_deps = set(job_deps_list)
 unmet = job_deps - host_label_names
 if unmet:
-    print ("Host labels (%s) don't satisfy job dependencies: %s" %
-           (', '.join(host_label_names), ', '.join(unmet)))
+    print("Host labels (%s) don't satisfy job dependencies: %s" %
+          (', '.join(host_label_names), ', '.join(unmet)))
     job_will_run = False
 
 # at this point, if the job is for an unassigned atomic group, things are too
@@ -321,8 +321,8 @@ unassigned_atomic_group_entries = [entry for entry in queue_entries if
                                    entry['atomic_group'] and
                                    not entry['host']]
 if unassigned_atomic_group_entries:
-    print ("Job is for an unassigned atomic group.  That's too complicated, I "
-           "can't give you any definite answers.  Sorry.")
+    print("Job is for an unassigned atomic group.  That's too complicated, I "
+          "can't give you any definite answers.  Sorry.")
     sys.exit(1)
 
 # meets only_if_needed labels?
@@ -334,8 +334,8 @@ if is_metahost:
         unmet_exclusive_label = (label['only_if_needed'] and
                                  label['name'] not in job_deps_and_metahosts)
         if unmet_exclusive_label:
-            print ('Host contains "only if needed" label %s, unused by job '
-                   'dependencies and metahosts' % label['name'])
+            print('Host contains "only if needed" label %s, unused by job '
+                  'dependencies and metahosts' % label['name'])
             job_will_run = False
 
 # host ready?
@@ -344,17 +344,17 @@ if host['status'] != 'Ready':
         active = proxy.run('get_host_queue_entries',
                            host=host['id'], active=True)
         if not active:
-            print ('Host %s seems to be in "Pending" state incorrectly; please '
-                   'report this to the Autotest team' % hostname)
+            print('Host %s seems to be in "Pending" state incorrectly; please '
+                  'report this to the Autotest team' % hostname)
             sys.exit(1)
-    print 'Host not in "Ready" status (status="%s")' % host['status']
+    print('Host not in "Ready" status (status="%s")' % host['status'])
     job_will_run = False
 
 if job_will_run:
-    print ("Job %s should run on host %s; if you've already waited about ten "
-           "minutes or longer, it's probably a server issue or a bug." %
-           (job_id, hostname))
+    print("Job %s should run on host %s; if you've already waited about ten "
+          "minutes or longer, it's probably a server issue or a bug." %
+          (job_id, hostname))
     sys.exit(1)
 else:
-    print "All of the reasons this job is not running are listed above."
+    print("All of the reasons this job is not running are listed above.")
     sys.exit(0)
