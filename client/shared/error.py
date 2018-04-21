@@ -581,7 +581,8 @@ class RepoError(PackagingError):
 
 # This MUST remain at the end of the file.
 # Limit 'from error import *' to only import the exception instances.
-for _name, _thing in locals().items():
+local_symbols = {k : v for k,v in locals().items()}
+for _name, _thing in local_symbols.items():
     try:
         if issubclass(_thing, Exception):
             __all__.append(_name)

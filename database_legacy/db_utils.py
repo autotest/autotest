@@ -32,9 +32,9 @@ def rename(manager, mapping):
     :param mapping a dictionary of orig_name => new_name. Any table not matching
                    an entry in this dictionary will not be renamed
     """
-    check_exists(manager, (table for table, _ in mapping.iteritems()),
+    check_exists(manager, (table for table, _ in mapping.items()),
                  TABLE_TYPE)
-    for orig_name, new_name in mapping.iteritems():
+    for orig_name, new_name in mapping.items():
         manager.execute('RENAME TABLE `%s` TO `%s`' % (orig_name, new_name))
 
 

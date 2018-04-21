@@ -51,7 +51,7 @@ def gwt_forward(request, forward_addr):
         headers, content = httplib2.Http().request(url, 'POST',
                                                    body=request.raw_post_data)
     http_response = HttpResponse(content)
-    for header, value in headers.iteritems():
+    for header, value in headers.items():
         # remove components that could cause hop-by-hop errors
         if header not in ('connection', 'keep-alive', 'proxy-authenticate',
                           'proxy-authorization', 'te', 'trailers',

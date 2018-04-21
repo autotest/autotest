@@ -461,7 +461,7 @@ def dump_object(object):
 
     kind of like dir()
     """
-    for item in object.__dict__.iteritems():
+    for item in object.__dict__.items():
         print(item)
         try:
             (key, value) = item
@@ -789,7 +789,7 @@ def get_loaded_modules():
 def get_cpu_vendor():
     cpuinfo = open('/proc/cpuinfo').read()
     vendors = re.findall(r'(?m)^vendor_id\s*:\s*(\S+)\s*$', cpuinfo)
-    for i in xrange(1, len(vendors)):
+    for i in range(1, len(vendors)):
         if vendors[i] != vendors[0]:
             raise error.TestError('multiple cpu vendors found: ' + str(vendors))
     return vendors[0]

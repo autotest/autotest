@@ -815,7 +815,7 @@ class TestNetUtils(unittest.TestCase):
         for y in (0, 1, 100):
             max_timeout = y
             if y:
-                for x in xrange(max_timeout - 1):
+                for x in range(max_timeout - 1):
                     net_utils.open.expect_call(spath).and_return(f)
                     f.read.expect_call().and_return(' ' + '0' + ' ')
                     f.close.expect_call()
@@ -904,7 +904,7 @@ class TestNetUtils(unittest.TestCase):
         utils.ping_default_gateway.expect_call().and_return(False)
         self.assertEquals(net_utils.bond().wait_for_state_change(), True)
 
-        for x in xrange(9):
+        for x in range(9):
             time.sleep.expect_call(10)
             utils.ping_default_gateway.expect_call().and_return(True)
 
@@ -912,7 +912,7 @@ class TestNetUtils(unittest.TestCase):
         utils.ping_default_gateway.expect_call().and_return(False)
         self.assertEquals(net_utils.bond().wait_for_state_change(), True)
 
-        for x in xrange(10):
+        for x in range(10):
             time.sleep.expect_call(10)
             utils.ping_default_gateway.expect_call().and_return(True)
 

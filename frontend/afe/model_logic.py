@@ -596,7 +596,7 @@ class ModelExtensions(object):
         """
         new_data = dict(data)
         field_dict = cls.get_field_dict()
-        for name, obj in field_dict.iteritems():
+        for name, obj in field_dict.items():
             if data.get(name) is not None:
                 continue
             if obj.default is not dbmodels.fields.NOT_PROVIDED:
@@ -685,7 +685,7 @@ class ModelExtensions(object):
         cls = type(self)
         field_dict = self.get_field_dict()
         manager = cls.get_valid_manager()
-        for field_name, field_obj in field_dict.iteritems():
+        for field_name, field_obj in field_dict.items():
             if not field_obj.unique:
                 continue
 
@@ -736,7 +736,7 @@ class ModelExtensions(object):
     def do_validate(self):
         errors = self._validate()
         unique_errors = self._validate_unique()
-        for field_name, error in unique_errors.iteritems():
+        for field_name, error in unique_errors.items():
             errors.setdefault(field_name, error)
         if errors:
             raise ValidationError(errors)
@@ -763,7 +763,7 @@ class ModelExtensions(object):
         data.
         """
         data = self.prepare_data_args(data, kwargs)
-        for field_name, value in data.iteritems():
+        for field_name, value in data.items():
             setattr(self, field_name, value)
         self.do_validate()
         self.save()
@@ -957,7 +957,7 @@ class ModelExtensions(object):
         """
         See on_attribute_changed.
         """
-        for attribute, original_value in self._recorded_attributes.iteritems():
+        for attribute, original_value in self._recorded_attributes.items():
             new_value = getattr(self, attribute)
             if original_value != new_value:
                 self.on_attribute_changed(attribute, original_value)

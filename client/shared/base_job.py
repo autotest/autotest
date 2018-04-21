@@ -267,9 +267,9 @@ class job_state(object):
 
         if merge:
             # merge the on-disk state with the in-memory state
-            for namespace, namespace_dict in on_disk_state.iteritems():
+            for namespace, namespace_dict in on_disk_state.items():
                 in_memory_namespace = self._state.setdefault(namespace, {})
-                for name, value in namespace_dict.iteritems():
+                for name, value in namespace_dict.items():
                     if name in in_memory_namespace:
                         if in_memory_namespace[name] != value:
                             logging.info('Persistent value of %s.%s from %s '
@@ -541,7 +541,7 @@ class status_log_entry(object):
             self.fields = {}
         else:
             self.fields = fields.copy()
-        for key, value in self.fields.iteritems():
+        for key, value in self.fields.items():
             if type(value) is int:
                 value = str(value)
             if self.BAD_CHAR_REGEX.search(key + value):
@@ -580,7 +580,7 @@ class status_log_entry(object):
         # combine all the log line data into a tab-delimited string
         subdir = self.subdir or self.RENDERED_NONE_VALUE
         operation = self.operation or self.RENDERED_NONE_VALUE
-        extra_fields = ['%s=%s' % field for field in self.fields.iteritems()]
+        extra_fields = ['%s=%s' % field for field in self.fields.items()]
         line_items = [self.status_code, subdir, operation]
         line_items += extra_fields + [self.message]
         first_line = '\t'.join(line_items)

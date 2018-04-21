@@ -26,7 +26,7 @@ def opt_string2dict(opt_string):
         elif item != '':
             opt_dict['-%s' % item] = None
     # Convert all the digit strings to int.
-    for key, value in opt_dict.iteritems():
+    for key, value in opt_dict.items():
         if value and value.isdigit():
             opt_dict[key] = int(value)
 
@@ -61,11 +61,11 @@ def parse_mke2fs_conf(fs_type, conf_file='/etc/mke2fs.conf'):
     f.close()
 
     # fs_types options override the defaults options
-    for key, value in fs_opt.iteritems():
+    for key, value in fs_opt.items():
         default_opt[key] = value
 
     # Convert all the digit strings to int.
-    for key, value in default_opt.iteritems():
+    for key, value in default_opt.items():
         if value and value.isdigit():
             default_opt[key] = int(value)
 
@@ -87,7 +87,7 @@ def convert_conf_opt(default_opt):
     if 'features' in default_opt:
         mkfs_opt['-O'] += ',%s' % default_opt['features']
 
-    for key, value in conf_opt_mapping.iteritems():
+    for key, value in conf_opt_mapping.items():
         if key in default_opt:
             mkfs_opt[value] = default_opt[key]
 
@@ -180,7 +180,7 @@ def ext_mkfs_options(tune2fs_dict, mkfs_option):
         'Filesystem features': lambda d, k: re.sub(' ', ',', d[k]),
         'Filesystem revision #': lambda d, k: d[k][0]}
 
-    for key, value in ext_mapping.iteritems():
+    for key, value in ext_mapping.items():
         if key not in tune2fs_dict:
             continue
         if key in conversions:
@@ -273,7 +273,7 @@ def xfs_mkfs_options(tune2fs_dict, mkfs_option):
     mkfs_option['-l size'] = tune2fs_dict['log: bsize'] * (
         tune2fs_dict['log: blocks'])
 
-    for key, value in xfs_mapping.iteritems():
+    for key, value in xfs_mapping.items():
         mkfs_option[value] = tune2fs_dict[key]
 
 
@@ -303,7 +303,7 @@ def match_ext_options(fs_type, dev, needed_options):
 
     # User options override config options.
     needed_opt = conf_mkfs_opt
-    for key, value in needed_opt_dict.iteritems():
+    for key, value in needed_opt_dict.items():
         if key == '-N' or key == '-T':
             raise Exception('-N/T is not allowed.')
         elif key == '-O':
@@ -328,7 +328,7 @@ def match_ext_options(fs_type, dev, needed_options):
     ext_mkfs_options(tune2fs_dict, current_opt)
 
     # Does the match
-    for key, value in needed_opt.iteritems():
+    for key, value in needed_opt.items():
         if key == '-O':
             if not compare_features(value, current_opt[key].split(',')):
                 return False

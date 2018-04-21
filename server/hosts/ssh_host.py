@@ -118,7 +118,7 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
         # Start a master SSH connection if necessary.
         self.start_master_ssh()
 
-        env = " ".join("=".join(pair) for pair in self.env.iteritems())
+        env = " ".join("=".join(pair) for pair in self.env.items())
         try:
             return self._run(command, timeout, ignore_status, stdout_tee,
                              stderr_tee, connect_timeout, env, options,
@@ -240,7 +240,7 @@ class AsyncSSHMixin(object):
                                     "scripts", "run_helper.py"),
                        os.path.join(run_helper_path, "run_helper.py"))
 
-        env = " ".join("=".join(pair) for pair in self.env.iteritems())
+        env = " ".join("=".join(pair) for pair in self.env.items())
 
         ssh_cmd = self.ssh_command(connect_timeout, options)
         if not env.strip():

@@ -72,7 +72,7 @@ class equality_comparator(argument_comparator):
             if not cls._compare(sorted(actual_arg.keys()),
                                 sorted(expected_arg.keys())):
                 return False
-            for key, value in actual_arg.iteritems():
+            for key, value in actual_arg.items():
                 if not cls._compare(value, expected_arg[key]):
                     return False
         elif actual_arg != expected_arg:
@@ -138,7 +138,7 @@ class base_mapping(object):
         self.symbol = symbol
         self.args = [equality_comparator(arg) for arg in args]
         self.dargs = dict((key, equality_comparator(value))
-                          for key, value in dargs.iteritems())
+                          for key, value in dargs.items())
         self.error = None
 
     def match(self, *args, **dargs):
@@ -150,14 +150,14 @@ class base_mapping(object):
                 return False
 
         # check for incorrect dargs
-        for key, value in dargs.iteritems():
+        for key, value in dargs.items():
             if key not in self.dargs:
                 return False
             if not self.dargs[key].is_satisfied_by(value):
                 return False
 
         # check for missing dargs
-        for key in self.dargs.iterkeys():
+        for key in self.dargs.keys():
             if key not in dargs:
                 return False
 
@@ -551,6 +551,6 @@ def _dump_function_call(symbol, args, dargs):
     arg_vec = []
     for arg in args:
         arg_vec.append(_arg_to_str(arg))
-    for key, val in dargs.iteritems():
+    for key, val in dargs.items():
         arg_vec.append("%s=%s" % (key, _arg_to_str(val)))
     return "%s(%s)" % (symbol, ', '.join(arg_vec))

@@ -711,7 +711,7 @@ class HostQueueEntry(DBObject):
         status_counts = models.Job.objects.get_status_counts(
             [self.job.id])[self.job.id]
         status = ', '.join('%d %s' % (count, status) for status, count
-                           in status_counts.iteritems())
+                           in status_counts.items())
 
         subject, body = self._get_status_email_contents(status, summary, None)
 

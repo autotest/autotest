@@ -603,7 +603,7 @@ class Host(object):
         # find all the vmlinuz images referenced by the bootloader
         boot_info = self.bootloader.get_entries()
         used_kernver = []
-        for boot in boot_info.itervalues():
+        for boot in boot_info.values():
             k = os.path.basename(boot['kernel'])[len('vmlinuz-'):]
             if k not in used_kernver:
                 used_kernver.append(k)

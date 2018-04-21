@@ -44,7 +44,7 @@ class QueryProcessor(object):
 
     def selectors(self):
         return tuple(selector for selector, constraint
-                     in self._selectors.itervalues())
+                     in self._selectors.values())
 
     def has_selector(self, selector_name):
         return selector_name in self._selectors

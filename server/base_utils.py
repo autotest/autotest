@@ -197,7 +197,7 @@ def find_pid(command):
 
 def nohup(command, stdout='/dev/null', stderr='/dev/null', background=True,
           env={}):
-    cmd = ' '.join(key + '=' + val for key, val in env.iteritems())
+    cmd = ' '.join(key + '=' + val for key, val in env.items())
     cmd += ' nohup ' + command
     cmd += ' > %s' % stdout
     if stdout == stderr:

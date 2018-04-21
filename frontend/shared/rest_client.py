@@ -68,7 +68,7 @@ class Resource(object):
     def __init__(self, representation_dict, http):
         self._http = http
         assert 'href' in representation_dict
-        for key, value in representation_dict.iteritems():
+        for key, value in representation_dict.items():
             setattr(self, str(key), value)
 
     def __repr__(self):
@@ -91,7 +91,7 @@ class Resource(object):
             return [self._read_representation(element) for element in value]
         if isinstance(value, dict):
             converted_dict = dict((key, self._read_representation(sub_value))
-                                  for key, sub_value in value.iteritems())
+                                  for key, sub_value in value.items())
             if 'href' in converted_dict:
                 return type(self)(converted_dict, http=self._http)
             return converted_dict
@@ -103,14 +103,14 @@ class Resource(object):
             return [self._write_representation(element) for element in value]
         if isinstance(value, dict):
             return dict((key, self._write_representation(sub_value))
-                        for key, sub_value in value.iteritems())
+                        for key, sub_value in value.items())
         if isinstance(value, Resource):
             return value._representation()
         return value
 
     def _representation(self):
         return dict((key, self._write_representation(value))
-                    for key, value in self.__dict__.iteritems() if not
+                    for key, value in self.__dict__.items() if not
                     key.startswith('_') and not callable(value))
 
     def _do_request(self, method, uri, query_parameters, encoded_body):
@@ -176,7 +176,7 @@ class Resource(object):
         """This effectively lets us treat dicts as MultiValueDicts."""
         if hasattr(mapping, 'iterlists'):  # mapping is already a MultiValueDict
             return mapping.iterlists()
-        return ((key, (value,)) for key, value in mapping.iteritems())
+        return ((key, (value,)) for key, value in mapping.items())
 
     def get(self, query_parameters=None, **kwarg_query_parameters):
         """

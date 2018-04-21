@@ -27,7 +27,7 @@ _PORT = 11920
 def _encode_args(profiler, args, dargs):
     parts = [repr(profiler)]
     parts += [repr(arg) for arg in args]
-    parts += ["%s=%r" % darg for darg in dargs.iteritems()]
+    parts += ["%s=%r" % darg for darg in dargs.items()]
     return ", ".join(parts)
 
 

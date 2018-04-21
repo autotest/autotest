@@ -33,7 +33,7 @@ class ControlData(object):
                 raise ControlVariableException(warning)
             print(textwrap.wrap(warning, 80))
 
-        for key, val in vars.iteritems():
+        for key, val in vars.items():
             try:
                 self.set_attr(key, val, raise_warnings)
             except Exception as e:

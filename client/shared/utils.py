@@ -1298,7 +1298,7 @@ class ForAll(list):
 
     def __getattr__(self, name):
         def wrapper(*args, **kargs):
-            return map(lambda o: o.__getattribute__(name)(*args, **kargs), self)
+            return list(map(lambda o: o.__getattribute__(name)(*args, **kargs), self))
         return wrapper
 
 
@@ -1316,7 +1316,7 @@ class ForAllP(list):
                                                  args=args, kwargs=kargs))
             for t in threads:
                 t.start()
-            return map(lambda t: t.join(), threads)
+            return list(map(lambda t: t.join(), threads))
         return wrapper
 
 
@@ -1993,7 +1993,7 @@ def get_relative_path(path, reference):
     ref_list = reference.split(os.path.sep)[1:]
 
     # find the longest leading common path
-    for i in xrange(min(len(path_list), len(ref_list))):
+    for i in range(min(len(path_list), len(ref_list))):
         if path_list[i] != ref_list[i]:
             # decrement i so when exiting this loop either by no match or by
             # end of range we are one step behind
@@ -3421,13 +3421,13 @@ def get_unique_name(check, prefix="", suffix="", length=None, skip=None):
     """
     if length:
         _name = "_".join([_ for _ in (prefix, '%s', suffix) if _])
-        for _ in xrange(1000):
+        for _ in range(1000):
             name = _name % generate_random_string(length)
             if check(name):
                 return name
     else:
         _name = "_".join([_ for _ in (prefix, '%s', suffix) if _])
-        for i in xrange(skip, skip + 1000):
+        for i in range(skip, skip + 1000):
             name = _name % i
             if check(name):
                 return name

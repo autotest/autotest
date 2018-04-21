@@ -1350,7 +1350,7 @@ class TaskWithJobKeyvals(object):
 
     def _write_keyvals_before_job_helper(self, keyval_dict, keyval_path):
         keyval_contents = '\n'.join(self._format_keyval(key, value)
-                                    for key, value in keyval_dict.iteritems())
+                                    for key, value in keyval_dict.items())
         # always end with a newline to allow additional keyvals to be written
         keyval_contents += '\n'
         _drone_manager.attach_file_to_execution(self._working_directory(),

@@ -49,7 +49,7 @@ class fsionfo_test(unittest.TestCase):
         mkfs_option = {}
         fsinfo.ext_mkfs_options(tune2fs_dict, mkfs_option)
 
-        for option, value in expected_option.iteritems():
+        for option, value in expected_option.items():
             self.assertEqual(value, mkfs_option[option])
 
     def test_xfs_mkfs_options(self):
@@ -96,7 +96,7 @@ class fsionfo_test(unittest.TestCase):
                            '-l size': 10485760}
         mkfs_option = {}
         fsinfo.xfs_mkfs_options(tune2fs_dict, mkfs_option)
-        for option, value in expected_option.iteritems():
+        for option, value in expected_option.items():
             self.assertEqual(value, mkfs_option[option])
 
     def test_opt_string2dict(self):

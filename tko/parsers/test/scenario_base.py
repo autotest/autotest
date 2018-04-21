@@ -67,7 +67,7 @@ class ParserException(object):
         """
         self.classname = orig.__class__.__name__
         print("Copying exception:", self.classname)
-        for key, val in orig.__dict__.iteritems():
+        for key, val in orig.__dict__.items():
             setattr(self, key, val)
 
     def __eq__(self, other):
@@ -102,7 +102,7 @@ class ParserTestResult(object):
         Args:
             orig: testobj; Framework test result instance to copy.
         """
-        for key, val in orig.__dict__.iteritems():
+        for key, val in orig.__dict__.items():
             if key == 'kernel':
                 setattr(self, key, dict(val.__dict__))
             elif key == 'iterations':
@@ -354,7 +354,7 @@ def write_config(package_dirpath, **properties):
     """
     config = ConfigParser.RawConfigParser()
     config.add_section(TEST)
-    for key, val in properties.iteritems():
+    for key, val in properties.items():
         config.set(TEST, key, val)
 
     config_filepath = path.join(package_dirpath, CONFIG_FILENAME)

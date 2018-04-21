@@ -904,7 +904,7 @@ def create_parameterized_job(name, priority, test, parameters, kernel=None,
             parameterized_job=parameterized_job,
             profiler=profiler)
         profiler_params = profiler_parameters.get(profiler.name, {})
-        for name, (value, param_type) in profiler_params.iteritems():
+        for name, (value, param_type) in profiler_params.items():
             models.ParameterizedJobProfilerParameter.objects.create(
                 parameterized_job_profiler=parameterized_profiler,
                 parameter_name=name,
@@ -1092,7 +1092,7 @@ def get_info_for_clone(id, preserve_metahosts, queue_entry_filter_data=None):
     meta_host_dicts = []
     # convert keys from Label objects to strings (names of labels)
     meta_host_counts = dict((meta_host.name, count) for meta_host, count
-                            in job_info['meta_host_counts'].iteritems())
+                            in job_info['meta_host_counts'].items())
     for meta_host, meta_host_profile in zip(job_info['meta_hosts'], job_info['meta_host_profiles']):
         meta_host_dict = dict(name=meta_host.name, count=meta_host_counts[meta_host.name], profile=meta_host_profile)
         meta_host_dicts.append(meta_host_dict)

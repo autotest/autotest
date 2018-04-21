@@ -198,7 +198,7 @@ class DispatcherSchedulingTest(BaseSchedulerTest):
         self._jobs_scheduled = []
 
     def _run_scheduler(self):
-        for _ in xrange(2):  # metahost scheduling can take two cycles
+        for _ in range(2):  # metahost scheduling can take two cycles
             self._dispatcher._schedule_new_jobs()
 
     def _test_basic_scheduling_helper(self, use_metahosts):
@@ -685,11 +685,11 @@ class DispatcherThrottlingTest(BaseSchedulerTest):
                            fake_max_runnable_processes)
 
     def _setup_some_agents(self, num_agents):
-        self._agents = [DummyAgent() for i in xrange(num_agents)]
+        self._agents = [DummyAgent() for i in range(num_agents)]
         self._dispatcher._agents = list(self._agents)
 
     def _run_a_few_cycles(self):
-        for i in xrange(4):
+        for i in range(4):
             self._dispatcher._handle_agents()
 
     def _assert_agents_started(self, indexes, is_started=True):
@@ -1300,7 +1300,7 @@ class AgentTaskTest(unittest.TestCase,
         models.DroneSet.drone_sets_enabled.expect_call().and_return(True)
 
         drones = []
-        for x in xrange(4):
+        for x in range(4):
             drones.append(models.Drone.objects.create(hostname=str(x)))
 
         drone_set_1 = models.DroneSet.objects.create(name='1')

@@ -163,7 +163,7 @@ class ExternalPackage(object):
         if not self.os_requirements:
             return
         failed = False
-        for file_name, package_name in self.os_requirements.iteritems():
+        for file_name, package_name in self.os_requirements.items():
             if not os.path.exists(file_name):
                 failed = True
                 logging.error('File %s not found, %s needs it.',

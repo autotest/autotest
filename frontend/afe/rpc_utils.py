@@ -57,7 +57,7 @@ def _prepare_data(data):
     """
     if isinstance(data, dict):
         new_data = {}
-        for key, value in data.iteritems():
+        for key, value in data.items():
             new_data[key] = _prepare_data(value)
         return new_data
     elif (isinstance(data, list) or isinstance(data, tuple) or
@@ -661,7 +661,7 @@ def get_create_job_common_args(local_args):
     be passed in to create_job_common().
     """
     arg_names, _, _, _ = inspect.getargspec(create_job_common)
-    return dict(item for item in local_args.iteritems() if item[0] in arg_names)
+    return dict(item for item in local_args.items() if item[0] in arg_names)
 
 
 def create_job_common(name, priority, control_type, control_file=None,

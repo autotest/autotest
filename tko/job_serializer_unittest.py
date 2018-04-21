@@ -218,7 +218,7 @@ class JobSerializerUnittest(unittest.TestCase):
         """Check if the contents of the dictionary are the same as a
         repeated keyval pair.
         """
-        for key, value in dictionary.iteritems():
+        for key, value in dictionary.items():
             self.assertTrue(key in keyval)
             self.assertEqual(str(value), keyval[key])
 

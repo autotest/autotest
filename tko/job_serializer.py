@@ -182,7 +182,7 @@ class JobSerializer(object):
             newtest = pb_job.tests.add()
             self.set_pb_test(test, newtest)
 
-        for key, val in tko_job.keyval_dict.iteritems():
+        for key, val in tko_job.keyval_dict.items():
             newkeyval = pb_job.keyval_dict.add()
             newkeyval.name = key
             newkeyval.value = str(val)
@@ -242,7 +242,7 @@ class JobSerializer(object):
             pb_iteration = pb_test.iterations.add()
             self.set_pb_iteration(current_iteration, pb_iteration)
 
-        for key, val in tko_test.attributes.iteritems():
+        for key, val in tko_test.attributes.items():
             newkeyval = pb_test.attributes.add()
             newkeyval.name = key
             newkeyval.value = str(val)
@@ -323,12 +323,12 @@ class JobSerializer(object):
         self.set_trivial_attr(tko_iteration, pb_iteration,
                               self.iteration_type_dict)
 
-        for key, val in tko_iteration.attr_keyval.iteritems():
+        for key, val in tko_iteration.attr_keyval.items():
             newkeyval = pb_iteration.attr_keyval.add()
             newkeyval.name = key
             newkeyval.value = str(val)
 
-        for key, val in tko_iteration.perf_keyval.iteritems():
+        for key, val in tko_iteration.perf_keyval.items():
             newkeyval = pb_iteration.perf_keyval.add()
             newkeyval.name = key
             newkeyval.value = str(val)
@@ -373,7 +373,7 @@ class JobSerializer(object):
         are working with.
 
         """
-        for attr, attr_type in objdict.iteritems():
+        for attr, attr_type in objdict.items():
             if attr_type == datetime:
                 t = getattr(tko_obj, attr)
                 if not t:

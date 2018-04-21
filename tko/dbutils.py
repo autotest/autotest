@@ -92,21 +92,21 @@ def insert_test(job, test, tko_job=None, tko_machine=None):
         test.test_idx = tko_test.test_idx
 
     for i in test.iterations:
-        for key, value in i.attr_keyval.iteritems():
+        for key, value in i.attr_keyval.items():
             tko_models.IterationAttribute.objects.create(
                 test=tko_test,
                 attribute=key,
                 iteration=i.index,
                 value=value)
 
-        for key, value in i.perf_keyval.iteritems():
+        for key, value in i.perf_keyval.items():
             tko_models.IterationResult.objects.create(
                 test=tko_test,
                 iteration=i.index,
                 attribute=key,
                 value=value)
 
-    for key, value in test.attributes.iteritems():
+    for key, value in test.attributes.items():
         tko_models.TestAttribute.objects.create(
             test=tko_test,
             attribute=key,
@@ -154,7 +154,7 @@ def insert_job(jobname, job):
     job.index = tko_job.pk
 
     # update job keyvals
-    for key, value in job.keyval_dict.iteritems():
+    for key, value in job.keyval_dict.items():
         # We find or create using job and key only
         job_keyval, created = tko_models.JobKeyval.objects.get_or_create(
             job=tko_job,

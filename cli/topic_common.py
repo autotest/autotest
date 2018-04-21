@@ -330,7 +330,7 @@ class atest(object):
             return 0
         for what_failed in self.failed.keys():
             print(what_failed + ':', file=sys.stderr)
-            for (errmsg, items) in self.failed[what_failed].iteritems():
+            for (errmsg, items) in self.failed[what_failed].items():
                 if len(items) == 0:
                     print(errmsg, file=sys.stderr)
                 elif items == set(['']):

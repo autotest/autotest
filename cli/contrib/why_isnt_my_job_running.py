@@ -186,7 +186,7 @@ if queue_entries and queue_entries[0]['atomic_group']:
         else:
             runnable_atomic_label_names[label_name] = usable_hostnames
 
-    for label_name, reason_tuple in atomic_label_exclude_reasons.iteritems():
+    for label_name, reason_tuple in atomic_label_exclude_reasons.items():
         job_reason, hosts_reasons = reason_tuple
         print('Atomic group "%s" via label "%s" CANNOT run job %d because:' % (
             atomic_group_name, label_name, job_id))
@@ -196,7 +196,7 @@ if queue_entries and queue_entries[0]['atomic_group']:
                 print('%s\t%s' % (hostname, reason))
         print()
 
-    for label_name, host_list in runnable_atomic_label_names.iteritems():
+    for label_name, host_list in runnable_atomic_label_names.items():
         print('Atomic group "%s" via label "%s" is READY to run job %d on:' % (
             atomic_group_name, label_name, job_id))
         print(', '.join(host_list))

@@ -54,7 +54,7 @@ class TestBackports(unittest.TestCase):
 
     def test_many_bin(self):
         try:
-            for n in xrange(10000):
+            for n in range(10000):
                 # pylint: disable=E0602
                 self.assertEquals(backports.bin(n), bin(n))
             # pylint: disable=E0602

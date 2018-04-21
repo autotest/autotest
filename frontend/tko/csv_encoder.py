@@ -65,7 +65,7 @@ class SpreadsheetCsvEncoder(CsvEncoder):
 
     def _process_value_table(self, value_table, row_headers):
         total_index = 0
-        for row_index in xrange(self._num_rows):
+        for row_index in range(self._num_rows):
             row_header = self._header_string(row_headers[row_index])
             row_end_index = total_index + self._num_columns
             row_values = value_table[total_index:row_end_index]

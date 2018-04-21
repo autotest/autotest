@@ -385,7 +385,7 @@ class TestViewManager(TempManager):
         return dict(name_and_id for name_and_id in label_ids)
 
     def _include_or_exclude_labels(self, query_set, label_names, exclude=False):
-        label_ids = self._get_label_ids_from_names(label_names).itervalues()
+        label_ids = self._get_label_ids_from_names(label_names).values()
         suffix = self._get_include_exclude_suffix(exclude)
         condition = ('tko_test_labels_tests%s.testlabel_id IN (%s)' %
                      (suffix,

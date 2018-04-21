@@ -88,7 +88,7 @@ class base_test(object):
     @staticmethod
     def _append_type_to_keys(dictionary, typename):
         new_dict = {}
-        for key, value in dictionary.iteritems():
+        for key, value in dictionary.items():
             new_key = "%s{%s}" % (key, typename)
             new_dict[new_key] = value
         return new_dict
@@ -283,7 +283,7 @@ class base_test(object):
             if iterations > 1:
                 logging.debug('Test started. Specified %d iterations',
                               iterations)
-            for self.iteration in xrange(1, iterations + 1):
+            for self.iteration in range(1, iterations + 1):
                 if iterations > 1:
                     logging.debug('Executing iteration %d of %d',
                                   self.iteration, iterations)
@@ -366,7 +366,7 @@ class base_test(object):
             keyvals['version'] = self.version
             for i, arg in enumerate(args):
                 keyvals['param-%d' % i] = repr(arg)
-            for name, arg in dargs.iteritems():
+            for name, arg in dargs.items():
                 keyvals['param-%s' % name] = repr(arg)
             self.write_test_keyval(keyvals)
 

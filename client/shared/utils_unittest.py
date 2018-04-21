@@ -743,7 +743,7 @@ class test_get_random_port(unittest.TestCase):
         return s
 
     def test_get_port(self):
-        for _ in xrange(100):
+        for _ in range(100):
             p = utils.get_unused_port()
             s = self.do_bind(p, socket.SOCK_STREAM, socket.IPPROTO_TCP)
             self.assert_(s.getsockname())

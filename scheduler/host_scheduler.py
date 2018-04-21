@@ -261,7 +261,7 @@ class BaseHostScheduler(metahost_scheduler.HostSchedulingUtility):
 
         :return: A generator yielding Label ids for this atomic group.
         """
-        return (a_id for a_id, label in self._labels.iteritems() if
+        return (a_id for a_id, label in self._labels.items() if
                 label.atomic_group_id == atomic_group_id and not
                 label.invalid)
 

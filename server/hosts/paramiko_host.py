@@ -116,7 +116,7 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         return self.hostname, self.port
 
     def _connect_transport(self, pkey):
-        for _ in xrange(self.CONNECT_TIMEOUT_RETRIES):
+        for _ in range(self.CONNECT_TIMEOUT_RETRIES):
             transport = paramiko.Transport(self._connect_socket())
             completed = threading.Event()
             transport.start_client(completed)
@@ -143,7 +143,7 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         raise error.AutoservSSHTimeout("SSH negotiation timed out")
 
     def _init_transport(self):
-        for path, key in self.keys.iteritems():
+        for path, key in self.keys.items():
             try:
                 logging.debug("Connecting with %s", path)
                 transport = self._connect_transport(key)

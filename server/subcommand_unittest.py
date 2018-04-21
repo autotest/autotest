@@ -223,7 +223,7 @@ class subcommand_test(unittest.TestCase):
         timeout = 10
 
         subcommand.time.time.expect_call().and_return(1)
-        for i in xrange(timeout):
+        for i in range(timeout):
             subcommand.time.time.expect_call().and_return(i + 1)
             cmd.poll.expect_call().and_return(None)
             subcommand.time.sleep.expect_call(1)
@@ -239,7 +239,7 @@ class subcommand_test(unittest.TestCase):
         timeout = 10
 
         subcommand.time.time.expect_call().and_return(1)
-        for i in xrange(timeout):
+        for i in range(timeout):
             subcommand.time.time.expect_call().and_return(i + 1)
             cmd.poll.expect_call().and_return(None)
             subcommand.time.sleep.expect_call(1)
@@ -383,7 +383,7 @@ class test_parallel_simple(unittest.TestCase):
 
         args = []
         cmds = []
-        for i in xrange(count):
+        for i in range(count):
             arg = i + 1
             args.append(arg)
 

@@ -10,7 +10,7 @@ from autotest.client import kernel_versions
 class kernel_versions_test(unittest.TestCase):
 
     def increases(self, kernels):
-        for i in xrange(len(kernels) - 1):
+        for i in range(len(kernels) - 1):
             k1 = kernels[i]
             k2 = kernels[i + 1]
             ek1 = kernel_versions.version_encode(k1)

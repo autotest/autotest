@@ -75,7 +75,7 @@ class atest_list(topic_common.atest):
     def check_for_wildcard(self, filters, check_results):
         """Check if there is a wilcard (only * for the moment)
         and replace the request appropriately"""
-        for (key, values) in filters.iteritems():
+        for (key, values) in filters.items():
             if isinstance(values, types.StringTypes):
                 self._convert_name_wildcard(key, values,
                                             filters, check_results)
@@ -256,7 +256,7 @@ class atest_add_or_remove(topic_common.atest):
         return results
 
     def output(self, results):
-        for thing, single_thing in self.add_remove_things.iteritems():
+        for thing, single_thing in self.add_remove_things.items():
             # Enclose each of the elements in a single quote.
             things_ok = ["'%s'" % t for t in results[thing]]
             if things_ok:

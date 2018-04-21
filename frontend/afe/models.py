@@ -1216,7 +1216,7 @@ class Job(dbmodels.Model, model_logic.ModelExtensions):
         job.dependency_labels = options['dependencies']
 
         if options.get('keyvals'):
-            for key, value in options['keyvals'].iteritems():
+            for key, value in options['keyvals'].items():
                 JobKeyval.objects.create(job=job, key=key, value=value)
 
         return job

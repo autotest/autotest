@@ -107,7 +107,7 @@ class RpcInterfaceTest(unittest.TestCase,
         self.assertEquals(jobs[0]['keyvals'], keyval_dict)
 
     def test_get_jobs_summary(self):
-        job = self._create_job(hosts=xrange(1, 4))
+        job = self._create_job(hosts=range(1, 4))
         entries = list(job.hostqueueentry_set.all())
         entries[1].status = _hqe_status.FAILED
         entries[1].save()

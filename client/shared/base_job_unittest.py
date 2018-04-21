@@ -1120,7 +1120,7 @@ class test_status_logger(unittest.TestCase):
         self.assertEqual('\t\tLINE20', self.logger.render_entry(entry))
 
     def test_writes_toplevel_log(self):
-        entries = [self.make_dummy_entry('LINE%d' % x) for x in xrange(3)]
+        entries = [self.make_dummy_entry('LINE%d' % x) for x in range(3)]
         for entry in entries:
             self.logger.record_entry(entry)
         self.assertEqual('LINE0\nLINE1\nLINE2\n', open('status').read())
@@ -1209,7 +1209,7 @@ class test_status_logger(unittest.TestCase):
         self.assertEqual(expected_log, open('status').read())
 
     def test_hook_is_called(self):
-        entries = [self.make_dummy_entry('LINE%d' % x) for x in xrange(5)]
+        entries = [self.make_dummy_entry('LINE%d' % x) for x in range(5)]
         recorded_entries = []
 
         def hook(entry):

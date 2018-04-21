@@ -59,16 +59,16 @@ def _log_garbage_collector_stats(minimum_count=10):
         del new_objects
 
     delta = {}
-    for obj_type, count in obj_type_map.iteritems():
+    for obj_type, count in obj_type_map.items():
         if obj_type not in _previous_obj_type_map:
             delta[obj_type] = count
         elif _previous_obj_type_map[obj_type] != count:
             delta[obj_type] = count - _previous_obj_type_map[obj_type]
 
     sorted_stats = reversed(sorted(
-        (count, obj_type) for obj_type, count in obj_type_map.iteritems()))
+        (count, obj_type) for obj_type, count in obj_type_map.items()))
     sorted_delta = reversed(sorted(
-        (count, obj_type) for obj_type, count in delta.iteritems()))
+        (count, obj_type) for obj_type, count in delta.items()))
 
     logging.debug('Garbage collector object type counts:')
     for count, obj_type in sorted_stats:

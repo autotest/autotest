@@ -184,7 +184,7 @@ class SyncListenServer(object):
 
         self.server_thread.join(2 * _DEFAULT_TIMEOUT)
         logging.debug("Server thread finished.")
-        for session in self.sessions.itervalues():
+        for session in self.sessions.values():
             session.close()
         self.listen_server.close()
         logging.debug("ListenServer closed finished.")

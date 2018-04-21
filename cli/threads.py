@@ -24,7 +24,7 @@ class ThreadPool:
     def wait(self):
         """ Checks to see if any threads are still working and
             blocks until worker threads all complete. """
-        for x in xrange(self.numthreads):
+        for x in range(self.numthreads):
             self.queue.put('die')
         # As only spawned threads are allowed to add new ones,
         # we can safely wait for the thread queue to be empty
@@ -55,7 +55,7 @@ class ThreadPool:
     def _start_threads(self, nthreads):
         """ Start up threads to spawn workers. """
         self.numthreads += nthreads
-        for i in xrange(nthreads):
+        for i in range(nthreads):
             thread = threading.Thread(target=self._new_worker)
             thread.setDaemon(True)
             self.threads.put(thread)

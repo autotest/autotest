@@ -207,7 +207,7 @@ class parser(base.parser):
                     reason = "Job aborted unexpectedly"
 
                 timestamp = line.optional_fields.get('timestamp')
-                for i in reversed(xrange(stack.size())):
+                for i in reversed(range(stack.size())):
                     if abort_subdir_stack:
                         subdir = abort_subdir_stack.pop()
                     else:

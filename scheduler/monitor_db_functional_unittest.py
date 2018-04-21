@@ -72,7 +72,7 @@ _PIDFILE_TO_PIDFILE_TYPE = {
 
 
 _PIDFILE_TYPE_TO_PIDFILE = dict((value, key) for key, value
-                                in _PIDFILE_TO_PIDFILE_TYPE.iteritems())
+                                in _PIDFILE_TO_PIDFILE_TYPE.items())
 
 
 class MockDroneManager(NullMethodObject):
@@ -151,7 +151,7 @@ class MockDroneManager(NullMethodObject):
 
     def nonfinished_pidfile_ids(self):
         return [pidfile_id for pidfile_id, pidfile_contents
-                in self._pidfiles.iteritems()
+                in self._pidfiles.items()
                 if pidfile_contents.exit_status is None]
 
     def running_pidfile_ids(self):
@@ -328,7 +328,7 @@ class SchedulerFunctionalTest(unittest.TestCase,
         self.dispatcher.initialize()
 
     def _run_dispatcher(self):
-        for _ in xrange(self._A_LOT_OF_TICKS):
+        for _ in range(self._A_LOT_OF_TICKS):
             self.dispatcher.tick()
 
     def test_idle(self):

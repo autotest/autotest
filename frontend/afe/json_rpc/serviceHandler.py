@@ -38,7 +38,7 @@ def customConvertJson(value):
         return [customConvertJson(item) for item in value]
     elif isinstance(value, dict):
         new_dict = {}
-        for key, val in value.iteritems():
+        for key, val in value.items():
             new_key = customConvertJson(key)
             new_val = customConvertJson(val)
             new_dict[new_key] = new_val

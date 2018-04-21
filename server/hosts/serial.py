@@ -148,7 +148,7 @@ class SerialHost(SiteHost):
             if wait:
                 warning_msg = ('Serial console failed to respond to hard reset '
                                'attempt (%s/%s)')
-                for attempt in xrange(num_attempts - 1):
+                for attempt in range(num_attempts - 1):
                     try:
                         self.wait_for_restart(timeout, log_failure=False,
                                               old_boot_id=old_boot_id,

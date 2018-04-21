@@ -92,7 +92,7 @@ class DatabaseConnectionTest(unittest.TestCase):
     def _expect_fail_and_reconnect(self, num_reconnects, fail_last=False):
         self._fake_backend.connect.expect_call(**_CONNECT_KWARGS).and_raises(
             FakeDatabaseError())
-        for i in xrange(num_reconnects):
+        for i in range(num_reconnects):
             time.sleep.expect_call(_RECONNECT_DELAY)
             if i < num_reconnects - 1:
                 self._expect_reconnect(fail=True)

@@ -71,7 +71,7 @@ def _colors(n):
     Generator function for creating n colors. The return value is a tuple
     representing the RGB of the color.
     """
-    for i in xrange(n):
+    for i in range(n):
         yield colorsys.hsv_to_rgb(float(i) / n, 1.0, 1.0)
 
 

@@ -100,11 +100,11 @@ class GroupDataProcessor(object):
         self._header_groups = header_groups
         self._fixed_headers = dict((field, set(values))
                                    for field, values
-                                   in fixed_headers.iteritems())
+                                   in fixed_headers.items())
 
         self._num_group_fields = len(group_by)
         self._header_value_sets = [set() for i
-                                   in xrange(len(header_groups))]
+                                   in range(len(header_groups))]
         self._group_dicts = []
 
     @staticmethod
@@ -112,7 +112,7 @@ class GroupDataProcessor(object):
         return list(set(values))
 
     def _restrict_header_values(self):
-        for header_field, values in self._fixed_headers.iteritems():
+        for header_field, values in self._fixed_headers.items():
             self._query = self._query.filter(**{header_field + '__in': values})
 
     def _fetch_data(self):
@@ -158,7 +158,7 @@ class GroupDataProcessor(object):
                            (field, self._header_groups))
 
     def _add_fixed_headers(self):
-        for field, extra_values in self._fixed_headers.iteritems():
+        for field, extra_values in self._fixed_headers.items():
             header_value_set = self._find_header_value_set(field)
             for value in extra_values:
                 header_value_set.add((value,))

@@ -932,7 +932,7 @@ class BasePackageManager(object):
         self._checksum_dict = checksum_dict.copy()
         checksum_contents = '\n'.join(checksum + ' ' + pkg_name
                                       for pkg_name, checksum in
-                                      checksum_dict.iteritems())
+                                      checksum_dict.items())
         # Write the checksum file back to disk
         self._run_command('echo "%s" > %s' % (checksum_contents,
                                               checksum_path),

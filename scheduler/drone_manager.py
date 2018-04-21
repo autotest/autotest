@@ -216,7 +216,7 @@ class DroneManager(object):
         """
         section = scheduler_config.CONFIG_SECTION
         settings.parse_config_file()
-        for hostname, drone in self._drones.iteritems():
+        for hostname, drone in self._drones.items():
             disabled = settings.get_value(section, '%s_disabled' % hostname,
                                           default='')
             drone.enabled = not bool(disabled)
@@ -234,7 +234,7 @@ class DroneManager(object):
         self._reorder_drone_queue()  # max_processes may have changed
 
     def get_drones(self):
-        return self._drones.itervalues()
+        return self._drones.values()
 
     def _get_drone_for_process(self, process):
         return self._drones[process.hostname]
@@ -288,7 +288,7 @@ class DroneManager(object):
         return contents
 
     def _process_pidfiles(self, drone, pidfiles, store_in_dict):
-        for pidfile_path, contents in pidfiles.iteritems():
+        for pidfile_path, contents in pidfiles.items():
             pidfile_id = PidfileId(pidfile_path)
             contents = self._parse_pidfile(drone, contents)
             store_in_dict[pidfile_id] = contents
@@ -313,7 +313,7 @@ class DroneManager(object):
 
     def _compute_active_processes(self, drone):
         drone.active_processes = 0
-        for pidfile_id, contents in self._pidfiles.iteritems():
+        for pidfile_id, contents in self._pidfiles.items():
             is_running = contents.exit_status is None
             on_this_drone = (contents.process and
                              contents.process.hostname == drone.hostname)
@@ -333,7 +333,7 @@ class DroneManager(object):
                          for pidfile_id in self._registered_pidfile_info]
         all_results = self._call_all_drones('refresh', pidfile_paths)
 
-        for drone, results_list in all_results.iteritems():
+        for drone, results_list in all_results.items():
             results = results_list[0]
 
             for process_info in results['autoserv_processes']:
@@ -622,7 +622,7 @@ class DroneManager(object):
 
     def _write_attached_files(self, results_dir, drone):
         attached_files = self._attached_files.pop(results_dir, {})
-        for file_path, contents in attached_files.iteritems():
+        for file_path, contents in attached_files.items():
             drone.queue_call('write_to_file', self.absolute_path(file_path),
                              contents)
 

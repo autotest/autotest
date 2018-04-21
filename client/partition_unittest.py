@@ -78,7 +78,7 @@ class get_partition_list_common(object):
         self.god.unstub_all()
 
     def test_is_linux_fs_type(self):
-        for unused in xrange(4):
+        for unused in range(4):
             os.popen.expect_call(SAMPLE_FDISK).and_return(
                 StringIO(SAMPLE_FDISK_OUTPUT))
         self.assertFalse(partition.is_linux_fs_type('/dev/hdc1'))

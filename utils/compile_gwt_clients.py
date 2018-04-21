@@ -138,7 +138,7 @@ def compile_all_projects(projects, extra_args=''):
        :return: list of failed client installations
     """
     failed_clients = []
-    for project, clients in enumerate_projects().iteritems():
+    for project, clients in enumerate_projects().items():
         for client in clients:
             project_client = '%s.%s' % (project, client)
             if not compile_and_install_client(project_client, extra_args):
@@ -149,7 +149,7 @@ def compile_all_projects(projects, extra_args=''):
 
 def print_projects():
     logging.info('Projects that can be compiled:')
-    for project, clients in enumerate_projects().iteritems():
+    for project, clients in enumerate_projects().items():
         for client in clients:
             logging.info('%s.%s', project, client)
 

@@ -121,7 +121,7 @@ class Bootloader(object):
         Returns a list of boot entries titles.
         """
         return [entry.get('title', '')
-                for entry in self.get_entries().itervalues()]
+                for entry in self.get_entries().values()]
 
     def get_default_index(self):
         """

@@ -297,7 +297,7 @@ class JobTest(AfeResourceTestCase):
     def setUp(self):
         super(JobTest, self).setUp()
 
-        for _ in xrange(2):
+        for _ in range(2):
             self._create_job(hosts=[1, 2])
 
         job = models.Job.objects.get(id=1)

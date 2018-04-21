@@ -48,7 +48,7 @@ class DummyMigration(object):
         self.do_migration(self.version, 'down')
 
 
-MIGRATIONS = [DummyMigration(n) for n in xrange(1, NUM_MIGRATIONS + 1)]
+MIGRATIONS = [DummyMigration(n) for n in range(1, NUM_MIGRATIONS + 1)]
 
 
 class TestableMigrationManager(migrate.MigrationManager):
@@ -87,7 +87,7 @@ class MigrateManagerTest(unittest.TestCase):
                           [(3, 'down'), (2, 'down'), (1, 'down')])
 
     def test_sync_one_by_one(self):
-        for version in xrange(1, NUM_MIGRATIONS + 1):
+        for version in range(1, NUM_MIGRATIONS + 1):
             self.manager.do_sync_db(version)
             self.assertEquals(self.manager.get_db_version(),
                               version)
@@ -95,7 +95,7 @@ class MigrateManagerTest(unittest.TestCase):
                 DummyMigration.get_migrations_done()[-1],
                 (version, 'up'))
 
-        for version in xrange(NUM_MIGRATIONS - 1, -1, -1):
+        for version in range(NUM_MIGRATIONS - 1, -1, -1):
             self.manager.do_sync_db(version)
             self.assertEquals(self.manager.get_db_version(),
                               version)

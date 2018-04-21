@@ -363,7 +363,7 @@ class base_sysinfo(object):
                     in_data = in_messages.read(200000)
                     if not in_data:
                         break
-                    out_messages.write(in_data)
+                    out_messages.write(in_data.encode())
             finally:
                 out_messages.close()
                 in_messages.close()

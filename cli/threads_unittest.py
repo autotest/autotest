@@ -47,7 +47,7 @@ class thread_unittest(cli_mock.cli_unittest):
         res = []
         while not self.results.empty():
             res.append(self.results.get())
-        self.assertEqualNoOrder([i * i for i in xrange(count)], res)
+        self.assertEqualNoOrder([i * i for i in range(count)], res)
 
     def test_threading(self):
         self._threading(10, 10)
@@ -63,7 +63,7 @@ class thread_unittest(cli_mock.cli_unittest):
         res = []
         while not self.results.empty():
             res.append(self.results.get())
-        self.assertEqualNoOrder([i * i for i in xrange(10)], res)
+        self.assertEqualNoOrder([i * i for i in range(10)], res)
 
 
 if __name__ == '__main__':

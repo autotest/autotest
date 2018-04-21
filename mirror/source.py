@@ -26,7 +26,7 @@ class source(object):
         from "files".
         """
         old_files = self.database.get_dictionary()
-        return dict(filter(lambda x: x[0] not in old_files, files.iteritems()))
+        return dict(filter(lambda x: x[0] not in old_files, files.items()))
 
     def get_new_files(self):
         raise NotImplementedError('get_new_files not implemented')

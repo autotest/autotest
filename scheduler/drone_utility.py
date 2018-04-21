@@ -53,7 +53,7 @@ class _MethodCall(object):
     def __str__(self):
         args = ', '.join(repr(arg) for arg in self._args)
         kwargs = ', '.join('%s=%r' % (key, value) for key, value in
-                           self._kwargs.iteritems())
+                           self._kwargs.items())
         full_args = ', '.join(item for item in (args, kwargs) if item)
         return '%s(%s)' % (self._method, full_args)
 
@@ -383,7 +383,7 @@ class DroneUtility(object):
             call_count.setdefault(call._method, 0)
             call_count[call._method] += 1
         call_summary = '\n'.join('%d %s' % (count, method)
-                                 for method, count in call_count.iteritems())
+                                 for method, count in call_count.items())
         self._warn('Execution took %f sec\n%s' % (duration, call_summary))
 
     def execute_calls(self, calls):

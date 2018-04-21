@@ -101,7 +101,7 @@ class JsonHtmlFormatter(object):
             return '{ }'
 
         output = ['{<ul class="obj collapsible">']
-        for key, value in json_object.iteritems():
+        for key, value in json_object.items():
             assert isinstance(key, basestring)
             output.append('<li>')
             output.append('<span class="prop">%s</span>: '

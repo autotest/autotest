@@ -29,7 +29,7 @@ ORIG_NAMES = (
 
 RENAMES_UP = dict((name, 'afe_' + name) for name in ORIG_NAMES)
 
-RENAMES_DOWN = dict((value, key) for key, value in RENAMES_UP.iteritems())
+RENAMES_DOWN = dict((value, key) for key, value in RENAMES_UP.items())
 
 
 def migrate_up(manager):

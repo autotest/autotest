@@ -15,7 +15,7 @@ def _get_unpassable_types(arg):
     elif isinstance(arg, (list, tuple, set, frozenset, dict)):
         if isinstance(arg, dict):
             # keys and values must both be passable
-            parts = itertools.chain(arg.iterkeys(), arg.itervalues())
+            parts = itertools.chain(arg.iterkeys(), arg.values())
         else:
             # for all other containers we just iterate
             parts = iter(arg)
