@@ -784,7 +784,7 @@ class BasePackageManager(object):
             else:
                 shutil.copy(file_path, upload_path)
                 os.chmod(os.path.join(upload_path,
-                                      os.path.basename(file_path)), 0644)
+                                      os.path.basename(file_path)), 0o644)
         except (IOError, os.error) as why:
             logging.error("Upload of %s to %s failed: %s", file_path,
                           upload_path, why)

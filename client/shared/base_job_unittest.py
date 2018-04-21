@@ -359,21 +359,21 @@ class test_job_directory(unittest.TestCase):
 
     def test_fails_if_writable_and_no_permission_to_create(self):
         if os.getuid() != 0:
-            os.mkdir('testing8', 0555)
+            os.mkdir('testing8', 0o555)
             self.assert_(os.path.isdir('testing8'))
             self.assertRaises(base_job.job_directory.UncreatableDirectoryException,
                               base_job.job_directory, 'testing8/subdir', True)
 
     def test_passes_if_not_is_writable_and_dir_not_writable(self):
         if os.getuid() != 0:
-            os.mkdir('testing9', 0555)
+            os.mkdir('testing9', 0o555)
             self.assert_(os.path.isdir('testing9'))
             self.assert_(not os.access('testing9', os.W_OK))
             jd = base_job.job_directory('testing9')
 
     def test_fails_if_is_writable_but_dir_not_writable(self):
         if os.getuid() != 0:
-            os.mkdir('testing10', 0555)
+            os.mkdir('testing10', 0o555)
             self.assert_(os.path.isdir('testing10'))
             self.assert_(not os.access('testing10', os.W_OK))
             self.assertRaises(base_job.job_directory.UnwritableDirectoryException,
