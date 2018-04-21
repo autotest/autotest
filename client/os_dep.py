@@ -82,22 +82,22 @@ def path_joiner(target, search_paths):
     return (os.path.join(path, target) for path in search_paths)
 
 
-def is_file_and_rx(pth):
+def is_not_file_and_rx(pth):
     """
     :param pth: path to check
     :return: true if the path is a file and R_OK & X_OK
     :rtype: bool
     """
-    return os.path.isfile(pth) and os.access(pth, os.R_OK & os.X_OK)
+    return not (os.path.isfile(pth) and os.access(pth, os.R_OK & os.X_OK))
 
 
-def is_file_and_readable(pth):
+def is_not_file_and_readable(pth):
     """
     :param pth: path to check
     :return: true if the path is a file and R_OK
     :rtype: bool
     """
-    return os.path.isfile(pth) and os.access(pth, os.R_OK)
+    return not (os.path.isfile(pth) and os.access(pth, os.R_OK))
 
 
 def make_path_searcher(path_generator, target_predicate, target_normalizer, extra_paths, **kwargs):
@@ -121,9 +121,9 @@ def make_path_searcher(path_generator, target_predicate, target_normalizer, extr
     """
 
     def path_searcher(target, extra_dirs=extra_paths):
-        matches = itertools.ifilter(
+        matches = itertools.filterfalse(
             target_predicate, path_generator(target, extra_dirs, **kwargs))
-        paths = itertools.imap(target_normalizer, matches)
+        paths = map(target_normalizer, matches)
         return next(paths, '')
     return path_searcher
 
@@ -172,7 +172,7 @@ def generate_bin_search_paths(program, extra_dirs):
 
 
 which = make_path_searcher(
-    generate_bin_search_paths, is_file_and_rx, os.path.abspath, COMMON_BIN_PATHS)
+    generate_bin_search_paths, is_not_file_and_rx, os.path.abspath, COMMON_BIN_PATHS)
 which.__name__ = "which"
 which.__doc__ = """
 Find a program by searching in the environment path and in common binary paths.
@@ -421,7 +421,7 @@ def generate_library_search_paths(lib, extra_dirs=COMMON_LIB_PATHS, ld_so_conf_f
 
 
 which_library = make_path_searcher(
-    generate_library_search_paths, is_file_and_readable, os.path.abspath, COMMON_LIB_PATHS)
+    generate_library_search_paths, is_not_file_and_readable, os.path.abspath, COMMON_LIB_PATHS)
 which_library.__name__ = "which_library"
 which_library.__doc__ = """
 Find a library file by parsing /etc/ld.so.conf and also searcing in the common library search paths, %s
@@ -488,7 +488,7 @@ def generate_include_search_paths(hdr, extra_dirs):
 
 
 which_header = make_path_searcher(
-    generate_include_search_paths, is_file_and_readable, os.path.abspath, frozenset([]))
+    generate_include_search_paths, is_not_file_and_readable, os.path.abspath, frozenset([]))
 which_header.__name__ = "which_header"
 which_header.__doc__ = """
 Find a header file by searching in the common include search paths, %s
