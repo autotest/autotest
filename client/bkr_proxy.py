@@ -206,7 +206,7 @@ def copy_remote(data, dest, use_put=None):
         res = utils.urlopen(req)
         ret = res.info()
         res.close()
-    except urllib2.HTTPError, e:
+    except urllib2.HTTPError as e:
         if e.code == 500:
             # the server aborted this recipe DIE DIE DIE
             raise BkrProxyException("We have been aborted!!!")

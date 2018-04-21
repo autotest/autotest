@@ -373,7 +373,7 @@ class host_mod(host):
                     # TODO: Make the AFE return True or False,
                     # especially for lock
                     successes.append(host)
-                except topic_common.CliError, full_error:
+                except topic_common.CliError as full_error:
                     # Already logged by execute_rpc()
                     pass
 

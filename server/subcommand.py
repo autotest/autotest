@@ -89,7 +89,7 @@ def parallel_simple(function, arglist, log=True, timeout=None,
         if return_results:
             try:
                 result = function(arg)
-            except Exception, e:
+            except Exception as e:
                 return [e]
             return [result]
         else:
@@ -177,7 +177,7 @@ class subcommand(object):
             result = self.lambda_function()
             os.write(w, cPickle.dumps(result, cPickle.HIGHEST_PROTOCOL))
             exit_code = 0
-        except Exception, e:
+        except Exception as e:
             logging.exception('function failed')
             exit_code = 1
             os.write(w, cPickle.dumps(e, cPickle.HIGHEST_PROTOCOL))

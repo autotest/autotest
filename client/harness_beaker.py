@@ -230,7 +230,7 @@ class harness_beaker(harness.harness):
         except HarnessException:
             # hook to bail out on reservesys systems and not run autotest
             return None
-        except Exception, ex:
+        except Exception as ex:
             os.remove(control_file_path)
             raise error.HarnessError('beaker_harness: convert failed with -> %s' % ex)
 
@@ -258,7 +258,7 @@ class harness_beaker(harness.harness):
         logging.debug('trying to get recipe from LC:')
         try:
             recipe = self.bkr_proxy.get_recipe()
-        except Exception, exc:
+        except Exception as exc:
             raise error.HarnessError('Failed to retrieve xml: %s' % exc)
         return recipe
 
@@ -480,7 +480,7 @@ class harness_beaker(harness.harness):
             else:
                 self.watchdog_pid = pid
                 logging.debug('harness: Watchdog process started, pid: %d', self.watchdog_pid)
-        except OSError, e:
+        except OSError as e:
             logging.error('harness: fork in start_watchdog failed: %d (%s)\n' % (e.errno, e.strerror))
 
     def kill_watchdog(self):

@@ -231,7 +231,7 @@ class RemoteHost(base_classes.Host):
                 self.run('rm -f %s' % self.VAR_LOG_MESSAGES_COPY_PATH)
                 self.run('cp %s %s' % (messages_file,
                                        self.VAR_LOG_MESSAGES_COPY_PATH))
-            except Exception, e:
+            except Exception as e:
                 # Non-fatal error
                 logging.info('Failed to copy %s at startup: %s',
                              messages_file, e)

@@ -1199,7 +1199,7 @@ def _DoSubstitute(args, context, callback):
     else:
         try:
             value = context.Lookup(name)
-        except TypeError, e:
+        except TypeError as e:
             raise EvaluationError(
                 'Error evaluating %r in context %r: %r' % (name, context, e))
 
@@ -1211,7 +1211,7 @@ def _DoSubstitute(args, context, callback):
                 value = func(value)
         except KeyboardInterrupt:
             raise
-        except Exception, e:
+        except Exception as e:
             raise EvaluationError(
                 'Formatting value %r with formatter %s raised exception: %r' %
                 (value, formatters, e), original_exception=e)
@@ -1240,7 +1240,7 @@ def _Execute(statements, context, callback):
             try:
                 func, args = statement
                 func(args, context, callback)
-            except UndefinedVariable, e:
+            except UndefinedVariable as e:
                 # Show context for statements
                 start = max(0, i - 3)
                 end = i + 3

@@ -99,7 +99,7 @@ class ServiceHandler(object):
         try:
             meth = self.findServiceEndpoint(methName)
             results['result'] = self.invokeServiceEndpoint(meth, args)
-        except Exception, err:
+        except Exception as err:
             results['err_traceback'] = traceback.format_exc()
             results['err'] = err
 
@@ -154,7 +154,7 @@ class ServiceHandler(object):
                          'id': result_dict['id'],
                          'error': result_dict['err']}
             data = json_encoder.encode(json_dict)
-        except TypeError, e:
+        except TypeError as e:
             err_traceback = traceback.format_exc()
             print(err_traceback)
             err = {"name": "JSONEncodeException",

@@ -475,7 +475,7 @@ class TestCase(object):
         try:
             try:
                 self.setUp()
-            except SkipTest, e:
+            except SkipTest as e:
                 result.addSkip(self, str(e))
                 return
             except Exception:
@@ -487,11 +487,11 @@ class TestCase(object):
                 testMethod()
             except self.failureException:
                 result.addFailure(self, sys.exc_info())
-            except _ExpectedFailure, e:
+            except _ExpectedFailure as e:
                 result.addExpectedFailure(self, e.exc_info)
             except _UnexpectedSuccess:
                 result.addUnexpectedSuccess(self)
-            except SkipTest, e:
+            except SkipTest as e:
                 result.addSkip(self, str(e))
             except Exception:
                 result.addError(self, sys.exc_info())
@@ -810,16 +810,16 @@ class TestCase(object):
         """
         try:
             difference1 = set1.difference(set2)
-        except TypeError, e:
+        except TypeError as e:
             self.fail('invalid type when attempting set difference: %s' % e)
-        except AttributeError, e:
+        except AttributeError as e:
             self.fail('first argument does not support set difference: %s' % e)
 
         try:
             difference2 = set2.difference(set1)
-        except TypeError, e:
+        except TypeError as e:
             self.fail('invalid type when attempting set difference: %s' % e)
-        except AttributeError, e:
+        except AttributeError as e:
             self.fail('second argument does not support set difference: %s' % e)
 
         if not (difference1 or difference2):
@@ -1567,7 +1567,7 @@ Examples:
             else:
                 self.testNames = (self.defaultTest,)
             self.createTests()
-        except getopt.error, msg:
+        except getopt.error as msg:
             self.usageExit(msg)
 
     def createTests(self):

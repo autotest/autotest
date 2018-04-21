@@ -151,7 +151,7 @@ class url_source(source):
         """
         try:
             info = urllib2.urlopen(url).info()
-        except IOError, err:
+        except IOError as err:
             # file is referenced but does not exist
             print('WARNING: %s' % err)
             return None

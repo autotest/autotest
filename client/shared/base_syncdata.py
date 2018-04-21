@@ -46,7 +46,7 @@ def net_recv_object(sock, timeout=60):
             data += sock.recv(d_len - len(data))
         data = pickle.loads(data)
         return data
-    except (socket.timeout, ValueError), e:
+    except (socket.timeout, ValueError) as e:
         raise error.NetCommunicationError("Failed to receive python"
                                           " object over the network.")
 
@@ -300,7 +300,7 @@ class SyncData(object):
                 logging.warn("timeout calling host %s, retry" %
                              (self.masterid))
                 time.sleep(1)
-            except socket.error, err:
+            except socket.error as err:
                 (code, _) = err
                 if (code != errno.ECONNREFUSED):
                     raise

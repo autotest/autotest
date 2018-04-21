@@ -36,7 +36,7 @@ class ControlData(object):
         for key, val in vars.iteritems():
             try:
                 self.set_attr(key, val, raise_warnings)
-            except Exception, e:
+            except Exception as e:
                 if raise_warnings:
                     raise
                 print("WARNING: %s; skipping" % e)
@@ -160,7 +160,7 @@ def _extract_name(n):
 def parse_control(path, raise_warnings=False):
     try:
         mod = compiler.parseFile(path)
-    except SyntaxError, e:
+    except SyntaxError as e:
         raise ControlVariableException("Error parsing %s because %s" %
                                        (path, e))
 
@@ -175,7 +175,7 @@ def parse_control(path, raise_warnings=False):
                 key, val = fn(n)
 
                 vars[key] = val
-            except AssertionError, e:
+            except AssertionError as e:
                 pass
 
     return ControlData(vars, path, raise_warnings)

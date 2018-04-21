@@ -70,7 +70,7 @@ class ThreadPool:
                 return
             try:
                 self.function(data)
-            except Exception, full_error:
+            except Exception as full_error:
                 # Put a catch all here.
                 print('Unexpected failure in the thread calling %s: %s' %
                       (self.function.__name__, full_error))

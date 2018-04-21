@@ -19,7 +19,7 @@ if not os.path.exists(sys.argv[1]):
 
 try:
     cd = control_data.parse_control(sys.argv[1], True)
-except Exception, e:
+except Exception as e:
     print("This control file does not adhear to the spec set forth in")
     print("https://github.com/autotest/autotest/wiki/ControlRequirements")
     print()

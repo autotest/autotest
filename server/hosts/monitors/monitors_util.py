@@ -381,7 +381,7 @@ def follow_files(follow_paths, outstream, lastlines_dirpath=None, waitsecs=5):
         try:
             outstream.writelines(['\n'] + lines)
             outstream.flush()
-        except (IOError, OSError), e:
+        except (IOError, OSError) as e:
             # Something is wrong. Stop looping.
             break
 

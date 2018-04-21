@@ -103,7 +103,7 @@ class FileTransferClient(object):
         self._socket.settimeout(timeout)
         try:
             self._socket.connect((address, port))
-        except socket.error, e:
+        except socket.error as e:
             raise FileTransferConnectError("Cannot connect to server at "
                                            "%s:%s" % (address, port), e)
         try:
@@ -136,7 +136,7 @@ class FileTransferClient(object):
         except socket.timeout:
             raise FileTransferTimeoutError("Timeout expired while sending "
                                            "data to server")
-        except socket.error, e:
+        except socket.error as e:
             raise FileTransferSocketError("Could not send data to server", e)
 
     def _receive(self, size, timeout=60):
@@ -159,7 +159,7 @@ class FileTransferClient(object):
         except socket.timeout:
             raise FileTransferTimeoutError("Timeout expired while receiving "
                                            "data from server")
-        except socket.error, e:
+        except socket.error as e:
             raise FileTransferSocketError("Error receiving data from server",
                                           e)
         return "".join(strs)
@@ -201,7 +201,7 @@ class FileTransferClient(object):
                     self._send_packet(data, end_time - time.time())
                     if len(data) < CHUNKSIZE:
                         break
-            except FileTransferError, e:
+            except FileTransferError as e:
                 e.filename = filename
                 raise
         finally:
@@ -219,7 +219,7 @@ class FileTransferClient(object):
                     f.write(data)
                     if len(data) < CHUNKSIZE:
                         break
-            except FileTransferError, e:
+            except FileTransferError as e:
                 e.filename = filename
                 raise
         finally:

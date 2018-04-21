@@ -57,7 +57,7 @@ class QueryProcessor(object):
         try:
             return constraint.apply_constraint(queryset, value, comparison_type,
                                                is_inverse)
-        except ConstraintError, exc:
+        except ConstraintError as exc:
             raise exceptions.BadRequest('Selector %s: %s'
                                         % (selector_name, exc))
 

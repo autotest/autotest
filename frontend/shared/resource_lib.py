@@ -53,12 +53,12 @@ class Resource(object):
         try:
             try:
                 instance = cls.from_uri_args(request, **kwargs)
-            except django.core.exceptions.ObjectDoesNotExist, exc:
+            except django.core.exceptions.ObjectDoesNotExist as exc:
                 raise http.Http404(exc)
 
             instance.read_query_parameters(request.GET)
             return instance.handle_request()
-        except exceptions.RequestError, exc:
+        except exceptions.RequestError as exc:
             return exc.response
 
     def handle_request(self):
@@ -199,7 +199,7 @@ class Resource(object):
         if content_type == _JSON_CONTENT_TYPE:
             try:
                 raw_dict = simplejson.loads(raw_data)
-            except ValueError, exc:
+            except ValueError as exc:
                 raise exceptions.BadRequest('Error decoding request body: '
                                             '%s\n%r' % (exc, raw_data))
             if not isinstance(raw_dict, dict):
@@ -262,7 +262,7 @@ class Entry(Resource):
     def put(self):
         try:
             self.update(self._decoded_input())
-        except model_logic.ValidationError, exc:
+        except model_logic.ValidationError as exc:
             raise exceptions.BadRequest('Invalid input: %s' % exc)
         return self._basic_response(self.full_representation())
 
@@ -458,7 +458,7 @@ class Collection(Resource):
             instance = self.entry_class.create_instance(input_dict, self)
             entry = self._entry_from_instance(instance)
             entry.update(input_dict)
-        except model_logic.ValidationError, exc:
+        except model_logic.ValidationError as exc:
             raise exceptions.BadRequest('Invalid input: %s' % exc)
         # RFC 2616 specifies that we provide the new URI in both the Location
         # header and the body

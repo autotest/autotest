@@ -177,7 +177,7 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         channel = None
         try:
             channel = self.transport.open_session()
-        except (socket.error, paramiko.SSHException, EOFError), e:
+        except (socket.error, paramiko.SSHException, EOFError) as e:
             logging.warn("Exception occurred while opening session: %s", e)
             if time.time() - start_time >= timeout:
                 raise error.AutoservSSHTimeout("ssh failed: %s" % e)
@@ -186,7 +186,7 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
             # we couldn't get a channel; re-initing transport should fix that
             try:
                 self.transport.close()
-            except Exception, e:
+            except Exception as e:
                 logging.debug("paramiko.Transport.close failed with %s", e)
             self._init_transport()
             return self.transport.open_session()
@@ -261,7 +261,7 @@ class ParamikoHost(abstract_ssh.AbstractSSHHost):
         try:
             channel = self._open_channel(timeout)
             channel.exec_command(command)
-        except (socket.error, paramiko.SSHException, EOFError), e:
+        except (socket.error, paramiko.SSHException, EOFError) as e:
             # This has to match the string from paramiko *exactly*.
             if str(e) != 'Channel closed.':
                 raise error.AutoservSSHTimeout("ssh failed: %s" % e)

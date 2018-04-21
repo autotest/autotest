@@ -32,7 +32,7 @@ try:
         atfork.stdlib_fixer.fix_logging_module()
     except Exception:
         pass
-except ImportError, e:
+except ImportError as e:
     from autotest.client.shared.settings import settings
     if settings.get_value('AUTOSERV', 'require_atfork_module', type=bool,
                           default=False):
@@ -234,7 +234,7 @@ def main():
     try:
         try:
             run_autoserv(pid_file_manager, results, parser)
-        except SystemExit, e:
+        except SystemExit as e:
             exit_code = e.code
         except Exception:
             traceback.print_exc()

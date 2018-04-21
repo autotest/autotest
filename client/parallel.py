@@ -26,9 +26,9 @@ def fork_start(tmp, l):
             l()
         except error.AutotestError:
             raise
-        except Exception, e:
+        except Exception as e:
             raise error.UnhandledTestError(e)
-    except Exception, detail:
+    except Exception as detail:
         try:
             try:
                 logging.error('child process failed')
@@ -50,7 +50,8 @@ def fork_start(tmp, l):
         finally:
             # clear exception information to allow garbage collection of
             # objects referenced by the exception's traceback
-            sys.exc_clear()
+            if sys.version_info < (3, 0):
+                sys.exc_clear()
             gc.collect()
             os._exit(1)
     else:

@@ -632,7 +632,7 @@ class test_run(unittest.TestCase):
         cmd = 'exit 11'
         try:
             utils.run(cmd, verbose=False)
-        except utils.error.CmdError, err:
+        except utils.error.CmdError as err:
             self.__check_result(err.result_obj, cmd, exit_status=11)
 
     def test_ignore_status(self):
@@ -645,7 +645,7 @@ class test_run(unittest.TestCase):
         utils.logging.warn.expect_any_call()
         try:
             utils.run('echo -n output && sleep 10', timeout=1, verbose=False)
-        except utils.error.CmdError, err:
+        except utils.error.CmdError as err:
             self.assertEquals(err.result_obj.stdout, 'output')
 
     def test_stdout_stderr_tee(self):

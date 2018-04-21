@@ -1002,7 +1002,12 @@ class InterruptedThread(Thread):
                     s = error.exception_context(self._e[1])
                     s = error.join_contexts(error.get_context(), s)
                     error.set_exception_context(self._e[1], s)
-                    raise self._e[0], self._e[1], self._e[2]
+                    tp, value, tb = self._e[0], self._e[1], self._e[2]
+                    if value is None:
+                        value = tp()
+                    if value.__traceback__ is not tb:
+                        raise value.with_traceback(tb)
+                    raise value
             else:
                 return self._retval
         finally:
@@ -2315,7 +2320,7 @@ def safe_rmdir(path, timeout=10):
             shutil.rmtree(path)
             success = True
             break
-        except OSError, err_info:
+        except OSError as err_info:
             # We are only going to try if the error happened due to
             # directory not empty (errno 39). Otherwise, raise the
             # original exception.

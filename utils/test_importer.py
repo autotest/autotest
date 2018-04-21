@@ -362,9 +362,9 @@ def get_tests_from_fs(parent_dir, control_pattern, add_noncompliant=False):
                         found_test = control_data.parse_control(file,
                                                                 raise_warnings=True)
                         tests[file] = found_test
-                    except control_data.ControlVariableException, e:
+                    except control_data.ControlVariableException as e:
                         logging.warn("Skipping %s\n%s", file, e)
-                    except Exception, e:
+                    except Exception as e:
                         logging.error("Bad %s\n%s", file, e)
                 else:
                     found_test = control_data.parse_control(file)
@@ -454,7 +454,7 @@ def update_from_whitelist(whitelist_set, add_experimental, add_noncompliant,
                 found_test = control_data.parse_control(file_path,
                                                         raise_warnings=True)
                 tests[file_path] = found_test
-            except control_data.ControlVariableException, e:
+            except control_data.ControlVariableException as e:
                 logging.warn("Skipping %s\n%s", file, e)
         else:
             profilers[file_path] = compiler.parseFile(file_path).doc

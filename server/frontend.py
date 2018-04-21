@@ -340,7 +340,7 @@ class AFE(RpcClient):
                 if not new_job:
                     continue
                 jobs.append(new_job)
-            except Exception, e:
+            except Exception as e:
                 traceback.print_exc()
         if not wait or not jobs:
             return

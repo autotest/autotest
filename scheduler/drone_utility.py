@@ -273,7 +273,7 @@ class DroneUtility(object):
             file_object = open(file_path, 'a')
             file_object.write(contents)
             file_object.close()
-        except IOError, exc:
+        except IOError as exc:
             self._warn('Error write to file %s: %s' % (file_path, exc))
 
     def copy_file_or_directory(self, source_path, destination_path):

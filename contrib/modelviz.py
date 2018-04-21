@@ -184,7 +184,7 @@ def main():
     try:
         opts, args = getopt.getopt(sys.argv[1:], "hd",
                                    ["help", "disable_fields"])
-    except getopt.GetoptError, error:
+    except getopt.GetoptError as error:
         print(__doc__)
         sys.exit(error)
     else:

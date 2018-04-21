@@ -198,7 +198,7 @@ if __name__ == "__main__":
         try:
             crashed_pid, crash_time, uid, signal, hostname, exe = sys.argv[1:]  # pylint: disable=E0632
             full_functionality = True
-        except ValueError, e:
+        except ValueError as e:
             # Probably due a kernel bug, we can't exactly map the parameters
             # passed to this script. So we have to reduce the functionality
             # of the script (just write the core at a fixed place).
@@ -224,5 +224,5 @@ if __name__ == "__main__":
             syslog.syslog("Application %s, PID %s crashed" % (exe, crashed_pid))
         write_cores(core_file, results_dir_list)
 
-    except Exception, e:
+    except Exception as e:
         syslog.syslog("Crash handler had a problem: %s" % e)

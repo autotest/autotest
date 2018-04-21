@@ -152,7 +152,7 @@ def _get_item_key(item, key):
             raise ValueError('empty subkey in %r' % key)
         try:
             nested_item = nested_item[subkey]
-        except KeyError, e:
+        except KeyError as e:
             raise KeyError('%r - looking up key %r in %r' %
                            (e, key, nested_item))
     else:
@@ -418,7 +418,7 @@ class atest(object):
                 values, leftover = item_parse_info.get_values(options,
                                                               leftover)
                 setattr(self, item_parse_info.attribute_name, values)
-        except CliError, s:
+        except CliError as s:
             self.invalid_syntax(s)
 
         if (req_items and not getattr(self, req_items, None)):
@@ -459,7 +459,7 @@ class atest(object):
         self.username = options.username
         try:
             self.afe = rpc.afe_comm(self.web_server, username=self.username)
-        except rpc.AuthError, s:
+        except rpc.AuthError as s:
             self.failure(str(s), fatal=True)
 
         return (options, leftover)
@@ -482,7 +482,7 @@ class atest(object):
         while retry:
             try:
                 return self.afe.run(op, **data)
-            except urllib2.URLError, err:
+            except urllib2.URLError as err:
                 if hasattr(err, 'reason'):
                     if 'timed out' not in err.reason:
                         self.invalid_syntax('Invalid server name %s: %s' %
@@ -508,7 +508,7 @@ class atest(object):
                     raise CliError("Timed-out contacting the Autotest server")
             except mock.CheckPlaybackError:
                 raise
-            except Exception, full_error:
+            except Exception as full_error:
                 # There are various exceptions throwns by JSON,
                 # urllib & httplib, so catch them all.
                 self.failure(full_error, item=item,

@@ -146,7 +146,7 @@ class NetconsoleHost(remote.RemoteHost):
         try:
             self.run('dmesg -n 8')
             self.run('modprobe netconsole %s' % self.__netconsole_params)
-        except error.AutoservRunError, e:
+        except error.AutoservRunError as e:
             # if it fails there isn't much we can do, just keep going
             print("ERROR occurred while loading netconsole: %s" % e)
 

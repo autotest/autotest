@@ -127,7 +127,7 @@ def main():
             results = action_obj.execute()
         except topic_common.CliError:
             pass
-        except Exception, err:
+        except Exception as err:
             traceback.print_exc()
             action_obj.generic_error("Unexpected exception: %s" % err)
         else:

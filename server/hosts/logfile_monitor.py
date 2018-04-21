@@ -159,7 +159,7 @@ def _log_and_ignore_exceptions(f):
     def wrapped(self, *args, **dargs):
         try:
             return f(self, *args, **dargs)
-        except Exception, e:
+        except Exception as e:
             print("LogfileMonitor.%s failed with exception %s" % (f.__name__, e))
             print("Exception ignored:")
             traceback.print_exc(file=sys.stdout)
@@ -247,7 +247,7 @@ class LogfileMonitorMixin(abstract_ssh.AbstractSSHHost):
         for patterns_path in set(self.pattern_paths):
             try:
                 patterns_path = resolve_patterns_path(patterns_path)
-            except InvalidPatternsPathError, e:
+            except InvalidPatternsPathError as e:
                 logging.warn('Specified patterns_path is invalid: %s, %s',
                              patterns_path, str(e))
             else:

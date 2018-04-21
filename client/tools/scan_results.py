@@ -75,7 +75,7 @@ def main(resfiles):
     for resfile in resfiles:
         try:
             text = open(resfile).read()
-        except IOError, e:
+        except IOError as e:
             if e.errno == 21:  # Directory
                 continue
             else:

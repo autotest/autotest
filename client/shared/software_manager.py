@@ -476,7 +476,7 @@ class YumBackend(RpmBackend):
             return None
         try:
             d_provides = self.yum_base.searchPackageProvides(args=[name])
-        except Exception, e:
+        except Exception as e:
             logging.error("Error searching for package that "
                           "provides %s: %s", name, e)
             d_provides = []

@@ -431,7 +431,12 @@ class base_test(object):
                 finally:
                     self.job.logging.restore()
                     try:
-                        raise exc_info[0], exc_info[1], exc_info[2]
+                        tp, value, tb = exc_info[0], exc_info[1], exc_info[2]
+                        if value is None:
+                            value = tp()
+                        if value.__traceback__ is not tb:
+                            raise value.with_traceback(tb)
+                        raise value
                     finally:
                         # http://docs.python.org/library/sys.html#sys.exc_info
                         # Be nice and prevent a circular reference.
@@ -448,7 +453,7 @@ class base_test(object):
                 self.job.enable_warnings("NETWORK")
             # Pass already-categorized errors on up.
             raise
-        except Exception, e:
+        except Exception as e:
             if self.network_destabilizing:
                 self.job.enable_warnings("NETWORK")
             # Anything else is an ERROR in our own code, not execute().
@@ -824,7 +829,7 @@ def _call_test_function(func, *args, **dargs):
     except error.AutotestError:
         # Pass already-categorized errors on up as is.
         raise
-    except Exception, e:
+    except Exception as e:
         # Other exceptions must be treated as a FAIL when
         # raised during the test functions
         raise error.UnhandledTestFail(e)

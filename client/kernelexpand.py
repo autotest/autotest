@@ -307,7 +307,7 @@ if __name__ == '__main__':
 
     try:
         components = decompose_kernel(kernel)
-    except NameError, e:
+    except NameError as e:
         sys.stderr.write(e.args[0] + "\n")
         sys.exit(1)
 

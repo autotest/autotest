@@ -155,7 +155,7 @@ class Cgroup(object):
                 pwd = os.path.join(pwd, cgroup) + '/'
                 if not os.path.exists(pwd):
                     os.mkdir(pwd)
-        except Exception, inst:
+        except Exception as inst:
             raise error.TestError("cg.mk_cgroup(): %s" % inst)
         self.cgroups.append(pwd)
         return len(self.cgroups) - 1
@@ -176,7 +176,7 @@ class Cgroup(object):
                           (self.module, cgroup, cmd, args_str))
             status, output = commands.getstatusoutput(cgexec_cmd)
             return status, output
-        except error.CmdError, detail:
+        except error.CmdError as detail:
             raise error.TestFail("Execute %s in cgroup failed!\n%s" %
                                  (cmd, detail))
 
@@ -194,7 +194,7 @@ class Cgroup(object):
         except ValueError:
             logging.warn("cg.rm_cgroup(): Removed cgroup which wasn't created"
                          "using this Cgroup")
-        except Exception, inst:
+        except Exception as inst:
             raise error.TestError("cg.rm_cgroup(): %s" % inst)
 
     def cgdelete_all_cgroups(self):
@@ -228,7 +228,7 @@ class Cgroup(object):
                 cmd += " -r"
             utils.run(cmd, ignore_status=False)
             self.cgroups.remove(cgroup_pwd)
-        except error.CmdError, detail:
+        except error.CmdError as detail:
             raise error.TestFail("cgdelete %s failed!\n%s" %
                                  (cgroup, detail))
 
@@ -246,7 +246,7 @@ class Cgroup(object):
             cgclassify_cmd = ("cgclassify -g %s:%s %d" %
                               (self.module, cgroup, pid))
             utils.run(cgclassify_cmd, ignore_status=False)
-        except error.CmdError, detail:
+        except error.CmdError as detail:
             raise error.TestFail("Classify process to tasks file failed!:%s" %
                                  detail)
 
@@ -263,7 +263,7 @@ class Cgroup(object):
             pwd = self.cgroups[pwd]
         try:
             return [_.strip() for _ in open(os.path.join(pwd, 'tasks'), 'r')]
-        except Exception, inst:
+        except Exception as inst:
             raise error.TestError("cg.get_pids(): %s" % inst)
 
     def test(self, cmd):
@@ -314,7 +314,7 @@ class Cgroup(object):
             pwd = self.cgroups[pwd]
         try:
             open(os.path.join(pwd, 'tasks'), 'w').write(str(pid))
-        except Exception, inst:
+        except Exception as inst:
             raise error.TestError("cg.set_cgroup(): %s" % inst)
         if self.is_cgroup(pid, pwd):
             raise error.TestError("cg.set_cgroup(): Setting %d pid into %s "
@@ -368,7 +368,7 @@ class Cgroup(object):
                 return ret
             else:
                 return [""]
-        except Exception, inst:
+        except Exception as inst:
             raise error.TestError("cg.get_property(): %s" % inst)
 
     def set_property_h(self, prop, value, pwd=None, check=True, checkprop=None):
@@ -412,7 +412,7 @@ class Cgroup(object):
             pwd = self.cgroups[pwd]
         try:
             open(os.path.join(pwd, prop), 'w').write(value)
-        except Exception, inst:
+        except Exception as inst:
             raise error.TestError("cg.set_property(): %s" % inst)
 
         if check is not False:
@@ -446,7 +446,7 @@ class Cgroup(object):
             cgroup = self.get_cgroup_name(pwd)
             cgset_cmd = "cgset -r %s='%s' %s" % (prop, value, cgroup)
             utils.run(cgset_cmd, ignore_status=False)
-        except error.CmdError, detail:
+        except error.CmdError as detail:
             raise error.TestFail("Modify %s failed!:\n%s" % (prop, detail))
 
         if check is not False:
@@ -532,7 +532,7 @@ class CgroupModules(object):
             if self.modules[2][i]:
                 try:
                     utils.system('umount %s -l' % self.modules[1][i])
-                except Exception, failure_detail:
+                except Exception as failure_detail:
                     logging.warn("CGM: Couldn't unmount %s directory: %s",
                                  self.modules[1][i], failure_detail)
         try:
@@ -597,7 +597,7 @@ class CgroupModules(object):
         """
         try:
             i = self.modules[0].index(module)
-        except Exception, inst:
+        except Exception as inst:
             logging.error("module %s not found: %s", module, inst)
             return None
         return self.modules[1][i]
@@ -704,7 +704,7 @@ def service_cgconfig_control(action):
             utils.run("service cgconfig %s" % action)
             logging.debug("%s cgconfig successfully", action)
             return True
-        except error.CmdError, detail:
+        except error.CmdError as detail:
             logging.error("Failed to %s cgconfig:\n%s", action, detail)
             return False
     elif action == "status" or action == "exists":
@@ -774,6 +774,6 @@ def all_cgroup_delete():
     """
     try:
         utils.run("cgclear", ignore_status=False)
-    except error.CmdError, detail:
+    except error.CmdError as detail:
         logging.warn("cgclear: Fail to clear all cgroups, some specific system"
                      " cgroups might exist and affect further testing.")

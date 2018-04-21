@@ -223,9 +223,9 @@ class CommandParser(object):
                 args = getattr(self, cmd)(args, options)
             except TypeError:
                 args = getattr(self, cmd)()
-        except SystemExit, return_code:
+        except SystemExit as return_code:
             sys.exit(return_code.code)
-        except Exception, error_detail:
+        except Exception as error_detail:
             if DEBUG:
                 raise
             sys.stderr.write("Command failed: %s -> %s\n" % (cmd, error_detail))
@@ -312,7 +312,7 @@ class CommandParser(object):
             myharness = harness.select(harness_name, myjob, harness_args)
             if not getattr(myharness, 'bootstrap'):
                 raise error.HarnessError("Does not support bootstrapping\n")
-        except Exception, error_detail:
+        except Exception as error_detail:
             if DEBUG:
                 raise
             sys.stderr.write("Harness %s failed to initialize -> %s\n" % (harness_name, error_detail))
@@ -322,7 +322,7 @@ class CommandParser(object):
         # get remote control file and stick it in FETCHDIRTEST
         try:
             control = myharness.bootstrap(FETCHDIRTEST)
-        except Exception, ex:
+        except Exception as ex:
             sys.stderr.write("bootstrap failed -> %s\n" % ex)
             raise SystemExit(1)
         logging.debug("bootstrap passing control file %s to run" % control)

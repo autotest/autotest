@@ -355,9 +355,9 @@ if __name__ == "__main__":
         write_html_report(results_dir=options.results_dir,
                           report_path=options.report_path,
                           encoding=options.encoding)
-    except InvalidAutotestResultDirError, e:
+    except InvalidAutotestResultDirError as e:
         logging.error(e)
         sys.exit(ERROR_INVALID_RESULT_DIR)
-    except InvalidOutputDirError, e:
+    except InvalidOutputDirError as e:
         logging.error(e)
         sys.exit(ERROR_INVALID_REPORT_PATH)

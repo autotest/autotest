@@ -282,7 +282,7 @@ class DroneManager(object):
             if len(lines) == 3:
                 contents.exit_status = int(lines[1])
                 contents.num_tests_failed = int(lines[2])
-        except ValueError, exc:
+        except ValueError as exc:
             return InvalidPidfile('Corrupt pid file: ' + str(exc.args))
 
         return contents

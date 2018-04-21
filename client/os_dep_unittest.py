@@ -137,7 +137,7 @@ class TestCommand(unittest.TestCase):
             try:
                 os_dep.command("nosuch")
                 assert False
-            except ValueError, e:
+            except ValueError as e:
                 assert "nosuch" in e.message
         # pylint: disable=E1120
         _test()
@@ -149,7 +149,7 @@ class TestCommand(unittest.TestCase):
             try:
                 os_dep.command("\1")
                 assert False
-            except ValueError, e:
+            except ValueError as e:
                 assert "\1" in e.message
         # pylint: disable=E1120
         _test()
@@ -175,7 +175,7 @@ class TestCommands(unittest.TestCase):
             try:
                 cmds = os_dep.commands('a', 'b', 'c')
                 assert cmds == paths
-            except ValueError, e:
+            except ValueError as e:
                 assert "nosuch" in e.message
         # pylint: disable=E1120
         _test()
@@ -469,7 +469,7 @@ class TestHeaders(unittest.TestCase):
             try:
                 os_dep.header("nosuch.h")
                 assert False
-            except ValueError, e:
+            except ValueError as e:
                 assert "nosuch.h" in e.message
         # pylint: disable=E1120
         _test()

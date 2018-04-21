@@ -594,7 +594,7 @@ class partition(object):
             # We throw away the output here - we only need it on error, in
             # which case it's in the exception
             utils.system_output("yes | %s" % mkfs_cmd)
-        except error.CmdError, e:
+        except error.CmdError as e:
             logging.error(e.result_obj)
             if record:
                 self.job.record('FAIL', None, mkfs_cmd, error.format_error())
@@ -841,7 +841,7 @@ class virtual_partition:
                       'partition')
         try:
             os_dep.commands('sfdisk', 'losetup', 'kpartx')
-        except ValueError, e:
+        except ValueError as e:
             e_msg = 'Unable to create virtual partition: %s' % e
             raise error.AutotestError(e_msg)
 
@@ -877,7 +877,7 @@ class virtual_partition:
         try:
             cmd = 'dd if=/dev/zero of=%s bs=1024 count=%d' % (img_path, size)
             utils.run(cmd)
-        except error.CmdError, e:
+        except error.CmdError as e:
             e_msg = 'Error creating disk image %s: %s' % (img_path, e)
             raise error.AutotestError(e_msg)
         return img_path
@@ -896,7 +896,7 @@ class virtual_partition:
             loop_path = utils.system_output(cmd)
             cmd = 'losetup -f %s' % img_path
             utils.run(cmd)
-        except error.CmdError, e:
+        except error.CmdError as e:
             e_msg = ('Error attaching image %s to a loop device: %s' %
                      (img_path, e))
             raise error.AutotestError(e_msg)
@@ -916,7 +916,7 @@ class virtual_partition:
             sfdisk_cmd_file.write(single_part_cmd)
             sfdisk_cmd_file.close()
             utils.run('sfdisk %s < %s' % (loop_path, sfdisk_file_path))
-        except error.CmdError, e:
+        except error.CmdError as e:
             e_msg = 'Error partitioning device %s: %s' % (loop_path, e)
             raise error.AutotestError(e_msg)
 
@@ -936,7 +936,7 @@ class virtual_partition:
             utils.run(cmd)
             l_cmd = 'kpartx -l %s | cut -f1 -d " "' % loop_path
             device = utils.system_output(l_cmd)
-        except error.CmdError, e:
+        except error.CmdError as e:
             e_msg = 'Error creating entries for %s: %s' % (loop_path, e)
             raise error.AutotestError(e_msg)
         return os.path.join('/dev/mapper', device)
@@ -951,7 +951,7 @@ class virtual_partition:
         try:
             cmd = 'kpartx -d %s' % self.loop
             utils.run(cmd)
-        except error.CmdError, e:
+        except error.CmdError as e:
             e_msg = 'Error removing entries for loop %s: %s' % (self.loop, e)
             raise error.AutotestError(e_msg)
 
@@ -964,7 +964,7 @@ class virtual_partition:
         try:
             cmd = 'losetup -d %s' % self.loop
             utils.run(cmd)
-        except error.CmdError, e:
+        except error.CmdError as e:
             e_msg = ('Error detaching image %s from loop device %s: %s' %
                      (self.img, self.loop, e))
             raise error.AutotestError(e_msg)
