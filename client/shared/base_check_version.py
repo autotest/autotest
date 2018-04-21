@@ -23,7 +23,7 @@ class base_check_python_version:
         # runs) 'import common  # pylin: disable=W0611' it restarts my shell. Overall, the change was
         # fairly annoying for me (and I can't get around having 2.4 and 2.5
         # installed with 2.5 being default).
-        if not version or version < (2, 4) or version >= (3, 0):
+        if not version or version < (2, 4):
             try:
                 # We can't restart when running under mod_python.
                 from mod_python import apache
@@ -37,7 +37,7 @@ class base_check_python_version:
         else:
             return None
 
-    PYTHON_BIN_GLOB_STRINGS = ['/usr/bin/python2*', '/usr/local/bin/python2*']
+    PYTHON_BIN_GLOB_STRINGS = ['/usr/bin/python*', '/usr/local/bin/python*']
 
     def find_desired_python(self):
         """Returns the path of the desired python interpreter."""
@@ -58,7 +58,7 @@ class base_check_python_version:
             raise ValueError('Python 2.x version 2.4 or better is required')
         # Return the lowest possible version so that we use 2.4 if available
         # rather than more recent versions.
-        return possible_versions[0][1]
+        return possible_versions[-1][1]
 
     def restart(self):
         python = self.find_desired_python()
