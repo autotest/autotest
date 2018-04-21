@@ -15,7 +15,7 @@ implement the given backend class.
 :copyright: IBM 2008-2009
 :copyright: Red Hat 2009-2010
 """
-import ConfigParser
+import configparser
 import logging
 import optparse
 import os
@@ -350,7 +350,7 @@ class YumBackend(RpmBackend):
         base_arguments = '-y'
         self.base_command = executable + ' ' + base_arguments
         self.repo_file_path = '/etc/yum.repos.d/autotest.repo'
-        self.cfgparser = ConfigParser.ConfigParser()
+        self.cfgparser = configparser.ConfigParser()
         self.cfgparser.read(self.repo_file_path)
         y_cmd = executable + ' --version | head -1'
         cmd_result = utils.run(y_cmd, ignore_status=True,

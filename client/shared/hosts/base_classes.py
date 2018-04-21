@@ -16,7 +16,7 @@ stutsman@google.com (Ryan Stutsman)
 """
 
 import pickle
-import cStringIO
+import io
 import logging
 import os
 import re
@@ -256,7 +256,7 @@ class Host(object):
             if not use_cache or filename not in cached_files:
                 output = self.run('cat \'%s\'' % filename,
                                   stdout_tee=open('/dev/null', 'w')).stdout
-                fd = cStringIO.StringIO(output)
+                fd = io.StringIO(output)
 
                 if not use_cache:
                     return fd

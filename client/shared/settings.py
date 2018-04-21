@@ -6,7 +6,7 @@ provides access to global configuration file.
 
 __author__ = 'raphtee@google.com (Travis Miller)'
 
-import ConfigParser
+import configparser
 import os
 import sys
 
@@ -122,7 +122,7 @@ class Settings(object):
 
         if isinstance(sections, str):
             sections = [sections]
-        cfgparser = ConfigParser.ConfigParser()
+        cfgparser = configparser.ConfigParser()
         for section in sections:
             cfgparser.add_section(section)
             for option, value in self.config.items(section):
@@ -135,7 +135,7 @@ class Settings(object):
 
         try:
             val = self.config.get(section, key)
-        except ConfigParser.Error:
+        except configparser.Error:
             return self._handle_no_value(section, key, default)
 
         if not val.strip() and not allow_blank:
@@ -175,7 +175,7 @@ class Settings(object):
                 self.config.set(section, option, val)
 
     def parse_config_file(self):
-        self.config = ConfigParser.ConfigParser()
+        self.config = configparser.ConfigParser()
         if self.config_file and os.path.exists(self.config_file):
             self.config.read(self.config_file)
         else:
@@ -185,7 +185,7 @@ class Settings(object):
         # this will overwrite anything that is found in the
         # other config
         if self.shadow_file and os.path.exists(self.shadow_file):
-            shadow_config = ConfigParser.ConfigParser()
+            shadow_config = configparser.ConfigParser()
             shadow_config.read(self.shadow_file)
             # now we merge shadow into global
             self.merge_configs(shadow_config)

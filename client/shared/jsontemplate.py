@@ -37,14 +37,13 @@ __all__ = [
     'TemplateSyntaxError', 'UndefinedVariable', 'CompileTemplate', 'FromString',
     'FromFile', 'Template', 'expand']
 
-import StringIO
+import io
 import pprint
 import re
 
 # For formatters
 import cgi  # cgi.escape
 import urllib  # for urllib.encode
-import urlparse  # for urljoin
 
 
 class Error(Exception):
@@ -584,7 +583,7 @@ def _AbsUrl(relative_url, context, unused_args):
     """
     # urljoin is flexible about trailing/leading slashes -- it will add or de-dupe
     # them
-    return urlparse.urljoin(context.Lookup('base-url'), relative_url)
+    return urllib.parse.urljoin(context.Lookup('base-url'), relative_url)
 
 
 # See http://google-ctemplate.googlecode.com/svn/trunk/doc/howto.html for more
@@ -610,10 +609,10 @@ _DEFAULT_FORMATTERS = {
     'size': lambda value: str(len(value)),
 
     # The argument is a dictionary, and we get a a=1&b=2 string back.
-    'url-params': urllib.urlencode,
+    'url-params': urllib.parse.urlencode,
 
     # The argument is an atom, and it takes 'Search query?' -> 'Search+query%3F'
-    'url-param-value': urllib.quote_plus,  # param is an atom
+    'url-param-value': urllib.parse.quote_plus,  # param is an atom
 
     # The default formatter, when no other default is specifier.  For debugging,
     # this could be lambda x: json.dumps(x, indent=2), but here we want to be
@@ -962,7 +961,7 @@ _OPTION_NAMES = ['meta', 'format-char', 'default-formatter', 'undefined-str']
 def FromString(s, more_formatters=lambda x: None, _constructor=None):
     """Like FromFile, but takes a string."""
 
-    f = StringIO.StringIO(s)
+    f = io.StringIO(s)
     return FromFile(f, more_formatters=more_formatters, _constructor=_constructor)
 
 

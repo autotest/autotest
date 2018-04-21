@@ -19,7 +19,7 @@ except ImportError:
 
 import re
 import sys
-import urllib2
+import urllib
 
 from autotest.client.shared.settings import settings
 
@@ -250,10 +250,10 @@ def mirror_kernel_components(mirrors, components):
 
 def url_accessible(url):
     try:
-        u = urllib2.urlopen(url)
+        u = urllib.request.urlopen(url)
         u.close()
         return True
-    except urllib2.HTTPError:
+    except urllib.error.HTTPError:
         return False
 
 

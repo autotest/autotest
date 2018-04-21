@@ -1,6 +1,6 @@
 __author__ = "raphtee@google.com (Travis Miller)"
 
-import StringIO
+import io
 import collections
 import re
 import sys
@@ -18,7 +18,7 @@ class CheckPlaybackError(Exception):
     pass
 
 
-class SaveDataAfterCloseStringIO(StringIO.StringIO):
+class SaveDataAfterCloseStringIO(io.StringIO):
 
     """Saves the contents in a final_data property when close() is called.
 
@@ -33,7 +33,7 @@ class SaveDataAfterCloseStringIO(StringIO.StringIO):
 
     def close(self):
         self.final_data = self.getvalue()
-        StringIO.StringIO.close(self)
+        io.StringIO.close(self)
 
 
 class argument_comparator(object):
@@ -522,8 +522,8 @@ class mock_god(object):
         self.orig_stdout = sys.stdout
         self.orig_stderr = sys.stderr
 
-        self.mock_streams_stdout = StringIO.StringIO('')
-        self.mock_streams_stderr = StringIO.StringIO('')
+        self.mock_streams_stdout = io.StringIO('')
+        self.mock_streams_stderr = io.StringIO('')
 
         sys.stdout = self.mock_streams_stdout
         sys.stderr = self.mock_streams_stderr

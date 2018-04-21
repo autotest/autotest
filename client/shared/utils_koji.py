@@ -1,5 +1,5 @@
-import ConfigParser
-import HTMLParser
+import configparser
+import html.parser
 import logging
 import os
 import urllib
@@ -15,7 +15,7 @@ except ImportError:
 DEFAULT_KOJI_TAG = None
 
 
-class KojiDirIndexParser(HTMLParser.HTMLParser):
+class KojiDirIndexParser(html.parser.HTMLParser):
 
     '''
     Parser for HTML directory index pages, specialized to look for RPM links
@@ -25,7 +25,7 @@ class KojiDirIndexParser(HTMLParser.HTMLParser):
         '''
         Initializes a new KojiDirListParser instance
         '''
-        HTMLParser.HTMLParser.__init__(self)
+        html.parser.HTMLParser.__init__(self)
         self.package_file_names = []
 
     def handle_starttag(self, tag, attrs):
@@ -159,7 +159,7 @@ class KojiClient(object):
             if not self.is_config_valid():
                 raise ValueError('Koji config "%s" is not valid' % self.config)
 
-        config = ConfigParser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(self.config)
 
         basename = os.path.basename(self.command)
@@ -219,7 +219,7 @@ class KojiClient(object):
             logging.error('Koji config "%s" is not readable', self.config)
             koji_config_ok = False
 
-        config = ConfigParser.ConfigParser()
+        config = configparser.ConfigParser()
         config.read(self.config)
         basename = os.path.basename(self.command)
         if not config.has_section(basename):

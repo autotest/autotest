@@ -11,7 +11,7 @@ inheritance with, just a collection of static methods.
 #
 # Copyright 2008 Google Inc. Released under the GPL v2
 
-import StringIO
+import io
 import glob
 import logging
 import os
@@ -31,8 +31,7 @@ import tarfile
 import textwrap
 import time
 import traceback
-import urllib2
-import urlparse
+import urllib
 import warnings
 from threading import Thread, Event, Lock
 
@@ -191,14 +190,14 @@ class AsyncJob(BgJob):
             self.stdin_thread.start()
 
         self.stdout_lock = Lock()
-        self.stdout_file = StringIO.StringIO()
+        self.stdout_file = io.StringIO()
         self.stdout_thread = Thread(target=AsyncJob._fd_drainer, name=("%s-stdout" % command),
                                     args=(self.sp.stdout, [self.stdout_file, self.stdout_tee],
                                           self.stdout_lock))
         self.stdout_thread.daemon = True
 
         self.stderr_lock = Lock()
-        self.stderr_file = StringIO.StringIO()
+        self.stderr_file = io.StringIO()
         self.stderr_thread = Thread(target=AsyncJob._fd_drainer, name=("%s-stderr" % command),
                                     args=(self.sp.stderr, [self.stderr_file, self.stderr_tee],
                                           self.stderr_lock))
@@ -709,7 +708,7 @@ class FileFieldMonitor(object):
 def is_url(path):
     """Return true if path looks like a URL"""
     # for now, just handle http and ftp
-    url_parts = urlparse.urlparse(path)
+    url_parts = urllib.parse.urlparse(path)
     return (url_parts[0] in ('http', 'ftp', 'git'))  # pylint: disable=E1136
 
 
@@ -720,7 +719,7 @@ def urlopen(url, data=None, timeout=5):
     old_timeout = socket.getdefaulttimeout()
     socket.setdefaulttimeout(timeout)
     try:
-        return urllib2.urlopen(url, data=data)
+        return urllib.request.urlopen(url, data=data)
     finally:
         socket.setdefaulttimeout(old_timeout)
 
@@ -797,7 +796,7 @@ def unmap_url(srcdir, src, destdir='.'):
                             (after retrieving it)
     """
     if is_url(src):
-        url_parts = urlparse.urlparse(src)
+        url_parts = urllib.parse.urlparse(src)
         # ParseResult is subscriptable, ignore E1136
         filename = os.path.basename(url_parts[2])  # pylint: disable=E1136
         dest = os.path.join(destdir, filename)
@@ -1031,7 +1030,7 @@ def join_bg_jobs(bg_jobs, timeout=None):
     """
     ret, timeout_error = 0, False
     for bg_job in bg_jobs:
-        bg_job.output_prepare(StringIO.StringIO(), StringIO.StringIO())
+        bg_job.output_prepare(io.StringIO(), io.StringIO())
 
     try:
         # We are holding ends to stdin, stdout pipes
@@ -2229,7 +2228,7 @@ def interactive_download(url, output_file, title='', chunk_size=100 * 1024):
     '''
     output_dir = os.path.dirname(output_file)
     output_file = open(output_file, 'w+b')
-    input_file = urllib2.urlopen(url)
+    input_file = urllib.request.urlopen(url)
 
     try:
         file_size = int(input_file.headers['Content-Length'])

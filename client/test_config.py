@@ -7,8 +7,8 @@ Wrapper around ConfigParser to manage testcases configuration.
 import re
 import string
 import types
-from ConfigParser import ConfigParser
-from StringIO import StringIO
+from configparser import ConfigParser
+from io import StringIO
 from os import path
 
 from autotest.client.shared import utils
