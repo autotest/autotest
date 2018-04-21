@@ -56,20 +56,19 @@ def do_not_report_as_logging_caller(func):
     """Decorator to annotate functions we will tell logging not to log."""
     # These are not the droids you are looking for.
     # You may go about your business.
-    _caller_code_to_skip_in_logging_stack.add(func.func_code)
+    _caller_code_to_skip_in_logging_stack.add(func.__code__)
     return func
 
 
 # Copied from Python 2.4 logging/__init__.py Logger.findCaller and enhanced.
-# The logging code remains the same and compatible with this monkey patching
-# through at least Python version 2.6.2.
-def _logging_manager_aware_logger__find_caller(unused):
+# The logging code is compatible with this monkey patching with Python 3.4.5.
+def _logging_manager_aware_logger__find_caller(_unused, _unused2):
     """
     Find the stack frame of the caller so that we can note the source
     file name, line number and function name.
     """
     f = sys._getframe(2).f_back
-    rv = "(unknown file)", 0, "(unknown function)"
+    rv = "(unknown file)", 0, "(unknown function)", None
     while hasattr(f, "f_code"):
         co = f.f_code
         filename = os.path.normcase(co.co_filename)
@@ -81,13 +80,13 @@ def _logging_manager_aware_logger__find_caller(unused):
             f = f.f_back
             continue
         # END additional code.
-        rv = (filename, f.f_lineno, co.co_name)
+        rv = (filename, f.f_lineno, co.co_name, None)
         break
     return rv
 
 
-if sys.version_info[:2] > (2, 7):
-    warnings.warn('This module has not been reviewed for Python %s' %
+if sys.version_info[:2] < (3, 4):
+    warnings.warn('The logging manager is no longer compatible for Python %s' %
                   sys.version)
 
 
