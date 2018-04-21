@@ -1107,7 +1107,9 @@ class base_client_job(base_job.base_job):
                                'args': self.args}
         exec(JOB_PREAMBLE, global_control_vars, global_control_vars)
         try:
-            execfile(self.control, global_control_vars, global_control_vars)
+            with open(self.control) as control:
+                code = compile(control.read(), self.control, 'exec')
+                exec(code, global_control_vars, global_control_vars)
         except error.TestNAError as detail:
             self.record(detail.exit_status, None, self.control, str(detail))
         except SystemExit:

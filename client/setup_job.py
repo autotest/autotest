@@ -73,7 +73,7 @@ def init_test(options, testdir):
             import_stmt = 'import %s' % test_name
             init_stmt = ('auto_test = %s.%s(job, testdir, outputdir)' %
                          (test_name, test_name))
-            exec import_stmt + '\n' + init_stmt in locals_dict, globals_dict
+            exec(import_stmt + '\n' + init_stmt in locals_dict, globals_dict)
             client_test = globals_dict['auto_test']
         except ImportError as e:
             # skips error if test is control file without python test
