@@ -380,7 +380,7 @@ class JobSerializer(object):
                     self.set_attr_safely(pb_obj, attr, t, int)
                 else:
                     t = mktime(t.timetuple()) + 1e-6 * t.microsecond
-                    setattr(pb_obj, attr, long(t * 1000))
+                    setattr(pb_obj, attr, int(t * 1000))
             else:
                 value = getattr(tko_obj, attr)
                 self.set_attr_safely(pb_obj, attr, value, attr_type)

@@ -690,7 +690,7 @@ def SplitMeta(meta):
     if n % 2 == 1:
         raise ConfigurationError(
             '%r has an odd number of metacharacters' % meta)
-    return meta[:n / 2], meta[n / 2:]
+    return meta[:int(n / 2)], meta[int(n / 2):]
 
 
 _token_re_cache = {}

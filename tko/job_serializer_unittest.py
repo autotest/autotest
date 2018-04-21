@@ -188,7 +188,7 @@ class JobSerializerUnittest(unittest.TestCase):
         in microseconds.
         """
         t = mktime(dTime.timetuple()) + 1e-6 * dTime.microsecond
-        self.assertEqual(long(t), stime / 1000)
+        self.assertEqual(int(t), stime / 1000)
 
     def check_iteration(self, tko_iterations, pb_iterations):
         """Check if the iteration objects are the same.
@@ -316,10 +316,10 @@ class ReadBackGetterTest(JobSerializerUnittest):
 
         t = mktime(dTime.timetuple()) + 1e-6 * dTime.microsecond
         if isinstance(sTime, (int, long)):
-            self.assertEqual(long(t * 1000), sTime)
+            self.assertEqual(int(t * 1000), sTime)
         else:
             t1 = mktime(sTime.timetuple()) + 1e-6 * sTime.microsecond
-            self.assertEqual(long(t * 1000), long(t1 * 1000))
+            self.assertEqual(int(t * 1000), int(t1 * 1000))
 
     def check_iteration(self, iterations, newiterations):
         """Check if the iteration objects are the same.

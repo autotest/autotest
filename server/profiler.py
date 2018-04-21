@@ -10,7 +10,7 @@ def _get_unpassable_types(arg):
     unpassable. If arg is an atomic type (e.g. int) it either returns an
     empty set (if the type is passable) or a singleton of the type (if the
     type is not passable). """
-    if isinstance(arg, (basestring, int, long)):
+    if isinstance(arg, (basestring, int)):
         return set()
     elif isinstance(arg, (list, tuple, set, frozenset, dict)):
         if isinstance(arg, dict):
