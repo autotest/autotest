@@ -6,8 +6,7 @@ import logging
 import os
 
 from autotest.client import utils, os_dep
-
-import error
+from autotest.client.shared import error
 
 __all__ = ["GitRepoHelper", "get_repo"]
 

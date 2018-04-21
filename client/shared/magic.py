@@ -25,8 +25,8 @@ import string
 import struct
 import sys
 
-import logging_config
-import logging_manager
+from autotest.client.shared import logging_config
+from autotest.client.shared import logging_manager
 
 
 def _str_to_num(n):
