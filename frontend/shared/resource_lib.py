@@ -169,7 +169,7 @@ class Resource(object):
     def resolve_link(self, link):
         if isinstance(link, dict):
             uri = link['href']
-        elif isinstance(link, basestring):
+        elif isinstance(link, str):
             uri = link
         else:
             raise exceptions.BadRequest('Unable to understand link %s' % link)
@@ -354,7 +354,7 @@ class Collection(Resource):
     def __init__(self, request):
         super(Collection, self).__init__(request)
         assert self.entry_class is not None
-        if isinstance(self.entry_class, basestring):
+        if isinstance(self.entry_class, str):
             type(self).entry_class = _resolve_class_path(self.entry_class)
 
         self._query_processor = query_lib.QueryProcessor()

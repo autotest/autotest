@@ -49,7 +49,7 @@ class equality_comparator(argument_comparator):
 
     @staticmethod
     def _types_match(arg1, arg2):
-        if isinstance(arg1, basestring) and isinstance(arg2, basestring):
+        if isinstance(arg1, str) and isinstance(arg2, str):
             return True
         return type(arg1) == type(arg2)
 
@@ -104,7 +104,7 @@ class regex_comparator(argument_comparator):
 class is_string_comparator(argument_comparator):
 
     def is_satisfied_by(self, parameter):
-        return isinstance(parameter, basestring)
+        return isinstance(parameter, str)
 
     def __str__(self):
         return "a string"

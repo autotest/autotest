@@ -66,7 +66,7 @@ class Migration(object):
             method(manager)
         else:
             sql = getattr(self.module, sql_name)
-            assert isinstance(sql, basestring)
+            assert isinstance(sql, str)
             manager.execute_script(sql)
 
     def migrate_up(self, manager):

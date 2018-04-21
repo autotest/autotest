@@ -524,7 +524,7 @@ class BasePackageManager(object):
             self.upload_paths = list(upload_paths)
 
     def add_repository(self, repo):
-        if isinstance(repo, basestring):
+        if isinstance(repo, str):
             self.repositories.append(self.get_fetcher(repo))
         elif isinstance(repo, RepositoryFetcher):
             self.repositories.append(repo)

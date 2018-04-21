@@ -32,8 +32,8 @@ def customConvertJson(value):
     """
     if isinstance(value, float):
         return int(value)
-    elif isinstance(value, unicode):
-        return str(value)
+    elif isinstance(value, str):
+        return value.encode('ascii', 'ignore')
     elif isinstance(value, list):
         return [customConvertJson(item) for item in value]
     elif isinstance(value, dict):

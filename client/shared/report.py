@@ -289,7 +289,7 @@ def write_html_report(results_dir, report_path=None, encoding="utf8"):
     if not os.path.isdir(report_dir):
         raise InvalidOutputDirError(report_dir)
 
-    html_result = open(report_path, "w")
+    html_result = open(report_path, "wb")
     html_result.write(rendered_html.encode(encoding))
     html_result.close()
     logging.info("Report successfully generated at %s", report_path)

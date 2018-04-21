@@ -72,7 +72,7 @@ class JsonHtmlFormatter(object):
         elif isinstance(value, (int, float)):
             return self._decorate_with_span(value, 'num')
         else:
-            assert isinstance(value, basestring)
+            assert isinstance(value, str)
             return self._decorate_with_span('"%s"' % value, 'string')
 
     # Convert an array into an HTML fragment
@@ -102,13 +102,13 @@ class JsonHtmlFormatter(object):
 
         output = ['{<ul class="obj collapsible">']
         for key, value in json_object.items():
-            assert isinstance(key, basestring)
+            assert isinstance(key, str)
             output.append('<li>')
             output.append('<span class="prop">%s</span>: '
                           % self._html_encode(key))
             value_html = self._value_to_html(value)
             if key == 'href':
-                assert isinstance(value, basestring)
+                assert isinstance(value, str)
                 output.append('<a href="%s">%s</a>' % (self._link_href(value),
                                                        value_html))
             else:

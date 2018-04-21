@@ -42,7 +42,7 @@ def _str_to_num(n):
         n = '0' + n
     if n[:2] == '0x':
         # hex
-        n = string.lower(n[2:])
+        n = n[2:].lower()
         while len(n) > 0:
             lst = n[len(n) - 1]
             val = val + string.hexdigits.index(lst) * col
@@ -59,7 +59,7 @@ def _str_to_num(n):
             col = col * 8
             n = n[:len(n) - 1]
     else:
-        val = string.atol(n)
+        val = int(n)
     return val
 
 

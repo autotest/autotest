@@ -265,7 +265,7 @@ class AbstractSSHHost(SiteHost):
         # Start a master SSH connection if necessary.
         self.start_master_ssh()
 
-        if isinstance(source, basestring):
+        if isinstance(source, str):
             source = [source]
         dest = os.path.abspath(dest)
 
@@ -340,7 +340,7 @@ class AbstractSSHHost(SiteHost):
         # Start a master SSH connection if necessary.
         self.start_master_ssh()
 
-        if isinstance(source, basestring):
+        if isinstance(source, str):
             source_is_dir = os.path.isdir(source)
             source = [source]
         remote_dest = self._encode_remote_paths([dest])

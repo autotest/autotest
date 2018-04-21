@@ -128,7 +128,7 @@ class ControlData(object):
 def _extract_const(n):
     assert(n.__class__ == compiler.ast.Assign)
     assert(n.expr.__class__ == compiler.ast.Const)
-    assert(n.expr.value.__class__ in (str, int, float, unicode))
+    assert(n.expr.value.__class__ in (str, int, float))
     assert(n.nodes.__class__ == list)
     assert(len(n.nodes) == 1)
     assert(n.nodes[0].__class__ == compiler.ast.AssName)

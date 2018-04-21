@@ -901,7 +901,7 @@ class ModelExtensions(object):
 
         if isinstance(id_or_name, (int, long)):
             return manager.get(pk=id_or_name)
-        if isinstance(id_or_name, basestring) and hasattr(cls, 'name_field'):
+        if isinstance(id_or_name, str) and hasattr(cls, 'name_field'):
             return manager.get(**{cls.name_field: id_or_name})
         raise ValueError(
             'Invalid positional argument: %s (%s)' % (id_or_name,
@@ -949,7 +949,7 @@ class ModelExtensions(object):
         """
         See on_attribute_changed.
         """
-        assert not isinstance(attributes, basestring)
+        assert not isinstance(attributes, str)
         self._recorded_attributes = dict((attribute, getattr(self, attribute))
                                          for attribute in attributes)
 

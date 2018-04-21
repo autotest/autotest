@@ -564,7 +564,7 @@ def _ToString(x):
     # Some cross-language values for primitives
     if x is None:
         return 'null'
-    if isinstance(x, basestring):
+    if isinstance(x, str):
         return x
     return pprint.pformat(x)
 
@@ -1089,7 +1089,7 @@ class Template(object):
           arguments.
 
         Returns:
-          The return value could be a str() or unicode() instance, depending on the
+          The return value could be an ascii or unicode string, depending on the
           the type of the template string passed in, and what the types the strings
           in the dictionary are.
         """
@@ -1232,7 +1232,7 @@ def _Execute(statements, context, callback):
     """
 
     for i, statement in enumerate(statements):
-        if isinstance(statement, basestring):
+        if isinstance(statement, str):
             callback(statement)
         else:
             # In the case of a substitution, args is a pair (name, formatters).

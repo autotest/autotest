@@ -79,7 +79,7 @@ class ResourceTestCase(unittest.TestCase,
         return sorted(collection, key=operator.itemgetter(attribute))
 
     def _read_attribute(self, item, attribute_or_list):
-        if isinstance(attribute_or_list, basestring):
+        if isinstance(attribute_or_list, str):
             attribute_or_list = [attribute_or_list]
         for attribute in attribute_or_list:
             item = item[attribute]

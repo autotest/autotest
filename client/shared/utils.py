@@ -105,7 +105,7 @@ class BgJob(object):
 
         # allow for easy stdin input by string, we'll let subprocess create
         # a pipe for stdin input and we'll write to it in the wait loop
-        if isinstance(stdin, basestring):
+        if isinstance(stdin, str):
             self.string_stdin = stdin
             stdin = subprocess.PIPE
         else:
@@ -141,13 +141,13 @@ class BgJob(object):
             # read in all the data we can from pipe and then stop
             data = []
             while select.select([pipe], [], [], 0)[0]:
-                data.append(os.read(pipe.fileno(), 1024))
+                data.append(os.read(pipe.fileno(), 1024).decode("utf-8"))
                 if len(data[-1]) == 0:
                     break
             data = "".join(data)
         else:
             # perform a single read
-            data = os.read(pipe.fileno(), 1024)
+            data = os.read(pipe.fileno(), 1024).decode("utf-8")
         buf.write(data)
         tee.write(data)
 
@@ -240,7 +240,7 @@ class AsyncJob(BgJob):
         fileno = input_pipe.fileno()
         while True:
             # 1024 because that's what we did before
-            tmp = os.read(fileno, 1024)
+            tmp = os.read(fileno, 1024).decode("utf-8")
             if tmp == '':
                 break
             acquire()
@@ -434,7 +434,7 @@ def matrix_to_string(matrix, header=None):
             lengths.append(len(column))
     for row in matrix:
         for i, column in enumerate(row):
-            column = unicode(column).encode("utf-8")
+            column = str(column)
             cl = len(column)
             try:
                 ml = lengths[i]
@@ -900,7 +900,7 @@ def run(command, timeout=None, ignore_status=False,
 
     :raise CmdError: the exit code of the command execution was not 0
     """
-    if isinstance(args, basestring):
+    if isinstance(args, str):
         raise TypeError('Got a string for the "args" keyword argument, '
                         'need a sequence.')
 
@@ -1390,8 +1390,8 @@ def strip_unicode(input):
         for key in input.keys():
             output[str(key)] = strip_unicode(input[key])
         return output
-    elif type(input) == unicode:
-        return str(input)
+    elif type(input) == str:
+        return input.encode('ascii', 'ignore')
     else:
         return input
 
@@ -2275,7 +2275,7 @@ def generate_random_string(length, ignore_str=string.punctuation,
     """
     r = random.SystemRandom()
     str = ""
-    chars = string.letters + string.digits + string.punctuation
+    chars = string.ascii_letters + string.digits + string.punctuation
     if not ignore_str:
         ignore_str = ""
     for i in ignore_str:

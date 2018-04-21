@@ -96,7 +96,7 @@ class AtomicGroup(model_logic.ModelWithInvalid, dbmodels.Model):
         db_table = 'afe_atomic_groups'
 
     def __unicode__(self):
-        return unicode(self.name)
+        return str(self.name)
 
 
 class Label(model_logic.ModelWithInvalid, dbmodels.Model):
@@ -173,7 +173,7 @@ class Label(model_logic.ModelWithInvalid, dbmodels.Model):
         db_table = 'afe_labels'
 
     def __unicode__(self):
-        return unicode(self.name)
+        return str(self.name)
 
 
 class Drone(dbmodels.Model, model_logic.ModelExtensions):
@@ -203,7 +203,7 @@ class Drone(dbmodels.Model, model_logic.ModelExtensions):
         db_table = 'afe_drones'
 
     def __unicode__(self):
-        return unicode(self.hostname)
+        return str(self.hostname)
 
 
 class DroneSet(dbmodels.Model, model_logic.ModelExtensions):
@@ -296,7 +296,7 @@ class DroneSet(dbmodels.Model, model_logic.ModelExtensions):
         db_table = 'afe_drone_sets'
 
     def __unicode__(self):
-        return unicode(self.name)
+        return str(self.name)
 
 
 class User(dbmodels.Model, model_logic.ModelExtensions):
@@ -374,7 +374,7 @@ class User(dbmodels.Model, model_logic.ModelExtensions):
         db_table = 'afe_users'
 
     def __unicode__(self):
-        return unicode(self.login)
+        return str(self.login)
 
 
 class Host(model_logic.ModelWithInvalid, dbmodels.Model,
@@ -584,7 +584,7 @@ class Host(model_logic.ModelWithInvalid, dbmodels.Model,
         db_table = 'afe_hosts'
 
     def __unicode__(self):
-        return unicode(self.hostname)
+        return str(self.hostname)
 
 
 class HostAttribute(dbmodels.Model):
@@ -683,7 +683,7 @@ class Test(dbmodels.Model, model_logic.ModelExtensions):
         db_table = 'afe_autotests'
 
     def __unicode__(self):
-        return unicode(self.name)
+        return str(self.name)
 
 
 class TestParameter(dbmodels.Model):
@@ -724,7 +724,7 @@ class Profiler(dbmodels.Model, model_logic.ModelExtensions):
         db_table = 'afe_profilers'
 
     def __unicode__(self):
-        return unicode(self.name)
+        return str(self.name)
 
 
 class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
@@ -876,7 +876,7 @@ class AclGroup(dbmodels.Model, model_logic.ModelExtensions):
         db_table = 'afe_acl_groups'
 
     def __unicode__(self):
-        return unicode(self.name)
+        return str(self.name)
 
 
 class Kernel(dbmodels.Model):
@@ -1601,7 +1601,7 @@ class SoftwareComponentKind(dbmodels.Model, model_logic.ModelExtensions):
         db_table = 'software_component_kind'
 
     def __unicode__(self):
-        return unicode(self.name)
+        return str(self.name)
 
 
 class SoftwareComponentArch(dbmodels.Model, model_logic.ModelExtensions):
@@ -1618,7 +1618,7 @@ class SoftwareComponentArch(dbmodels.Model, model_logic.ModelExtensions):
         db_table = 'software_component_arch'
 
     def __unicode__(self):
-        return unicode(self.name)
+        return str(self.name)
 
 
 class SoftwareComponent(dbmodels.Model, model_logic.ModelExtensions):
@@ -1679,7 +1679,7 @@ class SoftwareComponent(dbmodels.Model, model_logic.ModelExtensions):
                             "arch"))
 
     def __unicode__(self):
-        return unicode(self.name)
+        return str(self.name)
 
 
 class LinuxDistro(dbmodels.Model, model_logic.ModelExtensions):
@@ -1730,7 +1730,7 @@ class LinuxDistro(dbmodels.Model, model_logic.ModelExtensions):
         unique_together = (("name", "version", "release", "arch"))
 
     def __unicode__(self):
-        return unicode(self.name)
+        return str(self.name)
 
 
 class TestEnvironment(dbmodels.Model, model_logic.ModelExtensions):

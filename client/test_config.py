@@ -42,7 +42,7 @@ class config_loader:
         if hasattr(cfg, 'read'):
             self.cfg = cfg
             self.parser.readfp(self.cfg)
-        elif isinstance(cfg, types.StringTypes):
+        elif isinstance(cfg, str):
             # Config file is a URL. Download it to a temp dir
             if cfg.startswith('http') or cfg.startswith('ftp'):
                 self.cfg = path.join(tmpdir, path.basename(cfg))
