@@ -698,7 +698,7 @@ def _get_nonstar_args(func):
 
     :return: A tuple of parameters accepted by the function.
     """
-    return func.func_code.co_varnames[:func.func_code.co_argcount]
+    return func.__code__.co_varnames[:func.__code__.co_argcount]
 
 
 def _cherry_pick_args(func, args, dargs):
@@ -716,14 +716,14 @@ def _cherry_pick_args(func, args, dargs):
       A tuple of: (args tuple, keyword arguments dictionary)
     """
     # Cherry pick args:
-    if func.func_code.co_flags & 0x04:
+    if func.__code__.co_flags & 0x04:
         # func accepts *args, so return the entire args.
         p_args = args
     else:
         p_args = ()
 
     # Cherry pick dargs:
-    if func.func_code.co_flags & 0x08:
+    if func.__code__.co_flags & 0x08:
         # func accepts **dargs, so return the entire dargs.
         p_dargs = dargs
     else:
@@ -762,8 +762,8 @@ def _validate_args(args, dargs, *funcs):
     all_co_flags = 0
     all_varnames = ()
     for func in funcs:
-        all_co_flags |= func.func_code.co_flags
-        all_varnames += func.func_code.co_varnames[:func.func_code.co_argcount]
+        all_co_flags |= func.__code__.co_flags
+        all_varnames += func.__code__.co_varnames[:func.__code__.co_argcount]
 
     # Check if given args belongs to at least one of the methods below.
     if len(args) > 0:
