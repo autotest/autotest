@@ -140,13 +140,13 @@ class BgJob(object):
             # read in all the data we can from pipe and then stop
             data = []
             while select.select([pipe], [], [], 0)[0]:
-                data.append(os.read(pipe.fileno(), 1024).decode("utf-8"))
+                data.append(os.read(pipe.fileno(), 1024).decode("utf-8", 'replace'))
                 if len(data[-1]) == 0:
                     break
             data = "".join(data)
         else:
             # perform a single read
-            data = os.read(pipe.fileno(), 1024).decode("utf-8")
+            data = os.read(pipe.fileno(), 1024).decode("utf-8", 'replace')
         buf.write(data)
         tee.write(data)
 
@@ -239,7 +239,7 @@ class AsyncJob(BgJob):
         fileno = input_pipe.fileno()
         while True:
             # 1024 because that's what we did before
-            tmp = os.read(fileno, 1024).decode("utf-8")
+            tmp = os.read(fileno, 1024).decode("utf-8", 'replace')
             if tmp == '':
                 break
             acquire()
