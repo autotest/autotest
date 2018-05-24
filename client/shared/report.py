@@ -203,8 +203,8 @@ def parse_results_dir(results_dir, relative_links=True):
     if job_data['operations_executed'] == 0:
         job_data['operations_pass_rate'] = 100.0
     else:
-        job_data['operations_pass_rate'] = float(100 * job_data['operations_passed'] /
-                                                 job_data['operations_executed'])
+        job_data['operations_pass_rate'] = format(100 * job_data['operations_passed'] /
+                                                  job_data['operations_executed'], '.2f')
 
     return job_data
 

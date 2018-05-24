@@ -580,7 +580,8 @@ class status_log_entry(object):
         # combine all the log line data into a tab-delimited string
         subdir = self.subdir or self.RENDERED_NONE_VALUE
         operation = self.operation or self.RENDERED_NONE_VALUE
-        extra_fields = ['%s=%s' % field for field in self.fields.items()]
+        # timestamp has to be the fourth field in after tabulation split in order to parse virt results
+        extra_fields = ['%s=%s' % field for field in sorted(self.fields.items(), reverse=True)]
         line_items = [self.status_code, subdir, operation]
         line_items += extra_fields + [self.message]
         first_line = '\t'.join(line_items)
