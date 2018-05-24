@@ -28,6 +28,7 @@ except ImportError:
 check_version.check_python_version()
 
 import imp
+import types
 
 
 def _create_module(name):
@@ -36,7 +37,7 @@ def _create_module(name):
 
     :param name: Module name, such as 'autotest'.
     """
-    module = imp.new_module(name)
+    module = types.ModuleType(name)
     sys.modules[name] = module
     return module
 
@@ -55,10 +56,11 @@ def _create_module_and_parents(name):
     # now, create any remaining child modules
     while parts:
         child_name = parts.pop(0)
-        module = imp.new_module(child_name)
-        setattr(parent, child_name, module)
         created_parts.append(child_name)
-        sys.modules[".".join(created_parts)] = module
+        full_name = ".".join(created_parts)
+        module = types.ModuleType(full_name)
+        setattr(parent, child_name, module)
+        sys.modules[full_name] = module
         parent = module
 
 
@@ -89,7 +91,21 @@ def setup(base_path, root_module_name="autotest"):
         return
 
     _create_module_and_parents(root_module_name)
-    imp.load_package(root_module_name, base_path)
+
+    import importlib.machinery
+    base_path_package = os.path.join(base_path, "__init__.py")
+    loader = importlib.machinery.SourceFileLoader(root_module_name, base_path_package)
+    _module = loader.load_module(root_module_name)
+    ##_module = types.ModuleType(loader.name)
+    ##loader.exec_module(module)
+    #imp.load_package(root_module_name, base_path)
+
+    # TODO: in a slightly later python version there is a deprecation again
+    #import importlib.util
+    #spec = importlib.util.spec_from_file_location(root_module_name, base_path)
+    #module = importlib.util.module_from_spec(spec)
+    #spec.loader.exec_module(module)
+    #sys.modules[root_module_name] = module
 
     # Allow locally installed third party packages to be found.
     # This is primarily for the benefit of frontend and tko so that they
