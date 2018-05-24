@@ -134,9 +134,8 @@ class BaseIso9660(object):
         :rtype: None
         '''
         content = self.read(src)
-        output = open(dst, 'w+b')
-        output.write(content)
-        output.close()
+        with open(dst, 'w+b') as output:
+            output.write(content)
 
     def close(self):
         '''
@@ -203,8 +202,12 @@ class Iso9660IsoInfo(BaseIso9660):
                 return ""
 
         cmd.append("-x %s" % fname)
-        result = utils.run(" ".join(cmd))
-        return result.stdout
+        # TODO: think about changing the output of utils.run to be bytes to support streams like this
+        temp_file = os.path.join(tempfile.mkdtemp(), os.path.basename(path))
+        cmd.append(" > %s" % temp_file)
+        utils.run(" ".join(cmd))
+        with open(temp_file, 'rb') as temp_file:
+            return bytes(temp_file.read())
 
 
 class Iso9660IsoRead(BaseIso9660):
@@ -223,7 +226,8 @@ class Iso9660IsoRead(BaseIso9660):
         temp_file = os.path.join(self.temp_dir, path)
         cmd = 'iso-read -i %s -e %s -o %s' % (self.path, path, temp_file)
         utils.run(cmd)
-        return open(temp_file).read()
+        with open(temp_file, 'rb') as temp_file:
+            return bytes(temp_file.read())
 
     def copy(self, src, dst):
         cmd = 'iso-read -i %s -e %s -o %s' % (self.path, src, dst)
@@ -261,7 +265,8 @@ class Iso9660Mount(BaseIso9660):
         :rtype: str
         '''
         full_path = os.path.join(self.mnt_dir, path)
-        return open(full_path).read()
+        with open(full_path, 'rb') as file_to_read:
+            return bytes(file_to_read.read())
 
     def copy(self, src, dst):
         '''
