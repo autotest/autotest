@@ -16,7 +16,7 @@ import platform
 import re
 import shutil
 
-from autotest.client.shared import error, utils, magic, base_packages
+from autotest.client.shared import error, utils, base_packages
 
 
 def grep(pattern, file):
@@ -40,32 +40,32 @@ def difflist(list1, list2):
     return diff
 
 
-def cat_file_to_cmd(file, command, ignore_status=0, return_output=False):
+def cat_file_to_cmd(filename, command, ignore_status=0, return_output=False):
     """
-    equivalent to 'cat file | command' but knows to use
+    equivalent to 'cat filename | command' but knows to use
     zcat or bzcat if appropriate
     """
-    if not os.path.isfile(file):
-        raise NameError('invalid file %s to cat to command %s'
-                        % (file, command))
+    if not os.path.isfile(filename):
+        raise NameError('invalid filename %s to cat to command %s'
+                        % (filename, command))
 
     if return_output:
         run_cmd = utils.system_output
     else:
         run_cmd = utils.system
 
-    if magic.guess_type(file) == 'application/x-bzip2':
+    if filename.endswith(".bz2"):
         if base_packages.has_pbzip2():
             cat = 'pbzip2 -d -c'
         else:
             cat = 'bzcat'
-    elif magic.guess_type(file) == 'application/x-gzip':
+    elif filename.endswith(".gz"):
         cat = 'zcat'
-    elif magic.guess_type(file) == 'application/x-xz':
+    elif filename.endswith(".xz"):
         cat = 'xzcat'
     else:
         cat = 'cat'
-    return run_cmd('%s %s | %s' % (cat, file, command),
+    return run_cmd('%s %s | %s' % (cat, filename, command),
                    ignore_status=ignore_status)
 
 
@@ -536,7 +536,7 @@ def check_for_kernel_feature(feature):
     if not config:
         raise TypeError("Can't find kernel config file")
 
-    if magic.guess_type(config) == 'application/x-gzip':
+    if config.endswith(".gz"):
         grep = 'zgrep'
     else:
         grep = 'grep'
