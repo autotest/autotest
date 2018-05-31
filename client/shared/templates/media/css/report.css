@@ -135,6 +135,22 @@ table.stats div.test_GOOD {
     font-size: 13px;
 }
 
+table.stats div.test_BUG {
+    background-color: #FFFFFF;
+    color: #006400;
+    padding: 0px;
+    font-weight: bold;
+    font-size: 13px;
+}
+
+table.stats div.test_WARN {
+    background-color: #FFFFFF;
+    color: #FFA500;
+    padding: 0px;
+    font-weight: bold;
+    font-size: 13px;
+}
+
 table.stats div.test_FAIL {
     background-color: #FFFFFF;
     color: red;
@@ -145,7 +161,7 @@ table.stats div.test_FAIL {
 
 table.stats div.test_ERROR {
     background-color: #FFFFFF;
-    color: red;
+    color: #8B0000;
     padding: 0px;
     font-weight: bold;
     font-size: 13px;
