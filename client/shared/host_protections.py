@@ -1,4 +1,4 @@
-from autotest.client.shared import enum
+from autotest.client.shared import enum_hosts as enum
 from autotest.client.shared.settings import settings, SettingsError
 
 # Changing this file has consequences that need to be understood.

@@ -186,7 +186,7 @@ class Probe(object):
         version = UNKNOWN_DISTRO_VERSION
         match = self._get_version_match()
         if match is not None:
-            if match.groups() > 0:
+            if len(match.groups()) > 0:
                 version = match.groups()[0]
         return version
 
