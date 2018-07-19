@@ -70,7 +70,7 @@ So you can run a simple sleeptest with:
     job.run_test("sleeptest")
 
 This will run sleeptest. However, it's important to remember that when
-you run a server-side test then it runs on the server, not on the lis of
+you run a server-side test then it runs on the server, not on the list of
 machines you pass in on the autoserv command line. For something like a
 simple sleep test this doesn't really matter, but in general your test
 will need to manually do the setup required to run command remotely;

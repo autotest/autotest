@@ -163,5 +163,5 @@ Example
     """
 
     def run(machine):
-    job.run_test('reboot', machine, type="hard")
+        job.run_test('reboot', machine, type="hard")
     parallel_simple(run, machines)
