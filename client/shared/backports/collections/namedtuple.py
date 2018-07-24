@@ -115,15 +115,15 @@ def namedtuple(typename, field_names, verbose=False, rename=False):
     for i, name in enumerate(field_names):
         template += '        %s = _property(_itemgetter(%d))\n' % (name, i)
     if verbose:
-        print template
+        print(template)
 
     # Execute the template string in a temporary namespace
     namespace = dict(
         _itemgetter=_itemgetter, __name__='namedtuple_%s' % typename,
         _property=property, _tuple=tuple)
     try:
-        exec template in namespace
-    except SyntaxError, e:
+        exec(template in namespace)
+    except SyntaxError as e:
         raise SyntaxError(e.message + ':\n' + template)
     result = namespace[typename]
 
