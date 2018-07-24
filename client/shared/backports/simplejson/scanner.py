@@ -1,20 +1,16 @@
 """JSON token scanner
 """
 import re
-
-
+from .errors import JSONDecodeError
 def _import_c_make_scanner():
     try:
-        # pylint: disable=E0611
-        from simplejson._speedups import make_scanner
+        from ._speedups import make_scanner
         return make_scanner
     except ImportError:
         return None
-
-
 c_make_scanner = _import_c_make_scanner()
 
-__all__ = ['make_scanner']
+__all__ = ['make_scanner', 'JSONDecodeError']
 
 NUMBER_RE = re.compile(
     r'(-?(?:0|[1-9]\d*))(\.\d+)?([eE][-+]?\d+)?',
@@ -36,16 +32,17 @@ def py_make_scanner(context):
     memo = context.memo
 
     def _scan_once(string, idx):
+        errmsg = 'Expecting value'
         try:
             nextchar = string[idx]
         except IndexError:
-            raise StopIteration
+            raise JSONDecodeError(errmsg, string, idx)
 
         if nextchar == '"':
             return parse_string(string, idx + 1, encoding, strict)
         elif nextchar == '{':
             return parse_object((string, idx + 1), encoding, strict,
-                                _scan_once, object_hook, object_pairs_hook, memo)
+                _scan_once, object_hook, object_pairs_hook, memo)
         elif nextchar == '[':
             return parse_array((string, idx + 1), _scan_once)
         elif nextchar == 'n' and string[idx:idx + 4] == 'null':
@@ -70,15 +67,19 @@ def py_make_scanner(context):
         elif nextchar == '-' and string[idx:idx + 9] == '-Infinity':
             return parse_constant('-Infinity'), idx + 9
         else:
-            raise StopIteration
+            raise JSONDecodeError(errmsg, string, idx)
 
     def scan_once(string, idx):
+        if idx < 0:
+            # Ensure the same behavior as the C speedup, otherwise
+            # this would work for *some* negative string indices due
+            # to the behavior of __getitem__ for strings. #98
+            raise JSONDecodeError('Expecting value', string, idx)
         try:
             return _scan_once(string, idx)
         finally:
             memo.clear()
 
     return scan_once
-
 
 make_scanner = c_make_scanner or py_make_scanner
