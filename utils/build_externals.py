@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Please keep this code python 2.4 compatible and stand alone.
 

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 Library used to provide the appropriate data dir for virt test.
 """

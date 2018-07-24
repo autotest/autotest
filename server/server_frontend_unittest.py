@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Copyright Gregory P. Smith, Google Inc 2008
 # Released under the GPL v2

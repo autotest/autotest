@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 Program that parses autotest metrics results and prints them to stdout,
 so that the jenkins measurement-plots plugin can parse them.

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # change_protection_level.py "No protection" machine1 machine2 machine3
 

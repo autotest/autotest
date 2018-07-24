@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 '''
 Python unit testing framework, based on Erich Gamma's JUnit and Kent Beck's
 Smalltalk testing framework.

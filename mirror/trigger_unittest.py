@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # Copyright 2009 Google Inc. Released under the GPL v2
 
 import unittest

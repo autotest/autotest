@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 Program that parses the autotest results and return a nicely printed final test
 result.

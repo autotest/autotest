@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 Program and API used to expand kernel versions, trying to match
 them with the URL of the correspondent package on kernel.org or

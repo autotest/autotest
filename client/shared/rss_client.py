@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 Client for file transfer services offered by RSS (Remote Shell Server).
 

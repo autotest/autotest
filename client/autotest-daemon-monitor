@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 try:
     import autotest.common  # pylint: disable=W0611

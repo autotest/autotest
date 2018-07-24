@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 """Unit Tests for autotest.client.shared.test"""
 

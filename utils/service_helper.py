@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Service launcher that creates pidfiles and can redirect output to a file."""
 import grp
 import optparse

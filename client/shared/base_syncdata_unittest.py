@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 __author__ = """Jiri Zupka (jzupka@redhat.com)"""
 

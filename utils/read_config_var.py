@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 Read a variable in the global config for autotest
 i.e. SCHEDULER.drones TKO.host

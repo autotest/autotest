@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 #
 # This script is used to assemble multiple jUnit test result files together
 #    for display/processing by Jenkins. This allows assembling multiple

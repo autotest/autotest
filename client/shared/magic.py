@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 Library used to determine a file MIME type by its magic number, it doesn't have
 any external dependencies. Based on work of Jason Petrone (jp_py@jsnp.net),

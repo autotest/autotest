@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 from autotest.client.shared import distro_def
 from autotest.frontend import optparser

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """Reexecute parser in scenario and store the result at specified tag.
 """
 

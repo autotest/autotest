@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 #
 # Authors:
 #  Steve Conklin <sconklin@canonical.com>

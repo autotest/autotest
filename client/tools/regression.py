@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 Program that parses standard format results,
 compute and check regression bug.

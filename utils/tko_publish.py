@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 This script will scan an autotest server results directory for job result
 directories that have completed and that have not yet been published on

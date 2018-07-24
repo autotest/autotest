@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 Module used to parse the autotest job status file and generate a JSON file.
 

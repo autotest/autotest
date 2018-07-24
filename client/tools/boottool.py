@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/python3
 
 '''
 A boottool clone, but written in python and relying mostly on grubby[1].
