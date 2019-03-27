@@ -175,7 +175,7 @@ def parse_control(path, raise_warnings=False):
                 key, val = fn(n)
 
                 vars[key] = val
-            except AssertionError as e:
+            except AssertionError:
                 pass
 
     return ControlData(vars, path, raise_warnings)

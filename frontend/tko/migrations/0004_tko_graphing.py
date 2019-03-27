@@ -11,7 +11,7 @@ class Migration(SchemaMigration):
         # on some systmes this constraint is created.
         try:
             db.delete_foreign_key('tko_iteration_result', 'test_idx')
-        except ValueError as e:
+        except ValueError:
             logging.warning("Failed to delete foreign key on tko_interation_result, it likely doesn't exist")
 
         # Removing primary key constraint on tko_iteration_result, allowing more than one keval per test

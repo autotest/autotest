@@ -154,7 +154,7 @@ class ServiceHandler(object):
                          'id': result_dict['id'],
                          'error': result_dict['err']}
             data = json_encoder.encode(json_dict)
-        except TypeError as e:
+        except TypeError:
             err_traceback = traceback.format_exc()
             print err_traceback
             err = {"name": "JSONEncodeException",

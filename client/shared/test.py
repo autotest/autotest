@@ -431,7 +431,7 @@ class base_test(object):
                 finally:
                     self.job.logging.restore()
                     try:
-                        raise exc_info[0], exc_info[1], exc_info[2]
+                        raise exc_info[0](exc_info[1])
                     finally:
                         # http://docs.python.org/library/sys.html#sys.exc_info
                         # Be nice and prevent a circular reference.

@@ -62,7 +62,7 @@ class kernelexpandTest(unittest.TestCase):
             success = True
         except NameError:
             pass
-        except Exception as e:
+        except Exception:
             self.fail('expected NameError, got something else')
 
         if success:
@@ -85,7 +85,7 @@ class kernelexpandTest(unittest.TestCase):
             success = True
         except NameError:
             pass
-        except Exception as e:
+        except Exception:
             self.fail('expected NameError, got something else')
 
         if success:
@@ -112,7 +112,7 @@ class kernelexpandTest(unittest.TestCase):
             success = True
         except NameError:
             pass
-        except Exception as e:
+        except Exception:
             self.fail('expected NameError, got something else')
 
         if success:

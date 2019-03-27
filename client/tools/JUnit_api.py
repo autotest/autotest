@@ -73,7 +73,7 @@ def parsexml_(*args, **kwargs):
 
 try:
     from generatedssuper import GeneratedsSuper
-except ImportError as exp:
+except ImportError:
 
     class GeneratedsSuper(object):
 
@@ -97,7 +97,7 @@ except ImportError as exp:
             for value in values:
                 try:
                     fvalue = float(value)
-                except (TypeError, ValueError) as exp:
+                except (TypeError, ValueError):
                     raise_parse_error(node, 'Requires sequence of integers')
             return input_data
 
@@ -115,7 +115,7 @@ except ImportError as exp:
             for value in values:
                 try:
                     fvalue = float(value)
-                except (TypeError, ValueError) as exp:
+                except (TypeError, ValueError):
                     raise_parse_error(node, 'Requires sequence of floats')
             return input_data
 
@@ -133,7 +133,7 @@ except ImportError as exp:
             for value in values:
                 try:
                     fvalue = float(value)
-                except (TypeError, ValueError) as exp:
+                except (TypeError, ValueError):
                     raise_parse_error(node, 'Requires sequence of doubles')
             return input_data
 

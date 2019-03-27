@@ -167,20 +167,20 @@ class config_loader:
     def __isint(self, parameter):
         try:
             int(parameter)
-        except Exception as e_stack:
+        except Exception:
             return False
         return True
 
     def __isfloat(self, parameter):
         try:
             float(parameter)
-        except Exception as e_stack:
+        except Exception:
             return False
         return True
 
     def __isstr(self, parameter):
         try:
             str(parameter)
-        except Exception as e_stack:
+        except Exception:
             return False
         return True

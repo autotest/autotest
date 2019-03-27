@@ -198,7 +198,7 @@ if __name__ == "__main__":
         try:
             crashed_pid, crash_time, uid, signal, hostname, exe = sys.argv[1:]  # pylint: disable=E0632
             full_functionality = True
-        except ValueError as e:
+        except ValueError:
             # Probably due a kernel bug, we can't exactly map the parameters
             # passed to this script. So we have to reduce the functionality
             # of the script (just write the core at a fixed place).

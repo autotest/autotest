@@ -241,7 +241,7 @@ class atest_add_or_remove(topic_common.atest):
                     self._add_remove_uh_to_topic(item, what)
                 except AttributeError:
                     pass
-                except topic_common.CliError as err:
+                except topic_common.CliError:
                     # The error was already logged by
                     # self.failure()
                     pass

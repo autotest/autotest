@@ -608,7 +608,7 @@ class base_server_job(base_job.base_job):
         if exc_info and isinstance(exc_info[1], error.TestBaseException):
             return False
         elif exc_info:
-            raise exc_info[0], exc_info[1], exc_info[2]
+            raise exc_info[0](exc_info[1])
         else:
             return True
 

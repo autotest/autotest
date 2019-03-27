@@ -638,7 +638,7 @@ class base_client_job(base_job.base_job):
             except error.TestBaseException as e:
                 self.record('END %s' % e.exit_status, subdir, testname)
                 raise
-            except error.JobError as e:
+            except error.JobError:
                 self.record('END ABORT', subdir, testname)
                 raise
             except Exception as e:

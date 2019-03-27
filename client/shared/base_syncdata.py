@@ -46,7 +46,7 @@ def net_recv_object(sock, timeout=60):
             data += sock.recv(d_len - len(data))
         data = pickle.loads(data)
         return data
-    except (socket.timeout, ValueError) as e:
+    except (socket.timeout, ValueError):
         raise error.NetCommunicationError("Failed to receive python"
                                           " object over the network.")
 
