@@ -75,7 +75,7 @@ def init_test(options, testdir):
                          (test_name, test_name))
             exec import_stmt + '\n' + init_stmt in locals_dict, globals_dict
             client_test = globals_dict['auto_test']
-        except ImportError, e:
+        except ImportError as e:
             # skips error if test is control file without python test
             if re.search(test_name, str(e)):
                 pass
@@ -83,7 +83,7 @@ def init_test(options, testdir):
             else:
                 logging.error('%s import error: %s.  Skipping %s' %
                               (test_name, e, test_name))
-        except Exception, e:
+        except Exception as e:
             # Log other errors (e.g., syntax errors) and collect the test.
             logging.error("%s: %s", test_name, e)
     finally:
@@ -156,7 +156,7 @@ def setup_test(client_test):
                 versionfile = os.path.join(client_test.srcdir, '.version')
                 pickle.dump(client_test.version, open(versionfile, 'w'))
             good_setup = True
-        except Exception, err:
+        except Exception as err:
             logging.error(err)
             raise error.AutoservError('Failed to build client test %s on '
                                       'server.' % test_name)

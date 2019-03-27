@@ -42,7 +42,7 @@ class rpc_comm(object):
         self.web_server = get_autotest_server(web_server)
         try:
             self.proxy = self._connect(rpc_path)
-        except rpc_client_lib.AuthError, s:
+        except rpc_client_lib.AuthError as s:
             raise AuthError(s)
 
     def _connect(self, rpc_path):

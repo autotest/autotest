@@ -30,7 +30,7 @@ hosts = afe_proxy.run('get_hosts', hostname__in=leftover_args[1:])
 for host in hosts:
     try:
         afe_proxy.run('modify_host', host['id'], protection=protection_level)
-    except Exception, exc:
+    except Exception as exc:
         print 'For host %s:', host['hostname']
         traceback.print_exc()
     else:

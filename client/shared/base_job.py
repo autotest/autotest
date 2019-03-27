@@ -120,7 +120,7 @@ class job_directory(object):
         if is_writable:
             try:
                 os.makedirs(self.path)
-            except OSError, e:
+            except OSError as e:
                 if e.errno != errno.EEXIST or not os.path.isdir(self.path):
                     raise self.UncreatableDirectoryException(self.path, e)
         elif not os.path.isdir(self.path):
@@ -1277,7 +1277,7 @@ class base_job(object):
         try:
             outputdir = self._job_directory(path, True)
             return outputdir
-        except self._job_directory.JobDirectoryException, e:
+        except self._job_directory.JobDirectoryException as e:
             logging.exception('%s directory creation failed with %s',
                               subdir, e)
             raise error.TestError('%s directory creation failed' % subdir)

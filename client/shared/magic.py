@@ -1042,7 +1042,7 @@ def guess_type(filename):
 
     try:
         data = open(filename, 'r').read(8192)
-    except Exception, e:
+    except Exception as e:
         logging.error(str(e))
         return None
 

@@ -307,7 +307,7 @@ class BaseAutotest(installable_object.InstallableObject):
                 self.installed = True
                 return
             except (error.PackageInstallError, error.AutoservRunError,
-                    SettingsError), e:
+                    SettingsError) as e:
                 logging.info("Could not install autotest using the packaging "
                              "system: %s. Trying other methods", e)
 
@@ -457,7 +457,7 @@ class BaseAutotest(installable_object.InstallableObject):
             pkgmgr = packages.PackageManager('autotest', hostname=host.hostname,
                                              repo_urls=repos)
             prologue_lines.append('job.add_repository(%s)\n' % repos)
-        except SettingsError, e:
+        except SettingsError as e:
             # If repos is defined packaging is enabled so log the error
             if repos:
                 logging.error(e)
@@ -763,7 +763,7 @@ class _BaseRun(object):
                                            timeout=timeout,
                                            stdout_tee=client_log,
                                            stderr_tee=stderr_redirector)
-                except error.AutoservRunError, e:
+                except error.AutoservRunError as e:
                     result = e.result_obj
                     result.exit_status = None
                     disconnect_warnings.append(e.description)
@@ -844,7 +844,7 @@ class _BaseRun(object):
             logging.warning(warning)
             try:
                 self.host.hardreset(wait=False)
-            except (AttributeError, error.AutoservUnsupportedError), detail:
+            except (AttributeError, error.AutoservUnsupportedError) as detail:
                 warning = ("Hard reset unsupported on %s: %s" %
                            (self.hostname, detail))
                 logging.warning(warning)
@@ -885,7 +885,7 @@ class _BaseRun(object):
                 elif self.is_client_job_rebooting(last):
                     try:
                         self._wait_for_reboot(boot_id)
-                    except error.AutotestRunError, e:
+                    except error.AutotestRunError as e:
                         self.host.job.record("ABORT", None, "reboot", str(e))
                         self.host.job.record("END ABORT", None, None, str(e))
                         raise

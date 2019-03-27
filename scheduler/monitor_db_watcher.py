@@ -179,7 +179,7 @@ def main():
             pid = os.fork()
             if (pid > 0):
                 sys.exit(0)  # exit from first parent
-        except OSError, e:
+        except OSError as e:
             sys.stderr.write("fork #1 failed: (%d) %s\n" %
                              (e.errno, e.strerror))
             sys.exit(1)
@@ -194,7 +194,7 @@ def main():
             pid = os.fork()
             if (pid > 0):
                 sys.exit(0)  # exit from second parent
-        except OSError, e:
+        except OSError as e:
             sys.stderr.write("fork #2 failed: (%d) %s\n" %
                              (e.errno, e.strerror))
             sys.exit(1)

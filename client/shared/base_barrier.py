@@ -408,7 +408,7 @@ class barrier(object):
                 logging.warn("timeout calling host, retry")
                 sleep(10)
                 pass
-            except socket.error, err:
+            except socket.error as err:
                 (code, str) = err
                 if (code != errno.ECONNREFUSED):
                     raise

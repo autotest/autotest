@@ -138,7 +138,7 @@ def context_aware(fn):
         try:
             try:
                 return fn(*args, **kwargs)
-            except Exception, e:
+            except Exception as e:
                 if not exception_context(e):
                     set_exception_context(e, get_context())
                 raise

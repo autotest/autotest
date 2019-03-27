@@ -47,7 +47,7 @@ def run(machine):
     control = get_control(params, custom_cfg)
     try:
         at.run(control)
-    except Exception, details:
+    except Exception as details:
         job.record('FAIL', None, 'host kernel install (server)', str(details))
         control = get_control(params, custom_cfg, kernel_install=False)
         at.run(control)

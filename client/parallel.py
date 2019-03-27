@@ -26,9 +26,9 @@ def fork_start(tmp, l):
             l()
         except error.AutotestError:
             raise
-        except Exception, e:
+        except Exception as e:
             raise error.UnhandledTestError(e)
-    except Exception, detail:
+    except Exception as detail:
         try:
             try:
                 logging.error('child process failed')

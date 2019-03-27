@@ -39,7 +39,7 @@ class LocalHost(hosts.Host):
                 command, timeout=timeout, ignore_status=True,
                 stdout_tee=stdout_tee, stderr_tee=stderr_tee, stdin=stdin,
                 args=args)
-        except error.CmdError, e:
+        except error.CmdError as e:
             # this indicates a timeout exception
             raise error.AutotestHostRunError('command timed out', e.result_obj)
 

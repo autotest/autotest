@@ -92,7 +92,7 @@ def install_completed_client(compiled_dir, project_client):
         try:
             os.rename(tmp_client_dir, install_dir)
             return True
-        except Exception, err:
+        except Exception as err:
             # If we can't rename the client raise an exception
             # and put the old client back
             shutil.rmtree(install_dir)

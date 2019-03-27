@@ -92,7 +92,7 @@ class dict_database(database):
         try:
             # this may block
             fcntl.flock(fd, fcntl.LOCK_EX)
-        except Exception, err:
+        except Exception as err:
             os.close(fd)
             raise err
 

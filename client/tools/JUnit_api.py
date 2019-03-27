@@ -73,7 +73,7 @@ def parsexml_(*args, **kwargs):
 
 try:
     from generatedssuper import GeneratedsSuper
-except ImportError, exp:
+except ImportError as exp:
 
     class GeneratedsSuper(object):
 
@@ -97,7 +97,7 @@ except ImportError, exp:
             for value in values:
                 try:
                     fvalue = float(value)
-                except (TypeError, ValueError), exp:
+                except (TypeError, ValueError) as exp:
                     raise_parse_error(node, 'Requires sequence of integers')
             return input_data
 
@@ -115,7 +115,7 @@ except ImportError, exp:
             for value in values:
                 try:
                     fvalue = float(value)
-                except (TypeError, ValueError), exp:
+                except (TypeError, ValueError) as exp:
                     raise_parse_error(node, 'Requires sequence of floats')
             return input_data
 
@@ -133,7 +133,7 @@ except ImportError, exp:
             for value in values:
                 try:
                     fvalue = float(value)
-                except (TypeError, ValueError), exp:
+                except (TypeError, ValueError) as exp:
                     raise_parse_error(node, 'Requires sequence of doubles')
             return input_data
 
@@ -784,14 +784,14 @@ class testsuite(GeneratedsSuper):
             already_processed.append('tests')
             try:
                 self.tests = int(value)
-            except ValueError, exp:
+            except ValueError as exp:
                 raise_parse_error(node, 'Bad integer attribute: %s' % exp)
         value = find_attr_value_('errors', node)
         if value is not None and 'errors' not in already_processed:
             already_processed.append('errors')
             try:
                 self.errors = int(value)
-            except ValueError, exp:
+            except ValueError as exp:
                 raise_parse_error(node, 'Bad integer attribute: %s' % exp)
         value = find_attr_value_('name', node)
         if value is not None and 'name' not in already_processed:
@@ -813,14 +813,14 @@ class testsuite(GeneratedsSuper):
             already_processed.append('time')
             try:
                 self.time = float(value)
-            except ValueError, exp:
+            except ValueError as exp:
                 raise ValueError('Bad float/double attribute (time): %s' % exp)
         value = find_attr_value_('failures', node)
         if value is not None and 'failures' not in already_processed:
             already_processed.append('failures')
             try:
                 self.failures = int(value)
-            except ValueError, exp:
+            except ValueError as exp:
                 raise_parse_error(node, 'Bad integer attribute: %s' % exp)
         value = find_attr_value_('xsi:type', node)
         if value is not None and 'xsi:type' not in already_processed:
@@ -1083,7 +1083,7 @@ class testsuiteType(testsuite):
             already_processed.append('id')
             try:
                 self.id = int(value)
-            except ValueError, exp:
+            except ValueError as exp:
                 raise_parse_error(node, 'Bad integer attribute: %s' % exp)
         value = find_attr_value_('package', node)
         if value is not None and 'package' not in already_processed:
@@ -1444,7 +1444,7 @@ class testcaseType(GeneratedsSuper):
             already_processed.append('time')
             try:
                 self.time = float(value)
-            except ValueError, exp:
+            except ValueError as exp:
                 raise ValueError('Bad float/double attribute (time): %s' % exp)
 
     def buildChildren(self, child_, node, nodeName_, fromsubclass_=False):

@@ -123,7 +123,7 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
             return self._run(command, timeout, ignore_status, stdout_tee,
                              stderr_tee, connect_timeout, env, options,
                              stdin, args)
-        except error.CmdError, cmderr:
+        except error.CmdError as cmderr:
             # We get a CmdError here only if there is timeout of that command.
             # Catch that and stuff it into AutoservRunError and raise it.
             raise error.AutoservRunError(cmderr.args[0], cmderr.args[1])

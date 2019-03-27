@@ -178,9 +178,9 @@ def handle_prompts(session, username, password, prompt, timeout=10,
                 if debug:
                     logging.debug("Got shell prompt -- logged in")
                 break
-        except aexpect.ExpectTimeoutError, e:
+        except aexpect.ExpectTimeoutError as e:
             raise LoginTimeoutError(e.output)
-        except aexpect.ExpectProcessTerminatedError, e:
+        except aexpect.ExpectProcessTerminatedError as e:
             raise LoginProcessTerminatedError(e.status, e.output)
 
 
@@ -264,7 +264,7 @@ def wait_for_login(client, host, port, username, password, prompt,
             return remote_login(client, host, port, username, password, prompt,
                                 linesep, log_filename, internal_timeout,
                                 interface)
-        except LoginError, e:
+        except LoginError as e:
             logging.debug(e)
         time.sleep(2)
     # Timeout expired; try one more time but don't catch exceptions
@@ -332,12 +332,12 @@ def _remote_scp(session, password_list, transfer_timeout=600, login_timeout=20):
                                                  text)
             elif match == 2:  # "lost connection"
                 raise SCPError("SCP client said 'lost connection'", text)
-        except aexpect.ExpectTimeoutError, e:
+        except aexpect.ExpectTimeoutError as e:
             if authentication_done:
                 raise SCPTransferTimeoutError(e.output)
             else:
                 raise SCPAuthenticationTimeoutError(e.output)
-        except aexpect.ExpectProcessTerminatedError, e:
+        except aexpect.ExpectProcessTerminatedError as e:
             if e.status == 0:
                 logging.debug("SCP process terminated with status 0")
                 break

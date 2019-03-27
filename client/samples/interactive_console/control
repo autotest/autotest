@@ -23,7 +23,7 @@ try:
         app = TerminalIPythonApp.instance()
         app.initialize(argv=[])
         app.start()
-    except AttributeError, e:
+    except AttributeError as e:
         # IPython < 0.11
         ipshell = IPython.Shell.IPShellEmbed(argv=[], banner='autotest console')
         ipshell()

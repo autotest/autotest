@@ -176,7 +176,7 @@ if __name__ == '__main__':
         for tag in tag_list:
             try:
                 delete_job_full(tag)
-            except Exception, detail:
+            except Exception as detail:
                 logging.error("Could not delete job tag %s: %s",
                               tag, detail)
                 logging.error("It is likely that you tried to "

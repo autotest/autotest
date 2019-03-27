@@ -204,7 +204,7 @@ class atest_add_or_remove(topic_common.atest):
             self.execute_rpc(op=op,                       # The opcode
                              **{'id': item, what: uhs})   # The data
             setattr(self, 'good_%s' % what, uhs)
-        except topic_common.CliError, full_error:
+        except topic_common.CliError as full_error:
             bad_uhs = self.parse_json_exception(full_error)
             good_uhs = list(set(uhs) - set(bad_uhs))
             if bad_uhs and good_uhs:
@@ -241,7 +241,7 @@ class atest_add_or_remove(topic_common.atest):
                     self._add_remove_uh_to_topic(item, what)
                 except AttributeError:
                     pass
-                except topic_common.CliError, err:
+                except topic_common.CliError as err:
                     # The error was already logged by
                     # self.failure()
                     pass

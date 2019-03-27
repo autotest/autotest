@@ -361,10 +361,10 @@ class Host(object):
                                  ' inodes')
                     self.reboot()
                 return  # verify succeeded, then repair succeeded
-            except error.AutoservHostIsShuttingDownError, err:
+            except error.AutoservHostIsShuttingDownError as err:
                 logging.exception('verify failed')
                 self._call_repair_func(err, self._repair_wait_for_reboot)
-            except error.AutoservDiskFullHostError, err:
+            except error.AutoservDiskFullHostError as err:
                 logging.exception('verify failed')
                 self._call_repair_func(err, self.repair_full_disk,
                                        self._get_mountpoint(err.path))
@@ -377,7 +377,7 @@ class Host(object):
                 break
             except (error.AutoservSshPingHostError, error.AutoservSSHTimeout,
                     error.AutoservSshPermissionDeniedError,
-                    error.AutoservDiskFullHostError), err:
+                    error.AutoservDiskFullHostError) as err:
                 logging.exception('verify failed')
                 logging.info('Trying to reinstall the machine')
                 self._call_repair_func(err, self.machine_install)
@@ -388,7 +388,7 @@ class Host(object):
             try:
                 self.repair_software_only()
                 break
-            except error.AutoservHardwareRepairRequiredError, err:
+            except error.AutoservHardwareRepairRequiredError as err:
                 logging.exception('software repair failed, '
                                   'hardware repair requested')
                 hardware_repair_requests += 1
@@ -403,7 +403,7 @@ class Host(object):
                     logging.info('hardware repair requested %d times, '
                                  'trying software repair again',
                                  hardware_repair_requests)
-            except error.AutoservHardwareHostError, err:
+            except error.AutoservHardwareHostError as err:
                 logging.exception('verify failed')
                 # software repair failed, try hardware repair
                 logging.info('Hardware problem found, '

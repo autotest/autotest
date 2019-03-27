@@ -448,7 +448,7 @@ class base_test(object):
                 self.job.enable_warnings("NETWORK")
             # Pass already-categorized errors on up.
             raise
-        except Exception, e:
+        except Exception as e:
             if self.network_destabilizing:
                 self.job.enable_warnings("NETWORK")
             # Anything else is an ERROR in our own code, not execute().
@@ -824,7 +824,7 @@ def _call_test_function(func, *args, **dargs):
     except error.AutotestError:
         # Pass already-categorized errors on up as is.
         raise
-    except Exception, e:
+    except Exception as e:
         # Other exceptions must be treated as a FAIL when
         # raised during the test functions
         raise error.UnhandledTestFail(e)

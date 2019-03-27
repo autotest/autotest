@@ -18,7 +18,7 @@ def repair(machine):
     try:
         _call_repair(machine)
         job.record('GOOD', None, 'repair', '%s repaired successfully' % machine)
-    except Exception, e:
+    except Exception as e:
         msg = 'repair failed on %s: %s\n' % (machine, str(e))
         job.record('FAIL', None, 'repair', msg)
         raise

@@ -352,7 +352,7 @@ class base_server_job(base_job.base_job):
                          'ssh_port': self._ssh_port,
                          'ssh_pass': self._ssh_pass}
             self._execute_code(VERIFY_CONTROL_FILE, namespace, protect=False)
-        except Exception, e:
+        except Exception as e:
             msg = ('Verify failed\n' + str(e) + '\n' + traceback.format_exc())
             self.record('ABORT', None, None, msg)
             raise
@@ -545,7 +545,7 @@ class base_server_job(base_job.base_job):
 
                 # no error occurred, so we don't need to collect crashinfo
                 collect_crashinfo = False
-            except Exception, e:
+            except Exception as e:
                 try:
                     logging.exception(
                         'Exception escaped control file, job aborting:')
@@ -559,7 +559,7 @@ class base_server_job(base_job.base_job):
                 # Clean up temp directory used for copies of the control files
                 try:
                     shutil.rmtree(temp_control_file_dir)
-                except Exception, e:
+                except Exception as e:
                     logging.warn('Could not remove temp directory %s: %s',
                                  temp_control_file_dir, e)
 
@@ -594,10 +594,10 @@ class base_server_job(base_job.base_job):
         def group_func():
             try:
                 test.runtest(self, url, tag, args, dargs)
-            except error.TestBaseException, e:
+            except error.TestBaseException as e:
                 self.record(e.exit_status, subdir, testname, str(e))
                 raise
-            except Exception, e:
+            except Exception as e:
                 info = str(e) + "\n" + traceback.format_exc()
                 self.record('FAIL', subdir, testname, info)
                 raise
@@ -620,10 +620,10 @@ class base_server_job(base_job.base_job):
         try:
             self.record('START', subdir, name)
             result = function(*args, **dargs)
-        except error.TestBaseException, e:
+        except error.TestBaseException as e:
             self.record("END %s" % e.exit_status, subdir, name)
             exc_info = sys.exc_info()
-        except Exception, e:
+        except Exception as e:
             err_msg = str(e) + '\n'
             err_msg += traceback.format_exc()
             self.record('END ABORT', subdir, name, err_msg)
@@ -664,7 +664,7 @@ class base_server_job(base_job.base_job):
         try:
             self.record('START', None, 'reboot')
             reboot_func()
-        except Exception, e:
+        except Exception as e:
             err_msg = str(e) + '\n' + traceback.format_exc()
             self.record('END FAIL', None, 'reboot', err_msg)
             raise
@@ -1062,7 +1062,7 @@ class base_server_job(base_job.base_job):
         try:
             self._state.read_from_file(state_path)
             os.remove(state_path)
-        except OSError, e:
+        except OSError as e:
             # ignore file-not-found errors
             if e.errno != errno.ENOENT:
                 raise

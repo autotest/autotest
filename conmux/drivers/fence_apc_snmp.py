@@ -128,24 +128,24 @@ def main():
 
         try:
             address = params["ipaddr"]
-        except KeyError, e:
+        except KeyError as e:
             sys.stderr.write("FENCE: Missing ipaddr param for fence_apc...exiting")
             sys.exit(1)
         try:
             login = params["login"]
-        except KeyError, e:
+        except KeyError as e:
             sys.stderr.write("FENCE: Missing login param for fence_apc...exiting")
             sys.exit(1)
 
         try:
             passwd = params["passwd"]
-        except KeyError, e:
+        except KeyError as e:
             sys.stderr.write("FENCE: Missing passwd param for fence_apc...exiting")
             sys.exit(1)
 
         try:
             port = params["port"]
-        except KeyError, e:
+        except KeyError as e:
             sys.stderr.write("FENCE: Missing port param for fence_apc...exiting")
             sys.exit(1)
 
@@ -157,7 +157,7 @@ def main():
                 action = POWER_ON
             elif a == "Reboot" or a == "REBOOT" or a == "reboot":
                 action = POWER_REBOOT
-        except KeyError, e:
+        except KeyError as e:
             action = POWER_REBOOT
 
         # End of stdin section
@@ -356,7 +356,7 @@ def execWithCaptureStatus(command, argv, searchPath=0, root='/', stdin=0,
     status = -1
     try:
         (pid, status) = os.waitpid(childpid, 0)
-    except OSError, (errno, msg):
+    except OSError as (errno, msg):
         print __name__, "waitpid:", msg
 
     if os.WIFEXITED(status) and (os.WEXITSTATUS(status) == 0):

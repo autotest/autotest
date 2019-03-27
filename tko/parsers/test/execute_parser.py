@@ -33,7 +33,7 @@ def main():
     harness = scenario_base.new_parser_harness(results_dirpath)
     try:
         parser_result = harness.execute()
-    except Exception, e:
+    except Exception as e:
         parser_result = e
     scenario_base.store_parser_result(
         scenario_dirpath, parser_result, parser_result_tag)
