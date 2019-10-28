@@ -14,6 +14,13 @@ def get_kvm_arch():
     :returns: 'kvm_amd' or 'kvm_intel' or 'kvm_power7'
     :rtype: `string`
     """
+    kvm_archs = {
+        "amd": "kvm_amd",
+        "hygon": "kvm_amd",
+        "intel": "kvm_intel",
+        "power7": "kvm_power7"
+    }
+
     flags = {
         'kvm_amd': "svm",
         'kvm_intel': "vmx"
@@ -22,9 +29,9 @@ def get_kvm_arch():
     vendor_name = utils.get_cpu_vendor_name()
 
     if not vendor_name:
-        raise error.TestError("CPU Must be AMD, Intel or Power7")
+        raise error.TestError("CPU Must be AMD, Hygon, Intel or Power7")
 
-    arch_type = 'kvm_%s' % vendor_name
+    arch_type = kvm_archs.get(vendor_name, None)
     cpu_flag = flags.get(arch_type, None)
 
     if cpu_flag is None and vendor_name in ('power7', ):
