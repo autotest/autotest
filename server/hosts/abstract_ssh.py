@@ -279,7 +279,7 @@ class AbstractSSHHost(SiteHost):
                                              delete_dest, preserve_symlinks)
                 utils.run(rsync)
                 try_scp = False
-            except error.CmdError, e:
+            except error.CmdError as e:
                 logging.warn("trying scp, rsync failed: %s" % e)
 
         if try_scp:
@@ -297,7 +297,7 @@ class AbstractSSHHost(SiteHost):
                 scp = self._make_scp_cmd([remote_source], local_dest)
                 try:
                     utils.run(scp)
-                except error.CmdError, e:
+                except error.CmdError as e:
                     raise error.AutoservRunError(e.args[0], e.args[1])
 
         if not preserve_perm:
@@ -354,7 +354,7 @@ class AbstractSSHHost(SiteHost):
                                              delete_dest, preserve_symlinks)
                 utils.run(rsync)
                 try_scp = False
-            except error.CmdError, e:
+            except error.CmdError as e:
                 logging.warn("trying scp, rsync failed: %s" % e)
 
         if try_scp:
@@ -396,7 +396,7 @@ class AbstractSSHHost(SiteHost):
                 scp = self._make_scp_cmd(local_sources, remote_dest)
                 try:
                     utils.run(scp)
-                except error.CmdError, e:
+                except error.CmdError as e:
                     raise error.AutoservRunError(e.args[0], e.args[1])
 
     def ssh_ping(self, timeout=60):
@@ -410,7 +410,7 @@ class AbstractSSHHost(SiteHost):
         except error.AutoservSshPermissionDeniedError:
             # let AutoservSshPermissionDeniedError be visible to the callers
             raise
-        except error.AutoservRunError, e:
+        except error.AutoservRunError as e:
             # convert the generic AutoservRunError into something more
             # specific for this context
             raise error.AutoservSshPingHostError(e.description + '\n' +

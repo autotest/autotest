@@ -58,7 +58,7 @@ def record(fn):
         try:
             result = fn(self, *args, **dargs)
             job.record('GOOD', subdir, operation)
-        except Exception, detail:
+        except Exception as detail:
             job.record('FAIL', subdir, operation, str(detail))
             raise
         return result

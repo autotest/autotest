@@ -600,7 +600,7 @@ class coverage:
             lines, excluded_lines, line_map = self.find_executable_statements(
                 source.read(), exclude=self.exclude_re
             )
-        except SyntaxError, synerr:
+        except SyntaxError as synerr:
             raise CoverageException(
                 "Couldn't parse '%s' as Python source: '%s' at line %d" %
                 (filename, synerr.msg, synerr.lineno)

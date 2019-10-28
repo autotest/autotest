@@ -73,7 +73,7 @@ def vg_ramdisk(vg_name, ramdisk_vg_size,
 
         logging.info("Finding free loop device")
         result = utils.run("losetup --find", verbose=True)
-    except error.CmdError, ex:
+    except error.CmdError as ex:
         logging.error(ex)
         vg_ramdisk_cleanup(ramdisk_filename, vg_ramdisk_dir,
                            vg_name, use_tmpfs)
@@ -88,7 +88,7 @@ def vg_ramdisk(vg_name, ramdisk_vg_size,
         result = utils.run("pvcreate %s" % loop_device)
         logging.info("Creating volume group %s", vg_name)
         result = utils.run("vgcreate %s %s" % (vg_name, loop_device))
-    except error.CmdError, ex:
+    except error.CmdError as ex:
         logging.error(ex)
         vg_ramdisk_cleanup(ramdisk_filename, vg_ramdisk_dir,
                            vg_name, loop_device, use_tmpfs)
@@ -362,7 +362,7 @@ def thin_lv_create(vg_name, thinpool_name="lvthinpool", thinpool_size="1.5G",
                                                       vg_name)
     try:
         utils.run(tp_cmd)
-    except error.CmdError, detail:
+    except error.CmdError as detail:
         logging.debug(detail)
         raise error.TestError("Create thin volume pool failed.")
     logging.debug("Created thin volume pool: %s", thinpool_name)
@@ -371,7 +371,7 @@ def thin_lv_create(vg_name, thinpool_name="lvthinpool", thinpool_size="1.5G",
                                 vg_name, thinpool_name))
     try:
         utils.run(lv_cmd)
-    except error.CmdError, detail:
+    except error.CmdError as detail:
         logging.debug(detail)
         raise error.TestError("Create thin volume failed.")
     logging.debug("Created thin volume:%s", thinlv_name)
@@ -421,7 +421,7 @@ def lv_take_snapshot(vg_name, lv_name,
            (lv_snapshot_name, vg_name, lv_name, lv_snapshot_size))
     try:
         result = utils.run(cmd)
-    except error.CmdError, ex:
+    except error.CmdError as ex:
         if ('Logical volume "%s" already exists in volume group "%s"' %
             (lv_snapshot_name, vg_name) in ex.result_obj.stderr and
             re.search(re.escape(lv_snapshot_name + " [active]"),
@@ -508,7 +508,7 @@ def lv_revert(vg_name, lv_name, lv_snapshot_name):
                                   lv_name)
         result = result.stdout.rstrip()
 
-    except error.TestError, ex:
+    except error.TestError as ex:
         # detect if merge of snapshot was postponed
         # and attempt to reactivate the volume.
         active_lv_pattern = re.escape("%s [active]" % lv_snapshot_name)
@@ -576,7 +576,7 @@ def lv_mount(vg_name, lv_name, mount_loc, create_filesystem=""):
                                                        vg_name, lv_name))
             logging.debug(result.stdout.rstrip())
         result = utils.run("mount /dev/%s/%s %s" % (vg_name, lv_name, mount_loc))
-    except error.CmdError, ex:
+    except error.CmdError as ex:
         logging.warning(ex)
         return False
     return True
@@ -592,7 +592,7 @@ def lv_umount(vg_name, lv_name, mount_loc):
 
     try:
         utils.run("umount /dev/%s/%s" % (vg_name, lv_name))
-    except error.CmdError, ex:
+    except error.CmdError as ex:
         logging.warning(ex)
         return False
     return True

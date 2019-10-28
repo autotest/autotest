@@ -199,7 +199,7 @@ def prepare_generate_control_file(tests, kernel, label, profilers):
     # ensure tests are all the same type
     try:
         test_type = get_consistent_value(test_objects, 'test_type')
-    except InconsistencyException, exc:
+    except InconsistencyException as exc:
         test1 = exc.args[0]
         test2 = exc.args[1]
         raise model_logic.ValidationError(

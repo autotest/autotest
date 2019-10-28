@@ -13,7 +13,7 @@ from base_classes import Host
 from remote import RemoteHost
 try:
     from site_host import SiteHost
-except ImportError, e:
+except ImportError as e:
     pass
 
 # host implementation classes

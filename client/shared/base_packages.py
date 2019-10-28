@@ -134,7 +134,7 @@ def check_diskspace(repo, min_free=None):
         df = repo_run_command(repo,
                               'df -PB %d . | tail -1' % 10 ** 9).stdout.split()
         free_space_gb = int(df[3])
-    except Exception, e:
+    except Exception as e:
         raise error.RepoUnknownError('Unknown Repo Error: %s' % e)
     if free_space_gb < min_free:
         raise error.RepoDiskFullError('Not enough disk space available '
@@ -293,7 +293,7 @@ class HttpFetcher(RepositoryFetcher):
             http_cmd = self.wget_cmd_pattern % (self.url, dest_file_path)
             try:
                 self.run_command(http_cmd, _run_command_dargs={'timeout': 30})
-            except Exception, e:
+            except Exception as e:
                 msg = 'HTTP test failed, unable to contact %s: %s'
                 raise error.PackageFetchError(msg % (self.url, e))
         finally:
@@ -436,7 +436,7 @@ class LocalFilesystemFetcher(RepositoryFetcher):
             self.run_command('cp %s %s' % (local_path, dest_path))
             logging.debug('Successfully fetched %s from %s', filename,
                           local_path)
-        except error.CmdError, e:
+        except error.CmdError as e:
             raise error.PackageFetchError(
                 'Package %s could not be fetched from %s'
                 % (filename, self.url), e)
@@ -552,7 +552,7 @@ class BasePackageManager(object):
             check_diskspace(repo)
             check_write(repo)
         except (error.RepoWriteError, error.RepoUnknownError,
-                error.RepoDiskFullError), e:
+                error.RepoDiskFullError) as e:
             raise error.RepoError("ERROR: Repo %s: %s" % (repo, e))
 
     def upkeep(self, custom_repos=None):
@@ -616,7 +616,7 @@ class BasePackageManager(object):
                                          repo_url=repo_url, install=True)
 
                 fetcher.install_pkg_post(pkg_name, fetch_dir, install_dir, preserve_install_dir)
-            except error.PackageFetchError, why:
+            except error.PackageFetchError as why:
                 raise error.PackageInstallError(
                     'Installation of %s(type:%s) failed : %s'
                     % (name, pkg_type, why))
@@ -785,7 +785,7 @@ class BasePackageManager(object):
                 shutil.copy(file_path, upload_path)
                 os.chmod(os.path.join(upload_path,
                                       os.path.basename(file_path)), 0644)
-        except (IOError, os.error), why:
+        except (IOError, os.error) as why:
             logging.error("Upload of %s to %s failed: %s", file_path,
                           upload_path, why)
 
@@ -814,7 +814,7 @@ class BasePackageManager(object):
                 utils.run("cp %s %s " % (local_path, upload_path))
                 up_path = os.path.join(upload_path, "*")
                 utils.run("chmod 644 %s" % up_path)
-        except (IOError, os.error), why:
+        except (IOError, os.error) as why:
             raise error.PackageUploadError("Upload of %s to %s failed: %s"
                                            % (dir_path, upload_path, why))
 
@@ -857,7 +857,7 @@ class BasePackageManager(object):
                                                      path))
             else:
                 os.remove(os.path.join(pkg_dir, filename))
-        except (IOError, os.error), why:
+        except (IOError, os.error) as why:
             raise error.PackageRemoveError("Could not remove %s from %s: %s "
                                            % (filename, pkg_dir, why))
 

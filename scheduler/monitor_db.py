@@ -810,7 +810,7 @@ class Dispatcher(object):
                                          metahost_profiles=metahost_profiles,
                                          atomic_group=atomic_group)
 
-            except Exception, ex:
+            except Exception as ex:
                 logging.exception(ex)
                 # TODO send email
 

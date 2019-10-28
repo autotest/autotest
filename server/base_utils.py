@@ -132,7 +132,7 @@ def __clean_tmp_dirs():
     for dir in __tmp_dirs[pid]:
         try:
             shutil.rmtree(dir)
-        except OSError, e:
+        except OSError as e:
             if e.errno == 2:
                 pass
     __tmp_dirs[pid] = []

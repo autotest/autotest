@@ -20,7 +20,7 @@ def main():
 
     try:
         opts, args = getopt.getopt(args, 't:l:', [])
-    except getopt.GetoptError, e:
+    except getopt.GetoptError as e:
         usage()
         print e
         sys.exit(1)

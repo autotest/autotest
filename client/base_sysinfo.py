@@ -289,7 +289,7 @@ class base_sysinfo(object):
                                               os.path.dirname(symlink_dest))
         try:
             os.symlink(symlink_src, symlink_dest)
-        except Exception, e:
+        except Exception as e:
             raise Exception('%s: whilst linking %s to %s' % (e, symlink_src,
                                                              symlink_dest))
 
@@ -367,11 +367,11 @@ class base_sysinfo(object):
             finally:
                 out_messages.close()
                 in_messages.close()
-        except ValueError, e:
+        except ValueError as e:
             logging.info(e)
         except (IOError, OSError):
             logging.info("Not logging %s (lack of permissions)", logpath)
-        except Exception, e:
+        except Exception as e:
             logging.info("System log collection failed: %s", e)
 
     @staticmethod

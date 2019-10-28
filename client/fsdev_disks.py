@@ -167,7 +167,7 @@ def mkfs_all_disks(job, disk_list, fs_type, fs_makeopt, fs_mnt_opt):
         if disk["mounted"]:
             try:
                 fs.unmount(mnt_path)
-            except Exception, info:
+            except Exception as info:
                 raise Exception("umount failed: exception = %s, args = %s" %
                                 (sys.exc_info()[0], info.args))
             except Exception:
@@ -190,9 +190,9 @@ def mkfs_all_disks(job, disk_list, fs_type, fs_makeopt, fs_mnt_opt):
             if fs_mnt_opt != "":
                 opts += " -o " + fs_mnt_opt
             fs.mount(mountpoint=mnt_path, fstype=fs_type, args=opts)
-        except NameError, info:
+        except NameError as info:
             raise Exception("mount name error: %s" % info)
-        except Exception, info:
+        except Exception as info:
             raise Exception("mount failed: exception = %s, args = %s" %
                             (type(info), info.args))
 
@@ -543,7 +543,7 @@ class fsdev_disks:
             if name == "scheduler":
                 nval = re.match(".*\[(.*)\].*", nval).group(1)
 
-        except IOError, info:
+        except IOError as info:
 
             # Special case: for some reason 'max_sectors_kb' often doesn't work
             # with large values; try '128' if we haven't tried it already.

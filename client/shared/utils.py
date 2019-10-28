@@ -2315,7 +2315,7 @@ def safe_rmdir(path, timeout=10):
             shutil.rmtree(path)
             success = True
             break
-        except OSError, err_info:
+        except OSError as err_info:
             # We are only going to try if the error happened due to
             # directory not empty (errno 39). Otherwise, raise the
             # original exception.
