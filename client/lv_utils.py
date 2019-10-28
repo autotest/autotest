@@ -60,7 +60,7 @@ def vg_ramdisk(vg_name, ramdisk_vg_size,
                        vg_name, use_tmpfs)
     result = ""
     if not os.path.exists(vg_ramdisk_dir):
-        os.mkdir(vg_ramdisk_dir)
+        os.makedirs(vg_ramdisk_dir)
     try:
         if use_tmpfs:
             logging.info("Mounting tmpfs")
