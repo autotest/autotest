@@ -47,9 +47,10 @@ def text_clean(text):
     deal with properly so this function just removes them from the text passed in.
     '''
     retval = text
-    retval = retval.replace('\xe2\x80\x98', "'")
-    retval = retval.replace('\xe2\x80\x99', "'")
-    retval = retval.replace('\xe2', "")
+    if text is not None:
+        retval = retval.replace('\xe2\x80\x98', "'")
+        retval = retval.replace('\xe2\x80\x99', "'")
+        retval = retval.replace('\xe2', "")
     return retval
 
 # file_load
