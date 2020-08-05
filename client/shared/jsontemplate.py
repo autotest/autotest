@@ -42,8 +42,11 @@ import pprint
 import re
 
 # For formatters
-import cgi  # cgi.escape
 import urllib  # for urllib.encode
+try:
+    from cgi import escape  # for cgi.escape
+except ImportError:
+    from html import escape # for html.escape
 
 
 class Error(Exception):
@@ -569,7 +572,7 @@ def _ToString(x):
 
 
 def _HtmlAttrValue(x):
-    return cgi.escape(x, quote=True)
+    return escape(x, quote=True)
 
 
 def _AbsUrl(relative_url, context, unused_args):
@@ -594,7 +597,7 @@ def _AbsUrl(relative_url, context, unused_args):
 # This is a *public* constant, so that callers can use it construct their own
 # formatter lookup dictionaries, and pass them in to Template.
 _DEFAULT_FORMATTERS = {
-    'html': cgi.escape,
+    'html': escape,
 
     # The 'htmltag' name is deprecated.  The html-attr-value name is preferred
     # because it can be read with "as":
@@ -621,7 +624,7 @@ _DEFAULT_FORMATTERS = {
 
     # Just show a plain URL on an HTML page (without anchor text).
     'plain-url': lambda x: '<a href="%s">%s</a>' % (
-        cgi.escape(x, quote=True), cgi.escape(x)),
+        escape(x, quote=True), escape(x)),
 
     # A context formatter
     'AbsUrl': _AbsUrl,

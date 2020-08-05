@@ -1,8 +1,11 @@
-import cgi
 import sys
 import traceback
 
 import httplib2
+try:
+    from cgi import escape  # for cgi.escape
+except ImportError:
+    from html import escape # for html.escape
 from autotest.client.shared import utils
 from autotest.frontend import views_common
 from autotest.frontend.afe import models, rpc_handler, rpc_interface
@@ -66,6 +69,6 @@ def handler500(request):
     context = Context({
         'type': sys.exc_type,
         'value': sys.exc_value,
-        'traceback': cgi.escape(trace)
+        'traceback': escape(trace)
     })
     return HttpResponseServerError(t.render(context))
