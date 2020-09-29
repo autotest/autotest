@@ -1001,7 +1001,12 @@ class base_server_job(base_job.base_job):
                 existing_machines_text = None
             if machines_text != existing_machines_text:
                 utils.open_write_close(MACHINES_FILENAME, machines_text)
-        execfile(code_file, namespace, namespace)
+        try:
+            execfile(code_file, namespace, namespace)
+        except NameError:
+            with open(code_file) as f:
+                code = compile(f.read(), codefile, 'exec')
+                exec(code, namespace, namespace)
 
     def _parse_status(self, new_line):
         if not self._using_parser:

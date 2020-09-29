@@ -34,7 +34,12 @@ def import_config_file(path):
     namespace = namespace_type()
 
     # execute the file using the given namespace
-    execfile(path, namespace.__dict__)
+    try:
+        execfile(path, namespace.__dict__)
+    except NameError:
+        with open(path) as f:
+            code = compile(f.read(), path, 'exec')
+            exec(code, namespace.__dict__)
 
     return namespace
 

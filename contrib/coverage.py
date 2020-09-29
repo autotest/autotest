@@ -406,7 +406,12 @@ class coverage:
             sys.path[0] = os.path.dirname(sys.argv[0])
             # the line below is needed since otherwise __file__ gets fucked
             __main__.__dict__["__file__"] = sys.argv[0]
-            execfile(sys.argv[0], __main__.__dict__)
+            try:
+                execfile(sys.argv[0], __main__.__dict__)
+            except NameError:
+                with open(sys.argv[0]) as f:
+                    code = compile(f.read(), sys.argv[0], 'exec')
+                    exec(code, __main__.__dict__)
         if settings.get('collect'):
             self.collect()
         if not args:
