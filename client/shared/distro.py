@@ -263,7 +263,13 @@ class StdLibProbe(Probe):
         release = UNKNOWN_DISTRO_RELEASE
         arch = UNKNOWN_DISTRO_ARCH
 
-        d_name, d_version_release, d_codename = platform.dist()
+        try:
+            d_name, d_version_release, d_codename = platform.dist()
+        except AttributeError:
+            import distro
+            d_name = distro.name()
+            d_version_release = distro.version()
+            d_codename = distro.codename()
         if d_name:
             name = d_name
 

@@ -864,7 +864,14 @@ class Grubby(object):
 
     def _dist_uses_grub2(self):
         if self.get_architecture().startswith('ppc64'):
-            (d_name, d_version, d_id) = platform.dist()
+            try:
+                d_name, d_version, d_id = platform.dist()
+            except AttributeError:
+                import distro
+                d_name = distro.name()
+                d_version = distro.version()
+                d_id = distro.codename()
+
             if d_name.lower() == 'redhat' and d_version >= 7:
                 return True
             if d_name.lower() == 'suse' and d_version >= 12:
