@@ -68,7 +68,7 @@ Do
 Use of the commands API, or os.system
 -------------------------------------
 
-Autotest already provides utility methods that are preferrable over os.system
+Autotest already provides utility methods that are preferable over os.system
 or commands.getstatus() and the likes. The APIs are called utils.system, utils.run,
 utils.system_output. They raise exceptions in case of a return code !=0, so
 keep this in mind (either you pass ignore_status=True or trap an exception

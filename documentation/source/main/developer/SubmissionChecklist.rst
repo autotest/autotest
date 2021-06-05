@@ -14,7 +14,7 @@ In order to keep code review in one place, making the work of our maintainers
 easier, we decided to make pull requests the primary means to contributing to
 all projects inside the autotest umbrella.
 
-That means it is highly preferrable to send pull requests, rather than patches
+That means it is highly preferable to send pull requests, rather than patches
 to the mailing list. If you feel strongly against using pull requests, we'll
 take your patches, but please consider using the recommended method, as it is
 considered nicer with the maintainers.

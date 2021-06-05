@@ -95,7 +95,7 @@ To do that simply call the function :func:`register_probe`:
 
 .. autofunction:: register_probe
 
-Now, remember that for things to happen smootlhy your registered probe must be a subclass of :class:`Probe`.
+Now, remember that for things to happen smoothly your registered probe must be a subclass of :class:`Probe`.
 
 
 API Reference

@@ -688,7 +688,7 @@ def parse_lsmod_for_module(l_raw, module_name, escape=True):
         module_search = module_name
     # ^module_name spaces size spaces used optional spaces optional submodules
     # use multiline regex to scan the entire output as one string without having to splitlines
-    # use named matches so we can extract the dictionaty with groupdict
+    # use named matches so we can extract the dictionary with groupdict
     lsmod = re.search(r"^(?P<name>%s)\s+(?P<size>\d+)\s+(?P<used>\d+)\s*(?P<submodules>\S+)?$" %
                       module_search, l_raw, re.M)
     if lsmod:
