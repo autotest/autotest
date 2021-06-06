@@ -116,13 +116,13 @@ def check_diskspace(repo, min_free=None):
     Check if the remote directory over at the pkg repo has available diskspace
 
     If the amount of free space is not supplied, it is taken from the global
-    configuration file, section [PACKAGES], key 'mininum_free_space'. The unit
+    configuration file, section [PACKAGES], key 'minimum_free_space'. The unit
     used are in SI, that is, 1 GB = 10**9 bytes.
 
     :type repo: string
     :param repo: a remote package repo URL
     :type min_free: int
-    :param: min_free mininum amount of free space, in GB (10**9 bytes)
+    :param: min_free minimum amount of free space, in GB (10**9 bytes)
     :raise error.RepoUnknownError: general repository error condition
     :raise error.RepoDiskFullError: repository does not have at least the
         requested amount of free disk space.

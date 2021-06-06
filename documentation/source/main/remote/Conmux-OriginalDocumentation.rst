@@ -37,7 +37,7 @@ is elm3b70.
     elm3b70 login:
 
 Once connected we can interact normally with the console stream. To
-perform front pannel operation such as peforming an hard reset we switch
+perform front pannel operation such as performing an hard reset we switch
 to command mode. This is achieved using the escape sequence ~$. Note the
 prompt Command>
 
@@ -55,7 +55,7 @@ The following commands are generally available:
 +-------------+------------------------------------------------------------------------------------------------------------------------------------+
 | Command     | Description                                                                                                                        |
 +-------------+------------------------------------------------------------------------------------------------------------------------------------+
-| quit        | quit this console session, note that this disconnects us from the session it does not affect the integity of the session itself.   |
+| quit        | quit this console session, note that this disconnects us from the session it does not affect the integrity of the session itself.   |
 +-------------+------------------------------------------------------------------------------------------------------------------------------------+
 | hardreset   | force a hard reset on the machine, this may be a simple reset or a power off/on sequence whatever is required by this system.      |
 +-------------+------------------------------------------------------------------------------------------------------------------------------------+

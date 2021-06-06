@@ -3,7 +3,7 @@
 
 """
 This class allows you to communicate with the frontend to submit jobs etc
-It is designed for writing more sophisiticated server-side control files that
+It is designed for writing more sophisticated server-side control files that
 can recursively add and manage other jobs.
 
 We turn the JSON dictionaries into real objects that are more idiomatic

@@ -20,8 +20,8 @@ class ProgressBar:
         '''
         Initializes a new progress bar
 
-        :type mininum: integer
-        :param mininum: mininum (initial) value on the progress bar
+        :type minimum: integer
+        :param minimum: minimum (initial) value on the progress bar
         :type maximum: integer
         :param maximum: maximum (final) value on the progress bar
         :type width: integer

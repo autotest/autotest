@@ -2300,7 +2300,7 @@ def safe_rmdir(path, timeout=10):
                     giving up (seconds)
     :type timeout: int
     :raises: OSError, with errno 39 in case after the timeout
-             shutil.rmtree could not successfuly complete. If any attempt
+             shutil.rmtree could not successfully complete. If any attempt
              to rmtree fails with errno different than 39, that exception
              will be just raised.
     """

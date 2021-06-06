@@ -289,7 +289,7 @@ class Iso9660Mount(BaseIso9660):
 
 def iso9660(path):
     '''
-    Checks the avaiable tools on a system and chooses class accordingly
+    Checks the available tools on a system and chooses class accordingly
 
     This is a convinience function, that will pick the first avaialable
     iso9660 capable tool.

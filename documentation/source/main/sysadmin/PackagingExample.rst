@@ -8,7 +8,7 @@ packaging repository. After that there will be a section going over how
 to add another seperate machine as a remote repository for packages.
 
 By setting up packaging in Autotest you can reduce the amount of files
-transferred to clients running jobs which generally descreases the
+transferred to clients running jobs which generally decreases the
 amount of setup time Autotest has to do for clients.
 
 Setting up your Autotest server as a packaging repository
