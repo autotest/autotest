@@ -7,4 +7,4 @@ virtualenv==1.9.1
 django==2.2.28
 aexpect==1.4.0
 inspektor==0.4.5
-protobuf==2.6.1
+protobuf==3.18.3
