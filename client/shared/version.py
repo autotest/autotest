@@ -110,4 +110,4 @@ def get_version(abbrev=4):
 
 
 if __name__ == "__main__":
-    print get_version()
+    print(get_version())
