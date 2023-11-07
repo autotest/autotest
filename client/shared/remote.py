@@ -992,8 +992,10 @@ class RemoteRunner(object):
         else:
             self.session = session
         # Init stdout pipe and stderr pipe.
-        self.stdout_pipe = tempfile.mktemp()
-        self.stderr_pipe = tempfile.mktemp()
+        self.fd_stdout, self.stdout_pipe = tempfile.mkstemp()
+        os.close(self.fd_stdout)
+        self.fd_stderr, self.stderr_pipe = tempfile.mkstemp()
+        os.close(self.fd_stderr)
 
     def run(self, command, timeout=60, ignore_status=False):
         """
