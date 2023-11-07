@@ -130,6 +130,7 @@ class TestKernelConfig(unittest.TestCase):
 
     def tearDown(self):
         os.unlink(self.config_modules_path)
+        os.close(self.config_modules_fd)
 
 
 if __name__ == "__main__":
