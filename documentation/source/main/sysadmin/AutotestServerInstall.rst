@@ -269,6 +269,9 @@ Section SERVER
     # Use SMTP password
     # It only makes sense if SMTP user is set
     smtp_password:
+    # Use SMTP with SSL/TLS
+    # If none provided, will use the default SMTP
+    smtp_secure:
 
 Run DB migrations to set up DB schemas and initial data
 -------------------------------------------------------
