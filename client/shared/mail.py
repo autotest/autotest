@@ -81,7 +81,10 @@ def send(from_address, to_addresses, cc_addresses, subject, body,
 
     try:
         if smtp_info['server']:
-            mailer = smtplib.SMTP(smtp_info['server'], smtp_info['port'])
+            if smtp_info['secure']:
+                mailer = smtplib.SMTP_SSL(smtp_info['server'], smtp_info['port'])
+            else:
+                mailer = smtplib.SMTP(smtp_info['server'], smtp_info['port'])
         else:
             logging.info("No SMTP server specified, will try to connect to "
                          "the local MTA")
