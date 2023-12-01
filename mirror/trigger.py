@@ -214,7 +214,7 @@ class email_action(base_action):
     """
     _MAIL = 'sendmail'
 
-    def __init__(self, dest_addr, from_addr='autotest-server@localhost'):
+    def __init__(self, dest_addr, from_addr='autotest-server@localhost', host=None, port=None, user=None, password=None, secure=False):
         """
         Create an email_action instance.
 
@@ -230,6 +230,11 @@ class email_action(base_action):
             self._dest_addr = dest_addr
 
         self._from_addr = from_addr
+        self._host = host
+        self._port = port
+        self._user = user
+        self._password = password
+        self._secure = secure
 
     def __call__(self, kernel_list):
         if not kernel_list:
@@ -248,7 +253,11 @@ class email_action(base_action):
         message.set_payload(message_text)
 
         if self._sendmail(message.as_string()):
-            server = smtplib.SMTP('localhost')
+            if self._secure:
+                server = smtplib.SMTP_SSL(self._host, self._port)
+                server.login(self._user, self._password)
+            else:
+                server = smtplib.SMTP('localhost')
             try:
                 server.sendmail(self._from_addr, self._dest_addr,
                                 message.as_string())
