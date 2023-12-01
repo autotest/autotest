@@ -25,21 +25,27 @@ def get_public_key():
     rsa_public_key_path = os.path.join(ssh_conf_path, 'id_rsa.pub')
     rsa_private_key_path = os.path.join(ssh_conf_path, 'id_rsa')
 
+    ed25519_public_key_path = os.path.join(ssh_conf_path, 'id_ed25519.pub')
+    ed25519_private_key_path = os.path.join(ssh_conf_path, 'id_ed25519')
+
     has_dsa_keypair = (os.path.isfile(dsa_public_key_path) and
                        os.path.isfile(dsa_private_key_path))
     has_rsa_keypair = (os.path.isfile(rsa_public_key_path) and
                        os.path.isfile(rsa_private_key_path))
+    has_ed25519_keypair = (os.path.isfile(ed25519_public_key_path) and
+                           os.path.isfile(ed25519_private_key_path))
 
     if has_dsa_keypair:
         logging.info('DSA keypair found, using it')
         public_key_path = dsa_public_key_path
-
     elif has_rsa_keypair:
         logging.info('RSA keypair found, using it')
         public_key_path = rsa_public_key_path
-
+    elif has_ed25519_keypair:
+        logging.info('ED25519 keypair found, using it')
+        public_key_path = has_ed25519_keypair
     else:
-        logging.info('Neither RSA nor DSA keypair found, '
+        logging.info('Neither RSA nor DSA nor ED25519 keypair found, '
                      'creating DSA ssh key pair')
         utils.system('ssh-keygen -t dsa -q -N "" -f %s' % dsa_private_key_path)
         public_key_path = dsa_public_key_path
@@ -71,13 +77,19 @@ def get_remote_public_key(session):
     rsa_public_key_path = os.path.join(ssh_conf_path, 'id_rsa.pub')
     rsa_private_key_path = os.path.join(ssh_conf_path, 'id_rsa')
 
+    ed25519_public_key_path = os.path.join(ssh_conf_path, 'id_ed25519.pub')
+    ed25519_private_key_path = os.path.join(ssh_conf_path, 'id_ed25519')
+
     dsa_public_s = session.cmd_status("ls %s" % dsa_public_key_path)
     dsa_private_s = session.cmd_status("ls %s" % dsa_private_key_path)
     rsa_public_s = session.cmd_status("ls %s" % rsa_public_key_path)
     rsa_private_s = session.cmd_status("ls %s" % rsa_private_key_path)
+    ed25519_public_s = session.cmd_status("ls %s" % ed25519_public_key_path)
+    ed25519_private_s = session.cmd_status("ls %s" % ed25519_private_key_path)
 
     has_dsa_keypair = dsa_public_s == 0 and dsa_private_s == 0
     has_rsa_keypair = rsa_public_s == 0 and rsa_private_s == 0
+    has_ed25519_keypair = ed25519_public_s == 0 and ed25519_private_s == 0
 
     if has_dsa_keypair:
         logging.info('DSA keypair found on %s, using it', session)
@@ -86,9 +98,12 @@ def get_remote_public_key(session):
     elif has_rsa_keypair:
         logging.info('RSA keypair found on %s, using it', session)
         public_key_path = rsa_public_key_path
+    elif has_ed25519_keypair:
+        logging.info('ED25519 keypair found on %s, using it', session)
+        public_key_path = ed25519_public_key_path
 
     else:
-        logging.info('Neither RSA nor DSA keypair found, '
+        logging.info('Neither RSA nor DSA nor ED25519 keypair found, '
                      'creating DSA ssh key pair')
         session.cmd('ssh-keygen -t dsa -q -N "" -f %s' % dsa_private_key_path)
         public_key_path = dsa_public_key_path
