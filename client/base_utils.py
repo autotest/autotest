@@ -345,7 +345,7 @@ def get_cpu_vendor_name():
     """
     Get the current cpu vendor name
 
-    :returns: string 'intel' or 'amd' or 'hygon' or 'kunpeng' or 'power7' depending on the current CPU architecture.
+    :returns: string 'intel' or 'amd' or 'hygon' or 'kunpeng' or 'pangu' or 'power7' depending on the current CPU architecture.
     :rtype: `string`
     """
     vendors_map = {
@@ -353,6 +353,7 @@ def get_cpu_vendor_name():
         'amd': ("AMD", ),
         'hygon': ("HygonGenuine", ),
         'kunpeng': ("HiSilicon",),
+        'pangu': ("PANGU",),
         'power7': ("POWER7", )
     }
 
