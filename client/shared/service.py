@@ -19,7 +19,7 @@
 import logging
 import os
 import re
-from tempfile import mktemp
+from tempfile import mkstemp
 
 from autotest.client import utils
 
@@ -647,9 +647,10 @@ class _SystemdServiceManager(_GenericServiceManager):
         :param runlevel: default systemd target
         :type runlevel: str
         """
-        tmp_symlink = mktemp(dir="/etc/systemd/system")
+        fd_symlink, tmp_symlink = mkstemp(dir="/etc/systemd/system")
         os.symlink("/usr/lib/systemd/system/%s" % runlevel, tmp_symlink)
         os.rename(tmp_symlink, "/etc/systemd/system/default.target")
+        os.close(fd_symlink)
 
 
 _command_generators = {"init": sys_v_init_command_generator,

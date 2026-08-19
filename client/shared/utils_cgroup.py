@@ -634,7 +634,7 @@ def get_cgroup_mountpoint(controller):
     """
     if controller not in get_all_controllers():
         raise error.TestError("Doesn't support controller <%s>" % controller)
-    f_cgcon = open("/proc/mounts", "rU")
+    f_cgcon = open("/proc/mounts", "r")
     cgconf_txt = f_cgcon.read()
     f_cgcon.close()
     mntpt = re.findall(r"\s(\S*cgroup/\S*,*%s,*\S*)" % controller, cgconf_txt)
