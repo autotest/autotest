@@ -44,6 +44,9 @@ class EmailNotificationManager(object):
         self._smtp_password = settings.get_value(CONFIG_SECTION_SMTP,
                                                  "smtp_password", default='')
 
+        self._smtp_secure = settings.get_value(CONFIG_SECTION_SMTP,
+                                                  "smtp_secure", default='')
+
     def send_email(self, to_string, subject, body):
         """Mails out emails to the addresses listed in to_string.
 
@@ -58,7 +61,10 @@ class EmailNotificationManager(object):
         msg = "From: %s\nTo: %s\nSubject: %s\n\n%s" % (
             self._from_address, ', '.join(to_list), subject, body)
         try:
-            mailer = smtplib.SMTP(self._smtp_server, self._smtp_port)
+            if self._smtp_secure:
+                mailer = smtplib.SMTP_SSL(self._smtp_server, self._smtp_port)
+            else:
+                mailer = smtplib.SMTP(self._smtp_server, self._smtp_port)
             try:
                 if self._smtp_user:
                     mailer.login(self._smtp_user, self._smtp_password)
