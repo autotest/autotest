@@ -3,7 +3,7 @@ coverage==3.6
 nose==1.3.0
 nosexcover==1.0.8
 tox==1.5.0
-virtualenv==20.36.1
+virtualenv==21.7.13
 django==5.2.16
 aexpect==1.4.0
 inspektor==0.4.5
