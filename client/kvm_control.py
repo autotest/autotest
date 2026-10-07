@@ -18,6 +18,7 @@ def get_kvm_arch():
         "amd": "kvm_amd",
         "hygon": "kvm_amd",
         "kunpeng": "kvm_arm",
+        "pangu": "kvm_arm",
         "intel": "kvm_intel",
         "power7": "kvm_power7"
     }
@@ -30,12 +31,12 @@ def get_kvm_arch():
     vendor_name = utils.get_cpu_vendor_name()
 
     if not vendor_name:
-        raise error.TestError("CPU Must be AMD, Hygon, kunpeng, Intel or Power7")
+        raise error.TestError("CPU Must be AMD, Hygon, kunpeng, pangu, Intel or Power7")
 
     arch_type = kvm_archs.get(vendor_name, None)
     cpu_flag = flags.get(arch_type, None)
 
-    if cpu_flag is None and vendor_name in ('power7', 'kunpeng', ):
+    if cpu_flag is None and vendor_name in ('power7', 'kunpeng', 'pangu'):
         return arch_type
 
     if not utils.cpu_has_flags(cpu_flag):

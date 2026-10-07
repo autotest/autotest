@@ -58,6 +58,9 @@ class test_kvm_control(unittest.TestCase):
         self._mock_cpu_info("HiSilicon")
         self.assertTrue(kvm_control.get_kvm_arch() == 'kvm_arm')
 
+        self._mock_cpu_info("PANGU")
+        self.assertTrue(kvm_control.get_kvm_arch() == 'kvm_arm')
+
         self._mock_cpu_info("POWER7")
         self.assertTrue(kvm_control.get_kvm_arch() == 'kvm_power7')
 
@@ -68,6 +71,9 @@ class test_kvm_control(unittest.TestCase):
         self.assertRaises(error.TestError, kvm_control.get_kvm_arch)
 
         self._mock_cpu_info("HiSilicon")
+        self.assertRaises(error.TestError, kvm_control.get_kvm_arch)
+
+        self._mock_cpu_info("PANGU")
         self.assertRaises(error.TestError, kvm_control.get_kvm_arch)
 
         self._mock_cpu_info("InvalidCPU")
